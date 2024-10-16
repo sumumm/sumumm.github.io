@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是任务之间的通信——互斥锁的使用方法的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV01-01-AliOSThings-12-任务间通信-04-互斥锁的使用方法">
+<meta property="og:url" content="https://sumumm.github.io/post/f96b0d3a.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是任务之间的通信——互斥锁的使用方法的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20200806170150477.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20200806170304701.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/2.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/v2-39f5dabe2fdc9d411f654ab2fa86e94a_r.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20200806171723214.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20200806171830004.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20200806171909966-1701777539991-17.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20200806172217059.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20231205221355385.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20231205221514645.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20200806173740445.png">
+<meta property="article:published_time" content="2023-12-11T15:09:53.000Z">
+<meta property="article:modified_time" content="2024-10-16T16:02:43.615Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV21-天猫精灵IOT">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20200806170150477.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/f96b0d3a.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/f96b0d3a.html","path":"post/f96b0d3a.html","title":"LV01-01-AliOSThings-12-任务间通信-04-互斥锁的使用方法"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV01-01-AliOSThings-12-任务间通信-04-互斥锁的使用方法 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">35</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">528</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%9F%A5%E7%9C%8B%E5%AE%98%E6%96%B9%E6%96%87%E6%A1%A3"><span class="nav-text">一、查看官方文档</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E6%A6%82%E5%BF%B5"><span class="nav-text">1. 互斥锁的概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%9C%89%E5%93%AA%E4%BA%9BAPI%EF%BC%9F"><span class="nav-text">2. 有哪些API？</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%88%86%E6%9E%90API"><span class="nav-text">二、分析API</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86"><span class="nav-text">1. 互斥锁的基本原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E5%BB%BA%E4%BA%92%E6%96%A5%E9%94%81"><span class="nav-text">2. 创建互斥锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%8E%B7%E5%8F%96%E4%BA%92%E6%96%A5%E9%94%81"><span class="nav-text">3. 获取互斥锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E9%87%8A%E6%94%BE%E4%BA%92%E6%96%A5%E9%94%81"><span class="nav-text">3. 释放互斥锁</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E5%AE%98%E6%96%B9demo"><span class="nav-text">三、官方demo</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">528</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">35</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">35</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/f96b0d3a.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV01-01-AliOSThings-12-任务间通信-04-互斥锁的使用方法 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV01-01-AliOSThings-12-任务间通信-04-互斥锁的使用方法
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-12-11 23:09:53" itemprop="dateCreated datePublished" datetime="2023-12-11T23:09:53+08:00">2023-12-11</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/" itemprop="url" rel="index"><span itemprop="name">LV21-天猫精灵IOT</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.9k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>14 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是任务之间的通信——互斥锁的使用方法的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows版本</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu版本</td>        <td align="left">Ubuntu22.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="6">官方网站</td>        <td align="left"><a href="https://cn.aliyun.com/" target="_blank">阿里云</a></td>        <td align="left">阿里云官网主页</td>    </tr>    <tr>        <td align="left"><a href="https://www.aliyun.com/product/iot/livinglink?spm=5176.28508143.J_4VYgf18xNlTAyFFbOuOQe.317.5421154acZniIL&scm=20140722.X_data-1da961ea118f5bb0e4b2._.V_1" target="_blank">阿里生活物联平台</a></td>        <td align="left">生活物联网平台(飞燕平台)主页</td>    </tr>    <tr>        <td align="left"><a href="https://iap.aligenie.com/?spm=0.7629140.0.0.2c611780Ty6tzg" target="_blank">AliGenie</a></td>        <td align="left">天猫精灵开放平台AliGenie主页</td>    </tr>    <tr>        <td align="left"><a href="https://www.aliyun.com/product/iot/iot_instc_public_cn?spm=5176.28508143.J_4VYgf18xNlTAyFFbOuOQe.81.5421154au3ocqp&scm=20140722.X_data-9349178ba84cf028806a._.V_1" target="_blank">阿里物联网平台</a></td>        <td align="left">阿里物联网平台主页</td>    </tr>    <tr>        <td align="left"><a href="https://www.bluetooth.com/zh-cn/" target="_blank">Bluetooth 技术网站</a></td>        <td align="left">蓝牙协议规范什么的可以来这里找</td>    </tr>    <tr>        <td align="left"><a href="https://www.telink-semi.com/" target="_blank">Telink</a></td>        <td align="left">Telink | Chips for a Smarter IoT (telink-semi.com)<br><a href="https://www.telink-semi.cn/" target="_blank">Telink中文官网</a></td>    </tr>    <tr>        <td align="center" rowspan="5">开发手册</td>        <td align="left"><a href="https://help.aliyun.com/zh/alios-things/" target="_blank">AliOS Things开发指南</a></td>        <td align="left">AliOS Things开发指南，这里是最新版本，可以直接从官网找到</td>    </tr>     <tr>        <td align="left"><a href="https://haas.iot.aliyun.com/aliosthings/index.html" target="_blank">AliOS Things开发指南</a></td>        <td align="left">AliOS Things应用开发指南，这里应该是3.3版本的完整开发文档</td>    </tr>    <tr>        <td align="left"><a href="https://gaic.alicdn.com/aic/h5_daily/test/aliosthings/3.0.13/index.html" target="_blank">AliOS Things开发指南(3.0)</a></td>        <td align="left">AliOS Things应用开发指南，这里应该是3.0版本的完整开发文档</td>    </tr>    <tr>        <td align="left"><a href="https://help.aliyun.com/product/123207.html?spm=a2c4g.11186623.6.540.114e60d84sF58G" target="_blank">生活物联网平台开发文档</a></td>        <td align="left">生活物联网平台（飞燕平台）开发文档<br><a href="https://help.aliyun.com/document_detail/180778.html?spm=a2c4g.123207.0.0.49556adcO5apvd" target="_blank">《设备端开发指南》</a></td>    </tr>    <tr>        <td align="left"><a href="https://doc-bot.tmall.com/docs/doc.htm?spm=0.7629140.0.0.7bf81780UN7WkQ&treeId=578&articleId=118057&docType=1" target="_blank">Wi-Fi IoT品类定义与功能开发</a></td>        <td align="left">天猫精灵IoT开放平台——Wi-Fi IoT品类定义与功能开发</td>    </tr>    <tr>        <td align="center" rowspan="3">硬件平台</td>        <td align="left"><a href="https://developer.aliyun.com/article/761644?spm=a2c6h.12873581.0.dArticle761644.1c1b589dRHgvcR&groupCode=genieaiot" target="_blank">mk3080 WiFi开发板</a></td>        <td align="left">WiFi开发板使用指南-阿里云开发者社区</td>    </tr>    <tr>        <td align="left"><a href="http://www.taichi-maker.com/homepage/esp8266-nodemcu-iot/esp8266-nodemcu-tutorial-index/" target="_blank">esp8266开发板</a></td>        <td align="left">一个教程：ESP8266-NodeMCU开发板详解-太极创客 (taichi-maker.com)</td>    </tr>    <tr>        <td align="left"><a href="https://wiki.telink-semi.cn/doc/ds/DS_TLSR8258-E_Datasheet%20for%20Telink%20BLE+IEEE802.15.4%20Multi-Standard%20Wireless%20SoC%20TLSR8258.pdf" target="_blank">TLSR8258 Datasheet</a></td>        <td align="left">Datasheet for Telink BLE + IEEE802.15.4 MultiStandard Wireless SoC TLSR8258</td>    </tr>    <tr>        <td align="center" rowspan="2">参考资料</td>        <td align="left"><a href="https://developer.aliyun.com/article/720516#" target="_blank">AliOS Things 3.0 应用开发指南</a></td>        <td align="left">这个只是一篇参考文章，里面是一些环境搭建相关的，可以参考</td>    </tr>    <tr>        <td align="left"><a href="https://info.support.huawei.com/info-finder/encyclopedia/zh/index.html" target="_blank">IP知识百科 - 华为 (huawei.com)</a></td>        <td align="left">IP的一些相关知识点</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="left" rowspan="6">蓝牙规范相关文档</td>        <td align="left"><a href="https://www.bluetooth.com/zh-cn/specifications/specs/core-specification-5-2/" target="_blank">Core Specification 5.2</a></td>        <td align="left">核心规格 5.2，该规范定义了创建可互操作的Bluetooth 设备所需的技术。                        <br><a href="./蓝牙参考资料/Core_v5.2.pdf" target="_blank">《Core_v5.2.pdf》</a></td>      </tr>    <tr>        <td align="left"><a href="https://www.bluetooth.com/zh-cn/specifications/specs/mesh-model-1-1/" target="_blank">Mesh Model(v1.1)</a></td>        <td align="left">本Bluetooth 规范定义了模型（以及它们所需的状态和消息），这些模型用于在mesh 网络中的节点上执行基本功能，超出了Bluetooth Mesh 配置文件 规范中定义的基础模型。                        <br>本规范包括定义跨设备类型标准功能的通用模型，以及支持关键mesh 场景的模型，如照明控制、传感器、时间和场景。                        <br><a href="./蓝牙参考资料/MshMDL_v1.1.pdf" target="_blank">《MshMDL_v1.1.pdf》</a></td>      </tr>    <tr>        <td align="left"><a href="https://www.bluetooth.com/zh-cn/specifications/specs/mesh-profile-1-0-1/" target="_blank">Mesh Profile(v1.0.1)</a></td>        <td align="left">该Bluetooth 规范定义了基本要求，以实现可互操作的mesh 网络解决方案，用于Bluetooth 低能量无线技术。                        <br><a href="./蓝牙参考资料/MshPRFv1.0.1.pdf" target="_blank">《MshPRFv1.0.1.pdf》</a></td>      </tr>    <tr>        <td align="left"><a href="https://www.bluetooth.com/zh-cn/specifications/device-properties/" target="_blank">Mesh Device Properties</a></td>        <td align="left">本规范包含Bluetooth Mesh 配置文件 和Bluetooth Mesh 模型规范所要求的设备属性的定义。                        <br>但是跟之前的有些区别，我主要看的之前的版本：<a href="./蓝牙参考资料/MeshDeviceProperties_v1.2.pdf" target="_blank">《MMeshDeviceProperties_v1.2.pdf》</a></td>      </tr>    <tr>        <td align="left"><a href="https://www.bluetooth.com/specifications/gss/" target="_blank">GATT Specification Supplement</a></td>        <td align="left">GATT Specification Supplement | Bluetooth® Technology Website。                        <br>好像可以在线看：<a href="https://btprodspecificationrefs.blob.core.windows.net/gatt-specification-supplement/GATT_Specification_Supplement.pdf" target="_blank">《GATT Specification Supplement》</a></td>      </tr>     <tr>        <td align="left"><a href="https://www.bluetooth.com/specifications/assigned-numbers/" target="_blank">Assigned Numbers</a></td>        <td align="left">GATT的一些类型定义可以在这里找。</td>      </tr>    <tr>        <td align="left" rowspan="2">AliOS Things</td>        <td align="left"><a href="https://gitee.com/alios-things-admin/AliOS-Things" target="_blank">alios-things/AliOS-Things</a></td>        <td align="left">Gitee上的AliOSThings SDK源码仓库</td>      </tr>    <tr>        <td align="left"><a href="https://github.com/alibaba/AliOS-Things" target="_blank">alibaba/AliOS-Things</a></td>        <td align="left">GitHub上的AliOSThings SDK源码仓库</td>      </tr>    <tr>        <td align="left" rowspan="2">天猫精灵蓝牙Mesh协议栈</td>        <td align="left"><a href="https://github.com/alibaba-archive/genie-bt-mesh-stack" target="_blank">alibaba-archive/genie-bt-mesh-stack</a></td>        <td align="left">GitHub上的天猫精灵蓝牙Mesh协议栈源码仓库。<br>之前是在<a href="https://github.com/alibaba/genie-bt-mesh-stack"target="_blank">alibaba/genie-bt-mesh-stack</a>这个仓库。<br>写笔记的时候最新提交为<a href="https://github.com/alibaba-archive/genie-bt-mesh-stack/tree/faf523618a6a2560090fc423222b9db80984bb7a" target="_blank">faf523618a6a2560090fc423222b9db80984bb7a</a></td>      </tr>    <tr>        <td align="left"><a href="https://help.aliyun.com/document_detail/171552.html?spm=a2c4g.173310.0.0.55d6e992e8xJip" target="_blank">蓝牙Mesh设备开发指南</a></td>        <td align="left">阿里云生活服务平台开发手册——蓝牙设备开发一节中的内容</td>      </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、查看官方文档"><a href="#一、查看官方文档" class="headerlink" title="一、查看官方文档"></a><font size=3>一、查看官方文档</font></h1><h2 id="1-互斥锁的概念"><a href="#1-互斥锁的概念" class="headerlink" title="1. 互斥锁的概念"></a><font size=3>1. 互斥锁的概念</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20200806170150477.png" alt="image-20200806170150477" />
+
+<h2 id="2-有哪些API？"><a href="#2-有哪些API？" class="headerlink" title="2. 有哪些API？"></a><font size=3>2. 有哪些API？</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20200806170304701.png" alt="image-20200806170304701" />
+
+<p>这些API都在AOS_ADK_PATH&#x2F;include&#x2F;aos&#x2F;kernel.h中被声明，使用的时候要包含此头文件。</p>
+<h1 id="二、分析API"><a href="#二、分析API" class="headerlink" title="二、分析API"></a><font size=3>二、分析API</font></h1><h2 id="1-互斥锁的基本原理"><a href="#1-互斥锁的基本原理" class="headerlink" title="1. 互斥锁的基本原理"></a><font size=3>1. 互斥锁的基本原理</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/2.jpg" alt="2" style="zoom:50%;" />
+
+<p>需要知道的是，互斥锁会暂时提高低优先级的任务的优先级，防止出现优先级翻转的问题。什么是优先级翻转？</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/v2-39f5dabe2fdc9d411f654ab2fa86e94a_r.png" alt="img" />
+
+<ul>
+<li>线程A在一个比较低的优先级上工作, 假设是10吧。然后在时间点T1的时候，线程A锁定了一把互斥锁，并开始操作互斥数据。</li>
+<li>这时有个高优线级线程C（比如优先级20）在时间点T2被唤醒，它也也需要操作互斥数据。当它加锁互斥锁时，因为互斥锁在T1被线程A锁掉了，所以线程C放弃CPU进入阻塞状态，而线程A得以占据CPU，继续执行。</li>
+<li>事情到这一步还是正确的，虽然优先级10的A线程看上去抢了优先级20的C线程的时间，但因为程序逻辑，C确实需要退出CPU等完成互斥数据操作后，才能获得CPU。</li>
+<li>但是，假设我们有个线程B在优先级15上，在T3时间点上醒了过来，因为他比当前执行的线程A优先级高，所以它会立即抢占CPU。而线程A被迫进入READY状态等待。</li>
+<li>一直到时间点T4，线程B放弃CPU，这时优先级10的线程A是唯一READY线程，它再次占据CPU继续执行，最后在T5解锁了互斥锁。</li>
+<li>在T5，线程A解锁的瞬间，线程C立即获取互斥锁，并在优先级20上等待CPU。因为它比线程A的优先级高，系统立刻调度线程C执行，而线程A再次进入READY状态。</li>
+</ul>
+<p>上面这个时序里，线程B从T3到T4占据CPU运行的行为，就是事实上的优先级反转。一个优先级15的线程B，通过压制优线级10的线程A，而事实上导致高优先级线程C无法正确得到CPU。这段时间是不可控的，因为线程B可以长时间占据CPU（即使轮转时间片到时，线程A和B都处于可执行态，但是因为B的优先级高，它依然可以占据CPU），其结果就是高优先级线程C可能长时间无法得到 CPU。</p>
+<p>之前美国宇航局的火星车，就是因为有高优先级的线程被压制，从而在指定时间内无法获得CPU，导致 “看门狗”认为系统出了无法恢复的故障，直接重启了系统。重启后系统再次进入相同状态，导致不断重启，无法正常工作。</p>
+<h2 id="2-创建互斥锁"><a href="#2-创建互斥锁" class="headerlink" title="2. 创建互斥锁"></a><font size=3>2. 创建互斥锁</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20200806171723214.png" alt="image-20200806171723214" />
+
+<h2 id="3-获取互斥锁"><a href="#3-获取互斥锁" class="headerlink" title="3. 获取互斥锁"></a><font size=3>3. 获取互斥锁</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20200806171830004.png" alt="image-20200806171830004" />
+
+<h2 id="3-释放互斥锁"><a href="#3-释放互斥锁" class="headerlink" title="3. 释放互斥锁"></a><font size=3>3. 释放互斥锁</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20200806171909966-1701777539991-17.png" alt="image-20200806171909966" />
+
+<h1 id="三、官方demo"><a href="#三、官方demo" class="headerlink" title="三、官方demo"></a><font size=3>三、官方demo</font></h1><p>官方demo位于AOS_ADK_PATH&#x2F;application&#x2F;example&#x2F;kernel_demo&#x2F;aos_api_demo&#x2F;mutex_app.c：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20200806172217059.png" alt="image-20200806172217059" />
+
+<p>我们再深入一步，看一下这个获取互斥锁函数里面是什么，我们打开这个文件：AOS_ADK_PATH&#x2F;core&#x2F;osal&#x2F;aos&#x2F;rhino.c：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20231205221355385.png" alt="image-20231205221355385" />
+
+<p>可以看到最终调用的是krhino_mutex_lock()这个函数，这个函数内部又是啥？我们打开这个文件AOS_ADK_PATH&#x2F;core&#x2F;rhino&#x2F;k_mutex.c：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20231205221514645.png" alt="image-20231205221514645" />
+
+<p>会看到这样一些内容：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-12-%E4%BB%BB%E5%8A%A1%E9%97%B4%E9%80%9A%E4%BF%A1-04-%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95/img/image-20200806173740445.png" alt="image-20200806173740445" />
+
+<p>这里有一个共享资源的概念，图中的共享资源在操作过程中是不能够被打断的，若是被打断，我们的互斥锁或者其他一些东西可能就会出现混乱，但是我们不可能在互斥锁中再来一把互斥锁，所以这里使用了临界区，临界区会停止操作系统的调度，具体的后面再学习。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/f96b0d3a.html">LV01-01-AliOSThings-12-任务间通信-04-互斥锁的使用方法</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年12月11日 - 23:09</p>
+    <p><span>最后更新:</span>2024年10月17日 - 00:02</p>
+    <p><span>原始链接:</span><a href="/post/f96b0d3a.html" title="LV01-01-AliOSThings-12-任务间通信-04-互斥锁的使用方法">https://sumumm.github.io/post/f96b0d3a.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/" rel="tag"><i class="fa fa-tag"></i> LV21-天猫精灵IOT</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/8741542d.html" rel="prev" title="LV01-01-AliOSThings-12-任务间通信-05-临界区的使用方法">
+                  <i class="fa fa-angle-left"></i> LV01-01-AliOSThings-12-任务间通信-05-临界区的使用方法
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/ea4a998c.html" rel="next" title="LV01-01-AliOSThings-12-任务间通信-03-信号量使用实例">
+                  LV01-01-AliOSThings-12-任务间通信-03-信号量使用实例 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2024</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">2.9m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">174:45</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>
