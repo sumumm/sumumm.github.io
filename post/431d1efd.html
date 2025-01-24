@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="来详细了解一下多路复用IO？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-07-IO模型-05-多路复用IO">
+<meta property="og:url" content="https://sumumm.github.io/post/431d1efd.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="来详细了解一下多路复用IO？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-07-IO%E6%A8%A1%E5%9E%8B-05-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO/img/image-20250124232010792.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-07-IO%E6%A8%A1%E5%9E%8B-05-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO/img/image-20250124232149963.png">
+<meta property="article:published_time" content="2025-01-24T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-01-24T16:03:12.476Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-07-IO%E6%A8%A1%E5%9E%8B-05-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO/img/image-20250124232010792.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/431d1efd.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/431d1efd.html","path":"post/431d1efd.html","title":"LV06-07-IO模型-05-多路复用IO"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-07-IO模型-05-多路复用IO | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">39</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">636</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO"><span class="nav-text">一、多路复用IO</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BB%80%E4%B9%88%E6%98%AF%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO"><span class="nav-text">1. 什么是多路复用IO</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%BA%94%E7%94%A8%E5%B1%82%E7%9A%84%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO%E6%A8%A1%E5%9E%8B"><span class="nav-text">2. 应用层的多路复用IO模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-select"><span class="nav-text">2.1 select() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B"><span class="nav-text">2.1.2 使用示例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-poll"><span class="nav-text">2.2 poll()</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.2.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B"><span class="nav-text">2.2.2 使用示例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-epoll"><span class="nav-text">2.3 epoll()</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1-epoll-create"><span class="nav-text">2.3.1 epoll_create()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2-epoll-ctl"><span class="nav-text">2.3.2 epoll_ctl()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-3-epoll-wait"><span class="nav-text">2.3.3 epoll_wait()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-%E4%B8%89%E8%80%85%E6%9C%89%E4%BB%80%E4%B9%88%E5%8C%BA%E5%88%AB%EF%BC%9F"><span class="nav-text">2.4 三者有什么区别？</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E9%A9%B1%E5%8A%A8%E4%B8%AD%E7%9A%84poll"><span class="nav-text">3. 驱动中的poll</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-file-operations-poll"><span class="nav-text">3.1 file_operations.poll</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-poll-wait"><span class="nav-text">3.2 poll_wait()</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-demo"><span class="nav-text">二、多路复用IO demo</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-demo%E6%BA%90%E7%A0%81"><span class="nav-text">1. demo源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%BC%80%E5%8F%91%E6%9D%BF%E9%AA%8C%E8%AF%81"><span class="nav-text">2. 开发板验证</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">636</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">39</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">40</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/431d1efd.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-07-IO模型-05-多路复用IO | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-07-IO模型-05-多路复用IO
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-01-25 00:00:00" itemprop="dateCreated datePublished" datetime="2025-01-25T00:00:00+08:00">2025-01-25</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4.4k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>16 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>来详细了解一下多路复用IO？若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-07-IO%E6%A8%A1%E5%9E%8B-05-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="3">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4" target="_blank">kernel/git/stable/linux.git - Linux kernel stable tree</a></td>        <td align="left">linux kernel源码(官网,tag 4.19.71)</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、多路复用IO"><a href="#一、多路复用IO" class="headerlink" title="一、多路复用IO"></a><font size=3>一、多路复用IO</font></h1><h2 id="1-什么是多路复用IO"><a href="#1-什么是多路复用IO" class="headerlink" title="1. 什么是多路复用IO"></a><font size=3>1. 什么是多路复用IO</font></h2><p>多路复用 IO 是一种同步的 IO 模型。 多路复用 IO 可以实现一个进程监视多个文件描述符。一旦某个文件描述符准备就绪， 就通知应用程序进行相应的读写操作。 没有文件描述符就绪时就会阻塞应用程序， 从而释放出 CPU 资源。  </p>
+<p>举个例子，小李同时放置了十个鱼竿， 并把十个鱼竿连在了一个铃铛上。 这样小李就不必在岸边等待。 当铃铛响了就表示有鱼上钩， 再回来挨个检查到底是哪个鱼竿有鱼上钩即可。 </p>
+<h2 id="2-应用层的多路复用IO模型"><a href="#2-应用层的多路复用IO模型" class="headerlink" title="2. 应用层的多路复用IO模型"></a><font size=3>2. 应用层的多路复用IO模型</font></h2><p>在应用层 Linux 提供了三种实现 IO 多路复用的模型， 分别是 select、 poll 和 epoll。epoll 更多的是用在大规模的并发服务器上，因为在这种场合下 select 和 poll 并不适合。当设计到的文件描述符(fd)比较少的时候就适合用 selcet 和 poll。</p>
+<h3 id="2-1-select"><a href="#2-1-select" class="headerlink" title="2.1 select() "></a><font size=3>2.1 select() </font></h3><h4 id="2-1-1-函数说明"><a href="#2-1-1-函数说明" class="headerlink" title="2.1.1 函数说明"></a><font size=3>2.1.1 函数说明</font></h4><p>我们使用man select 来看一下该函数的帮助手册：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">NAME</span><br><span class="line">       select, pselect, FD_CLR, FD_ISSET, FD_SET, FD_ZERO - synchronous I/O multiplexing</span><br><span class="line"></span><br><span class="line">SYNOPSIS</span><br><span class="line">       <span class="comment">/* According to POSIX.1-2001, POSIX.1-2008 */</span></span><br><span class="line">       <span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line">       <span class="comment">/* According to earlier standards */</span></span><br><span class="line">       <span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/time.h&gt;</span></span></span><br><span class="line">       <span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line">       <span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line">       <span class="type">int</span> <span class="title function_">select</span><span class="params">(<span class="type">int</span> nfds, fd_set *readfds, fd_set *writefds,</span></span><br><span class="line"><span class="params">                  fd_set *exceptfds, <span class="keyword">struct</span> timeval *timeout)</span>;</span><br><span class="line"></span><br><span class="line">       <span class="type">void</span> <span class="title function_">FD_CLR</span><span class="params">(<span class="type">int</span> fd, fd_set *<span class="built_in">set</span>)</span>;</span><br><span class="line">       <span class="type">int</span>  <span class="title function_">FD_ISSET</span><span class="params">(<span class="type">int</span> fd, fd_set *<span class="built_in">set</span>)</span>;</span><br><span class="line">       <span class="type">void</span> <span class="title function_">FD_SET</span><span class="params">(<span class="type">int</span> fd, fd_set *<span class="built_in">set</span>)</span>;</span><br><span class="line">       <span class="type">void</span> <span class="title function_">FD_ZERO</span><span class="params">(fd_set *<span class="built_in">set</span>)</span>;</span><br><span class="line"></span><br><span class="line">       <span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line">       <span class="type">int</span> <span class="title function_">pselect</span><span class="params">(<span class="type">int</span> nfds, fd_set *readfds, fd_set *writefds,</span></span><br><span class="line"><span class="params">                   fd_set *exceptfds, <span class="type">const</span> <span class="keyword">struct</span> timespec *timeout,</span></span><br><span class="line"><span class="params">                   <span class="type">const</span> <span class="type">sigset_t</span> *sigmask)</span>;</span><br><span class="line"></span><br><span class="line">   Feature Test Macro Requirements <span class="keyword">for</span> <span class="title function_">glibc</span> <span class="params">(see feature_test_macros(<span class="number">7</span>))</span>:</span><br><span class="line"></span><br><span class="line">       <span class="title function_">pselect</span><span class="params">()</span>: _POSIX_C_SOURCE &gt;= <span class="number">200112L</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>函数参数 ：</strong></p>
+<ul>
+<li>nfds： 所要监视的这三类文件描述集合中， 最大文件描述符加 1。  </li>
+<li>readfds、 writefds 和 exceptfds：这三个指针指向描述符集合。</li>
+</ul>
+<p>这三个参数指明了关心哪些描述符、需要满足哪些条件等等，这三个参数都是 fd_set 类型的， fd_set 类型变量的每一个位都代表了一个文件描述符。 readfds 用于监视指定描述符集的读变化，也就是监视这些文件是否可以读取，只要这些集合里面有一个文件可以读取那么 seclect 就会返回一个大于 0 的值表示文件可以读取。如果没有文件可以读取，那么就会根据 timeout 参数来判断是否超时。可以将 readfs设置为 NULL，表示不关心任何文件的读变化。 writefds 和 readfs 类似，只是 writefs 用于监视这些文件是否可以进行写操作。 exceptfds 用于监视这些文件的异常。</p>
+<p>比如我们现在要从一个设备文件中读取数据，那么就可以定义一个 fd_set 变量，这个变量要传递给参数 readfds。当我们定义好一个 fd_set 变量以后可以使用如下所示几个宏进行操作：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">FD_ZERO</span><span class="params">(fd_set *<span class="built_in">set</span>)</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">FD_SET</span><span class="params">(<span class="type">int</span> fd, fd_set *<span class="built_in">set</span>)</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">FD_CLR</span><span class="params">(<span class="type">int</span> fd, fd_set *<span class="built_in">set</span>)</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">FD_ISSET</span><span class="params">(<span class="type">int</span> fd, fd_set *<span class="built_in">set</span>)</span></span><br></pre></td></tr></table></figure>
+
+<p>FD_ZERO 用于将 fd_set 变量的所有位都清零， FD_SET 用于将 fd_set 变量的某个位置 1，也就是向 fd_set 添加一个文件描述符，参数 fd 就是要加入的文件描述符。 FD_CLR 用于将 fd_set 变量的某个位清零，也就是将一个文件描述符从 fd_set 中删除，参数 fd 就是要删除的文件描述符。 FD_ISSET 用于测试一个文件是否属于某个集合，参数 fd 就是要判断的文件描述符。   </p>
+<ul>
+<li>timeout：超时时间，当我们调用 select 函数等待某些文件描述符可以设置超时时间，当 timeout 为 NULL 的时候就表示无限期的等待。</li>
+</ul>
+<p>超时时间使用结构体 timeval 表示，该结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">timeval</span> &#123;</span></span><br><span class="line">    <span class="type">long</span> tv_sec;  <span class="comment">/* 秒 */</span></span><br><span class="line">    <span class="type">long</span> tv_usec; <span class="comment">/* 微妙 */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>返回值：</strong> 0，表示的话就表示超时发生，但是没有任何文件描述符可以进行操作； -1，发生错误；其他值，可以进行操作的文件描述符个数。  </p>
+<h4 id="2-1-2-使用示例"><a href="#2-1-2-使用示例" class="headerlink" title="2.1.2 使用示例"></a><font size=3>2.1.2 使用示例</font></h4><p>使用 select 函数对某个设备驱动文件进行读非阻塞访问的操作示例如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">const</span> <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> ret, fd;            <span class="comment">/* 要监视的文件描述符 */</span></span><br><span class="line">    fd_set readfds;         <span class="comment">/* 读操作文件描述符集 */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">timeval</span> <span class="title">timeout</span>;</span> <span class="comment">/* 超时结构体 */</span></span><br><span class="line"></span><br><span class="line">    fd = open(<span class="string">&quot;dev_xxx&quot;</span>, O_RDWR | O_NONBLOCK); <span class="comment">/* 非阻塞式访问 */</span></span><br><span class="line"></span><br><span class="line">    FD_ZERO(&amp;readfds);    <span class="comment">/* 清除 readfds */</span></span><br><span class="line">    FD_SET(fd, &amp;readfds); <span class="comment">/* 将 fd 添加到 readfds 里面 */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 构造超时时间 */</span></span><br><span class="line">    timeout.tv_sec = <span class="number">0</span>;</span><br><span class="line">    timeout.tv_usec = <span class="number">500000</span>; <span class="comment">/* 500ms */</span></span><br><span class="line"></span><br><span class="line">    ret = select(fd + <span class="number">1</span>, &amp;readfds, <span class="literal">NULL</span>, <span class="literal">NULL</span>, &amp;timeout);</span><br><span class="line">    <span class="keyword">switch</span> (ret)</span><br><span class="line">    &#123;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">0</span>: <span class="comment">/* 超时 */</span></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;timeout!\r\n&quot;</span>);</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">-1</span>: <span class="comment">/* 错误 */</span></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;error!\r\n&quot;</span>);</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">default</span>: <span class="comment">/* 可以读取数据 */</span></span><br><span class="line">        <span class="keyword">if</span> (FD_ISSET(fd, &amp;readfds)) <span class="comment">/* 判断是否为 fd 文件描述符 */</span></span><br><span class="line">        &#123; </span><br><span class="line">            <span class="comment">/* 使用 read 函数读取数据 */</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-poll"><a href="#2-2-poll" class="headerlink" title="2.2 poll()"></a><font size=3>2.2 poll()</font></h3><h4 id="2-2-1-函数说明"><a href="#2-2-1-函数说明" class="headerlink" title="2.2.1 函数说明"></a><font size=3>2.2.1 函数说明</font></h4><p>我们可以使用 man poll 看一下函数的帮助手册：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">NAME</span><br><span class="line">       poll, ppoll - wait for some event on a file descriptor</span><br><span class="line"></span><br><span class="line">SYNOPSIS</span><br><span class="line">       #include &lt;poll.h&gt;</span><br><span class="line"></span><br><span class="line">       int poll(struct pollfd *fds, nfds_t nfds, int timeout);</span><br><span class="line"></span><br><span class="line">       #define _GNU_SOURCE         /* See feature_test_macros(7) */</span><br><span class="line">       #include &lt;signal.h&gt;</span><br><span class="line">       #include &lt;poll.h&gt;</span><br><span class="line"></span><br><span class="line">       int ppoll(struct pollfd *fds, nfds_t nfds,</span><br><span class="line">               const struct timespec *tmo_p, const sigset_t *sigmask);</span><br></pre></td></tr></table></figure>
+
+<p>在单个线程中， select 函数能够监视的文件描述符数量有最大的限制，一般为 1024，可以修改内核将监视的文件描述符数量改大，但是这样会降低效率！这个时候就可以使用 poll 函数， poll 函数本质上和 select 没有太大的差别，但是 poll 函数没有最大文件描述符限制。</p>
+<p> <strong>函数参数 ：</strong></p>
+<ul>
+<li>fds： 要监视的文件描述符集合以及要监视的事件,为一个数组，数组元素都是结构体 pollfd类型的。</li>
+</ul>
+<p>pollfd 结构体如下所示 ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">pollfd</span> &#123;</span></span><br><span class="line">    <span class="type">int</span> fd; <span class="comment">/* 文件描述符 */</span></span><br><span class="line">    <span class="type">short</span> events; <span class="comment">/* 请求的事件 */</span></span><br><span class="line">    <span class="type">short</span> revents; <span class="comment">/* 返回的事件 */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>fd 是要监视的文件描述符，如果 fd 无效的话那么 events 监视事件也就无效，并且 revents返回 0。 events 是要监视的事件，可监视的事件类型如下所示：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">POLLIN     有数据可以读取。</span><br><span class="line">POLLPRI    有紧急的数据需要读取。</span><br><span class="line">POLLOUT    可以写数据。</span><br><span class="line">POLLERR    指定的文件描述符发生错误。</span><br><span class="line">POLLHUP    指定的文件描述符挂起。</span><br><span class="line">POLLNVAL   无效的请求。</span><br><span class="line">POLLRDNORM 等同于 POLLIN</span><br></pre></td></tr></table></figure>
+
+<p>revents 是返回参数，也就是返回的事件， 由 Linux 内核设置具体的返回事件。  </p>
+<ul>
+<li>nfds： poll 函数要监视的文件描述符数量。  </li>
+<li>timeout： 超时时间，单位为 ms。</li>
+</ul>
+<p><strong>返回值：</strong>返回 revents 域中不为 0 的 pollfd 结构体个数，也就是发生事件或错误的文件描述符数量； 0，超时； -1，发生错误，并且设置 errno 为错误类型。  </p>
+<h4 id="2-2-2-使用示例"><a href="#2-2-2-使用示例" class="headerlink" title="2.2.2 使用示例"></a><font size=3>2.2.2 使用示例</font></h4><p>使用 poll 函数对某个设备驱动文件进行读非阻塞访问的示例如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">const</span> <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> ret;</span><br><span class="line">    <span class="type">int</span> fd; <span class="comment">/* 要监视的文件描述符 */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">pollfd</span> <span class="title">fds</span>;</span></span><br><span class="line"></span><br><span class="line">    fd = open(filename, O_RDWR | O_NONBLOCK); <span class="comment">/* 非阻塞式访问 */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 构造结构体 */</span></span><br><span class="line">    fds.fd = fd;</span><br><span class="line">    fds.events = POLLIN; <span class="comment">/* 监视数据是否可以读取 */</span></span><br><span class="line"></span><br><span class="line">    ret = poll(&amp;fds, <span class="number">1</span>, <span class="number">500</span>); <span class="comment">/* 轮询文件是否可操作，超时 500ms */</span></span><br><span class="line">    <span class="keyword">if</span> (ret) <span class="comment">/* 数据有效 */</span></span><br><span class="line">    &#123; </span><br><span class="line">        <span class="comment">// ......</span></span><br><span class="line">        <span class="comment">/* 读取数据 */</span></span><br><span class="line">        <span class="comment">// ......</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (ret == <span class="number">0</span>) <span class="comment">/* 超时 */</span></span><br><span class="line">    &#123; </span><br><span class="line">        <span class="comment">// ......</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (ret &lt; <span class="number">0</span>) <span class="comment">/* 错误 */</span></span><br><span class="line">    &#123; </span><br><span class="line">        <span class="comment">// ......</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-epoll"><a href="#2-3-epoll" class="headerlink" title="2.3 epoll()"></a><font size=3>2.3 epoll()</font></h3><p>传统的 selcet 和 poll 函数都会随着所监听的 fd 数量的增加，出现效率低下的问题，而且poll 函数每次必须遍历所有的描述符来检查就绪的描述符，这个过程很浪费时间。为此， epoll应运而生， epoll 就是为处理大并发而准备的，一般常常在网络编程中使用 epoll 函数。  </p>
+<h4 id="2-3-1-epoll-create"><a href="#2-3-1-epoll-create" class="headerlink" title="2.3.1 epoll_create()"></a><font size=3>2.3.1 epoll_create()</font></h4><p>应用程序需要先使用 epoll_create 函数创建一个 epoll 句柄，我们可以用man epoll_create命令查看这个函数的帮助手册：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">NAME</span><br><span class="line">       epoll_create, epoll_create1 - open an epoll file descriptor</span><br><span class="line"></span><br><span class="line">SYNOPSIS</span><br><span class="line">       #include &lt;sys/epoll.h&gt;</span><br><span class="line"></span><br><span class="line">       int epoll_create(int size);</span><br><span class="line">       int epoll_create1(int flags);</span><br></pre></td></tr></table></figure>
+
+<p><strong>函数参数 ：</strong></p>
+<ul>
+<li>size： 从 Linux2.6.8 开始此参数已经没有意义了，随便填写一个大于 0 的值就可以。</li>
+</ul>
+<p><strong>返回值：</strong> epoll 句柄，如果为-1 的话表示创建失败。  </p>
+<h4 id="2-3-2-epoll-ctl"><a href="#2-3-2-epoll-ctl" class="headerlink" title="2.3.2 epoll_ctl()"></a><font size=3>2.3.2 epoll_ctl()</font></h4><p>我们可以使用 man epoll_ctl 来查看函数帮助手册</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">NAME</span><br><span class="line">       epoll_ctl - control interface for an epoll file descriptor</span><br><span class="line"></span><br><span class="line">SYNOPSIS</span><br><span class="line">       #include &lt;sys/epoll.h&gt;</span><br><span class="line"></span><br><span class="line">       int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);</span><br></pre></td></tr></table></figure>
+
+<p><strong>函数参数 ：</strong></p>
+<ul>
+<li>epfd： 要操作的 epoll 句柄，也就是使用 epoll_create 函数创建的 epoll 句柄。</li>
+<li>op： 表示要对 epfd(epoll 句柄)进行的操作，可以设置为：</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">EPOLL_CTL_ADD 向 epfd 添加文件参数 fd 表示的描述符。</span><br><span class="line">EPOLL_CTL_MOD 修改参数 fd 的 event 事件。</span><br><span class="line">EPOLL_CTL_DEL 从 epfd 中删除 fd 描述符。</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>fd：要监视的文件描述符。  </li>
+<li>event： 要监视的事件类型，为 epoll_event 结构体类型指针， epoll_event 结构体类型如下所示：</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">epoll_event</span> &#123;</span></span><br><span class="line">    <span class="type">uint32_t</span> events;   <span class="comment">/* epoll 事件 */</span></span><br><span class="line">    <span class="type">epoll_data_t</span> data; <span class="comment">/* 用户数据 */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>结构体 epoll_event 的 events 成员变量表示要监视的事件，可选的事件如下所示：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">EPOLLIN      有数据可以读取。</span><br><span class="line">EPOLLOUT     可以写数据。</span><br><span class="line">EPOLLPRI     有紧急的数据需要读取。</span><br><span class="line">EPOLLERR     指定的文件描述符发生错误。</span><br><span class="line">EPOLLHUP     指定的文件描述符挂起。</span><br><span class="line">EPOLLET      设置 epoll 为边沿触发，默认触发模式为水平触发。</span><br><span class="line">EPOLLONESHOT 一次性的监视，当监视完成以后还需要再次监视某个 fd，那么就需要将 fd 重新添加到 epoll 里面。</span><br></pre></td></tr></table></figure>
+
+<p>上面这些事件可以进行“或”操作，也就是说可以设置监视多个事件。  </p>
+<p><strong>返回值：</strong> 0，成功； -1，失败，并且设置 errno 的值为相应的错误码。  </p>
+<h4 id="2-3-3-epoll-wait"><a href="#2-3-3-epoll-wait" class="headerlink" title="2.3.3 epoll_wait()"></a><font size=3>2.3.3 epoll_wait()</font></h4><p>我们可以使用 man epoll_wait 来查看该函数的帮助手册：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">NAME</span><br><span class="line">       epoll_wait, epoll_pwait - wait for an I/O event on an epoll file descriptor</span><br><span class="line"></span><br><span class="line">SYNOPSIS</span><br><span class="line">       #include &lt;sys/epoll.h&gt;</span><br><span class="line"></span><br><span class="line">       int epoll_wait(int epfd, struct epoll_event *events,</span><br><span class="line">                      int maxevents, int timeout);</span><br><span class="line">       int epoll_pwait(int epfd, struct epoll_event *events,</span><br><span class="line">                      int maxevents, int timeout,</span><br><span class="line">                      const sigset_t *sigmask);</span><br></pre></td></tr></table></figure>
+
+<p><strong>函数参数 ：</strong></p>
+<ul>
+<li>epfd： 要操作的 epoll 句柄，也就是使用 epoll_create 函数创建的 epoll 句柄。</li>
+<li>events： 指向 epoll_event 结构体的数组，当有事件发生的时候 Linux 内核会填写 events，调用者可以根据 events 判断发生了哪些事件。  </li>
+<li>maxevents： events 数组大小，必须大于 0。  </li>
+<li>timeout： 超时时间，单位为 ms。</li>
+</ul>
+<p><strong>返回值：</strong> 0，超时； -1，错误；其他值，准备就绪的文件描述符数量。  </p>
+<h4 id="2-4-三者有什么区别？"><a href="#2-4-三者有什么区别？" class="headerlink" title="2.4 三者有什么区别？"></a><font size=3>2.4 三者有什么区别？</font></h4><p>select、 poll 和 epoll 函数有什么区别呢？ </p>
+<p>poll 函数和 seslect 函数都可以监听多个文件描述符， 通过轮询来获取已经准备好的文件描述符。 但是 epoll 函数将主动轮询变成了被动通知， 当事件发生时被动接收通知。 </p>
+<p>举个例子。 假如 poll 和 select是公司的前台， 某天一位客户来公司找硬件工程师-小李， 请求前台帮忙找人。 于是 poll 和 select前台带着这位客户挨个屋子寻找小李， 直到找到小李为止。 假如 epoll 是公司的前台， 他提前统计了公司每个员工的工位。 当客户来找小李的时候， 不必像 poll select 一样， 可以直接带着客户到硬件部门去找小李。 从上面的例子， 明显 epoll 的效率更高。 假如公司园区很大， 那么 poll 和 select 需要花费很长时间寻找小李， 而 epoll 已经提前知道小李坐在哪个工位了，直接带客户去找小李即可。  </p>
+<h2 id="3-驱动中的poll"><a href="#3-驱动中的poll" class="headerlink" title="3. 驱动中的poll"></a><font size=3>3. 驱动中的poll</font></h2><h3 id="3-1-file-operations-poll"><a href="#3-1-file-operations-poll" class="headerlink" title="3.1 file_operations.poll"></a><font size=3>3.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L1748">file_operations.poll</a></font></h3><p>当应用程序使用 select 或者 poll 函数对驱动程序进行非阻塞访问时， 驱动程序中 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L1739">file_operations</a> 操作集的<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L1748">file_operations.poll</a> 函数会执行。   </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">__poll_t</span> (*poll) (<span class="keyword">struct</span> file *, <span class="keyword">struct</span> poll_table_struct *);</span><br><span class="line"></span><br><span class="line"><span class="comment">//没有形参名，我们这样来简单写一个：</span></span><br><span class="line"><span class="type">unsigned</span> <span class="type">int</span> <span class="title function_">xxx_poll</span><span class="params">(<span class="keyword">struct</span> file *pFile, <span class="keyword">struct</span> poll_table_struct *pWait)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// ... ...</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个函数要进行下面两项工作。 首先， 对可能引起设备文件状态变化的等待队列调用poll_wait(),将对应的等待队列头添加到 poll_table.然后返回表示是否能对设备进行无阻塞读写访问的掩码。  </p>
+<p><strong>函数参数：</strong>  </p>
+<ul>
+<li>pFile：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L891">struct file</a> 类型指针变量，指向要打开的文件描述符。</li>
+<li>pWait： <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/poll.h#L39">struct poll_table_struct</a> 类型指针， 此参数是由应用程序中传递的。 一般此参数要传递给 poll_wait 函数。</li>
+</ul>
+<p><strong>返回值：</strong>向应用程序返回设备或者资源状态，可以返回的资源状态如下：  </p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">POLLIN     有数据可以读取。</span><br><span class="line">POLLPRI    有紧急的数据需要读取。</span><br><span class="line">POLLOUT    可以写数据。</span><br><span class="line">POLLERR    指定的文件描述符发生错误。</span><br><span class="line">POLLHUP    指定的文件描述符挂起。</span><br><span class="line">POLLNVAL   无效的请求。</span><br><span class="line">POLLRDNORM 等同于 POLLIN，普通数据可读</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-2-poll-wait"><a href="#3-2-poll-wait" class="headerlink" title="3.2 poll_wait()"></a><font size=3>3.2 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/poll.h#L44">poll_wait()</a></font></h4><p>驱动程序的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L1748">file_operations.poll</a> 函数中需要调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/poll.h#L44">poll_wait()</a> 函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">void</span> <span class="title function_">poll_wait</span><span class="params">(<span class="keyword">struct</span> file * filp, <span class="type">wait_queue_head_t</span> * wait_address, poll_table *p)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">if</span> (p &amp;&amp; p-&gt;_qproc &amp;&amp; wait_address)</span><br><span class="line">		p-&gt;_qproc(filp, wait_address, p);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/poll.h#L44">poll_wait()</a> 函数不会引起阻塞，只是将应用程序添加到 poll_table 中。其中参数 wait_address 是要添加到 poll_table 中的等待队列头， 参数 p 是 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/poll.h#L42">poll_table</a>类型， 也就是file_operations 中 poll 函数的 pWait参数。  </p>
+<h1 id="二、多路复用IO-demo"><a href="#二、多路复用IO-demo" class="headerlink" title="二、多路复用IO demo"></a><font size=3>二、多路复用IO demo</font></h1><h2 id="1-demo源码"><a href="#1-demo源码" class="headerlink" title="1. demo源码"></a><font size=3>1. demo源码</font></h2><p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/08_IO_model/04_io_poll">08_IO_model&#x2F;04_io_poll · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<h2 id="2-开发板验证"><a href="#2-开发板验证" class="headerlink" title="2. 开发板验证"></a><font size=3>2. 开发板验证</font></h2><p>我们执行以下命令：来验证效果：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">./app_demo.out /dev/sdevchr 1 0 &amp;</span><br><span class="line">./app_demo.out /dev/sdevchr 2 0 abcdefg</span><br><span class="line">./app_demo.out /dev/sdevchr 2 0 sumu</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>select</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-07-IO%E6%A8%A1%E5%9E%8B-05-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO/img/image-20250124232010792.png" alt="image-20250124232010792" />
+
+<ul>
+<li>poll</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-07-IO%E6%A8%A1%E5%9E%8B-05-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO/img/image-20250124232149963.png" alt="image-20250124232149963" />
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/431d1efd.html">LV06-07-IO模型-05-多路复用IO</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2025年01月25日 - 00:00</p>
+    <p><span>最后更新:</span>2025年01月25日 - 00:03</p>
+    <p><span>原始链接:</span><a href="/post/431d1efd.html" title="LV06-07-IO模型-05-多路复用IO">https://sumumm.github.io/post/431d1efd.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/4a17b156.html" rel="prev" title="Hello World">
+                  <i class="fa fa-angle-left"></i> Hello World
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/6e614a5e.html" rel="next" title="LV06-07-IO模型-04-信号驱动IO">
+                  LV06-07-IO模型-04-信号驱动IO <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.5m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">210:19</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>
