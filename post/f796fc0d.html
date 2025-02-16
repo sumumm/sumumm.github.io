@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是对NXP官方提供的内核进行移植，使其适配我们自己的开发板的相关笔记。若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV05-02-linux内核-03-linux内核移植">
+<meta property="og:url" content="https://sumumm.github.io/post/f796fc0d.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是对NXP官方提供的内核进行移植，使其适配我们自己的开发板的相关笔记。若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804071741388.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804071952735.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804072248407.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804073124827.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804073745108.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804073850567.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804182619558.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804182827601.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804183534398.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804183823349.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804184108020.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804184753755.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804185315538.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804185932285.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804190506293.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804192228052.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804192318165.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804192917367.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804193202728.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804193135602.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804193420347.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804201612700.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804201650432.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804201732831.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804201816256.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804201914706.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804202614581.png">
+<meta property="article:published_time" content="2023-09-08T11:23:09.000Z">
+<meta property="article:modified_time" content="2025-02-16T10:03:07.726Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="(ALPHA)LV05-uboot与内核">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804071741388.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/f796fc0d.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/f796fc0d.html","path":"post/f796fc0d.html","title":"LV05-02-linux内核-03-linux内核移植"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV05-02-linux内核-03-linux内核移植 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">39</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">638</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%B7%BB%E5%8A%A0%E5%BC%80%E5%8F%91%E6%9D%BF"><span class="nav-text">一、添加开发板</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%B7%BB%E5%8A%A0%E5%BC%80%E5%8F%91%E6%9D%BF%E9%BB%98%E8%AE%A4%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="nav-text">1. 添加开发板默认配置文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%B7%BB%E5%8A%A0%E5%BC%80%E5%8F%91%E6%9D%BF%E5%AF%B9%E5%BA%94%E7%9A%84%E8%AE%BE%E5%A4%87%E6%A0%91%E6%96%87%E4%BB%B6"><span class="nav-text">2. 添加开发板对应的设备树文件  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%BC%96%E8%AF%91%E6%B5%8B%E8%AF%95"><span class="nav-text">3. 编译测试  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%90%AF%E5%8A%A8%E6%B5%8B%E8%AF%95"><span class="nav-text">4. 启动测试</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E4%BF%AE%E6%94%B9%E7%BD%91%E7%BB%9C%E9%A9%B1%E5%8A%A8"><span class="nav-text">二、修改网络驱动</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BE%E5%A4%87%E6%A0%91%E4%BF%AE%E6%94%B9"><span class="nav-text">1. 设备树修改</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E4%BF%AE%E6%94%B9-LAN8720-%E7%9A%84%E5%A4%8D%E4%BD%8D%E4%BB%A5%E5%8F%8A%E7%BD%91%E7%BB%9C%E6%97%B6%E9%92%9F%E5%BC%95%E8%84%9A%E9%A9%B1%E5%8A%A8"><span class="nav-text">1.1 修改 LAN8720 的复位以及网络时钟引脚驱动  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E4%BF%AE%E6%94%B9-fec1-%E5%92%8C-fec2-%E8%8A%82%E7%82%B9%E7%9A%84-pinctrl-0-%E5%B1%9E%E6%80%A7"><span class="nav-text">1.2 修改 fec1 和 fec2 节点的 pinctrl-0 属性  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E4%BF%AE%E6%94%B9-LAN8720A-%E7%9A%84-PHY-%E5%9C%B0%E5%9D%80"><span class="nav-text">1.3 修改 LAN8720A 的 PHY 地址  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-%E8%AE%BE%E5%A4%87%E6%A0%91%E7%BC%96%E8%AF%91"><span class="nav-text">1.4 设备树编译</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%86%85%E6%A0%B8%E6%BA%90%E7%A0%81%E4%BF%AE%E6%94%B9"><span class="nav-text">2. 内核源码修改</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E4%BF%AE%E6%94%B9-fec-main-c-%E6%96%87%E4%BB%B6"><span class="nav-text">2.1 修改 fec_main.c 文件  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E9%85%8D%E7%BD%AE-Linux-%E5%86%85%E6%A0%B8%EF%BC%8C%E4%BD%BF%E8%83%BD-LAN8720-%E9%A9%B1%E5%8A%A8"><span class="nav-text">2.2 配置 Linux 内核，使能 LAN8720 驱动  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E4%BF%AE%E6%94%B9-smsc-c-%E6%96%87%E4%BB%B6"><span class="nav-text">2.3 修改 smsc.c 文件  </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%9B%BE%E5%BD%A2%E5%8C%96%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E5%A4%84%E7%90%86"><span class="nav-text">3. 图形化配置文件处理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E7%9B%B4%E6%8E%A5%E5%8F%A6%E5%AD%98%E4%B8%BA-config-%E6%96%87%E4%BB%B6"><span class="nav-text">3.1 直接另存为.config 文件  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E9%80%9A%E8%BF%87%E5%9B%BE%E5%BD%A2%E7%95%8C%E9%9D%A2%E4%BF%9D%E5%AD%98%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="nav-text">3.2 通过图形界面保存配置文件  </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E7%BD%91%E5%8F%A3%E6%B5%8B%E8%AF%95"><span class="nav-text">4. 网口测试</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E6%96%87%E4%BB%B6%E5%87%86%E5%A4%87"><span class="nav-text">4.1 文件准备</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-bootamd%E4%B8%8Ebootargs"><span class="nav-text">4.2 bootamd与bootargs</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%90%AF%E5%8A%A8%E6%B5%8B%E8%AF%95"><span class="nav-text">4.2 启动测试</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-1-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B"><span class="nav-text">4.2.1 启动过程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-2-%E7%BD%91%E7%BB%9C%E9%85%8D%E7%BD%AE"><span class="nav-text">4.2.2 网络配置</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E7%A7%BB%E6%A4%8D%E6%80%BB%E7%BB%93"><span class="nav-text">三、移植总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">638</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">39</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">40</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/f796fc0d.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV05-02-linux内核-03-linux内核移植 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV05-02-linux内核-03-linux内核移植
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-09-08 19:23:09" itemprop="dateCreated datePublished" datetime="2023-09-08T19:23:09+08:00">2023-09-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/" itemprop="url" rel="index"><span itemprop="name">LV05-uboot与内核</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>7.8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>28 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是对NXP官方提供的内核进行移植，使其适配我们自己的开发板的相关笔记。若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows版本</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu版本</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>      </tr>    <tr>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="4">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">在线阅读linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga" target="_blank">nxp-imx/linux-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga</a></td>        <td align="left">NXP linux内核仓库tags中的rel_imx_4.1.15_2.1.0_ga</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.1.15_2.1.0_ga</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、添加开发板"><a href="#一、添加开发板" class="headerlink" title="一、添加开发板"></a><font size=3>一、添加开发板</font></h1><h2 id="1-添加开发板默认配置文件"><a href="#1-添加开发板默认配置文件" class="headerlink" title="1. 添加开发板默认配置文件"></a><font size=3>1. 添加开发板默认配置文件</font></h2><p>将linux内核源码目录中 arch&#x2F;arm&#x2F;configs 目录下的 imx_v7_mfg_defconfig 重新复制一份 ， 命名 为imx_alpha_emmc_defconfig：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cp arch/arm/configs/imx_v7_defconfig arch/arm/configs/imx_alpha_emmc_defconfig</span><br></pre></td></tr></table></figure>
+
+<p>以后 imx_alpha_emmc_defconfig 就是正点原子的 EMMC 版开发板默认配置文件了。完成以后如图所示：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804071741388.png" alt="image-20230804071741388" style="zoom:50%;" />
+
+<p>以后就可以使用如下命令来配置正点原子 EMMC 版开发板对应的 Linux 内核了  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- imx_alpha_emmc_defconfig</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-添加开发板对应的设备树文件"><a href="#2-添加开发板对应的设备树文件" class="headerlink" title="2. 添加开发板对应的设备树文件  "></a><font size=3>2. 添加开发板对应的设备树文件  </font></h2><p>添加适合正点原子 EMMC 版开发板的设备树文件，进入目录 arch&#x2F;arm&#x2F;boot&#x2F;dts 中，复制一份 imx6ull-14x14-evk.dts，然后将其重命名为 imx6ull-alpha-emmc.dts  ：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cp arch/arm/boot/dts/imx6ull-14x14-evk.dts arch/arm/boot/dts/imx6ull-alpha-emmc.dts</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804071952735.png" alt="image-20230804071952735" style="zoom:50%;" />
+
+<p>.dts 是设备树源码文件，编译 Linux 的时候会将其编译为.dtb 文件。imx6ull-alpha-emmc.dts创建好以后我们还需要修改文件arch&#x2F;arm&#x2F;boot&#x2F;dts&#x2F;Makefile ，找 到 “ dtb-$(CONFIG_SOC_IMX6ULL)”配置项，在此配置项中加入“imx6ull-alpha-emmc.dtb” ，如下<br>所示 ：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#......</span></span><br><span class="line">imx6ull-14x14-evk-usb-certi.dtb \</span><br><span class="line">imx6ull-alpha-emmc.dtb \</span><br><span class="line"><span class="comment">#......</span></span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804072248407.png" alt="image-20230804072248407" style="zoom:50%;" />
+
+<h2 id="3-编译测试"><a href="#3-编译测试" class="headerlink" title="3. 编译测试  "></a><font size=3>3. 编译测试  </font></h2><p>Linux 内核里面已经添加了正点原子 I.MX6UL-ALIPHA EMMC 版 开 发 板 了 ， 接 下接编译测试一下，我们可以创建一个编译脚本——1.sh，脚本内容如下 ：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/sh</span></span><br><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- distclean</span><br><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- imx_alpha_emmc_defconfig</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig</span></span><br><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- all -j16</span><br></pre></td></tr></table></figure>
+
+<p>然后我们执行此脚本就会开始编译内核和设备树文件，一般应该是没问题的，编译完成后我们可以得到如下两个文件：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804073124827.png" alt="image-20230804073124827" style="zoom:50%;" />
+
+<h2 id="4-启动测试"><a href="#4-启动测试" class="headerlink" title="4. 启动测试"></a><font size=3>4. 启动测试</font></h2><p>编译完成以后就会在目录 arch&#x2F;arm&#x2F;boot 下生成 zImage 镜像文件。在 arch&#x2F;arm&#x2F;boot&#x2F;dts 目录下生成 imx6ull-alpha-emmc.dtb 文件。将这两个文件拷贝到 tftp 目录下:</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cp arch/arm/boot/zImage ~/3tftp/imx6ull/</span><br><span class="line">cp arch/arm/boot/dts/imx6ull-alpha-emmc.dtb ~/3tftp/imx6ull/</span><br></pre></td></tr></table></figure>
+
+<p>然后重启开发板（按照前边从tftp加载内核和设备树，从nfs挂载根文件系统，根文件系统可以先随便找一个能用的），在uboot 命令模式中使用 tftp 命令下载这两个文件并启动，命令如下：  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">=&gt; tftp 80800000 /imx6ull/zImage</span><br><span class="line">=&gt; tftp 83000000 /imx6ull/imx6ull-alpha-emmc.dtb</span><br><span class="line">=&gt; bootz 80800000 - 83000000 # 中间是一个 -</span><br></pre></td></tr></table></figure>
+
+<p>然后应该可以正常启动：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804073745108.png" alt="image-20230804073745108" style="zoom:50%;" />
+
+<p>我们可以看一下启动后的linux：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804073850567.png" alt="image-20230804073850567" style="zoom:50%;" />
+
+<p>会发现这里有报错，并且未成功加载根文件系统，这里就是说网络配置有问题，我们前边知道，ALPHA使用的网络驱动与NXP官方的EVK评估板是不一样的，网络 PHY 芯片由 KSZ8081 换为了 LAN8720A，两个网络 PHY 芯片的复位 IO 也不同。所以 Linux 内核自带的网络驱动是驱动不起来 I.MX6U-ALPHA 开发板上的网络的，所以这里网口驱动其实是无法使用的，linux无法通过网口来进行网络相关的活动，需要做修改。 </p>
+<h1 id="二、修改网络驱动"><a href="#二、修改网络驱动" class="headerlink" title="二、修改网络驱动"></a><font size=3>二、修改网络驱动</font></h1><h2 id="1-设备树修改"><a href="#1-设备树修改" class="headerlink" title="1. 设备树修改"></a><font size=3>1. 设备树修改</font></h2><h3 id="1-1-修改-LAN8720-的复位以及网络时钟引脚驱动"><a href="#1-1-修改-LAN8720-的复位以及网络时钟引脚驱动" class="headerlink" title="1.1 修改 LAN8720 的复位以及网络时钟引脚驱动  "></a><font size=3>1.1 修改 LAN8720 的复位以及网络时钟引脚驱动  </font></h3><p>ENET1 复位引脚 ENET1_RST 连接在 I.M6ULL 的 SNVS_TAMPER7 这个引脚上。 ENET2的复位引脚 ENET2_RST 连接在 I.MX6ULL 的 SNVS_TAMPER8 上。打开设备树文件 imx6ull-alpha-emmc.dts：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804182619558.png" alt="image-20230804182619558" style="zoom:50%;" />
+
+<p>第 588 和 589 行就是初始化 SNVS_TAMPER7 和 SNVS_TAMPER8 这两个引脚的，不过看样子好像是作为了 SPI4 的 IO，这不是我们想要的，所以将 588 和 589 这两行删除掉。修改成如下所示代码：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">pinctrl_spi4: spi4grp &#123;</span><br><span class="line">                      fsl,pins = &lt;</span><br><span class="line">                              MX6ULL_PAD_BOOT_MODE0__GPIO5_IO10        <span class="number">0x70a1</span></span><br><span class="line">                              MX6ULL_PAD_BOOT_MODE1__GPIO5_IO11        <span class="number">0x70a1</span></span><br><span class="line">                      &gt;;</span><br><span class="line">              &#125;;</span><br></pre></td></tr></table></figure>
+
+<p>删除掉以后继续在 imx6ull-apha-emmc.dts 中找到如下所示代码：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804182827601.png" alt="image-20230804182827601" style="zoom:50%;" />
+
+<p>第 129 行，设置 GPIO5_IO08 为 SPI4 的一个功能引脚(我也不清楚具体作为什么功能用)，而 GPIO5_IO08 就是 SNVS_TAMPER8 的 GPIO 功能引脚。</p>
+<p>第 133 行，设置 GPIO5_IO07 作为 SPI4 的片选引脚，而 GPIO5_IO07 就是 SNVS_TAMPER7的 GPIO 功能引脚。现在我们需要 GPIO5_IO07 和 GPIO5_IO08 分别作为 ENET1 和 ENET2 的复位引脚，而不是 SPI4 的什么功能引脚，因此将上图中的第 129 行和第 133 行处的代码删除掉，否则会干扰到网络复位引脚！  修改后如下所示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">spi4 &#123;</span><br><span class="line">	compatible = <span class="string">&quot;spi-gpio&quot;</span>;</span><br><span class="line">	pinctrl-names = <span class="string">&quot;default&quot;</span>;</span><br><span class="line">	pinctrl<span class="number">-0</span> = &lt;&amp;pinctrl_spi4&gt;;</span><br><span class="line"></span><br><span class="line">	status = <span class="string">&quot;disable&quot;</span>;</span><br><span class="line">	gpio-sck = &lt;&amp;gpio5 <span class="number">11</span> <span class="number">0</span>&gt;;</span><br><span class="line">	gpio-mosi = &lt;&amp;gpio5 <span class="number">10</span> <span class="number">0</span>&gt;;</span><br><span class="line"></span><br><span class="line">	num-chipselects = &lt;<span class="number">1</span>&gt;;</span><br><span class="line">	<span class="meta">#address-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">	<span class="meta">#size-cells = <span class="string">&lt;0&gt;</span>;</span></span><br><span class="line">       <span class="comment">// ......</span></span><br><span class="line">   &#125;;</span><br></pre></td></tr></table></figure>
+
+<p>在 imx6ull-alpha-emmc.dts 里面找到名为 “iomuxc_snvs” 的节点(就是直接搜索)，然后在此节点下添加网络复位引脚信息，添加完成以后的 “ iomuxc_snvs ” 的节点内容如下：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">&amp;iomuxc_snvs &#123;</span><br><span class="line">	pinctrl-names = <span class="string">&quot;default_snvs&quot;</span>;</span><br><span class="line">        pinctrl<span class="number">-0</span> = &lt;&amp;pinctrl_hog_2&gt;;</span><br><span class="line">        imx6ul-evk &#123;</span><br><span class="line">		<span class="comment">//......</span></span><br><span class="line">		<span class="comment">/*enet1 reset zuozhongkai*/</span></span><br><span class="line">		pinctrl_enet1_reset: enet1resetgrp &#123;</span><br><span class="line">						fsl,pins = &lt;</span><br><span class="line">						<span class="comment">/* used for enet1 reset */</span></span><br><span class="line">						MX6ULL_PAD_SNVS_TAMPER7__GPIO5_IO07 <span class="number">0x10B0</span></span><br><span class="line">						&gt;;</span><br><span class="line">				&#125;;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/*enet2 reset zuozhongkai*/</span></span><br><span class="line">		pinctrl_enet2_reset: enet2resetgrp &#123;</span><br><span class="line">						fsl,pins = &lt;</span><br><span class="line">						<span class="comment">/* used for enet2 reset */</span></span><br><span class="line">						MX6ULL_PAD_SNVS_TAMPER8__GPIO5_IO08 <span class="number">0x10B0</span></span><br><span class="line">						&gt;;</span><br><span class="line">				&#125;;</span><br><span class="line">        &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>最后还需要修改一下 ENET1 和 ENET2 的网络时钟引脚配置， 继续在 imx6ull-alpha-emmc.dts 中找到如下所示代码：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804183534398.png" alt="image-20230804183534398" style="zoom:50%;" />
+
+<p>第 318 和 333 行， 分别为 ENET1 和 ENET2 的网络时钟引脚配置信息，将这两个引脚的电气属性值改为 0x4001b009，原来默认值为 0x4001b031。修改完成以后记得保存一下 imx6ull-alientek-emmc.dts，网络复位以及时钟引脚驱动就修改好了。  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">pinctrl_enet1: enet1grp &#123;</span><br><span class="line">	fsl,pins = &lt;</span><br><span class="line">		MX6UL_PAD_ENET1_RX_EN__ENET1_RX_EN	<span class="number">0x1b0b0</span></span><br><span class="line">		MX6UL_PAD_ENET1_RX_ER__ENET1_RX_ER	<span class="number">0x1b0b0</span></span><br><span class="line">		MX6UL_PAD_ENET1_RX_DATA0__ENET1_RDATA00	<span class="number">0x1b0b0</span></span><br><span class="line">		MX6UL_PAD_ENET1_RX_DATA1__ENET1_RDATA01	<span class="number">0x1b0b0</span></span><br><span class="line">		MX6UL_PAD_ENET1_TX_EN__ENET1_TX_EN	<span class="number">0x1b0b0</span></span><br><span class="line">		MX6UL_PAD_ENET1_TX_DATA0__ENET1_TDATA00	<span class="number">0x1b0b0</span></span><br><span class="line">		MX6UL_PAD_ENET1_TX_DATA1__ENET1_TDATA01	<span class="number">0x1b0b0</span></span><br><span class="line">		MX6UL_PAD_ENET1_TX_CLK__ENET1_REF_CLK1	<span class="number">0x4001b009</span></span><br><span class="line">	&gt;;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">pinctrl_enet2: enet2grp &#123;</span><br><span class="line">	fsl,pins = &lt;</span><br><span class="line">		MX6UL_PAD_GPIO1_IO07__ENET2_MDC		<span class="number">0x1b0b0</span></span><br><span class="line">		MX6UL_PAD_GPIO1_IO06__ENET2_MDIO	<span class="number">0x1b0b0</span></span><br><span class="line">		MX6UL_PAD_ENET2_RX_EN__ENET2_RX_EN	<span class="number">0x1b0b0</span></span><br><span class="line">		MX6UL_PAD_ENET2_RX_ER__ENET2_RX_ER	<span class="number">0x1b0b0</span></span><br><span class="line">		MX6UL_PAD_ENET2_RX_DATA0__ENET2_RDATA00	<span class="number">0x1b0b0</span></span><br><span class="line">		MX6UL_PAD_ENET2_RX_DATA1__ENET2_RDATA01	<span class="number">0x1b0b0</span></span><br><span class="line">		MX6UL_PAD_ENET2_TX_EN__ENET2_TX_EN	<span class="number">0x1b0b0</span></span><br><span class="line">		MX6UL_PAD_ENET2_TX_DATA0__ENET2_TDATA00	<span class="number">0x1b0b0</span></span><br><span class="line">		MX6UL_PAD_ENET2_TX_DATA1__ENET2_TDATA01	<span class="number">0x1b0b0</span></span><br><span class="line">		MX6UL_PAD_ENET2_TX_CLK__ENET2_REF_CLK2	<span class="number">0x4001b009</span></span><br><span class="line">	&gt;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-2-修改-fec1-和-fec2-节点的-pinctrl-0-属性"><a href="#1-2-修改-fec1-和-fec2-节点的-pinctrl-0-属性" class="headerlink" title="1.2 修改 fec1 和 fec2 节点的 pinctrl-0 属性  "></a><font size=3>1.2 修改 fec1 和 fec2 节点的 pinctrl-0 属性  </font></h3><p>在 imx6ull-alpha-emmc.dts 文件中找到名为“fec1”和“fec2”的这两个节点，修改其中的“pinctrl-0”属性值，修改以后如下所示 ：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804183823349.png" alt="image-20230804183823349" style="zoom:50%;" />
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">&amp;fec1 &#123;</span><br><span class="line">	pinctrl-names = <span class="string">&quot;default&quot;</span>;</span><br><span class="line">	pinctrl<span class="number">-0</span> = &lt;&amp;pinctrl_enet1 &amp;pinctrl_enet1_reset&gt;;</span><br><span class="line">	phy-mode = <span class="string">&quot;rmii&quot;</span>;</span><br><span class="line">	phy-handle = &lt;&amp;ethphy0&gt;;</span><br><span class="line">	status = <span class="string">&quot;okay&quot;</span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">&amp;fec2 &#123;</span><br><span class="line">	pinctrl-names = <span class="string">&quot;default&quot;</span>;</span><br><span class="line">	pinctrl<span class="number">-0</span> = &lt;&amp;pinctrl_enet2 &amp;pinctrl_enet2_reset&gt;;</span><br><span class="line">	phy-mode = <span class="string">&quot;rmii&quot;</span>;</span><br><span class="line">	phy-handle = &lt;&amp;ethphy1&gt;;</span><br><span class="line">	status = <span class="string">&quot;okay&quot;</span>;</span><br><span class="line">    <span class="comment">// ......</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-3-修改-LAN8720A-的-PHY-地址"><a href="#1-3-修改-LAN8720A-的-PHY-地址" class="headerlink" title="1.3 修改 LAN8720A 的 PHY 地址  "></a><font size=3>1.3 修改 LAN8720A 的 PHY 地址  </font></h3><p>在 uboot 移植章节中，我们知道 ENET1 的 LAN8720A 地址为 0x0， ENET2 的 LAN8720A地址为 0x1。在 imx6ull-alpha-emmc.dts 中找到如下代码：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804184108020.png" alt="image-20230804184108020" style="zoom:50%;" />
+
+<p>第 171~177 行， ENET1 对应的设备树节点。</p>
+<p>第 179<del>200 行， ENET2 对应的设备树节点。但是第 186</del>198 行的 mdio 节点描述了 ENET1和 ENET2 的 PHY 地址信息。将上图改为如下内容：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">&amp;fec1 &#123;</span><br><span class="line">	pinctrl-names = <span class="string">&quot;default&quot;</span>;</span><br><span class="line">	pinctrl<span class="number">-0</span> = &lt;&amp;pinctrl_enet1 &amp;pinctrl_enet1_reset&gt;;</span><br><span class="line">	phy-mode = <span class="string">&quot;rmii&quot;</span>;</span><br><span class="line">	phy-handle = &lt;&amp;ethphy0&gt;;</span><br><span class="line">	phy-reset-gpios = &lt;&amp;gpio5 <span class="number">7</span> GPIO_ACTIVE_LOW&gt;;</span><br><span class="line">	phy-reset-duration = &lt;<span class="number">200</span>&gt;;</span><br><span class="line">	status = <span class="string">&quot;okay&quot;</span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">&amp;fec2 &#123;</span><br><span class="line">	pinctrl-names = <span class="string">&quot;default&quot;</span>;</span><br><span class="line">	pinctrl<span class="number">-0</span> = &lt;&amp;pinctrl_enet2 &amp;pinctrl_enet2_reset&gt;;</span><br><span class="line">	phy-mode = <span class="string">&quot;rmii&quot;</span>;</span><br><span class="line">	phy-handle = &lt;&amp;ethphy1&gt;;</span><br><span class="line">	phy-reset-gpios = &lt;&amp;gpio5 <span class="number">8</span> GPIO_ACTIVE_LOW&gt;;</span><br><span class="line">	phy-reset-duration = &lt;<span class="number">200</span>&gt;;</span><br><span class="line">	status = <span class="string">&quot;okay&quot;</span>;</span><br><span class="line"></span><br><span class="line">	mdio &#123;</span><br><span class="line">		<span class="meta">#address-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">		<span class="meta">#size-cells = <span class="string">&lt;0&gt;</span>;</span></span><br><span class="line"></span><br><span class="line">		ethphy0: ethernet-phy@<span class="number">0</span> &#123;</span><br><span class="line">			compatible = <span class="string">&quot;ethernet-phy-ieee802.3-c22&quot;</span>;</span><br><span class="line">            smsc,disable-energy-detect;</span><br><span class="line">			reg = &lt;<span class="number">0</span>&gt;;</span><br><span class="line">		&#125;;</span><br><span class="line"></span><br><span class="line">		ethphy1: ethernet-phy@<span class="number">1</span> &#123;</span><br><span class="line">			compatible = <span class="string">&quot;ethernet-phy-ieee802.3-c22&quot;</span>;</span><br><span class="line">            smsc,disable-energy-detect;</span><br><span class="line">			reg = &lt;<span class="number">1</span>&gt;;</span><br><span class="line">		&#125;;</span><br><span class="line">	&#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>修改的地方如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804184753755.png" alt="image-20230804184753755" style="zoom:50%;" />
+
+<p>第 176 和 177 行，添加了 ENET1 网络复位引脚所使用的 IO 为 GPIO5_IO07，低电平有效。复位低电平信号持续时间为 200ms。</p>
+<p>第 186 和 187 行， ENET2 网络复位引脚所使用的 IO 为 GPIO5_IO08，同样低电平有效，持续时间同样为 200ms。  </p>
+<p>第 196 和 202 行，“smsc,disable-energy-detect”表明 PHY 芯片是 SMSC 公司的，这样 Linux内核就会找到 SMSC 公司的 PHY 芯片驱动来驱动 LAN8720A。</p>
+<p>第 194 行，注意“ethernet-phy@”后面的数字是 PHY 的地址， ENET1 的 PHY 地址为 0，所以“@”后面是 0(默认为 2)。</p>
+<p>第 197 行， reg 的值也表示 PHY 地址， ENET1 的 PHY 地址为 0，所以 reg&#x3D;0。</p>
+<p>第 200 行， ENET2 的 PHY 地址为 1，因此“@”后面为 1。</p>
+<p>第 203 行，因为 ENET2 的 PHY 地址为 1，所以 reg&#x3D;1。</p>
+<h3 id="1-4-设备树编译"><a href="#1-4-设备树编译" class="headerlink" title="1.4 设备树编译"></a><font size=3>1.4 设备树编译</font></h3><p>至此， LAN8720A 的 PHY 地址就改好了，保存一下 imx6ull-alpha-emmc.dts 文件。然后使用以下命令重新编译一下设备树。  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- dtbs # 只编译设备树</span><br></pre></td></tr></table></figure>
+
+<p>编译完成后会有如下提示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804185315538.png" alt="image-20230804185315538" style="zoom:50%;" />
+
+<h2 id="2-内核源码修改"><a href="#2-内核源码修改" class="headerlink" title="2. 内核源码修改"></a><font size=3>2. 内核源码修改</font></h2><h3 id="2-1-修改-fec-main-c-文件"><a href="#2-1-修改-fec-main-c-文件" class="headerlink" title="2.1 修改 fec_main.c 文件  "></a><font size=3>2.1 修改 fec_main.c 文件  </font></h3><p>要在 I.MX6ULL 上 使 用 LAN8720A ， 需要修改一下 Linux 内核源码，打开 drivers&#x2F;net&#x2F;ethernet&#x2F;freescale&#x2F;fec_main.c，找到函数 fec_probe，在 fec_probe 中加入如下代码：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804185932285.png" alt="image-20230804185932285" style="zoom:50%;" />
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 设置 MX6UL_PAD_ENET1_TX_CLK 和 MX6UL_PAD_ENET2_TX_CLK</span></span><br><span class="line"><span class="comment"> * 这两个 IO 的复用寄存器的 SION 位为 1。*/</span></span><br><span class="line"><span class="type">void</span> __iomem *IMX6U_ENET1_TX_CLK;</span><br><span class="line"><span class="type">void</span> __iomem *IMX6U_ENET2_TX_CLK;</span><br><span class="line"></span><br><span class="line">IMX6U_ENET1_TX_CLK = ioremap(<span class="number">0X020E00DC</span>, <span class="number">4</span>);</span><br><span class="line">writel(<span class="number">0X14</span>, IMX6U_ENET1_TX_CLK);</span><br><span class="line"></span><br><span class="line">IMX6U_ENET2_TX_CLK = ioremap(<span class="number">0X020E00FC</span>, <span class="number">4</span>);</span><br><span class="line">writel(<span class="number">0X14</span>, IMX6U_ENET2_TX_CLK);</span><br></pre></td></tr></table></figure>
+
+<p>第 3452 ~ 3461 就是新加入的代码，如果要在 I.MX6ULL 上使用 LAN8720A 就需要设置ENET1 和 ENET2 的 TX_CLK 引脚复位寄存器的 SION 位为 1。    </p>
+<h3 id="2-2-配置-Linux-内核，使能-LAN8720-驱动"><a href="#2-2-配置-Linux-内核，使能-LAN8720-驱动" class="headerlink" title="2.2 配置 Linux 内核，使能 LAN8720 驱动  "></a><font size=3>2.2 配置 Linux 内核，使能 LAN8720 驱动  </font></h3><p>输入命令下边的命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig</span><br></pre></td></tr></table></figure>
+
+<p>打开图形化配置界面，选择使能 LAN8720A 的驱动，路径如下：  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">.config - Linux/arm 4.1.15 Kernel Configuration</span><br><span class="line">            Device Drivers  ---&gt;</span><br><span class="line">            	[*] Network device support  ---&gt;</span><br><span class="line">            		-*-   PHY Device support and infrastructure  ---&gt;</span><br><span class="line">					&lt; &gt;   Drivers for SMSC PHYs</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804190506293.png" alt="image-20230804190506293" style="zoom:50%;" />
+
+<p>选择将“ Drivers for SMSC PHYs ”编译到 Linux 内核中，因此“&lt;   &gt;”里面变为了“ * ”。 LAN8720A 是 SMSC 公司出品的，因此勾选这个以后就会编译LAN8720 驱动，配置好以后退出配置界面，然后重新编译一下 Linux 内核即可。  </p>
+<h3 id="2-3-修改-smsc-c-文件"><a href="#2-3-修改-smsc-c-文件" class="headerlink" title="2.3 修改 smsc.c 文件  "></a><font size=3>2.3 修改 smsc.c 文件  </font></h3><p>在修改 smsc.c 文件之前，先说一下为什么确定要修改 smsc.c 这个文件的。按理说不修改 smsc.c 这个文件，直接使能 LAN8720A 驱动以后就直接使用。</p>
+<p>但是在测试 NFS 挂载文件系统的时候发现文件系统挂载成功率很低！会经常提示 NFS 服务器找不到，三四次就有一次挂载失败！。 NFS 挂载就是通过网络来挂载文件系统，这样做的好处就是方便我们后续调试 Linux 驱动。既然总是是挂载失败那么可以肯定的是网络驱动有问题，网络驱动分两部分：内部 MAC+外部 PHY，内部 MAC 驱动是由 NXP 提供的，一般不会出问题，否则的话用户早就给 NXP 反馈了。</p>
+<p>而且我们用 NXP 官方的开发板测试网络是一直正常的，但是 NXP 官方的开发板所使用的 PHY 芯片为 KSZ8081。所以只有可能是外部 PHY，也就是LAN8720A 的驱动可能出问题了。鉴于 LAN8720A 有“前车之鉴”，那就是在 uboot 中需要对LAN8720A 进行一次软复位，要设置 LAN8720A 的 BMCR(寄存器地址为 0)寄存器 bit15 为 1。所以可以猜测，在 Linux 中也需要对 LAN8720A 进行一次软复位。  </p>
+<p>首先需要找到 LAN8720A 的驱动文件， LAN8720A 的驱动文件是 drivers&#x2F;net&#x2F;phy&#x2F;smsc.c，在此文件中有个叫做 smsc_phy_reset 的函数，看名字都知道这是 SMSC PHY 的复位函数，因此， LAN8720A 肯定也会使用到这个复位函数， 修改此函数的内容，修改以后的 smsc_phy_reset函数内容如下所示：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">smsc_phy_reset</span><span class="params">(<span class="keyword">struct</span> phy_device *phydev)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> err, phy_reset;</span><br><span class="line">	<span class="type">int</span> msec = <span class="number">1</span>;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device_node</span> *<span class="title">np</span>;</span></span><br><span class="line">	<span class="type">int</span> timeout = <span class="number">50000</span>;</span><br><span class="line">	<span class="keyword">if</span>(phydev-&gt;addr == <span class="number">0</span>) <span class="comment">/* FEC1 */</span> </span><br><span class="line">	&#123;</span><br><span class="line">		np = of_find_node_by_path(<span class="string">&quot;/soc/aips-bus@02100000/ethernet@02188000&quot;</span>);</span><br><span class="line">		<span class="keyword">if</span>(np == <span class="literal">NULL</span>) </span><br><span class="line">		&#123;</span><br><span class="line">			<span class="keyword">return</span> -EINVAL;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(phydev-&gt;addr == <span class="number">1</span>) <span class="comment">/* FEC2 */</span> </span><br><span class="line">	&#123;</span><br><span class="line">		np = of_find_node_by_path(<span class="string">&quot;/soc/aips-bus@02000000/ethernet@020b4000&quot;</span>);</span><br><span class="line">		<span class="keyword">if</span>(np == <span class="literal">NULL</span>) </span><br><span class="line">		&#123;</span><br><span class="line">			<span class="keyword">return</span> -EINVAL;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	err = of_property_read_u32(np, <span class="string">&quot;phy-reset-duration&quot;</span>, &amp;msec);</span><br><span class="line">	<span class="comment">/* A sane reset duration should not be longer than 1s */</span></span><br><span class="line">	<span class="keyword">if</span> (!err &amp;&amp; msec &gt; <span class="number">1000</span>)</span><br><span class="line">		msec = <span class="number">1</span>;</span><br><span class="line">	phy_reset = of_get_named_gpio(np, <span class="string">&quot;phy-reset-gpios&quot;</span>, <span class="number">0</span>);</span><br><span class="line">	<span class="keyword">if</span> (!gpio_is_valid(phy_reset))</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">	gpio_direction_output(phy_reset, <span class="number">0</span>);</span><br><span class="line">	gpio_set_value(phy_reset, <span class="number">0</span>);</span><br><span class="line">	msleep(msec);</span><br><span class="line">	gpio_set_value(phy_reset, <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">	<span class="type">int</span> rc = phy_read(phydev, MII_LAN83C185_SPECIAL_MODES);</span><br><span class="line">	<span class="keyword">if</span> (rc &lt; <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">return</span> rc;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* If the SMSC PHY is in power down mode, then set it</span></span><br><span class="line"><span class="comment">	* in all capable mode before using it.</span></span><br><span class="line"><span class="comment">	*/</span></span><br><span class="line">	<span class="keyword">if</span> ((rc &amp; MII_LAN83C185_MODE_MASK) == MII_LAN83C185_MODE_POWERDOWN) &#123;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* set &quot;all capable&quot; mode and reset the phy */</span></span><br><span class="line">		rc |= MII_LAN83C185_MODE_ALL;</span><br><span class="line">		phy_write(phydev, MII_LAN83C185_SPECIAL_MODES, rc);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	phy_write(phydev, MII_BMCR, BMCR_RESET);</span><br><span class="line">	<span class="comment">/* wait end of reset (max 500 ms) */</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">do</span> &#123;</span><br><span class="line">		udelay(<span class="number">10</span>);</span><br><span class="line">		<span class="keyword">if</span> (timeout-- == <span class="number">0</span>)</span><br><span class="line">			<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">		rc = phy_read(phydev, MII_BMCR);</span><br><span class="line">	&#125; <span class="keyword">while</span> (rc &amp; BMCR_RESET);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第 7~14 行，获取 FEC1 网卡对应的设备节点。</p>
+<p>第 16~23 行，获取 FEC2 网卡对应的设备节点。</p>
+<p>第 25 行，从设备树中获取“phy-reset-duration”属性信息，也就是复位时间。</p>
+<p>第 29 行，从设备树中获取“phy-reset-gpios”属性信息，也就是复位 IO。</p>
+<p>第 33~36 行，设置 PHY 的复位 IO，复位 LAN8720A。</p>
+<p>第 45~52 行，以前的 smsc_phy_reset 函数会判断 LAN8720 是否处于 Powerdown 模式，只有处于 Powerdown 模式的时候才会软复位 LAN8720。这里我们将软复位代码移出来，这样每次调用 smsc_phy_reset 函数 LAN8720A 都会被软复位。最后我们还需要在 drivers&#x2F;net&#x2F;phy&#x2F;smsc.c 文件中添加两个头文件，因为修改后的smsc_phy_reset 函数用到了 gpio_direction_output 和 gpio_set_value 这两个函数，需要添加的头文件如下所示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/of_gpio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/io.h&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+<h2 id="3-图形化配置文件处理"><a href="#3-图形化配置文件处理" class="headerlink" title="3. 图形化配置文件处理"></a><font size=3>3. 图形化配置文件处理</font></h2><p>在修改网络驱动的时候我们通过图形界面使能了 LAN8720A 的驱动，使能以后会在.config中存在如下代码：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804192228052.png" alt="image-20230804192228052" style="zoom:50%;" />
+
+<p>打开 drivers&#x2F;net&#x2F;phy&#x2F;Makefile，有如下代码：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804192318165.png" alt="image-20230804192318165" style="zoom:50%;" />
+
+<p>当 CONFIG_SMSC_PHY&#x3D;y 的时候就会编译 smsc.c 这个文件， smsc.c 就是 LAN8720A 的驱动文件。但是当我们执行“make distclean”清理工程以后.config 文件就会被删除掉，因此我们所有的配置内容都会丢失，结果就是前功尽弃！所以我们在配置完图形界面以后经过测试没有问题，就必须要保存一下配置文件，保存配置的方法有两个。    </p>
+<h3 id="3-1-直接另存为-config-文件"><a href="#3-1-直接另存为-config-文件" class="headerlink" title="3.1 直接另存为.config 文件  "></a><font size=3>3.1 直接另存为.config 文件  </font></h3><p>既然图形化界面配置后的配置项保存在.config 中，那么我们就可以直接将.config 文件另存为 imx_alpha_emmc_defconfig，然后其复制到arch&#x2F;arm&#x2F;configs 目录下，替换以前的imx_alpha_emmc_defconfig 。这样以后执行“ make imx_alpha_emmc_defconfig”重新配置Linux 内核的时候就会使用新的配置文件，默认就会使能 LAN8720A 的驱动。  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cp .config arch/arm/configs/imx_alpha_emmc_defconfig</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-通过图形界面保存配置文件"><a href="#3-2-通过图形界面保存配置文件" class="headerlink" title="3.2 通过图形界面保存配置文件  "></a><font size=3>3.2 通过图形界面保存配置文件  </font></h3><p>我们还有一种方式在图形界面中保存配置文件，在图形界面中会有“&lt; Save  &gt;”选项，如图所示：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804192917367.png" alt="image-20230804192917367" style="zoom:50%;" />
+
+<p>通过键盘的“&rarr;”键，移动到“&lt; Save  &gt;”选项，然后按下回车键，打开文件名输入对话框，如图所示：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804193202728.png" alt="image-20230804193202728" style="zoom:50%;" />
+
+<p>在图位置中输入要保存的文件名，可以带路径，一般是相对路径(相对于 Linux 内核源码根目录 )。比如我们要将新的配置文件保存到目录arch&#x2F;arm&#x2F;configs 下，文件名为 imx_alpha_emmc_defconfig，也就是用新的配置文件替换掉老的默认配置文件。那么我们在图中输入“arch&#x2F;arm&#x2F;configs&#x2F;imx_alpha_emmc_defconfig”即可:</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">arch/arm/configs/imx_alpha_emmc_defconfig</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804193135602.png" alt="image-20230804193135602" style="zoom:50%;" />
+
+<p>设置好文件名以后选择下方的“ &lt; Ok &gt;”按钮，保存文件并退出。退出以后再打开 arch&#x2F;arm&#x2F;configs&#x2F;imx_alpha_emmc_defconfig 文件，就会在此文件中找到“CONFIG_SMSC_PHY&#x3D;y”这一行:</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804193420347.png" alt="image-20230804193420347" style="zoom:50%;" />
+
+<p>同样的，使用“make imx_alientek_emmc_defconfig”重新配置 Linux 内核的时候， LAN8720A的驱动就会使能，并被编译进 Linux 镜像文件 zImage 中。</p>
+<h2 id="4-网口测试"><a href="#4-网口测试" class="headerlink" title="4. 网口测试"></a><font size=3>4. 网口测试</font></h2><h3 id="4-1-文件准备"><a href="#4-1-文件准备" class="headerlink" title="4.1 文件准备"></a><font size=3>4.1 文件准备</font></h3><p>我们这里由于还要编译内核，所以直接使用下边的命令一步到位：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- all -j16</span><br></pre></td></tr></table></figure>
+
+<p>编译完成后我们将设备树和zImage文件拷贝到tftp目录下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cp arch/arm/boot/zImage ~/3tftp/imx6ull/</span><br><span class="line">cp arch/arm/boot/dts/imx6ull-alpha-emmc.dtb ~/3tftp/imx6ull/</span><br></pre></td></tr></table></figure>
+
+<p>修改好设备树和 Linux 内核以后重新编译一下，得到新的 zImage 镜像文件和 imx6ull-alpha-emmc.dtb 设备树文件，使用网线将 I.MX6U-ALPHA 开发板的两个网口与路由器或者电脑连接起来，最后使用新的文件启动 Linux 内核。</p>
+<h3 id="4-2-bootamd与bootargs"><a href="#4-2-bootamd与bootargs" class="headerlink" title="4.2 bootamd与bootargs"></a><font size=3>4.2 bootamd与bootargs</font></h3><p>uboot的这两个参数内容如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">=&gt; setenv bootcmd &#x27;tftp 80800000 /imx6ull/zImage\;tftp 83000000 /imx6ull/imx6ull-alpha-emmc.dtb\;bootz 80800000 - 83000000&#x27;</span><br><span class="line">=&gt; setenv bootargs &#x27;console=ttymxc0,115200 root=/dev/nfs nfsroot=192.168.10.101:/home/hk/4nfs/imx6ull_rootfs,proto=tcp rw ip=192.168.10.102:192.168.10.101:192.168.10.1:255.255.255.0::eth0:off init=/linuxrc&#x27;</span><br><span class="line">=&gt; saveenv </span><br></pre></td></tr></table></figure>
+
+<p>下边的 bootargs 其实就是给linux内核传递的参数，会配置好IP地址，并且从NFS挂载根文件系统。上边的bootm表示我们从tftp下载zImage和设备树。</p>
+<h3 id="4-2-启动测试"><a href="#4-2-启动测试" class="headerlink" title="4.2 启动测试"></a><font size=3>4.2 启动测试</font></h3><h4 id="4-2-1-启动过程"><a href="#4-2-1-启动过程" class="headerlink" title="4.2.1 启动过程"></a><font size=3>4.2.1 启动过程</font></h4><p>若是网络驱动移植成功，并且有根文件系统的话就会正常挂载了（我这里用的是我自己移植的busybox根文件系统）：</p>
+<ul>
+<li>（1）u-boot启动</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804201612700.png" alt="image-20230804201612700" style="zoom:50%;" />
+
+<ul>
+<li>（2）下载zImage</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804201650432.png" alt="image-20230804201650432" style="zoom:50%;" />
+
+<ul>
+<li>（3）下载设备树</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804201732831.png" alt="image-20230804201732831" style="zoom:50%;" />
+
+<ul>
+<li>（4）启动内核</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804201816256.png" alt="image-20230804201816256" style="zoom:50%;" />
+
+<ul>
+<li>（5）挂载NFS根文件系统</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804201914706.png" alt="image-20230804201914706" style="zoom:50%;" />
+
+<h4 id="4-2-2-网络配置"><a href="#4-2-2-网络配置" class="headerlink" title="4.2.2 网络配置"></a><font size=3>4.2.2 网络配置</font></h4><p>启动以后使用“ifconfig -a”命令查看一下当前活动的网卡有哪些，结果如图所示：、  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line">root@imx: /$ ifconfig -a</span><br><span class="line">can0      Link encap:UNSPEC  HWaddr 00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00</span><br><span class="line">          NOARP  MTU:16  Metric:1</span><br><span class="line">          RX packets:0 errors:0 dropped:0 overruns:0 frame:0</span><br><span class="line">          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0</span><br><span class="line">          collisions:0 txqueuelen:10</span><br><span class="line">          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)</span><br><span class="line">          Interrupt:27</span><br><span class="line"></span><br><span class="line">can1      Link encap:UNSPEC  HWaddr 00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00</span><br><span class="line">          NOARP  MTU:16  Metric:1</span><br><span class="line">          RX packets:0 errors:0 dropped:0 overruns:0 frame:0</span><br><span class="line">          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0</span><br><span class="line">          collisions:0 txqueuelen:10</span><br><span class="line">          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)</span><br><span class="line">          Interrupt:28</span><br><span class="line"></span><br><span class="line">eth0      Link encap:Ethernet  HWaddr B8:AE:1D:01:00:00</span><br><span class="line">          inet addr:192.168.10.102  Bcast:192.168.10.255  Mask:255.255.255.0</span><br><span class="line">          inet6 addr: fe80::baae:1dff:fe01:0/64 Scope:Link</span><br><span class="line">          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1</span><br><span class="line">          RX packets:1785 errors:0 dropped:0 overruns:0 frame:0</span><br><span class="line">          TX packets:1299 errors:0 dropped:0 overruns:0 carrier:0</span><br><span class="line">          collisions:0 txqueuelen:1000</span><br><span class="line">          RX bytes:2052335 (1.9 MiB)  TX bytes:167054 (163.1 KiB)</span><br><span class="line"></span><br><span class="line">eth1      Link encap:Ethernet  HWaddr B8:AE:1D:01:00:00</span><br><span class="line">          BROADCAST MULTICAST  MTU:1500  Metric:1</span><br><span class="line">          RX packets:0 errors:0 dropped:0 overruns:0 frame:0</span><br><span class="line">          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0</span><br><span class="line">          collisions:0 txqueuelen:1000</span><br><span class="line">          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)</span><br><span class="line"></span><br><span class="line">lo        Link encap:Local Loopback</span><br><span class="line">          inet addr:127.0.0.1  Mask:255.0.0.0</span><br><span class="line">          inet6 addr: ::1/128 Scope:Host</span><br><span class="line">          UP LOOPBACK RUNNING  MTU:65536  Metric:1</span><br><span class="line">          RX packets:0 errors:0 dropped:0 overruns:0 frame:0</span><br><span class="line">          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0</span><br><span class="line">          collisions:0 txqueuelen:0</span><br><span class="line">          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)</span><br><span class="line"></span><br><span class="line">sit0      Link encap:IPv6-in-IPv4</span><br><span class="line">          NOARP  MTU:1480  Metric:1</span><br><span class="line">          RX packets:0 errors:0 dropped:0 overruns:0 frame:0</span><br><span class="line">          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0</span><br><span class="line">          collisions:0 txqueuelen:0</span><br><span class="line">          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>中 can0 和 can1 为 CAN 接口的网卡， eth0 和 eth1 才是网络接口的网卡，其中eth0 对应于 ENET2， eth1 对应于 ENET1。使用如下命令依次打开 eth0 和 eth1 这两个网卡：  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ifconfig eth0 up</span><br><span class="line">ifconfig eth1 up</span><br></pre></td></tr></table></figure>
+
+<p>注意，我这里是接了eth0，并且用于挂载根文件系统，所以它是直接启动的，要是连接了eth1的话可以用上边的命令启动网卡。我们可以通过以下命令配置开发板的IP地址：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ifconfig eth0 192.168.1.251</span><br><span class="line">ifconfig eth1 192.168.1.252</span><br></pre></td></tr></table></figure>
+
+<p>我们也可以使用ping命令来查看是否与同一网段的ip可以ping通：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-02-linux%E5%86%85%E6%A0%B8-03-linux%E5%86%85%E6%A0%B8%E7%A7%BB%E6%A4%8D/img/image-20230804202614581.png" alt="image-20230804202614581" style="zoom:50%;" />
+
+<h1 id="三、移植总结"><a href="#三、移植总结" class="headerlink" title="三、移植总结"></a><font size=3>三、移植总结</font></h1><p>关于 Linux 内核的移植就学习到这里，简单总结一下移植步骤：</p>
+<p>（1）在 Linux 内核中查找可以参考的板子，一般都是半导体厂商自己做的开发板。</p>
+<p>（2）编译出参考板子对应的 zImage 和.dtb 文件。</p>
+<p>（3）使用参考板子的 zImage 文件和.dtb 文件在我们所使用的板子上启动 Linux 内核，看能否启动。</p>
+<p>（4）如果能启动的话就万事大吉，如果不能启动那就悲剧了，需要调试 Linux 内核。不过一般都会参考半导体官方的开发板设计自己的硬件，所以大部分情况下都会启动起来。启动Linux 内核用到的外设不多，一般就 DRAM(Uboot 都初始化好的)和串口。作为终端使用的串口一般都会参考半导体厂商的 Demo 板。</p>
+<p>（5）修改相应的驱动，像 NAND Flash、 EMMC、 SD 卡等驱动官方的 Linux 内核都是已经提供好了，基本不会出问题。重点是网络驱动，因为 Linux 驱动开发一般都要通过网络调试代码，所以一定要确保网络驱动工作正常。如果是处理器内部 MAC+外部 PHY 这种网络方案的话，一般网络驱动都很好处理，因为在 Linux 内核中是有外部 PHY 通用驱动的。只要设置好复位引脚、 PHY 地址信息基本上都可以驱动起来。</p>
+<p>（6）Linux 内核启动以后需要根文件系统，如果没有根文件系统的话肯定会崩溃，所以确定 Linux内核移植成功以后就要开始根文件系统的构建。  </p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/f796fc0d.html">LV05-02-linux内核-03-linux内核移植</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年09月08日 - 19:23</p>
+    <p><span>最后更新:</span>2025年02月16日 - 18:03</p>
+    <p><span>原始链接:</span><a href="/post/f796fc0d.html" title="LV05-02-linux内核-03-linux内核移植">https://sumumm.github.io/post/f796fc0d.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/ALPHA-LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/" rel="tag"><i class="fa fa-tag"></i> (ALPHA)LV05-uboot与内核</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/1e41b951.html" rel="prev" title="LV05-02-linux内核-04-日志显示时间戳">
+                  <i class="fa fa-angle-left"></i> LV05-02-linux内核-04-日志显示时间戳
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/9dbad8f0.html" rel="next" title="LV05-02-linux内核-02-NXP提供的内核">
+                  LV05-02-linux内核-02-NXP提供的内核 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.5m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">211:16</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是Linux系统调用open()在字符设备驱动中的应用，详细了解了如何通过open()调用驱动的自定义文件操作集，并学习驱动加载、cdev结构体、chrdev_open()函数及其在内核中的映射过程。若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV05-03-Kernel-05-03-04-open函数解析3">
+<meta property="og:url" content="https://sumumm.github.io/post/ef14f746.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是Linux系统调用open()在字符设备驱动中的应用，详细了解了如何通过open()调用驱动的自定义文件操作集，并学习驱动加载、cdev结构体、chrdev_open()函数及其在内核中的映射过程。若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-12-25T15:16:51.000Z">
+<meta property="article:modified_time" content="2025-02-16T10:03:07.730Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV05-系统镜像">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/ef14f746.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/ef14f746.html","path":"post/ef14f746.html","title":"LV05-03-Kernel-05-03-04-open函数解析3"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV05-03-Kernel-05-03-04-open函数解析3 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">39</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">638</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">一、字符设备驱动实例</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E7%9B%B8%E5%85%B3%E5%87%BD%E6%95%B0%E5%88%86%E6%9E%90"><span class="nav-text">二、相关函数分析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-do-dentry-open"><span class="nav-text">1. do_dentry_open()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-chrdev-open"><span class="nav-text">2. chrdev_open()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-cdev-map"><span class="nav-text">3. cdev_map</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-cdev-map-probes%E6%88%90%E5%91%98"><span class="nav-text">4. cdev_map-&gt;probes成员</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-cdev%E6%80%8E%E4%B9%88%E5%AD%98%E5%85%A5probes%E6%8C%87%E9%92%88%E6%95%B0%E7%BB%84"><span class="nav-text">4.1 cdev怎么存入probes指针数组</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-1-alloc-chrdev-region"><span class="nav-text">4.1.1 alloc_chrdev_region()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-2-cdev-init"><span class="nav-text">4.1.2 cdev_init()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-3-cdev-add"><span class="nav-text">4.1.3 cdev_add()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-4-kobj-map"><span class="nav-text">4.1.4 kobj_map()</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E6%80%8E%E4%B9%88%E4%BB%8Eprobes%E6%8C%87%E9%92%88%E6%95%B0%E7%BB%84%E6%89%BE%E5%88%B0cdev"><span class="nav-text">4.2 怎么从probes指针数组找到cdev</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-1-kobj-lookup"><span class="nav-text">4.2.1 kobj_lookup()</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%80%BB%E7%BB%93"><span class="nav-text">4.3 总结</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">638</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">39</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">40</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/ef14f746.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV05-03-Kernel-05-03-04-open函数解析3 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV05-03-Kernel-05-03-04-open函数解析3
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-12-25 23:16:51" itemprop="dateCreated datePublished" datetime="2024-12-25T23:16:51+08:00">2024-12-25</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/" itemprop="url" rel="index"><span itemprop="name">LV05-系统镜像</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.5k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>13 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是Linux系统调用open()在字符设备驱动中的应用，详细了解了如何通过open()调用驱动的自定义文件操作集，并学习驱动加载、cdev结构体、chrdev_open()函数及其在内核中的映射过程。若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-05-03-04-open%E5%87%BD%E6%95%B0%E8%A7%A3%E6%9E%903/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="2">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、字符设备驱动实例"><a href="#一、字符设备驱动实例" class="headerlink" title="一、字符设备驱动实例"></a><font size=3>一、字符设备驱动实例</font></h1><p>前面我们打开一个txt文本文件的方式了解了linux的open系统调用过程。下面我们来看设备节点这种文件，假如我们有个字符驱动：my_kmem.ko。使用如下脚本将其加载入内核空间：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/sh</span></span><br><span class="line"></span><br><span class="line">module=&quot;my_kmem&quot;</span><br><span class="line">device=&quot;my_chr_dev&quot;</span><br><span class="line">mod=&quot;664&quot;</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">加载驱动</span></span><br><span class="line">insmod $module.ko || exit 1</span><br><span class="line"></span><br><span class="line">rm -f /dev/$&#123;device&#125;0</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">获取主设备号</span></span><br><span class="line">major=`awk -v dev=$device &#x27;$2 == dev &#123;print $1&#125;&#x27; /proc/devices`</span><br><span class="line">echo &quot;major number: $major&quot;</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">创建设备节点</span></span><br><span class="line">mknod /dev/$&#123;device&#125;0 c $major 0</span><br><span class="line">chmod $mod /dev/$&#123;device&#125;0 # 最后设备节点名为/dev/my_chr_dev0</span><br></pre></td></tr></table></figure>
+
+<p>字符设备驱动的init函数为：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">static</span> <span class="type">int</span> __init <span class="title">my_chrdev_init</span><span class="params">(<span class="type">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="type">int</span> ret = <span class="number">0</span>;</span><br><span class="line">	<span class="comment">// 自动获取设备号，设备名为 my_chr_dev</span></span><br><span class="line">	ret = <span class="built_in">alloc_chrdev_region</span>(&amp;dev, <span class="number">0</span>, <span class="number">1</span>, <span class="string">&quot;my_chr_dev&quot;</span>);</span><br><span class="line">	<span class="keyword">if</span> (ret != <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="built_in">printk</span>(KERN_ALERT <span class="string">&quot;error allocating device number\n&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> ret;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="built_in">cdev_init</span>(&amp;my_chrdev, &amp;my_chr_dev_fops);</span><br><span class="line">	my_chrdev.owner = THIS_MODULE;</span><br><span class="line">	<span class="comment">//使用cdev_add()函数进行字符设备的添加</span></span><br><span class="line">	ret = <span class="built_in">cdev_add</span>(&amp;my_chrdev, dev, <span class="number">1</span>);</span><br><span class="line">	<span class="keyword">if</span> (ret &lt; <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="built_in">printk</span>(KERN_ALERT <span class="string">&quot;adding charactor device failed\n&quot;</span>);</span><br><span class="line">		<span class="built_in">unregister_chrdev_region</span>(dev, <span class="number">1</span>);</span><br><span class="line">		<span class="keyword">return</span> ret;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>my_chr_dev_fops</code>是自定义的文件操作集，包括 open()、read()、write()等。我们知道，当我们通过系统调用 open() 打开驱动文件的时候，最后肯定会调用到我们自定义的文件操作集中的 open()。这里我们来分析具体的调用过程。</p>
+<h1 id="二、相关函数分析"><a href="#二、相关函数分析" class="headerlink" title="二、相关函数分析"></a><font size=3>二、相关函数分析</font></h1><h2 id="1-do-dentry-open"><a href="#1-do-dentry-open" class="headerlink" title="1. do_dentry_open()"></a><font size=3>1. do_dentry_open()</font></h2><p>从前面的分析过程知道，内核最终都会调用到 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/open.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n735">do_dentry_open()</a> 函数，来完成文件打开的操作。而<a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/open.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n735">do_dentry_open()</a> 函数里面会找到inode的i_fop成员变量，该成员变量也是一个指向文件操作集的指针，其中就包括 open() 函数，而后面的操作就和具体的文件系统相关了。这里简化 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/open.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n735">do_dentry_open()</a> 函数如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">static</span> <span class="type">int</span> <span class="title">do_dentry_open</span><span class="params">(<span class="keyword">struct</span> file *f,</span></span></span><br><span class="line"><span class="params"><span class="function">			  <span class="keyword">struct</span> inode *inode,</span></span></span><br><span class="line"><span class="params"><span class="function">			  <span class="type">int</span> (*open)(<span class="keyword">struct</span> inode *, <span class="keyword">struct</span> file *))</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	f-&gt;f_op = <span class="built_in">fops_get</span>(inode-&gt;i_fop);</span><br><span class="line">	<span class="keyword">if</span> (<span class="built_in">unlikely</span>(<span class="built_in">WARN_ON</span>(!f-&gt;f_op))) &#123;</span><br><span class="line">		error = -ENODEV;</span><br><span class="line">		<span class="keyword">goto</span> cleanup_all;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="keyword">if</span> (!open)</span><br><span class="line">		open = f-&gt;f_op-&gt;open;</span><br><span class="line">	<span class="keyword">if</span> (open) &#123;</span><br><span class="line">		error = <span class="built_in">open</span>(inode, f);</span><br><span class="line">		<span class="keyword">if</span> (error)</span><br><span class="line">			<span class="keyword">goto</span> cleanup_all;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="keyword">return</span> error;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>主要是分析 inode&rarr;i_fop&rarr;open所指向的函数。这里提前了解一下，这个函数指向的是 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n382">chrdev_open()</a> 函数，后面分析 mknod 加载驱动的具体过程时会详细分析为什么是这个函数。</p>
+<h2 id="2-chrdev-open"><a href="#2-chrdev-open" class="headerlink" title="2. chrdev_open()"></a><font size=3>2. chrdev_open()</font></h2><p>现在来分析下这个 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n382">chrdev_open()</a> 函数：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Called every time a character special file is opened</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="type">static</span> <span class="type">int</span> <span class="title">chrdev_open</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *filp)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="type">const</span> <span class="keyword">struct</span> <span class="title class_">file_operations</span> *fops;</span><br><span class="line">	<span class="keyword">struct</span> <span class="title class_">cdev</span> *p;</span><br><span class="line">	<span class="keyword">struct</span> <span class="title class_">cdev</span> *<span class="keyword">new</span> = <span class="literal">NULL</span>;</span><br><span class="line">	<span class="type">int</span> ret = <span class="number">0</span>;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	p = inode-&gt;i_cdev;</span><br><span class="line">	<span class="keyword">if</span> (!p) &#123;</span><br><span class="line">		<span class="keyword">struct</span> <span class="title class_">kobject</span> *kobj;</span><br><span class="line">		<span class="comment">//......</span></span><br><span class="line">		kobj = <span class="built_in">kobj_lookup</span>(cdev_map, inode-&gt;i_rdev, &amp;idx);</span><br><span class="line">		<span class="comment">//......</span></span><br><span class="line">		<span class="keyword">new</span> = <span class="built_in">container_of</span>(kobj, <span class="keyword">struct</span> cdev, kobj);</span><br><span class="line">		<span class="comment">//......</span></span><br><span class="line">		p = inode-&gt;i_cdev;</span><br><span class="line">		<span class="keyword">if</span> (!p) &#123;</span><br><span class="line">			inode-&gt;i_cdev = p = <span class="keyword">new</span>;</span><br><span class="line">			<span class="built_in">list_add</span>(&amp;inode-&gt;i_devices, &amp;p-&gt;list);</span><br><span class="line">			<span class="keyword">new</span> = <span class="literal">NULL</span>;</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> (!<span class="built_in">cdev_get</span>(p))</span><br><span class="line">			ret = -ENXIO;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> (!<span class="built_in">cdev_get</span>(p))</span><br><span class="line">		ret = -ENXIO;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	fops = <span class="built_in">fops_get</span>(p-&gt;ops);</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="built_in">replace_fops</span>(filp, fops);</span><br><span class="line">	<span class="keyword">if</span> (filp-&gt;f_op-&gt;open) &#123;</span><br><span class="line">		ret = filp-&gt;f_op-&gt;<span class="built_in">open</span>(inode, filp);</span><br><span class="line">		<span class="comment">//......</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"><span class="comment">//......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>驱动程序里面的 open() 函数是保存在 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/include/linux/cdev.h?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n14">struct cdev </a> 结构体中的，而inode的成员变量 i_cdev 正指向这一结构体。</p>
+<h2 id="3-cdev-map"><a href="#3-cdev-map" class="headerlink" title="3. cdev_map"></a><font size=3>3. cdev_map</font></h2><p>在通过 mknod 命令加载驱动的时候，虽然创建了 inode 结构体，但该结构体只是进行了最简单的初始化，并没有将 inode 的 i_cdev 进行赋值，因此当（加载驱动之后）第一次调用该驱动的 open()函数时，需要动态找到 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/include/linux/cdev.h?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n14">struct cdev </a>结构体，并保存在 inode 的 i_cdev 成员变量中。而查找 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/include/linux/cdev.h?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n14">struct cdev </a>结构体的过程，是通过一个全局变量 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n28">cdev_map</a> 来完成的，<a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n28">cdev_map</a> 的数据类型为 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/base/map.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n19">struct kobj_map</a>，它其实是一个指针，它在这里被赋值：<a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n675">char_dev.c « fs - kernel&#x2F;git&#x2F;stable&#x2F;linux.git - Linux kernel stable tree</a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> __init <span class="title function_">chrdev_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	cdev_map = kobj_map_init(base_probe, &amp;chrdevs_lock);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>它的成员变量 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/base/map.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n20">probes</a> 是一个指针数组，在驱动的 init 函数中，将驱动的文件操作函数集（和其他一些数据结构）以设备号为索引塞进这个数组里面，而在（第一次）调用 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n382">chrdev_open()</a> 函数的时候，再以文件号为索引，从这个数组里面找到我们需要的文件操作集（以及其他相关的数据结构）。</p>
+<h2 id="4-cdev-map-probes成员"><a href="#4-cdev-map-probes成员" class="headerlink" title="4. cdev_map-&gt;probes成员"></a><font size=3>4. cdev_map-&gt;probes成员</font></h2><p>下面我们来具体分析cdev进cdev_map成员 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/base/map.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n20">probes</a> 和查找的过程。</p>
+<h3 id="4-1-cdev怎么存入probes指针数组"><a href="#4-1-cdev怎么存入probes指针数组" class="headerlink" title="4.1 cdev怎么存入probes指针数组"></a><font size=3>4.1 cdev怎么存入probes指针数组</font></h3><p>首先具体分析下驱动的init函数，主要看下面三个函数：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">static</span> <span class="type">int</span> <span class="title">my_chrdev_init</span><span class="params">(<span class="type">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	ret = <span class="built_in">alloc_chrdev_region</span>(&amp;dev, <span class="number">0</span>, <span class="number">1</span>, <span class="string">&quot;my_chr_dev&quot;</span>);</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">   	<span class="built_in">cdev_init</span>(&amp;my_chrdev, &amp;my_chr_dev_fops);</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	ret = <span class="built_in">cdev_add</span>(&amp;my_chrdev, dev, <span class="number">1</span>);</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-1-1-alloc-chrdev-region"><a href="#4-1-1-alloc-chrdev-region" class="headerlink" title="4.1.1 alloc_chrdev_region()"></a><font size=3>4.1.1 alloc_chrdev_region()</font></h4><p>先看第一个函数：<a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n235">alloc_chrdev_region()</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * alloc_chrdev_region() - register a range of char device numbers</span></span><br><span class="line"><span class="comment"> * @dev: output parameter for first assigned number</span></span><br><span class="line"><span class="comment"> * @baseminor: first of the requested range of minor numbers</span></span><br><span class="line"><span class="comment"> * @count: the number of minor numbers required</span></span><br><span class="line"><span class="comment"> * @name: the name of the associated device or driver</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Allocates a range of char device numbers.  The major number will be</span></span><br><span class="line"><span class="comment"> * chosen dynamically, and returned (along with the first minor number)</span></span><br><span class="line"><span class="comment"> * in @dev.  Returns zero or a negative error code.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">alloc_chrdev_region</span><span class="params">(<span class="type">dev_t</span> *dev, <span class="type">unsigned</span> baseminor, <span class="type">unsigned</span> count,</span></span><br><span class="line"><span class="params">			<span class="type">const</span> <span class="type">char</span> *name)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">char_device_struct</span> *<span class="title">cd</span>;</span></span><br><span class="line">	cd = __register_chrdev_region(<span class="number">0</span>, baseminor, count, name);</span><br><span class="line">	<span class="keyword">if</span> (IS_ERR(cd))</span><br><span class="line">		<span class="keyword">return</span> PTR_ERR(cd);</span><br><span class="line">	*dev = MKDEV(cd-&gt;major, cd-&gt;baseminor);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其主要作用是创建并初始化一个 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n34">struct char_device_struct</a> 结构体，然后将该结构体地址保存在名为 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n41">chrdevs</a> 的指针数组里面。这个<a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n41"> chrdevs</a> 指针数组是内核空间的全局变量，在后面我们会重点了解，这里我们先看 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n235">alloc_chrdev_region()</a> 函数，其中主要调用 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n100">__register_chrdev_region()</a> 函数来完成工作，其定义如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">struct</span> <span class="title class_">char_device_struct</span> *</span><br><span class="line">__register_chrdev_region(<span class="type">unsigned</span> <span class="type">int</span> major, <span class="type">unsigned</span> <span class="type">int</span> baseminor,</span><br><span class="line">			   <span class="type">int</span> minorct, <span class="type">const</span> <span class="type">char</span> *name)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">struct</span> <span class="title class_">char_device_struct</span> *cd, **cp;</span><br><span class="line">	<span class="type">int</span> ret = <span class="number">0</span>;</span><br><span class="line">	<span class="type">int</span> i;</span><br><span class="line"></span><br><span class="line">	cd = <span class="built_in">kzalloc</span>(<span class="built_in">sizeof</span>(<span class="keyword">struct</span> char_device_struct), GFP_KERNEL);</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="keyword">if</span> (major == <span class="number">0</span>) &#123;</span><br><span class="line">		ret = <span class="built_in">find_dynamic_major</span>();</span><br><span class="line">		<span class="comment">//......</span></span><br><span class="line">		major = ret;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	cd-&gt;major = major;</span><br><span class="line">	cd-&gt;baseminor = baseminor;</span><br><span class="line">	cd-&gt;minorct = minorct;</span><br><span class="line">	<span class="built_in">strlcpy</span>(cd-&gt;name, name, <span class="built_in">sizeof</span>(cd-&gt;name));</span><br><span class="line"></span><br><span class="line">	i = <span class="built_in">major_to_index</span>(major);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (cp = &amp;chrdevs[i]; *cp; cp = &amp;(*cp)-&gt;next) <span class="comment">// 这里只考虑最简单的情况, 此时 *cp == NULL, 此为空循环</span></span><br><span class="line">		<span class="comment">//......</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Check for overlapping minor ranges.  */</span></span><br><span class="line">	<span class="keyword">if</span> (*cp &amp;&amp; (*cp)-&gt;major == major) &#123; <span class="comment">// 只考虑最简单情况， *cp == NULL, if 判断为0</span></span><br><span class="line">		<span class="comment">//......</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	cd-&gt;next = *cp;</span><br><span class="line">	*cp = cd;<span class="comment">//这时，新创建的 char_device_struct 结构体的地址被保存在 chrdevs 数组里面了，且以主设备号为索引</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在该函数中，通过 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n65">find_dynamic_major()</a> 函数查找可用的主设备号，这里我们不再详细分析，但我们只假设最简单的情况，即返回的设备号 i 对应的 <code>chrdevs[i] == NULL</code>。</p>
+<p>这个chrdevs数组有点绕：chrdevs 是个指针数组，也就是说它的每个成员变量的值都是一个地址，而这些地址是指向 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n34">struct char_device_struct</a> 结构体的，但有些地址指向NULL。通过 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n65">find_dynamic_major()</a> 函数其实是找第一个指向 NULL 的元素索引。在最后通过 *cp &#x3D; cd 将新创建的 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n34">struct char_device_struct</a> 的地址被保存在 chrdevs 数组里面了，且以主设备号为索引。</p>
+<h4 id="4-1-2-cdev-init"><a href="#4-1-2-cdev-init" class="headerlink" title="4.1.2 cdev_init()"></a><font size=3>4.1.2 cdev_init()</font></h4><p>下面继续分析 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n650">cdev_init()</a> 函数：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * cdev_init() - initialize a cdev structure</span></span><br><span class="line"><span class="comment"> * @cdev: the structure to initialize</span></span><br><span class="line"><span class="comment"> * @fops: the file_operations for this device</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Initializes @cdev, remembering @fops, making it ready to add to the</span></span><br><span class="line"><span class="comment"> * system with cdev_add().</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">cdev_init</span><span class="params">(<span class="keyword">struct</span> cdev *cdev, <span class="type">const</span> <span class="keyword">struct</span> file_operations *fops)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="built_in">memset</span>(cdev, <span class="number">0</span>, <span class="keyword">sizeof</span> *cdev);</span><br><span class="line">	<span class="built_in">INIT_LIST_HEAD</span>(&amp;cdev-&gt;list);</span><br><span class="line">	<span class="built_in">kobject_init</span>(&amp;cdev-&gt;kobj, &amp;ktype_cdev_default);</span><br><span class="line">	cdev-&gt;ops = fops;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/lib/kobject.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n330">kobject_init()</a> 是进行一些必要的初始化工作，我们不再详细展开分析。最后在这里，将驱动的文件操作函数集与cdev结构进行关联，即<code>cdev-&gt;ops = fops</code>。</p>
+<h4 id="4-1-3-cdev-add"><a href="#4-1-3-cdev-add" class="headerlink" title="4.1.3 cdev_add()"></a><font size=3>4.1.3 cdev_add()</font></h4><p>下面来看最后一个函数 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n479">cdev_add()</a> ：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * cdev_add() - add a char device to the system</span></span><br><span class="line"><span class="comment"> * @p: the cdev structure for the device</span></span><br><span class="line"><span class="comment"> * @dev: the first device number for which this device is responsible</span></span><br><span class="line"><span class="comment"> * @count: the number of consecutive minor numbers corresponding to this</span></span><br><span class="line"><span class="comment"> *         device</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * cdev_add() adds the device represented by @p to the system, making it</span></span><br><span class="line"><span class="comment"> * live immediately.  A negative error code is returned on failure.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">cdev_add</span><span class="params">(<span class="keyword">struct</span> cdev *p, <span class="type">dev_t</span> dev, <span class="type">unsigned</span> count)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="type">int</span> error;</span><br><span class="line"></span><br><span class="line">	p-&gt;dev = dev;</span><br><span class="line">	p-&gt;count = count;</span><br><span class="line"></span><br><span class="line">	error = <span class="built_in">kobj_map</span>(cdev_map, dev, count, <span class="literal">NULL</span>,</span><br><span class="line">			 exact_match, exact_lock, p);</span><br><span class="line">	<span class="keyword">if</span> (error)</span><br><span class="line">		<span class="keyword">return</span> error;</span><br><span class="line"></span><br><span class="line">	<span class="built_in">kobject_get</span>(p-&gt;kobj.parent);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>这里面主要调用了 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/base/map.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n32">kobj_map()</a> 函数，将 cdev 结构体塞进 cdev_map&rarr;probes 数组里面，不过需要注意的是，被塞进去的并不是 cdev 结构体本身，而是 新创建了一个 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/base/map.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n20">struct probe</a> 结构体，而 probe&rarr;data 指向的才是 cdev 结构体。这里我们不再详细展开了。</p>
+<h4 id="4-1-4-kobj-map"><a href="#4-1-4-kobj-map" class="headerlink" title="4.1.4 kobj_map()"></a><font size=3>4.1.4 kobj_map()</font></h4><p> <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/base/map.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n32">kobj_map()</a> 函数定义如下，在这里我们只考虑最简单的情况：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">kobj_map</span><span class="params">(<span class="keyword">struct</span> kobj_map *domain, <span class="type">dev_t</span> dev, <span class="type">unsigned</span> <span class="type">long</span> range,</span></span></span><br><span class="line"><span class="params"><span class="function">	     <span class="keyword">struct</span> <span class="keyword">module</span> *<span class="keyword">module</span>, <span class="type">kobj_probe_t</span> *probe,</span></span></span><br><span class="line"><span class="params"><span class="function">	     <span class="type">int</span> (*lock)(<span class="type">dev_t</span>, <span class="type">void</span> *), <span class="type">void</span> *data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">/* 传入参数如下：</span></span><br><span class="line"><span class="comment">     * domain = cdev_map;</span></span><br><span class="line"><span class="comment">     * data = &amp;my_chr_dev; 在这里面保存了 文件操作函数集 。</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">	<span class="type">unsigned</span> n = <span class="built_in">MAJOR</span>(dev + range - <span class="number">1</span>) - <span class="built_in">MAJOR</span>(dev) + <span class="number">1</span>;</span><br><span class="line">	<span class="type">unsigned</span> index = <span class="built_in">MAJOR</span>(dev);</span><br><span class="line">	<span class="type">unsigned</span> i;</span><br><span class="line">	<span class="keyword">struct</span> <span class="title class_">probe</span> *p;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (n &gt; <span class="number">255</span>)</span><br><span class="line">		n = <span class="number">255</span>;</span><br><span class="line"></span><br><span class="line">	p = <span class="built_in">kmalloc_array</span>(n, <span class="built_in">sizeof</span>(<span class="keyword">struct</span> probe), GFP_KERNEL);</span><br><span class="line">	<span class="keyword">if</span> (p == <span class="literal">NULL</span>)</span><br><span class="line">		<span class="keyword">return</span> -ENOMEM;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; n; i++, p++) &#123;<span class="comment">//这里循环只执行一次</span></span><br><span class="line">		p-&gt;owner = <span class="keyword">module</span>;</span><br><span class="line">		p-&gt;get = probe;</span><br><span class="line">		p-&gt;lock = lock;</span><br><span class="line">		p-&gt;dev = dev;</span><br><span class="line">		p-&gt;range = range;</span><br><span class="line">		p-&gt;data = data;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">mutex_lock</span>(domain-&gt;lock);</span><br><span class="line">    <span class="comment">//这里循环只执行一次,由于上面的循环有 p++,因此这里需要 p-=n</span></span><br><span class="line">	<span class="keyword">for</span> (i = <span class="number">0</span>, p -= n; i &lt; n; i++, p++, index++) &#123;</span><br><span class="line">		<span class="keyword">struct</span> <span class="title class_">probe</span> **s = &amp;domain-&gt;probes[index % <span class="number">255</span>];</span><br><span class="line">		<span class="keyword">while</span> (*s &amp;&amp; (*s)-&gt;range &lt; range) <span class="comment">// 这里 *s == NULL，循环为空</span></span><br><span class="line">			s = &amp;(*s)-&gt;next;</span><br><span class="line">		p-&gt;next = *s;</span><br><span class="line">		*s = p; <span class="comment">// 这里就把新创建的 probe 结构体地址保存在了 cdev_maps-&gt;probes[index % 255] 中了</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">mutex_unlock</span>(domain-&gt;lock);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-怎么从probes指针数组找到cdev"><a href="#4-2-怎么从probes指针数组找到cdev" class="headerlink" title="4.2 怎么从probes指针数组找到cdev"></a><font size=3>4.2 怎么从probes指针数组找到cdev</font></h3><p>cdev存进去的过程分析完了，现在分析在 open() 系统调用的时候如何再差找到被存进去的这个 cdev 结构体呢 ？前面我们分析到了 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/fs/char_dev.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n382">chrdev_open()</a> 函数，在这个函数里面调用了 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/base/map.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n95">kobj_lookup()</a> 函数进行查找，该查找过程其实和 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/base/map.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n32">kobj_map()</a> 函数的存入过程有点类似，这里不再详细分析，只不过这里查找到的是 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/include/linux/kobject.h?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n65">struct kobject</a> 结构体，而这个结构体又是 cdev 结构体的成员变量，关系有点绕，但最终还是把 cdev 给找到了。</p>
+<h4 id="4-2-1-kobj-lookup"><a href="#4-2-1-kobj-lookup" class="headerlink" title="4.2.1 kobj_lookup()"></a><font size=3>4.2.1 kobj_lookup()</font></h4><p>在这里我们只考虑最简单的情况，<a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/drivers/base/map.c?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4#n95">kobj_lookup()</a> 函数定义如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">kobject</span> *<span class="built_in">kobj_lookup</span>(<span class="keyword">struct</span> kobj_map *domain, <span class="type">dev_t</span> dev, <span class="type">int</span> *index)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">struct</span> <span class="title class_">kobject</span> *kobj;</span><br><span class="line">	<span class="keyword">struct</span> <span class="title class_">probe</span> *p;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> best = ~<span class="number">0UL</span>;</span><br><span class="line"></span><br><span class="line">retry:</span><br><span class="line">	<span class="built_in">mutex_lock</span>(domain-&gt;lock);</span><br><span class="line">    <span class="comment">// 假设最简单的情况，这里循环只执行一次</span></span><br><span class="line">	<span class="keyword">for</span> (p = domain-&gt;probes[<span class="built_in">MAJOR</span>(dev) % <span class="number">255</span>]; p; p = p-&gt;next) &#123;</span><br><span class="line">		<span class="keyword">struct</span> <span class="title class_">kobject</span> *(*probe)(<span class="type">dev_t</span>, <span class="type">int</span> *, <span class="type">void</span> *);</span><br><span class="line">		<span class="keyword">struct</span> <span class="title class_">module</span> *owner;</span><br><span class="line">		<span class="type">void</span> *data;</span><br><span class="line">		<span class="comment">//......</span></span><br><span class="line">		owner = p-&gt;owner;</span><br><span class="line">		data = p-&gt;data;</span><br><span class="line">		probe = p-&gt;get;</span><br><span class="line">        <span class="comment">/* 这是一个函数，由 kobj_map 函数所保存，在这里，这个函数是：</span></span><br><span class="line"><span class="comment">         * static struct kobject *exact_match(dev_t dev, int *part, void *data)</span></span><br><span class="line"><span class="comment">         * &#123;</span></span><br><span class="line"><span class="comment">         *    struct cdev *p = data;</span></span><br><span class="line"><span class="comment">         *    return &amp;p-&gt;kobj;</span></span><br><span class="line"><span class="comment">         * &#125; */</span></span><br><span class="line">		best = p-&gt;range - <span class="number">1</span>;</span><br><span class="line">		*index = dev - p-&gt;dev;</span><br><span class="line">		<span class="comment">//......</span></span><br><span class="line">		<span class="built_in">mutex_unlock</span>(domain-&gt;lock);</span><br><span class="line">		kobj = <span class="built_in">probe</span>(dev, index, data); <span class="comment">// 其实就相当于： kobj = &amp;data-&gt;kobj</span></span><br><span class="line">		<span class="comment">/* Currently -&gt;owner protects _only_ -&gt;probe() itself. */</span></span><br><span class="line">		<span class="built_in">module_put</span>(owner);</span><br><span class="line">		<span class="keyword">if</span> (kobj)</span><br><span class="line">			<span class="keyword">return</span> kobj;</span><br><span class="line">		<span class="keyword">goto</span> retry;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">mutex_unlock</span>(domain-&gt;lock);</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-总结"><a href="#4-3-总结" class="headerlink" title="4.3 总结"></a><font size=3>4.3 总结</font></h3><p>存入和查找 cdev 结构体都是通过 cdev_map&rarr;probes 数组来进行的，具体来说是这个数组的第 [MAJOR(dev) % 255] 个元素。整个过程貌似和 <code>alloc_chrdev_region()</code> 函数里面创建的 struct char_device_struct (地址保存在 chrdevs 数组里面) 结构体没什么关系。</p>
+<blockquote>
+<p>参考资料</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/bgao86/article/details/79550821">Linux 系统调用之open(三）_linux open没有调用驱动的open打印-CSDN博客</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/ef14f746.html">LV05-03-Kernel-05-03-04-open函数解析3</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年12月25日 - 23:16</p>
+    <p><span>最后更新:</span>2025年02月16日 - 18:03</p>
+    <p><span>原始链接:</span><a href="/post/ef14f746.html" title="LV05-03-Kernel-05-03-04-open函数解析3">https://sumumm.github.io/post/ef14f746.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/" rel="tag"><i class="fa fa-tag"></i> LV05-系统镜像</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/54240ae3.html" rel="prev" title="LV06-03-chrdev-07-字符设备基本原理">
+                  <i class="fa fa-angle-left"></i> LV06-03-chrdev-07-字符设备基本原理
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/ec4382c8.html" rel="next" title="LV05-03-kernel-06-VFS-02-VFS的四大对象">
+                  LV05-03-kernel-06-VFS-02-VFS的四大对象 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.5m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">211:16</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

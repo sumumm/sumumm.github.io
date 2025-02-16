@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是字符设备驱动基本函数的实现的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV10-02-字符设备驱动-02-基本驱动函数实现">
+<meta property="og:url" content="https://sumumm.github.io/post/7daeed19.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是字符设备驱动基本函数的实现的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-02-%E5%9F%BA%E6%9C%AC%E9%A9%B1%E5%8A%A8%E5%87%BD%E6%95%B0%E5%AE%9E%E7%8E%B0/img/image-20220901151314143.png">
+<meta property="article:published_time" content="2023-07-08T10:58:09.000Z">
+<meta property="article:modified_time" content="2025-02-16T10:03:07.687Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV10-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-02-%E5%9F%BA%E6%9C%AC%E9%A9%B1%E5%8A%A8%E5%87%BD%E6%95%B0%E5%AE%9E%E7%8E%B0/img/image-20220901151314143.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/7daeed19.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/7daeed19.html","path":"post/7daeed19.html","title":"LV10-02-字符设备驱动-02-基本驱动函数实现"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV10-02-字符设备驱动-02-基本驱动函数实现 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">39</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">638</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%B8%A4%E4%B8%AA%E5%B8%B8%E7%94%A8%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">一、两个常用结构体</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-struct-inode"><span class="nav-text">1. struct inode</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-struct-file"><span class="nav-text">2. struct file</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%87%A0%E4%B8%AA%E5%87%BD%E6%95%B0"><span class="nav-text">二、几个函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-copy-to-user"><span class="nav-text">1. copy_to_user()</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">1.1 函数说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">1.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-copy-from-user"><span class="nav-text">2. copy_from_user()</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.1 函数说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-container-of"><span class="nav-text">3. container_of()</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">3.1 函数说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">3.2 使用实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E5%9F%BA%E6%9C%AC%E9%A9%B1%E5%8A%A8%E5%87%BD%E6%95%B0%E5%AE%9E%E7%8E%B0"><span class="nav-text">三、基本驱动函数实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%89%93%E5%BC%80%E4%B8%8E%E5%85%B3%E9%97%AD%E8%AE%BE%E5%A4%87"><span class="nav-text">1. 打开与关闭设备</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-myopen"><span class="nav-text">1.1 myopen()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-myclose"><span class="nav-text">1.2 myclose()</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E8%AF%BB%E5%86%99%E8%AE%BE%E5%A4%87%E6%93%8D%E4%BD%9C"><span class="nav-text">2. 读写设备操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-myread"><span class="nav-text">2.1 myread()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-mywrite"><span class="nav-text">2.2 mywrite()</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%AE%BE%E5%A4%87%E6%8E%A7%E5%88%B6%E6%93%8D%E4%BD%9C"><span class="nav-text">3. 设备控制操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-myioctl"><span class="nav-text">3.1 myioctl()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-cmd"><span class="nav-text">3.2 cmd</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-1-%E5%91%BD%E4%BB%A4%E6%A0%BC%E5%BC%8F"><span class="nav-text">3.2.1 命令格式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-2-%E7%9B%B8%E5%85%B3%E5%87%BD%E6%95%B0"><span class="nav-text">3.2.2 相关函数</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%AE%BE%E5%A4%87%E5%B1%9E%E6%80%A7%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">4. 设备属性结构体</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E8%AE%BE%E7%BD%AE%E6%96%87%E4%BB%B6%E7%A7%81%E6%9C%89%E6%95%B0%E6%8D%AE"><span class="nav-text">5. 设置文件私有数据</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">638</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">39</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">40</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/7daeed19.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV10-02-字符设备驱动-02-基本驱动函数实现 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV10-02-字符设备驱动-02-基本驱动函数实现
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-07-08 18:58:09" itemprop="dateCreated datePublished" datetime="2023-07-08T18:58:09+08:00">2023-07-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV10-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5.4k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>20 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是字符设备驱动基本函数的实现的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-02-%E5%9F%BA%E6%9C%AC%E9%A9%B1%E5%8A%A8%E5%87%BD%E6%95%B0%E5%AE%9E%E7%8E%B0/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center" width=150>Linux开发板</td>        <td align="left">华清远见 底板: FS4412_DEV_V5 核心板: FS4412 V2</td>      </tr>    <tr>        <td align="center" width=150>u-boot</td>        <td align="left">2013.01</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">文件</td><td align="center">下载链接</td></tr>    <tr><td align="left">---</td><td align="left"><a href="https://wwz.lanzouy.com/iH1vO09jxavi" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<p>前边那些笔记其实已经可以完成一个最基本的字符设备驱动框架了，但是我们还缺少自己编写的驱动函数，这一部分主要介绍几个重要驱动函数的实现。</p>
+<h1 id="一、两个常用结构体"><a href="#一、两个常用结构体" class="headerlink" title="一、两个常用结构体"></a><font size=3>一、两个常用结构体</font></h1><h2 id="1-struct-inode"><a href="#1-struct-inode" class="headerlink" title="1. struct inode"></a><font size=3>1. <code>struct inode</code></font></h2><p>该结构体是内核中记录文件元信息的结构体，它定义在<code>linux</code>源码的<code>include/linux/fs.h</code>中，这里只列我们可能会关注的成员：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">inode</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">	<span class="type">dev_t</span>         i_rdev; <span class="comment">/* 设备号 */</span></span><br><span class="line">    <span class="comment">// ... ...</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cdev</span>  *<span class="title">i_cdev</span>;</span> <span class="comment">/* 如果是字符设备才有此成员，指向对应设备驱动程序中的加入系统的struct cdev对象 */</span></span><br><span class="line">	<span class="comment">//... ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>内核中每个<code>struct inode</code>对象对应着一个实际文件，一对一。</li>
+<li><code>open()</code>打开一个文件时，如果内核中该文件对应的<code>inode</code>对象已存在则不再创建，不存在才创建。</li>
+<li>内核中用此类型对象关联到对此文件的操作函数集（对设备而言就是关联到具体驱动代码）。</li>
+</ul>
+<h2 id="2-struct-file"><a href="#2-struct-file" class="headerlink" title="2. struct file"></a><font size=3>2. <code>struct file</code></font></h2><p>该结构体是读写文件内容过程中用到的一些控制性数据组合而成的对象，可以称之为文件操作引擎或者叫文件操控器，它定义在<code>linux</code>源码的<code>include/linux/fs.h</code>中，这里只列我们可能会关注的成员：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">file</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="comment">//... ...</span></span><br><span class="line">    <span class="type">mode_t</span> f_mode;                <span class="comment">/* 不同用户的操作权限，驱动一般不用 */</span></span><br><span class="line">    <span class="type">loff_t</span> f_pos;                 <span class="comment">/* position 数据位置指示器，需要控制数据开始读写位置的设备有用 */</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> f_flags;         <span class="comment">/* open时的第二个参数flags存放在此，驱动中常用 */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> *<span class="title">f_op</span>;</span> <span class="comment">/* open时从struct inode中i_cdev的对应成员获得地址，驱动开发中用来协助理解工作原理，内核中使用 */</span></span><br><span class="line">    <span class="type">void</span> *private_data;           <span class="comment">/* 本次打开文件的私有数据，驱动中常来在几个操作函数间传递共用数据 */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">dentry</span> *<span class="title">f_dentry</span>;</span>      <span class="comment">/* 驱动中一般不用，除非需要访问对应文件的inode，用法flip-&gt;f_dentry-&gt;d_inode */</span></span><br><span class="line">    <span class="type">int</span> refcnt;                   <span class="comment">/* 引用计数，保存着该对象地址的位置个数，close时发现refcnt为0才会销毁该struct file对象 */</span></span><br><span class="line">    <span class="comment">//... ...</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>open</code>函数被调用成功一次，则创建一个该对象，因此可以认为一个该类型的对象对应一次指定文件的操作。</li>
+<li><code>open</code>同一个文件多次，每次<code>open</code>都会创建一个该类型的对象。</li>
+<li>文件描述符数组中存放的地址指向该类型的对象。</li>
+<li>每个文件描述符都对应一个<code>struct file</code>对象的地址。</li>
+</ul>
+<p>该结构体存在于设备的操作函数集的每个函数参数中，我们会经常使用该结构体的<code>private_data</code>成员来存放我们的设备的私有数据，以完成参数的传递。</p>
+<h1 id="二、几个函数"><a href="#二、几个函数" class="headerlink" title="二、几个函数"></a><font size=3>二、几个函数</font></h1><h2 id="1-copy-to-user"><a href="#1-copy-to-user" class="headerlink" title="1. copy_to_user()"></a><font size=3>1. <code>copy_to_user()</code></font></h2><h3 id="1-1-函数说明"><a href="#1-1-函数说明" class="headerlink" title="1.1 函数说明"></a><font size=3>1.1 函数说明</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep copy_to_user -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，会发现该函数定义在<code>linux</code>源码的<code>include/asm-generic/uaccess.h</code>目录中，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;asm/uaccess.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">long</span> <span class="title function_">copy_to_user</span><span class="params">(<span class="type">void</span> __user *to, <span class="type">const</span> <span class="type">void</span> *from, <span class="type">unsigned</span> <span class="type">long</span> n)</span></span><br><span class="line">&#123;</span><br><span class="line">	might_fault();</span><br><span class="line">	<span class="keyword">if</span> (access_ok(VERIFY_WRITE, to, n))</span><br><span class="line">		<span class="keyword">return</span> __copy_to_user(to, from, n);</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		<span class="keyword">return</span> n;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于内核空间的数据复制到用户空间。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>to</code>：<code>void __user *</code>类型，目标地址（用户空间）。</li>
+<li><code>from</code>：<code>void *</code>类型，源地址（内核空间）。</li>
+<li><code>n</code>：<code>unsigned long</code>类型，要拷贝数据的字节数。</li>
+</ul>
+<p><strong>【返回值】</strong><code>long</code>类型，如果复制成功，返回值为 <code>0</code>，如果复制失败则返回负数 。  </p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;asm/uaccess.h&gt;</span></span></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">char</span> __user *pbuf <span class="comment">/* 用户空间数据 */</span></span><br><span class="line"><span class="type">int</span> second;       <span class="comment">/* 内核空间数据 */</span></span><br><span class="line">ret = copy_to_user(pbuf, &amp;second, <span class="keyword">sizeof</span>(<span class="type">int</span>));</span><br><span class="line"><span class="keyword">if</span> (ret)</span><br><span class="line">&#123;</span><br><span class="line">	printk(<span class="string">&quot;copy to user failed\n&quot;</span>);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong></p>
+<p>（1）该函数定义在<code>linux</code>源码的<code>include/asm-generic/uaccess.h</code>中，但是在包含头文件的时候注意使用<code>asm/uaccess.h</code>，这个吧，我也不清楚是为什么，这样编译的时候使用<code>make ARCH=arm</code>不报错，但是直接编译<code>x86</code>平台的模块的话就会报错，可能是内核版本问题，我们是要在<code>ARM</code>平台上跑驱动，所以就按照<code>asm/uaccess.h</code>就可以啦。</p>
+<h3 id="1-2-使用实例"><a href="#1-2-使用实例" class="headerlink" title="1.2 使用实例"></a><font size=3>1.2 使用实例</font></h3><p>暂无</p>
+<h2 id="2-copy-from-user"><a href="#2-copy-from-user" class="headerlink" title="2. copy_from_user()"></a><font size=3>2. <code>copy_from_user()</code></font></h2><h3 id="2-1-函数说明"><a href="#2-1-函数说明" class="headerlink" title="2.1 函数说明"></a><font size=3>2.1 函数说明</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep copy_from_user -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，会发现该函数定义在<code>linux</code>源码的<code>include/asm-generic/uaccess.h</code>目录中，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;asm/uaccess.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">long</span> <span class="title function_">copy_from_user</span><span class="params">(<span class="type">void</span> *to, <span class="type">const</span> <span class="type">void</span> __user * from, <span class="type">unsigned</span> <span class="type">long</span> n)</span></span><br><span class="line">&#123;</span><br><span class="line">	might_fault();</span><br><span class="line">	<span class="keyword">if</span> (access_ok(VERIFY_READ, from, n))</span><br><span class="line">		<span class="keyword">return</span> __copy_from_user(to, from, n);</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		<span class="keyword">return</span> n;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于将用户空间的数据拷贝到内核空间。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>to</code>：<code>void *</code>类型，目标地址（内核空间）。</li>
+<li><code>from</code>：<code>void __user *</code>类型，源地址（用户空间）。</li>
+<li><code>n</code>：<code>unsigned long</code>类型，要拷贝数据的字节数。</li>
+</ul>
+<p><strong>【返回值】</strong><code>long</code>类型，如果复制成功，返回值为 <code>0</code>，如果复制失败则返回负数 。  </p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;asm/uaccess.h&gt;</span></span></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">char</span> __user *pbuf    <span class="comment">/* 用户空间数据 */</span></span><br><span class="line"><span class="type">char</span> mydev_buf[<span class="number">100</span>]; <span class="comment">/* 内核空间数据 */</span> </span><br><span class="line">ret = copy_from_user(mydev_buf, pbuf, size);</span><br><span class="line"><span class="keyword">if</span> (ret)</span><br><span class="line">&#123;</span><br><span class="line">	printk(<span class="string">&quot;copy from user buf failed!\n&quot;</span>);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong></p>
+<p>（1）该函数定义在<code>linux</code>源码的<code>include/asm-generic/uaccess.h</code>中，但是在包含头文件的时候注意使用<code>asm/uaccess.h</code>，这个吧，我也不清楚是为什么，这样编译的时候使用<code>make ARCH=arm</code>不报错，但是直接编译<code>x86</code>平台的模块的话就会报错，可能是内核版本问题，我们是要在<code>ARM</code>平台上跑驱动，所以就按照<code>asm/uaccess.h</code>就可以啦。</p>
+<h3 id="2-2-使用实例"><a href="#2-2-使用实例" class="headerlink" title="2.2 使用实例"></a><font size=3>2.2 使用实例</font></h3><p>暂无</p>
+<h2 id="3-container-of"><a href="#3-container-of" class="headerlink" title="3. container_of()"></a><font size=3>3. <code>container_of()</code></font></h2><h3 id="3-1-函数说明"><a href="#3-1-函数说明" class="headerlink" title="3.1 函数说明"></a><font size=3>3.1 函数说明</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep &quot;#define container_of&quot; -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * container_of - cast a member of a structure out to the containing structure</span></span><br><span class="line"><span class="comment"> * @ptr:        the pointer to the member.</span></span><br><span class="line"><span class="comment"> * @type:       the type of the container struct this is embedded in.</span></span><br><span class="line"><span class="comment"> * @member:     the name of the member within the struct.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> container_of(ptr, type, member) (&#123;                      \</span></span><br><span class="line"><span class="meta">        const typeof( ((type *)0)-&gt;member ) *__mptr = (ptr);    \</span></span><br><span class="line"><span class="meta">        (type *)( (char *)__mptr - offsetof(type,member) );&#125;)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* offsetof 定义在linux内核源码的 include/linux/stddef.h 中*/</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> __compiler_offsetof</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> offsetof(TYPE,MEMBER) __compiler_offsetof(TYPE,MEMBER)</span></span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> offsetof(TYPE, MEMBER) ((size_t) &amp;((TYPE *)0)-&gt;MEMBER)</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于通过结构体某个成员的首地址获取整个结构体变量的首地址，该函数其实是一个宏，在网上看到它被称之为内核第一宏，也不知真假😂，关于原理，这里我就不写了，可以看这里，我自己觉得说的挺清晰的<a target="_blank" rel="noopener" href="https://www.jb51.net/article/222490.htm">Linux内核宏Container_Of的详细解释_Linux_脚本之家 (jb51.net)  <i class="fa fa-external-link-alt"></i> </a>。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>ptr</code>：结构体内某成员<code>member</code>的地址。</li>
+<li><code>type</code>：要求首地址的结构体的类型。</li>
+<li><code>member</code>：结构体内的某成员名。</li>
+</ul>
+<p><strong>【返回值】</strong>目前只知道返回的是要求的结构体的首地址，我们一般会用强制类型转换转换为我们需要的地址类型。  </p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">my_dev</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="comment">/* 字符设备对象 */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">cdev</span> <span class="title">mydev</span>;</span> <span class="comment">/* 定义一个字符设备对象设备 */</span></span><br><span class="line">&#125;;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">my_dev</span> <span class="title">g_my_dev</span>;</span> <span class="comment">/* 定义一个新字符设备 */</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">my_dev</span> *<span class="title">p</span>;</span></span><br><span class="line">p = container_of(&amp;g_my_dev-&gt;mydev, <span class="keyword">struct</span> _my_dev, mydev)</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h3 id="3-2-使用实例"><a href="#3-2-使用实例" class="headerlink" title="3.2 使用实例"></a><font size=3>3.2 使用实例</font></h3><p>暂无</p>
+<h1 id="三、基本驱动函数实现"><a href="#三、基本驱动函数实现" class="headerlink" title="三、基本驱动函数实现"></a><font size=3>三、基本驱动函数实现</font></h1><h2 id="1-打开与关闭设备"><a href="#1-打开与关闭设备" class="headerlink" title="1. 打开与关闭设备"></a><font size=3>1. 打开与关闭设备</font></h2><h3 id="1-1-myopen"><a href="#1-1-myopen" class="headerlink" title="1.1 myopen()"></a><font size=3>1.1 <code>myopen()</code></font></h3><p>当我们使用字符设备的时候首先肯定需要打开设备文件，当我们的应用程序调用<code>open()</code>函数的时候，相应的驱动中的<code>myopen()</code>便会被调用。我们自己编写的<code>myopen()</code>函数如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @Function    : mydev_open</span></span><br><span class="line"><span class="comment"> * @brief       : 打开设备</span></span><br><span class="line"><span class="comment"> * @param pnode : struct inode * 类型，内核中记录文件元信息的结构体</span></span><br><span class="line"><span class="comment"> * @param pfile : struct file *  类型，读写文件内容过程中用到的一些控制性数据组合而成的对象,设备文件， file 结构体有个叫做 private_data 的成员变量。一般在 open 的时候将 private_data 指向设备属性结构体。</span></span><br><span class="line"><span class="comment"> * @return      : 0,操作完成</span></span><br><span class="line"><span class="comment"> * @Description : 函数名初始化给 struct file_operations 的成员 .open</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">myopen</span><span class="params">(<span class="keyword">struct</span> inode *pnode, <span class="keyword">struct</span> file *pfile)</span></span><br><span class="line">&#123;</span><br><span class="line">    printk(<span class="string">&quot;myopen is called!\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-2-myclose"><a href="#1-2-myclose" class="headerlink" title="1.2 myclose()"></a><font size=3>1.2 <code>myclose()</code></font></h3><p>该驱动函数对应应用程序中的<code>close()</code>函数，我们自己编写的<code>myclose()</code>函数如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @Function    : myclose</span></span><br><span class="line"><span class="comment"> * @brief       : 关闭设备</span></span><br><span class="line"><span class="comment"> * @param pnode : struct inode * 类型，内核中记录文件元信息的结构体</span></span><br><span class="line"><span class="comment"> * @param pfile : struct file *  类型，读写文件内容过程中用到的一些控制性数据组合而成的对象,设备文件， file 结构体有个叫做 private_data 的成员变量。一般在 open 的时候将 private_data 指向设备属性结构体。</span></span><br><span class="line"><span class="comment"> * @return      : 0,操作完成</span></span><br><span class="line"><span class="comment"> * @Description : 函数名初始化给 struct file_operations 的成员 .close</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">myclose</span><span class="params">(<span class="keyword">struct</span> inode *pnode, <span class="keyword">struct</span> file *pfile)</span></span><br><span class="line">&#123;</span><br><span class="line">    printk(<span class="string">&quot;mydev_close is called!\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-读写设备操作"><a href="#2-读写设备操作" class="headerlink" title="2. 读写设备操作"></a><font size=3>2. 读写设备操作</font></h2><h3 id="2-1-myread"><a href="#2-1-myread" class="headerlink" title="2.1 myread()"></a><font size=3>2.1 <code>myread()</code></font></h3><p>该驱动函数对应应用程序中的<code>open()</code>函数。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @Function    : myread</span></span><br><span class="line"><span class="comment"> * @brief       : 读设备</span></span><br><span class="line"><span class="comment"> * @param pfile : struct file *  类型，指向open产生的struct file类型的对象，表示本次read对应的那次open。</span></span><br><span class="line"><span class="comment"> *                                    (读写文件内容过程中用到的一些控制性数据组合而成的对象)</span></span><br><span class="line"><span class="comment"> * @param pbuf  ：char __user * 类型，指向用户空间一块内存， 就是返回给用户空间的数据缓冲区，用来保存读到的数据。</span></span><br><span class="line"><span class="comment"> * @param count ：size_t   类型，用户期望读取的字节数。</span></span><br><span class="line"><span class="comment"> * @param ppos  ：loff_t * 类型，对于需要位置指示器控制的设备操作有用，用来指示读取的起始位置，读完后也需要变更位置指示器的指示位置。</span></span><br><span class="line"><span class="comment"> * @return      : 成功返回本次成功读取的字节数，失败返回-1</span></span><br><span class="line"><span class="comment"> * @Description : 函数名初始化给 struct file_operations 的成员 .read</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">ssize_t</span> <span class="title function_">myread</span><span class="params">(<span class="keyword">struct</span> file *pfile, <span class="type">char</span> __user *pbuf, <span class="type">size_t</span> count, <span class="type">loff_t</span> *ppos)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/* 读取数据 */</span></span><br><span class="line">    <span class="comment">/* 会用到 copy_to_user 函数，将数据从内核空间拷贝到用户空间 */</span></span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-mywrite"><a href="#2-2-mywrite" class="headerlink" title="2.2 mywrite()"></a><font size=3>2.2 <code>mywrite()</code></font></h3><p>该驱动函数对应应用程序中的<code>write()</code>函数。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @Function    : mywrite</span></span><br><span class="line"><span class="comment"> * @brief       : 写设备</span></span><br><span class="line"><span class="comment"> * @param pfile : struct file *  类型，指向open产生的struct file类型的对象，表示本次write对应的那次open。</span></span><br><span class="line"><span class="comment"> *                                    (读写文件内容过程中用到的一些控制性数据组合而成的对象)</span></span><br><span class="line"><span class="comment"> * @param pbuf  ：char __user * 类型，指向用户空间一块内存，用来保存被写的数据。</span></span><br><span class="line"><span class="comment"> * @param count ：size_t   类型，用户期望写入的字节数。</span></span><br><span class="line"><span class="comment"> * @param ppos  ：loff_t * 类型，对于需要位置指示器控制的设备操作有用，用来指示写入的起始位置，写完后也需要变更位置指示器的指示位置。</span></span><br><span class="line"><span class="comment"> * @return      : 成功返回本次成功写入的字节数，失败返回-1</span></span><br><span class="line"><span class="comment"> * @Description : 函数名初始化给 struct file_operations 的成员 .write</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">ssize_t</span> <span class="title function_">mywrite</span><span class="params">(<span class="keyword">struct</span> file *pfile, <span class="type">const</span> <span class="type">char</span> __user *pbuf, <span class="type">size_t</span> count, <span class="type">loff_t</span> *ppos)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/* 读取数据 */</span></span><br><span class="line">    <span class="comment">/* 会用到 copy_from_user 函数，将数据从用户空间拷贝到内核空间 */</span></span><br><span class="line">    <span class="keyword">return</span> size;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-设备控制操作"><a href="#3-设备控制操作" class="headerlink" title="3. 设备控制操作"></a><font size=3>3. 设备控制操作</font></h2><h3 id="3-1-myioctl"><a href="#3-1-myioctl" class="headerlink" title="3.1 myioctl()"></a><font size=3>3.1 <code>myioctl()</code></font></h3><p>该驱动函数对应应用程序中的<code>ioctl()</code>函数。</p>
+<div class="tabs" id="tabname1"><ul class="nav-tabs"><li class="tab active"><a href="#tabname1-1">函数实现</a></li><li class="tab"><a href="#tabname1-2">命令定义</a></li></ul><div class="tab-content"><div class="tab-pane active" id="tabname1-1"><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @Function    : mydev_ioctl</span></span><br><span class="line"><span class="comment"> * @brief       : 设备属性获取</span></span><br><span class="line"><span class="comment"> * @param pfile : struct file *  类型，指向open产生的struct file类型的对象，表示本次ioctl对应的那次open。</span></span><br><span class="line"><span class="comment"> *                                    (读写文件内容过程中用到的一些控制性数据组合而成的对象)</span></span><br><span class="line"><span class="comment"> * @param cmd   ：unsigned int  类型，用来表示做的是哪一个操作。</span></span><br><span class="line"><span class="comment"> * @param arg   ：unsigned long 类型，和 cmd 配合用的参数。</span></span><br><span class="line"><span class="comment"> * @return      : 成功返回0，失败返回-1</span></span><br><span class="line"><span class="comment"> * @Description : 函数名初始化给 struct file_operations 的成员 .unlocked_ioctl</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">long</span> <span class="title function_">mydev_ioctl</span><span class="params">(<span class="keyword">struct</span> file *filp, <span class="type">unsigned</span> <span class="type">int</span> cmd, <span class="type">unsigned</span> <span class="type">long</span> arg)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> __user *pret = (<span class="type">int</span> *)arg; <span class="comment">// 要获取的数据是int类型，所以这里强制类型转换</span></span><br><span class="line">    <span class="keyword">switch</span>(cmd)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">case</span> MYCHAR_IOCTL_GET_MAXLEN:</span><br><span class="line">            <span class="keyword">if</span>(copy_to_user(pret, &amp;maxlen, <span class="keyword">sizeof</span>(<span class="type">int</span>)))</span><br><span class="line">            &#123;</span><br><span class="line">                printk(<span class="string">&quot;copy_to_user maxlen failed!\n&quot;</span>);</span><br><span class="line">                <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> MYCHAR_IOCTL_GET_CURLEN:</span><br><span class="line">            <span class="keyword">if</span>(copy_to_user(pret, &amp;curlen, <span class="keyword">sizeof</span>(<span class="type">int</span>)))</span><br><span class="line">            &#123;</span><br><span class="line">                printk(<span class="string">&quot;copy_to_user curlen failed!\n&quot;</span>);</span><br><span class="line">                <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            printk(<span class="string">&quot;The cmd is unknown!\n&quot;</span>);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div><div class="tab-pane" id="tabname1-2"><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;asm/ioctl.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MY_CHAR_MAGIC <span class="string">&#x27;k&#x27;</span></span></span><br><span class="line"><span class="comment">/* 要获取的数据是int类型，所以这里的size参数可以写为 int * 以表示我们要读取的数据类型 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MYCHAR_IOCTL_GET_MAXLEN _IOR(MY_CHAR_MAGIC, 1, int *) </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MYCHAR_IOCTL_GET_CURLEN _IOR(MY_CHAR_MAGIC, 2, int *)</span></span><br></pre></td></tr></table></figure></div></div></div>
+
+<p><strong>【注意事项】</strong><code>arg</code>可以用于进行参数的传递，可以进行强制类型转换，以表示不同类型的数据，并不单纯的就是<code>unsigned long</code>。</p>
+<h3 id="3-2-cmd"><a href="#3-2-cmd" class="headerlink" title="3.2 cmd"></a><font size=3>3.2 <code>cmd</code></font></h3><h4 id="3-2-1-命令格式"><a href="#3-2-1-命令格式" class="headerlink" title="3.2.1 命令格式"></a><font size=3>3.2.1 命令格式</font></h4><p>在<code>linux</code>中这样定义一个命令：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-02-%E5%9F%BA%E6%9C%AC%E9%A9%B1%E5%8A%A8%E5%87%BD%E6%95%B0%E5%AE%9E%E7%8E%B0/img/image-20220901151314143.png" alt="image-20220901151314143" style="zoom:50%;" />
+
+<ul>
+<li><code>dir</code>（<code>direction</code>）：<code>ioctl</code>命令访问模式（属性数据传输方向），占据<code>2bit</code>，可以为<code> _IOC_NONE</code>、<code>_IOC_READ</code>、<code>_IOC_WRITE</code>、<code>_IOC_READ | _IOC_WRITE</code>，分别指示了四种访问模式：无数据、读数据、写数据、读写数据。</li>
+<li><code>type</code>（<code>device type</code>）：设备类型，占据 <code>8 bit</code>，在一些文献中翻译为 “幻数” 或者 “魔数”（也就是说来源没有依据），可以为任意<code>char</code>型字符，例如 <code>&#39;a&#39;</code>、<code>&#39;b&#39;</code>、<code>&#39;c&#39; </code>等等，其主要作用是使<code>ioctl</code>命令有唯一的设备标识。</li>
+<li><code>nr</code>（<code>number</code>）：命令编号或者叫序数，占据 <code>8 bit</code>，可以为任意 <code>unsigned char</code> 型数据，取值范围 <code>0~255</code>，如果定义了多个 <code>ioctl</code>命令，通常从 <code>0</code> 开始编号递增。</li>
+<li><code>size</code>：涉及到 <code>ioctl</code> 函数 第三个参数 <code>arg</code> ，占据 <code>13bit</code> 或者 <code>14bit</code>（体系相关，<code>arm</code> 架构一般为 <code>14</code> 位），指定了 <code>arg</code> 的数据类型及长度，如果在驱动的 <code>ioctl </code>实现中不检查，通常可以忽略该参数。</li>
+</ul>
+<h4 id="3-2-2-相关函数"><a href="#3-2-2-相关函数" class="headerlink" title="3.2.2 相关函数"></a><font size=3>3.2.2 相关函数</font></h4><p><code>linux</code>内核为我们提供了几个宏来帮助我们定义命令，这些宏定义在<code>linux</code>源码的这个文件中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/uapi/<span class="keyword">asm</span>-generic/ioctl.h</span><br></pre></td></tr></table></figure>
+
+<p>我们可以使用以下命令看来查询定义这些宏的头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">grep &quot;#define _IO&quot; -r -n ~/5linux/linux-3.14/include</span><br><span class="line">grep &quot;#define _IOR&quot; -r -n ~/5linux/linux-3.14/include</span><br><span class="line">grep &quot;#define _IOW&quot; -r -n ~/5linux/linux-3.14/include</span><br><span class="line">grep &quot;#define _IOWR&quot; -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>会发现这些宏定义都出现在<code>include/uapi/asm-generic/ioctl.h</code>文件中，我们打开它，可以看到如下信息（我自己添加了注释，只写了几个自己用到的）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ... ...</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> _IOC(dir,type,nr,size) \</span></span><br><span class="line"><span class="meta">        (((dir)  &lt;&lt; _IOC_DIRSHIFT) | \</span></span><br><span class="line"><span class="meta">         ((type) &lt;&lt; _IOC_TYPESHIFT) | \</span></span><br><span class="line"><span class="meta">         ((nr)   &lt;&lt; _IOC_NRSHIFT) | \</span></span><br><span class="line"><span class="meta">         ((size) &lt;&lt; _IOC_SIZESHIFT))</span></span><br><span class="line"><span class="comment">// ... ...</span></span><br><span class="line"><span class="comment">/* used to create numbers */</span></span><br><span class="line"><span class="comment">//定义不带参数的 ioctl 命令</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> _IO(type,nr)            _IOC(_IOC_NONE,(type),(nr),0)</span></span><br><span class="line"><span class="comment">//定义带读参数的ioctl命令（copy_to_user） size为类型名</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> _IOR(type,nr,size)      _IOC(_IOC_READ,(type),(nr),(_IOC_TYPECHECK(size)))</span></span><br><span class="line"><span class="comment">//定义带写参数的 ioctl 命令（copy_from_user） size为类型名</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> _IOW(type,nr,size)      _IOC(_IOC_WRITE,(type),(nr),(_IOC_TYPECHECK(size)))</span></span><br><span class="line"><span class="comment">//定义带读写参数的 ioctl 命令 size为类型名</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> _IOWR(type,nr,size)     _IOC(_IOC_READ|_IOC_WRITE,(type),(nr),(_IOC_TYPECHECK(size)))</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// ... ...</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong>我们使用的时候需要加上<code>asm/ioctl.h</code>这个头文件。</p>
+<h2 id="4-设备属性结构体"><a href="#4-设备属性结构体" class="headerlink" title="4. 设备属性结构体"></a><font size=3>4. 设备属性结构体</font></h2><p>一般来说，我们创建一个字符设备驱动，这个字符设备需要有这些属性：主设备号、次设备号、设备号、设备数量，字符设备结构对象、读写缓冲区等等，随着功能的增加，设备驱动的属性也会增加，我们全部用全局变量的话，有些不是太好管理，这个时候我们可以自定义一个结构体来表示在我们的这个字符设备驱动的各个属性。如，</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> BUF_LEN 100                   <span class="comment">/* 数据读写缓冲区大小 */</span></span></span><br><span class="line"><span class="comment">/* 新字符设备的属性 */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">my_dev</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="comment">/* 1.设备号与设备数量 */</span></span><br><span class="line">    <span class="type">int</span> major;    <span class="comment">/* 主设备号：占高12位，用来表示驱动程序相同的一类设备，Linux系统中主设备号范围为 0~4095 */</span></span><br><span class="line">    <span class="type">int</span> minor;    <span class="comment">/* 次设备号：占低20位，用来表示被操作的哪个具体设备 */</span></span><br><span class="line">    <span class="type">dev_t</span> devno;  <span class="comment">/* 新字符设备的设备号：由主设备号和次设备号组成     */</span></span><br><span class="line">    <span class="type">int</span> dev_num;  <span class="comment">/* 申请的设备数量 */</span></span><br><span class="line">    <span class="comment">/* 2.字符设备对象 */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">cdev</span> <span class="title">mydev</span>;</span>       <span class="comment">/* 定义一个字符设备结构体对象(主要用于绑定操作函数集和向内核添加设备) */</span></span><br><span class="line">    <span class="comment">/* 设备读写相关成员变量 */</span></span><br><span class="line">    <span class="type">char</span> mydev_buf[BUF_LEN]; <span class="comment">/* 读写缓冲区 */</span></span><br><span class="line">    <span class="type">int</span> curlen;              <span class="comment">/* 读写缓冲区中当前数据字节数 */</span></span><br><span class="line">    <span class="comment">/* 3.自动创建设备节点相关成员变量 */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="keyword">class</span> *<span class="keyword">class</span>;</span>     <span class="comment">/* 类 */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">device</span> *<span class="title">device</span>;</span>   <span class="comment">/* 设备 /dev/dev_name */</span></span><br><span class="line">&#125;;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">my_dev</span> <span class="title">g_my_dev</span>;</span>     <span class="comment">/* 定义一个新字符设备 */</span></span><br></pre></td></tr></table></figure>
+
+<p>这样的话也方便了我们参数的传递以及对整个驱动程序的属性管理。</p>
+<h2 id="5-设置文件私有数据"><a href="#5-设置文件私有数据" class="headerlink" title="5. 设置文件私有数据"></a><font size=3>5. 设置文件私有数据</font></h2><p>我们在驱动的各个函数之间进行参数传递的时候，使用的的是<code>struct _my_dev</code>这个结构体中的各个成员，我们不能在每个驱动函数中都使用全局变量吧，这样读写很容易出现问题。</p>
+<p>经过观察会发现，<code>struct file_operations</code>结构体中所有的函数指针都带有<code>struct file</code>这个结构体参数，于是，我们便可以将包含了设备驱动各个属性的结构体变量传给<code>struct file</code>结构体的<code>private_data</code> 成员。这个工作在<code>myopen()</code>函数中完成：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @Function    : mydev_open</span></span><br><span class="line"><span class="comment"> * @brief       : 打开设备</span></span><br><span class="line"><span class="comment"> * @param pnode : struct inode * 类型，内核中记录文件元信息的结构体</span></span><br><span class="line"><span class="comment"> * @param pfile : struct file *  类型，读写文件内容过程中用到的一些控制性数据组合而成的对象,设备文件， file 结构体有个叫做 private_data 的成员变量。一般在 open 的时候将 private_data 指向设备属性结构体。</span></span><br><span class="line"><span class="comment"> * @return      : 0,操作完成</span></span><br><span class="line"><span class="comment"> * @Description : 函数名初始化给 struct file_operations 的成员 .open</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">myopen</span><span class="params">(<span class="keyword">struct</span> inode *pnode, <span class="keyword">struct</span> file *pfile)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/* 获取 struct _my_dev g_my_dev 地址，也就是将包含字符设备的各个属性参数的结构体变量传给 private_data 成员*/</span></span><br><span class="line">    pfile-&gt;private_data = (<span class="type">void</span> *)(container_of(pnode-&gt;i_cdev, <span class="keyword">struct</span> _my_dev, mydev));</span><br><span class="line">    printk(<span class="string">&quot;myopen is called!\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>之后我们在<code>mywrite()</code>、<code>myread()</code>、 <code>myclose()</code> 等我们自己实现的驱动函数中直接读取<code>private_data</code>即可得到设备结构体。  例如，</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @Function    : myread</span></span><br><span class="line"><span class="comment"> * @brief       : 读设备</span></span><br><span class="line"><span class="comment"> * @param pfile : struct file *  类型，指向open产生的struct file类型的对象，表示本次read对应的那次open。</span></span><br><span class="line"><span class="comment"> *                                    (读写文件内容过程中用到的一些控制性数据组合而成的对象)</span></span><br><span class="line"><span class="comment"> * @param pbuf  ：char __user * 类型，指向用户空间一块内存， 就是返回给用户空间的数据缓冲区，用来保存读到的数据。</span></span><br><span class="line"><span class="comment"> * @param count ：size_t   类型，用户期望读取的字节数。</span></span><br><span class="line"><span class="comment"> * @param ppos  ：loff_t * 类型，对于需要位置指示器控制的设备操作有用，用来指示读取的起始位置，读完后也需要变更位置指示器的指示位置。</span></span><br><span class="line"><span class="comment"> * @return      : 成功返回本次成功读取的字节数，失败返回-1</span></span><br><span class="line"><span class="comment"> * @Description : 函数名初始化给 struct file_operations 的成员 .read</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">ssize_t</span> <span class="title function_">myread</span><span class="params">(<span class="keyword">struct</span> file *pfile, <span class="type">char</span> __user *pbuf, <span class="type">size_t</span> count, <span class="type">loff_t</span> *ppos)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> _<span class="title">my_dev</span> *<span class="title">p_my_dev</span> =</span> (<span class="keyword">struct</span> _my_dev *)(pfile-&gt;private_data);</span><br><span class="line">    <span class="comment">/* 读取数据 */</span></span><br><span class="line">    <span class="comment">/* 会用到 copy_to_user 函数，将数据从内核空间拷贝到用户空间 */</span></span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/7daeed19.html">LV10-02-字符设备驱动-02-基本驱动函数实现</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年07月08日 - 18:58</p>
+    <p><span>最后更新:</span>2025年02月16日 - 18:03</p>
+    <p><span>原始链接:</span><a href="/post/7daeed19.html" title="LV10-02-字符设备驱动-02-基本驱动函数实现">https://sumumm.github.io/post/7daeed19.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV10-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/725b18b.html" rel="prev" title="LV10-02-字符设备驱动-03-工作原理与开发流程">
+                  <i class="fa fa-angle-left"></i> LV10-02-字符设备驱动-03-工作原理与开发流程
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/f0272df3.html" rel="next" title="LV10-02-字符设备驱动-01-基础知识">
+                  LV10-02-字符设备驱动-01-基础知识 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.5m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">211:16</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>
