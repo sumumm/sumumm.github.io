@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是linux——内核加载的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV09-03-linux-01-内核加载">
+<meta property="og:url" content="https://sumumm.github.io/post/1234bbb.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是linux——内核加载的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV09-uboot%E4%B8%8Elinux/LV09-03-linux-01-%E5%86%85%E6%A0%B8%E5%8A%A0%E8%BD%BD/img/image-20220816165850235.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV09-uboot%E4%B8%8Elinux/LV09-03-linux-01-%E5%86%85%E6%A0%B8%E5%8A%A0%E8%BD%BD/img/image-20220817164442440.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV09-uboot%E4%B8%8Elinux/LV09-03-linux-01-%E5%86%85%E6%A0%B8%E5%8A%A0%E8%BD%BD/img/image-20220817170501606.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV09-uboot%E4%B8%8Elinux/LV09-03-linux-01-%E5%86%85%E6%A0%B8%E5%8A%A0%E8%BD%BD/img/image-20220818130030409.png">
+<meta property="article:published_time" content="2023-07-07T11:34:13.000Z">
+<meta property="article:modified_time" content="2025-04-07T23:43:52.612Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV09-uboot与linux">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV09-uboot%E4%B8%8Elinux/LV09-03-linux-01-%E5%86%85%E6%A0%B8%E5%8A%A0%E8%BD%BD/img/image-20220816165850235.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/1234bbb.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/1234bbb.html","path":"post/1234bbb.html","title":"LV09-03-linux-01-内核加载"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV09-03-linux-01-内核加载 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">41</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">668</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%89%80%E9%9C%80%E6%96%87%E4%BB%B6%E4%B8%8B%E8%BD%BD"><span class="nav-text">一、所需文件下载</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%8A%A0%E8%BD%BD%E6%96%B9%E5%BC%8F%E4%B8%8E%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C"><span class="nav-text">二、加载方式与准备工作</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%8A%A0%E8%BD%BD%E6%96%B9%E5%BC%8F%E7%AE%80%E4%BB%8B"><span class="nav-text">1. 加载方式简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%8A%A0%E8%BD%BD%E5%89%8D%E7%9A%84%E5%87%86%E5%A4%87"><span class="nav-text">2. 加载前的准备</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E7%BD%91%E7%BB%9C%E8%AE%BE%E7%BD%AE"><span class="nav-text">2.1 网络设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-tftp"><span class="nav-text">2.2 tftp</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-nfs"><span class="nav-text">2.3 nfs</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E6%96%87%E4%BB%B6%E5%87%86%E5%A4%87"><span class="nav-text">2.4 文件准备</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E5%8A%A0%E8%BD%BD%E6%96%B9%E5%BC%8F%E4%B8%80"><span class="nav-text">三、加载方式一</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BF%AE%E6%94%B9bootcmd"><span class="nav-text">1. 修改bootcmd</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BF%AE%E6%94%B9bootargs"><span class="nav-text">2. 修改bootargs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E9%87%8D%E5%90%AF%E5%BC%80%E5%8F%91%E6%9D%BF"><span class="nav-text">3. 重启开发板</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-uImage%E6%96%87%E4%BB%B6%E5%8A%A0%E8%BD%BD"><span class="nav-text">3.1 uImage文件加载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-exynos4412-fs4412-dtb%E6%96%87%E4%BB%B6%E5%8A%A0%E8%BD%BD"><span class="nav-text">3.2 exynos4412-fs4412.dtb文件加载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-ramdisk-img%E6%96%87%E4%BB%B6%E5%8A%A0%E8%BD%BD"><span class="nav-text">3.3 ramdisk.img文件加载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E4%B8%89%E4%B8%AA%E6%96%87%E4%BB%B6%E6%A3%80%E6%B5%8B%E4%BF%A1%E6%81%AF"><span class="nav-text">3.4 三个文件检测信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-%E5%90%AF%E5%8A%A8%E5%86%85%E6%A0%B8"><span class="nav-text">3.5 启动内核</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-6-%E6%8C%82%E8%BD%BD%E6%A0%B9%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-text">3.6 挂载根文件系统</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%90%AF%E5%8A%A8%E6%88%90%E5%8A%9F"><span class="nav-text">4. 启动成功</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E5%8A%A0%E8%BD%BD%E6%96%B9%E5%BC%8F%E4%BA%8C"><span class="nav-text">四、加载方式二</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%9B%B8%E5%85%B3%E6%96%87%E4%BB%B6%E4%B8%8B%E8%BD%BD"><span class="nav-text">1. 相关文件下载</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-linux%E9%95%9C%E5%83%8F"><span class="nav-text">1.1 linux镜像</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E8%AE%BE%E5%A4%87%E6%A0%91"><span class="nav-text">1.2 设备树</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E6%A0%B9%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F"><span class="nav-text">1.3 根文件系统镜像</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BF%AE%E6%94%B9bootcmd"><span class="nav-text">2. 修改bootcmd</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BF%AE%E6%94%B9bootargs"><span class="nav-text">3. 修改bootargs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E9%87%8D%E5%90%AF%E5%BC%80%E5%8F%91%E6%9D%BF"><span class="nav-text">4. 重启开发板</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-uImage%E6%96%87%E4%BB%B6%E5%8A%A0%E8%BD%BD"><span class="nav-text">4.1 uImage文件加载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-exynos4412-fs4412-dtb%E6%96%87%E4%BB%B6%E5%8A%A0%E8%BD%BD"><span class="nav-text">4.2 exynos4412-fs4412.dtb文件加载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-ramdisk-img%E6%96%87%E4%BB%B6%E5%8A%A0%E8%BD%BD"><span class="nav-text">4.3 ramdisk.img文件加载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E4%B8%89%E4%B8%AA%E6%96%87%E4%BB%B6%E6%A3%80%E6%B5%8B%E4%BF%A1%E6%81%AF"><span class="nav-text">4.4 三个文件检测信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-5-%E5%90%AF%E5%8A%A8%E5%86%85%E6%A0%B8"><span class="nav-text">4.5 启动内核</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-6-%E6%8C%82%E8%BD%BD%E6%A0%B9%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-text">4.6 挂载根文件系统</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E5%90%AF%E5%8A%A8%E6%88%90%E5%8A%9F"><span class="nav-text">5. 启动成功</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E5%8A%A0%E8%BD%BD%E6%96%B9%E5%BC%8F%E4%B8%89"><span class="nav-text">五、加载方式三</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BF%AE%E6%94%B9bootcmd-1"><span class="nav-text">1. 修改bootcmd</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BF%AE%E6%94%B9bootargs-1"><span class="nav-text">2. 修改bootargs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E9%87%8D%E5%90%AF%E5%BC%80%E5%8F%91%E6%9D%BF-1"><span class="nav-text">3. 重启开发板</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-uImage%E6%96%87%E4%BB%B6%E5%8A%A0%E8%BD%BD-1"><span class="nav-text">3.1 uImage文件加载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-exynos4412-fs4412-dtb%E6%96%87%E4%BB%B6%E5%8A%A0%E8%BD%BD-1"><span class="nav-text">3.2 exynos4412-fs4412.dtb文件加载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E4%B8%A4%E4%B8%AA%E6%96%87%E4%BB%B6%E6%A3%80%E6%B5%8B%E4%BF%A1%E6%81%AF"><span class="nav-text">3.3 两个文件检测信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E5%90%AF%E5%8A%A8%E5%86%85%E6%A0%B8"><span class="nav-text">3.4 启动内核</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-%E6%8C%82%E8%BD%BD%E6%A0%B9%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-text">3.5 挂载根文件系统</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%90%AF%E5%8A%A8%E6%88%90%E5%8A%9F-1"><span class="nav-text">4. 启动成功</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">668</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">41</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/1234bbb.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV09-03-linux-01-内核加载 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV09-03-linux-01-内核加载
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-07-07 19:34:13" itemprop="dateCreated datePublished" datetime="2023-07-07T19:34:13+08:00">2023-07-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV09-uboot%E4%B8%8Elinux/" itemprop="url" rel="index"><span itemprop="name">LV09-uboot与linux</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>19 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是linux——内核加载的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV09-uboot%E4%B8%8Elinux/LV09-03-linux-01-%E5%86%85%E6%A0%B8%E5%8A%A0%E8%BD%BD/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center" width=150>Linux开发板</td>        <td align="left">华清远见 底板: FS4412_DEV_V5 核心板: FS4412 V2</td>      </tr>    <tr>        <td align="center" width=150>u-boot</td>        <td align="left">2013.01</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">文件</td><td align="center">下载链接</td></tr>    <tr><td align="left">exynos4412-fs4412.rar</td><td align="left"><a href="https://wwz.lanzouy.com/iUWGt09nh2ah" target="_blank">设备树文件 <i class="fa fa-external-link-alt"></i> </a></td></tr>    <tr><td align="left">ramdisk.rar</td><td align="left"><a href="https://wwz.lanzouy.com/il7NJ09nh2jg" target="_blank">linux镜像 <i class="fa fa-external-link-alt"></i> </a></td></tr>    <tr><td align="left">roofs.rar</td><td align="left"><a href="https://wwz.lanzouy.com/i76Yz09nhakf" target="_blank">根文件系统(通过nfs共享给开发板的时候用) <i class="fa fa-external-link-alt"></i> </a></td></tr>    <tr><td align="left">ramdisk.rar</td><td align="left"><a href="https://wwz.lanzouy.com/isnqG09nh2fc" target="_blank">根文件系统镜像 <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+
+
+<h1 id="一、所需文件下载"><a href="#一、所需文件下载" class="headerlink" title="一、所需文件下载"></a><font size=3>一、所需文件下载</font></h1><p>开篇我放了自己在蓝奏云存储的几个文件，我们可以下载下来并解压，然后我们会的到下边几个文件：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV09-uboot%E4%B8%8Elinux/LV09-03-linux-01-%E5%86%85%E6%A0%B8%E5%8A%A0%E8%BD%BD/img/image-20220816165850235.png" alt="image-20220816165850235" style="zoom:50%;" />
+
+<p>这些文件都存放在<code>windows</code>与<code>ubuntu</code>共享目录下，在<code>ubuntu</code>中共享文件路径为：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/mnt/hgfs/Sharedfiles/test/linux</span><br></pre></td></tr></table></figure>
+
+<h1 id="二、加载方式与准备工作"><a href="#二、加载方式与准备工作" class="headerlink" title="二、加载方式与准备工作"></a><font size=3>二、加载方式与准备工作</font></h1><h2 id="1-加载方式简介"><a href="#1-加载方式简介" class="headerlink" title="1. 加载方式简介"></a><font size=3>1. 加载方式简介</font></h2><p>我们可以有以下几种方式来加载<code>linux</code>内核和根文件系统：</p>
+<table>
+    <tr>
+        <td align="center" width=150px>方式一</td>
+        <td align="left">tftp加载linux内核，tftp加载rootfs根文件系统</td>
+    </tr>
+    <tr>
+        <td align="center" width=150>方式二</td>
+        <td align="left">eMMC加载linux内核，eMMC加载rootfs根文件系统</td>  
+    </tr>
+    <tr>
+        <td align="center" width=150>方式三</td>
+        <td align="left">tftp加载linux内核，nfs加载rootfs根文件系统</td>  
+    </tr>
+</table>
+
+
+<p>后边将详细介绍这三种方式。</p>
+<h2 id="2-加载前的准备"><a href="#2-加载前的准备" class="headerlink" title="2. 加载前的准备"></a><font size=3>2. 加载前的准备</font></h2><h3 id="2-1-网络设置"><a href="#2-1-网络设置" class="headerlink" title="2.1 网络设置"></a><font size=3>2.1 网络设置</font></h3><p>我们首先要设置开发板中的服务器<code>IP</code>和<code>ubuntu</code>服务器<code>IP</code>，在<code>SecureCRT</code>终端中执行以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # setenv ipaddr 192.168.10.102</span><br><span class="line">fs4412 # setenv ethaddr 11:22:33:44:55:66</span><br><span class="line">fs4412 # setenv gatewayip 192.168.10.1 </span><br><span class="line">fs4412 # setenv netmask 255.255.255.0</span><br><span class="line">fs4412 # setenv serverip 192.168.10.101</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">最后再保存一下环境变量到 mmc</span></span><br><span class="line">fs4412 # saveenv</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="2-2-tftp"><a href="#2-2-tftp" class="headerlink" title="2.2 tftp"></a><font size=3>2.2 <code>tftp</code></font></h3><p>首先我们要保证自己已经安装了<code>tftp</code>，并且可以正常使用，我的<code>ubuntu</code>服务器<code>ip</code>与<code>tftp</code>目录如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">192.168.10.101:/home/hk/3tftp</span><br></pre></td></tr></table></figure>
+
+<p>由于我已经在开发板中设置了<code>serverip</code>为<code>192.168.10.101</code>，且所有<code>fs4412</code>在<code>linux</code>内核加载和根文件系统加载中所需的文件都放在下面的路径中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/home/hk/3tftp/fs4412</span><br></pre></td></tr></table></figure>
+
+<p>故后边在开发板的交互界面可以直接通过下边类似命令下载文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # tftp 40008000 /fs4412/clear.bin</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-nfs"><a href="#2-3-nfs" class="headerlink" title="2.3 nfs"></a><font size=3>2.3 <code>nfs</code></font></h3><p>后边会用到<code>nfs</code>来挂载根文件系统，所以我们需要确保我们的<code>ubuntu</code>服务器已经设置好了<code>nfs</code>共享文件夹，我设置的文件夹为：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/home/hk/4nfs</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-4-文件准备"><a href="#2-4-文件准备" class="headerlink" title="2.4 文件准备"></a><font size=3>2.4 文件准备</font></h3><p>之前我们已经将相关文件下载并解压到了<code>ubuntu</code>与<code>windows</code>下的共享目录中，接下来就是将相关文件拷贝到<code>3tftp/fs4412</code>或者<code>nfd</code>路径下了，相关拷贝命令如下：</p>
+<ul>
+<li><code>~/3tftp/fs4412/</code>路径下需要有的文件</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">hk@vm:~$ cp /mnt/hgfs/Sharedfiles/test/linux/exynos4412-fs4412.dtb ~/3tftp/fs4412/</span><br><span class="line">hk@vm:~$ cp /mnt/hgfs/Sharedfiles/test/linux/ramdisk.img ~/3tftp/fs4412/</span><br><span class="line">hk@vm:~$ cp /mnt/hgfs/Sharedfiles/test/linux/uImage ~/3tftp/fs4412/</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>~/nfs</code>路径下需要有的文件（方式三会使用）</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hk@vm:~$ cp /mnt/hgfs/Sharedfiles/test/linux/roofs/rootfs.tar.bz2 ~/nfs/</span><br></pre></td></tr></table></figure>
+
+<p>这个文件复制完毕之后我们还需要进行解压，我们可以在终端执行以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">hk@vm:~$ cd ~/nfs/</span><br><span class="line">hk@vm:~/nfs$ tar xvf rootfs.tar.bz2</span><br><span class="line">hk@vm:~/nfs$ rm rootfs.tar.bz2</span><br></pre></td></tr></table></figure>
+
+<h1 id="三、加载方式一"><a href="#三、加载方式一" class="headerlink" title="三、加载方式一"></a><font size=3>三、加载方式一</font></h1><p>方式一就是我们通过<code>tftp</code>来加载<code>linux</code>系统内核和<code>rootfs</code>根文件系统。</p>
+<h2 id="1-修改bootcmd"><a href="#1-修改bootcmd" class="headerlink" title="1. 修改bootcmd"></a><font size=3>1. 修改<code>bootcmd</code></font></h2><p>我们修改一下<code>uboot</code>的启动参数，让其在启动后读秒结束直接从<code>ubuntu</code>下载相关文件并启动<code>linux</code>内核。我们在<code>secureCRT</code>终端执行以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # setenv bootcmd tftp 0x41000000 /fs4412/uImage\;tftp 0x42000000 /fs4412/exynos4412-fs4412.dtb\;tftp 0x43000000 /fs4412/ramdisk.img\;bootm 0x41000000 0x43000000 0x42000000</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">然后保存一下环境变量到 eMMC</span> </span><br><span class="line">fs4412 # saveenv</span><br><span class="line">Saving Environment to MMC...</span><br><span class="line">Writing to MMC(0)... .done</span><br></pre></td></tr></table></figure>
+
+<p>然后我们打印一下这个环境变量的值，检查一下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # printenv bootcmd</span><br><span class="line">bootcmd=tftp 0x41000000 /fs4412/uImage;tftp 0x42000000 /fs4412/exynos4412-fs4412.dtb;tftp 0x43000000 /fs4412/ramdisk.img;bootm 0x41000000 0x43000000 0x42000000</span><br></pre></td></tr></table></figure>
+
+<p>【注意】</p>
+<p>（1）多条命令之间用<code>\;</code>分隔开。</p>
+<p>（2）<code>bootm</code>参数顺序为内核的下载地址、根文件系统的下载地址、设备树的下载地址。</p>
+<h2 id="2-修改bootargs"><a href="#2-修改bootargs" class="headerlink" title="2. 修改bootargs"></a><font size=3>2. 修改<code>bootargs</code></font></h2><p>我们还需要修改一下传给<code>linux</code>的参数信息，也就是修改一下<code>bootargs</code>环境变量的值。我们在<code>secureCRT</code>终端执行以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # setenv bootargs root=/dev/nfs nfsroot=192.168.10.101:/home/hk/4nfs rw console=ttySAC2,115200 init=/linuxrc ip=192.168.10.102</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">然后保存一下环境变量到 eMMC</span> </span><br><span class="line">fs4412 # saveenv</span><br><span class="line">Saving Environment to MMC...</span><br><span class="line">Writing to MMC(0)... .done</span><br></pre></td></tr></table></figure>
+
+<p>然后我们打印一下这个环境变量的值，检查一下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # printenv bootargs</span><br><span class="line">bootargs=root=/dev/nfs nfsroot=192.168.10.101:/home/hk/4nfs rw console=ttySAC2,115200 init=/linuxrc ip=192.168.10.102</span><br></pre></td></tr></table></figure>
+
+<p>【注意】</p>
+<p>（1）<code>nfsroot=192.168.10.101</code>后边那个<code>IP</code>为<code>ubuntu</code>服务器的<code>IP</code>，<code>ip=192.168.10.102</code>后边的这个<code>IP</code>为开发板自己的<code>IP</code>，需要确保这两个<code>IP</code>处于同一网段。</p>
+<p>（2）该种加载方式的根文件系统并非来自于<code>nfs</code>共享目录，而是来自于根文件系统镜像。</p>
+<h2 id="3-重启开发板"><a href="#3-重启开发板" class="headerlink" title="3. 重启开发板"></a><font size=3>3. 重启开发板</font></h2><h3 id="3-1-uImage文件加载"><a href="#3-1-uImage文件加载" class="headerlink" title="3.1 uImage文件加载"></a><font size=3>3.1 <code>uImage</code>文件加载</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">dm9000 i/o: 0x5000000, id: 0x90000a46 </span><br><span class="line">DM9000: running in 16 bit mode</span><br><span class="line">MAC: 11:22:33:44:55:66</span><br><span class="line">operating at 100M full duplex mode</span><br><span class="line">Using dm9000 device</span><br><span class="line">TFTP from server 192.168.10.101; our IP address is 192.168.10.102</span><br><span class="line">Filename &#x27;/fs4412/uImage&#x27;.</span><br><span class="line">Load address: 0x41000000</span><br><span class="line">Loading: T #################################################################</span><br><span class="line">         #################################################################</span><br><span class="line">         #################################################################</span><br><span class="line">         ###########</span><br><span class="line">         378.9 KiB/s</span><br><span class="line">done</span><br><span class="line">Bytes transferred = 3019120 (2e1170 hex)</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-exynos4412-fs4412-dtb文件加载"><a href="#3-2-exynos4412-fs4412-dtb文件加载" class="headerlink" title="3.2 exynos4412-fs4412.dtb文件加载"></a><font size=3>3.2 <code>exynos4412-fs4412.dtb</code>文件加载</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">dm9000 i/o: 0x5000000, id: 0x90000a46 </span><br><span class="line">DM9000: running in 16 bit mode</span><br><span class="line">MAC: 11:22:33:44:55:66</span><br><span class="line">operating at 100M full duplex mode</span><br><span class="line">Using dm9000 device</span><br><span class="line">TFTP from server 192.168.10.101; our IP address is 192.168.10.102</span><br><span class="line">Filename &#x27;/fs4412/exynos4412-fs4412.dtb&#x27;.</span><br><span class="line">Load address: 0x42000000</span><br><span class="line">Loading: T ###</span><br><span class="line">         5.9 KiB/s</span><br><span class="line">done</span><br><span class="line">Bytes transferred = 34358 (8636 hex)</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-3-ramdisk-img文件加载"><a href="#3-3-ramdisk-img文件加载" class="headerlink" title="3.3 ramdisk.img文件加载"></a><font size=3>3.3 <code>ramdisk.img</code>文件加载</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">dm9000 i/o: 0x5000000, id: 0x90000a46 </span><br><span class="line">DM9000: running in 16 bit mode</span><br><span class="line">MAC: 11:22:33:44:55:66</span><br><span class="line">operating at 100M full duplex mode</span><br><span class="line">Using dm9000 device</span><br><span class="line">TFTP from server 192.168.10.101; our IP address is 192.168.10.102</span><br><span class="line">Filename &#x27;/fs4412/ramdisk.img&#x27;.</span><br><span class="line">Load address: 0x43000000</span><br><span class="line">Loading: T #################################################################</span><br><span class="line">         #################################################################</span><br><span class="line">         ############################################</span><br><span class="line">         338.9 KiB/s</span><br><span class="line">done</span><br><span class="line">Bytes transferred = 2544147 (26d213 hex)</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-4-三个文件检测信息"><a href="#3-4-三个文件检测信息" class="headerlink" title="3.4 三个文件检测信息"></a><font size=3>3.4 三个文件检测信息</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="comment"># Booting kernel from Legacy Image at 41000000 ...</span></span></span><br><span class="line">   Image Name:   Linux-3.14.0</span><br><span class="line">   Image Type:   ARM Linux Kernel Image (uncompressed)</span><br><span class="line">   Data Size:    3019056 Bytes = 2.9 MiB</span><br><span class="line">   Load Address: 40008000</span><br><span class="line">   Entry Point:  40008000</span><br><span class="line">   Verifying Checksum ... OK</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="comment"># Loading init Ramdisk from Legacy Image at 43000000 ...</span></span></span><br><span class="line">   Image Name:   ramdisk</span><br><span class="line">   Image Type:   ARM Linux RAMDisk Image (gzip compressed)</span><br><span class="line">   Data Size:    2544083 Bytes = 2.4 MiB</span><br><span class="line">   Load Address: 00000000</span><br><span class="line">   Entry Point:  00000000</span><br><span class="line">   Verifying Checksum ... OK</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="comment"># Flattened Device Tree blob at 42000000</span></span></span><br><span class="line">   Booting using the fdt blob at 0x42000000</span><br><span class="line">   Loading Kernel Image ... OK</span><br><span class="line">OK</span><br><span class="line">   Loading Ramdisk to 4fd92000, end 4ffff1d3 ... OK</span><br><span class="line">   Loading Device Tree to 4fd86000, end 4fd91635 ... OK</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-5-启动内核"><a href="#3-5-启动内核" class="headerlink" title="3.5 启动内核"></a><font size=3>3.5 启动内核</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Starting kernel ...</span><br></pre></td></tr></table></figure>
+
+<p>当我们看到这个信息的时候，说明后边的操作将会启动<code>linux</code>内核。</p>
+<h3 id="3-6-挂载根文件系统"><a href="#3-6-挂载根文件系统" class="headerlink" title="3.6 挂载根文件系统"></a><font size=3>3.6 挂载根文件系统</font></h3><p>在内核安装完毕之后，会进行根文件系统挂载，挂载完成将会有以下信息提示：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[    2.145000] VFS: Mounted root (ext2 filesystem) on device 1:0.</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-启动成功"><a href="#4-启动成功" class="headerlink" title="4. 启动成功"></a><font size=3>4. 启动成功</font></h2><p>当我们的开发板加载<code>linux</code>内核并启动成功的时候，我们可以运行一个<code>ls</code>命令来检测一下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV09-uboot%E4%B8%8Elinux/LV09-03-linux-01-%E5%86%85%E6%A0%B8%E5%8A%A0%E8%BD%BD/img/image-20220817164442440.png" alt="image-20220817164442440" style="zoom:50%;" />
+
+<h1 id="四、加载方式二"><a href="#四、加载方式二" class="headerlink" title="四、加载方式二"></a><font size=3>四、加载方式二</font></h1><p>通过方式一我们虽然可以加载<code>Linux</code>内核和根文件系统并正常运行，但方式一我们是把内核镜像、设备树、根文件系统镜像都放到了<code>tftp</code>服务器上，然后开发板上电之后再通过<code>tftp</code>去下载这些文件到开发板的内存中运行；但在实际我们不可能每次开机都通过网络去服务器上下载这些镜像，所以以下步骤我们就将这些镜像安装到开发板上的<code>eMMC </code>中，然后从<code>EMMC</code>启动内核。</p>
+<p>下边我们就来使用加载方式二，通过<code>eMMC</code>来加载<code>linux</code>内核和<code>rootfs</code>根文件系统。</p>
+<h2 id="1-相关文件下载"><a href="#1-相关文件下载" class="headerlink" title="1. 相关文件下载"></a><font size=3>1. 相关文件下载</font></h2><h3 id="1-1-linux镜像"><a href="#1-1-linux镜像" class="headerlink" title="1.1 linux镜像"></a><font size=3>1.1 <code>linux</code>镜像</font></h3><ul>
+<li>下载内核镜像到内存中</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # tftp 0x41000000 /fs4412/uImage</span><br></pre></td></tr></table></figure>
+
+<p>下载完成会有以下提示信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">dm9000 i/o: 0x5000000, id: 0x90000a46 </span><br><span class="line">DM9000: running in 16 bit mode</span><br><span class="line">MAC: 11:22:33:44:55:66</span><br><span class="line">operating at 100M full duplex mode</span><br><span class="line">Using dm9000 device</span><br><span class="line">TFTP from server 192.168.10.101; our IP address is 192.168.10.102</span><br><span class="line">Filename &#x27;/fs4412/uImage&#x27;.</span><br><span class="line">Load address: 0x41000000</span><br><span class="line">Loading: T #################################################################</span><br><span class="line">         #################################################################</span><br><span class="line">         #################################################################</span><br><span class="line">         ###########</span><br><span class="line">         380.9 KiB/s</span><br><span class="line">done</span><br><span class="line">Bytes transferred = 3019120 (2e1170 hex)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>将内核镜像写入到<code>eMMC</code>中指定的扇区</li>
+</ul>
+<p><code>uImage</code>大小为<code>2.9M</code>，也就是<code>2.9 * 1024 * 1024 = 3040870.4</code>字节，写入到<code>eMMC</code>的时候，每个块，或者说扇区的大小为<code>512</code>字节，所以<code>uImage</code>一共会占<code>3040870.4 / 512 = 5939.2</code>个扇区，大概就是<code>5940</code>个扇区，换算为十六进制为<code>0x1734</code>，所以使用的扇区数量我们可以设置为<code>0x2000</code>。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # mmc write 0 0x41000000 0x800 0x2000</span><br></pre></td></tr></table></figure>
+
+<p>写入成功会有以下提示信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">MMC write: dev # 0, block # 2048, count 8192. 8192 blocks write finish</span><br><span class="line">8192 blocks written: OK</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-2-设备树"><a href="#1-2-设备树" class="headerlink" title="1.2 设备树"></a><font size=3>1.2 设备树</font></h3><ul>
+<li>下载设备树到内存中</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # tftp 0x41000000 /fs4412/exynos4412-fs4412.dtb</span><br></pre></td></tr></table></figure>
+
+<p>下载完成会有以下提示信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">dm9000 i/o: 0x5000000, id: 0x90000a46 </span><br><span class="line">DM9000: running in 16 bit mode</span><br><span class="line">MAC: 11:22:33:44:55:66</span><br><span class="line">operating at 100M full duplex mode</span><br><span class="line">Using dm9000 device</span><br><span class="line">TFTP from server 192.168.10.101; our IP address is 192.168.10.102</span><br><span class="line">Filename &#x27;/fs4412/exynos4412-fs4412.dtb&#x27;.</span><br><span class="line">Load address: 0x41000000</span><br><span class="line">Loading: T ###</span><br><span class="line">         5.9 KiB/s</span><br><span class="line">done</span><br><span class="line">Bytes transferred = 34358 (8636 hex)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>将设备树写入到<code>eMMC</code>中指定的扇区</li>
+</ul>
+<p><code>exynos4412-fs4412.dtb</code>大小为<code>34K</code>，也就是<code>34 * 1024 = 34816</code>字节，写入到<code>eMMC</code>的时候，每个块，或者说扇区的大小为<code>512</code>字节，所以<code>exynos4412-fs4412.dtb</code>一共会占<code>34816 / 512 = 68</code>个扇区，换算为十六进制为<code>0x44</code>，所以使用的扇区数量我们可以设置为<code>0x800</code>。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # mmc write 0 0x41000000 0x2800 0x800</span><br></pre></td></tr></table></figure>
+
+<p>写入成功会有以下提示信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">MMC write: dev # 0, block # 10240, count 2048. 2048 blocks write finish</span><br><span class="line">2048 blocks written: OK</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-3-根文件系统镜像"><a href="#1-3-根文件系统镜像" class="headerlink" title="1.3 根文件系统镜像"></a><font size=3>1.3 根文件系统镜像</font></h3><ul>
+<li>下载根文件系统镜像到内存中</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # tftp 0x41000000 /fs4412/ramdisk.img</span><br></pre></td></tr></table></figure>
+
+<p>下载完成会有以下提示信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">dm9000 i/o: 0x5000000, id: 0x90000a46 </span><br><span class="line">DM9000: running in 16 bit mode</span><br><span class="line">MAC: 11:22:33:44:55:66</span><br><span class="line">operating at 100M full duplex mode</span><br><span class="line">Using dm9000 device</span><br><span class="line">TFTP from server 192.168.10.101; our IP address is 192.168.10.102</span><br><span class="line">Filename &#x27;/fs4412/ramdisk.img&#x27;.</span><br><span class="line">Load address: 0x41000000</span><br><span class="line">Loading: T #################################################################</span><br><span class="line">         #################################################################</span><br><span class="line">         ############################################</span><br><span class="line">         335.9 KiB/s</span><br><span class="line">done</span><br><span class="line">Bytes transferred = 2544147 (26d213 hex)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>将根文件系统镜像写入到<code>eMMC</code>中指定的扇区</li>
+</ul>
+<p><code>ramdisk.img</code>大小为<code>2.5M</code>，也就是<code>2.5 * 1024 * 1024 = 2621440</code>字节，写入到<code>eMMC</code>的时候，每个块，或者说扇区的大小为<code>512</code>字节，所以<code>ramdisk.img</code>一共会占<code>2621440 / 512 = 5120</code>个扇区，换算为十六进制为<code>0x1400</code>，所以使用的扇区数量我们可以设置为<code>0x2000</code>。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # mmc write 0 0x41000000 0x3000 0x2000</span><br></pre></td></tr></table></figure>
+
+<p>写入成功会有以下提示信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">MMC write: dev # 0, block # 12288, count 8192. 8192 blocks write finish</span><br><span class="line">8192 blocks written: OK</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-修改bootcmd"><a href="#2-修改bootcmd" class="headerlink" title="2. 修改bootcmd"></a><font size=3>2. 修改<code>bootcmd</code></font></h2><p>我们在<code>secureCRT</code>终端执行以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # setenv bootcmd mmc read 0 0x41000000 0x800 0x2000\;mmc read 0 0x42000000 0x2800 0x800\;mmc read 0 0x43000000 0x3000 0x2000\;bootm 0x41000000 0x43000000 0x42000000</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">然后保存一下环境变量到 eMMC</span> </span><br><span class="line">fs4412 # saveenv</span><br><span class="line">Saving Environment to MMC...</span><br><span class="line">Writing to MMC(0)... .done</span><br></pre></td></tr></table></figure>
+
+<details class="folding-tag" blue><summary> 点击查看可能出现的问题及解决方式 </summary>
+              <div class='content'>
+              <p>我们按下<code>enter</code>按键确认的时候可能会有以下提示信息：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">setenv - set environment variables</span><br><span class="line"></span><br><span class="line">Usage:</span><br><span class="line">setenv [-f] name value ...</span><br><span class="line">    - [forcibly] set environment variable &#x27;name&#x27; to &#x27;value ...&#x27;</span><br><span class="line">setenv [-f] name</span><br><span class="line">    - [forcibly] delete environment variable &#x27;name&#x27;</span><br></pre></td></tr></table></figure><p>这个时候我们可以这样解决，将命令用<code>&#39; &#39;</code>包裹：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # setenv bootcmd &#x27;mmc read 0 0x41000000 0x800 0x2000\;mmc read 0 0x42000000 0x2800 0x800\;mmc read 0 0x43000000 0x3000 0x2000\;bootm 0x41000000 0x43000000 0x42000000&#x27;</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<p>然后我们打印一下这个环境变量的值，检查一下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # printenv bootcmd</span><br><span class="line">bootcmd=mmc read 0 0x41000000 0x800 0x2000;mmc read 0 0x42000000 0x2800 0x800;mmc read 0 0x43000000 0x3000 0x2000;bootm 0x41000000 0x43000000 0x42000000</span><br></pre></td></tr></table></figure>
+
+<p>【注意】</p>
+<p>（1）多条命令之间用<code>\;</code>分隔开。</p>
+<p>（2）<code>bootm</code>参数顺序为内核的下载地址、根文件系统的下载地址、设备树的下载地址。</p>
+<h2 id="3-修改bootargs"><a href="#3-修改bootargs" class="headerlink" title="3. 修改bootargs"></a><font size=3>3. 修改<code>bootargs</code></font></h2><p>我们还需要修改一下传给<code>linux</code>的参数信息，也就是修改一下<code>bootargs</code>环境变量的值。我们在<code>secureCRT</code>终端执行以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # setenv bootargs root=/dev/nfs nfsroot=192.168.10.101:/home/hk/4nfs rw console=ttySAC2,115200 init=/linuxrc ip=192.168.10.102</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">然后保存一下环境变量到 eMMC</span> </span><br><span class="line">fs4412 # saveenv</span><br><span class="line">Saving Environment to MMC...</span><br><span class="line">Writing to MMC(0)... .done</span><br></pre></td></tr></table></figure>
+
+<p>然后我们打印一下这个环境变量的值，检查一下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # printenv bootargs</span><br><span class="line">bootargs=root=/dev/nfs nfsroot=192.168.10.101:/home/hk/4nfs rw console=ttySAC2,115200 init=/linuxrc ip=192.168.10.102</span><br></pre></td></tr></table></figure>
+
+<p>【注意】</p>
+<p>（1）<code>nfsroot=192.168.10.101</code>后边那个<code>IP</code>为<code>ubuntu</code>服务器的<code>IP</code>，<code>ip=192.168.10.102</code>后边的这个<code>IP</code>为开发板自己的<code>IP</code>，需要确保这两个<code>IP</code>处于同一网段。</p>
+<p>（2）该种加载方式的根文件系统并非来自于<code>nfs</code>共享目录，而是来自于根文件系统镜像。</p>
+<h2 id="4-重启开发板"><a href="#4-重启开发板" class="headerlink" title="4. 重启开发板"></a><font size=3>4. 重启开发板</font></h2><h3 id="4-1-uImage文件加载"><a href="#4-1-uImage文件加载" class="headerlink" title="4.1 uImage文件加载"></a><font size=3>4.1 <code>uImage</code>文件加载</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">MMC read: dev # 0, block # 2048, count 8192 ...8192 blocks read: OK</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-exynos4412-fs4412-dtb文件加载"><a href="#4-2-exynos4412-fs4412-dtb文件加载" class="headerlink" title="4.2 exynos4412-fs4412.dtb文件加载"></a><font size=3>4.2 <code>exynos4412-fs4412.dtb</code>文件加载</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">MMC read: dev # 0, block # 10240, count 2048 ...2048 blocks read: OK</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-ramdisk-img文件加载"><a href="#4-3-ramdisk-img文件加载" class="headerlink" title="4.3 ramdisk.img文件加载"></a><font size=3>4.3 <code>ramdisk.img</code>文件加载</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">MMC read: dev # 0, block # 12288, count 8192 ...8192 blocks read: OK</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-4-三个文件检测信息"><a href="#4-4-三个文件检测信息" class="headerlink" title="4.4 三个文件检测信息"></a><font size=3>4.4 三个文件检测信息</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="comment"># Booting kernel from Legacy Image at 41000000 ...</span></span></span><br><span class="line">   Image Name:   Linux-3.14.0</span><br><span class="line">   Image Type:   ARM Linux Kernel Image (uncompressed)</span><br><span class="line">   Data Size:    3019056 Bytes = 2.9 MiB</span><br><span class="line">   Load Address: 40008000</span><br><span class="line">   Entry Point:  40008000</span><br><span class="line">   Verifying Checksum ... OK</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="comment"># Loading init Ramdisk from Legacy Image at 43000000 ...</span></span></span><br><span class="line">   Image Name:   ramdisk</span><br><span class="line">   Image Type:   ARM Linux RAMDisk Image (gzip compressed)</span><br><span class="line">   Data Size:    2544083 Bytes = 2.4 MiB</span><br><span class="line">   Load Address: 00000000</span><br><span class="line">   Entry Point:  00000000</span><br><span class="line">   Verifying Checksum ... OK</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="comment"># Flattened Device Tree blob at 42000000</span></span></span><br><span class="line">   Booting using the fdt blob at 0x42000000</span><br><span class="line">   Loading Kernel Image ... OK</span><br><span class="line">OK</span><br><span class="line">   Loading Ramdisk to 4fd92000, end 4ffff1d3 ... OK</span><br><span class="line">   Loading Device Tree to 4fd86000, end 4fd91635 ... OK</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-5-启动内核"><a href="#4-5-启动内核" class="headerlink" title="4.5 启动内核"></a><font size=3>4.5 启动内核</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Starting kernel ...</span><br></pre></td></tr></table></figure>
+
+<p>当我们看到这个信息的时候，说明后边的操作将会启动<code>linux</code>内核。</p>
+<h3 id="4-6-挂载根文件系统"><a href="#4-6-挂载根文件系统" class="headerlink" title="4.6 挂载根文件系统"></a><font size=3>4.6 挂载根文件系统</font></h3><p>在内核安装完毕之后，会进行根文件系统挂载，挂载完成将会有以下信息提示：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[    2.205000] VFS: Mounted root (ext2 filesystem) on device 1:0.</span><br></pre></td></tr></table></figure>
+
+<h2 id="5-启动成功"><a href="#5-启动成功" class="headerlink" title="5. 启动成功"></a><font size=3>5. 启动成功</font></h2><p>当我们的开发板加载<code>linux</code>内核并启动成功的时候，我们可以运行一个<code>ls</code>命令来检测一下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV09-uboot%E4%B8%8Elinux/LV09-03-linux-01-%E5%86%85%E6%A0%B8%E5%8A%A0%E8%BD%BD/img/image-20220817170501606.png" alt="image-20220817170501606" style="zoom:50%;" />
+
+<h1 id="五、加载方式三"><a href="#五、加载方式三" class="headerlink" title="五、加载方式三"></a><font size=3>五、加载方式三</font></h1><p>在进行开发的过程中会经常修改内核和设备树的源码，也会经常向根文件系统中添加一些驱动或应用程序，这样每次修改之后我们都要重新将内核或根文件系统安装到<code>eMMC</code>中，步骤会比较繁琐，开发效率也比较低，所以在开发阶段我们经常使用的方式是通过<code>tftp</code>加<br>载内核和设备树再通过<code>nfs</code>挂载根文件系统，这样步骤简单，效率也比较高，待开发完成之后在安装到<code>eMMC</code>中。</p>
+<p>下边我们就来使用加载方式三，通过<code>tftp</code>来加载<code>linux</code>内核，通过<code>nfs</code>加载<code>rootfs</code>根文件系统。该方式会用到<code>nfs</code>，开发板中在<code>linux</code>内核安装完成后，是已经安装了<code>nfs</code>的，所以我们只需要保证<code>ubuntu</code>安装了<code>nfs</code>，并设置了可访问的共享目录即可。</p>
+<h2 id="1-修改bootcmd-1"><a href="#1-修改bootcmd-1" class="headerlink" title="1. 修改bootcmd"></a><font size=3>1. 修改<code>bootcmd</code></font></h2><p>我们在<code>secureCRT</code>终端执行以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # setenv bootcmd tftp 0x41000000 /fs4412/uImage\;tftp 0x42000000 /fs4412/exynos4412-fs4412.dtb\;bootm 0x41000000 - 0x42000000</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">然后保存一下环境变量到 eMMC</span> </span><br><span class="line">fs4412 # saveenv</span><br><span class="line">Saving Environment to MMC...</span><br><span class="line">Writing to MMC(0)... .done</span><br></pre></td></tr></table></figure>
+
+<p>然后我们打印一下这个环境变量的值，检查一下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # printenv bootcmd</span><br><span class="line">bootcmd=tftp 0x41000000 /fs4412/uImage;tftp 0x42000000 /fs4412/exynos4412-fs4412.dtb;bootm 0x41000000 - 0x42000000</span><br></pre></td></tr></table></figure>
+
+<p>【注意】</p>
+<p>（1）多条命令之间用<code>\;</code>分隔开。</p>
+<p>（2）<code>bootm</code>参数顺序为内核的下载地址、根文件系统的下载地址、设备树的下载地址。</p>
+<h2 id="2-修改bootargs-1"><a href="#2-修改bootargs-1" class="headerlink" title="2. 修改bootargs"></a><font size=3>2. 修改<code>bootargs</code></font></h2><p>我们还需要修改一下传给<code>linux</code>的参数信息，也就是修改一下<code>bootargs</code>环境变量的值。我们在<code>secureCRT</code>终端执行以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # setenv bootargs root=/dev/nfs nfsroot=192.168.10.101:/home/hk/4nfs rw console=ttySAC2,115200 init=/linuxrc ip=192.168.10.102</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">然后保存一下环境变量到 eMMC</span> </span><br><span class="line">fs4412 # saveenv</span><br><span class="line">Saving Environment to MMC...</span><br><span class="line">Writing to MMC(0)... .done</span><br></pre></td></tr></table></figure>
+
+<p>然后我们打印一下这个环境变量的值，检查一下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">fs4412 # printenv bootargs</span><br><span class="line">bootargs=root=/dev/nfs nfsroot=192.168.10.101:/home/hk/4nfs rw console=ttySAC2,115200 init=/linuxrc ip=192.168.10.102</span><br></pre></td></tr></table></figure>
+
+<p>【注意】</p>
+<p>（1）<code>nfsroot=192.168.10.101</code>后边那个<code>IP</code>为<code>ubuntu</code>服务器的<code>IP</code>，<code>ip=192.168.10.102</code>后边的这个<code>IP</code>为开发板自己的<code>IP</code>，需要确保这两个<code>IP</code>处于同一网段。</p>
+<p>（2）该种加载方式的根文件系统来自于<code>nfs</code>共享目录，所以我们可以在<code>ubuntu</code>服务器上对根文件系统进行操作。</p>
+<h2 id="3-重启开发板-1"><a href="#3-重启开发板-1" class="headerlink" title="3. 重启开发板"></a><font size=3>3. 重启开发板</font></h2><h3 id="3-1-uImage文件加载-1"><a href="#3-1-uImage文件加载-1" class="headerlink" title="3.1 uImage文件加载"></a><font size=3>3.1 <code>uImage</code>文件加载</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">dm9000 i/o: 0x5000000, id: 0x90000a46 </span><br><span class="line">DM9000: running in 16 bit mode</span><br><span class="line">MAC: 11:22:33:44:55:66</span><br><span class="line">operating at 100M full duplex mode</span><br><span class="line">Using dm9000 device</span><br><span class="line">TFTP from server 192.168.10.101; our IP address is 192.168.10.102</span><br><span class="line">Filename &#x27;/fs4412/uImage&#x27;.</span><br><span class="line">Load address: 0x41000000</span><br><span class="line">Loading: T #################################################################</span><br><span class="line">         #################################################################</span><br><span class="line">         #################################################################</span><br><span class="line">         ###########</span><br><span class="line">         378.9 KiB/s</span><br><span class="line">done</span><br><span class="line">Bytes transferred = 3019120 (2e1170 hex)</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-exynos4412-fs4412-dtb文件加载-1"><a href="#3-2-exynos4412-fs4412-dtb文件加载-1" class="headerlink" title="3.2 exynos4412-fs4412.dtb文件加载"></a><font size=3>3.2 <code>exynos4412-fs4412.dtb</code>文件加载</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">dm9000 i/o: 0x5000000, id: 0x90000a46 </span><br><span class="line">DM9000: running in 16 bit mode</span><br><span class="line">MAC: 11:22:33:44:55:66</span><br><span class="line">operating at 100M full duplex mode</span><br><span class="line">Using dm9000 device</span><br><span class="line">TFTP from server 192.168.10.101; our IP address is 192.168.10.102</span><br><span class="line">Filename &#x27;/fs4412/exynos4412-fs4412.dtb&#x27;.</span><br><span class="line">Load address: 0x42000000</span><br><span class="line">Loading: T ###</span><br><span class="line">         5.9 KiB/s</span><br><span class="line">done</span><br><span class="line">Bytes transferred = 34358 (8636 hex)</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-3-两个文件检测信息"><a href="#3-3-两个文件检测信息" class="headerlink" title="3.3 两个文件检测信息"></a><font size=3>3.3 两个文件检测信息</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="comment"># Booting kernel from Legacy Image at 41000000 ...</span></span></span><br><span class="line">   Image Name:   Linux-3.14.0</span><br><span class="line">   Image Type:   ARM Linux Kernel Image (uncompressed)</span><br><span class="line">   Data Size:    3019056 Bytes = 2.9 MiB</span><br><span class="line">   Load Address: 40008000</span><br><span class="line">   Entry Point:  40008000</span><br><span class="line">   Verifying Checksum ... OK</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="comment"># Flattened Device Tree blob at 42000000</span></span></span><br><span class="line">   Booting using the fdt blob at 0x42000000</span><br><span class="line">   Loading Kernel Image ... OK</span><br><span class="line">OK</span><br><span class="line">   Loading Device Tree to 4fff4000, end 4ffff635 ... OK</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-4-启动内核"><a href="#3-4-启动内核" class="headerlink" title="3.4 启动内核"></a><font size=3>3.4 启动内核</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Starting kernel ...</span><br></pre></td></tr></table></figure>
+
+<p>当我们看到这个信息的时候，说明后边的操作将会启动<code>linux</code>内核。</p>
+<h3 id="3-5-挂载根文件系统"><a href="#3-5-挂载根文件系统" class="headerlink" title="3.5 挂载根文件系统"></a><font size=3>3.5 挂载根文件系统</font></h3><p>在内核安装完毕之后，会进行根文件系统挂载，挂载完成将会有以下信息提示：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[    2.855000] VFS: Mounted root (nfs filesystem) on device 0:10.</span><br><span class="line">[    2.860000] devtmpfs: mounted</span><br><span class="line">[    2.865000] Freeing unused kernel memory: 228K (c052d000 - c0566000)</span><br></pre></td></tr></table></figure>
+
+<p>注意这里很容易卡死，<code>nfs</code>共享目录的设置一定要保证其他机器可以正常访问，另外需要注意这里使用的<code>uboo2013</code>版本只支持<code>nfs2</code>，而高版本的<code>ubuntu</code>已经不支持这个版本了，有的资料说在一个文件中配置一下就行，但是我好像没有成功，所以只能换了<code>ubuntu</code>的版本，更换了<code>16.04</code>版本后就没有问题了，后边知道高版本的怎么处理了再在这里补充吧。</p>
+<h2 id="4-启动成功-1"><a href="#4-启动成功-1" class="headerlink" title="4. 启动成功"></a><font size=3>4. 启动成功</font></h2><p>当我们的开发板加载<code>linux</code>内核并启动成功的时候，我们可以运行一个<code>ls</code>命令来检测一下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV09-uboot%E4%B8%8Elinux/LV09-03-linux-01-%E5%86%85%E6%A0%B8%E5%8A%A0%E8%BD%BD/img/image-20220818130030409.png" alt="image-20220818130030409" style="zoom:50%;" />
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/1234bbb.html">LV09-03-linux-01-内核加载</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年07月07日 - 19:34</p>
+    <p><span>最后更新:</span>2025年04月08日 - 07:43</p>
+    <p><span>原始链接:</span><a href="/post/1234bbb.html" title="LV09-03-linux-01-内核加载">https://sumumm.github.io/post/1234bbb.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV09-uboot%E4%B8%8Elinux/" rel="tag"><i class="fa fa-tag"></i> LV09-uboot与linux</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/2b49c53b.html" rel="prev" title="LV09-03-linux-02-linux内核移植">
+                  <i class="fa fa-angle-left"></i> LV09-03-linux-02-linux内核移植
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/9d24e334.html" rel="next" title="LV09-02-uboot-03-uboot移植">
+                  LV09-02-uboot-03-uboot移植 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">223:41</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="来详细了解一下阻塞IO？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-07-IO模型-02-阻塞IO">
+<meta property="og:url" content="https://sumumm.github.io/post/5d492ac7.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="来详细了解一下阻塞IO？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-07-IO%E6%A8%A1%E5%9E%8B-02-%E9%98%BB%E5%A1%9EIO/img/image-20250122163424347.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-07-IO%E6%A8%A1%E5%9E%8B-02-%E9%98%BB%E5%A1%9EIO/img/image-20250122163519063.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-07-IO%E6%A8%A1%E5%9E%8B-02-%E9%98%BB%E5%A1%9EIO/img/image-20250124171009296.png">
+<meta property="article:published_time" content="2025-01-24T15:59:56.000Z">
+<meta property="article:modified_time" content="2025-04-07T23:43:52.663Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-07-IO%E6%A8%A1%E5%9E%8B-02-%E9%98%BB%E5%A1%9EIO/img/image-20250122163424347.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/5d492ac7.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/5d492ac7.html","path":"post/5d492ac7.html","title":"LV06-07-IO模型-02-阻塞IO"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-07-IO模型-02-阻塞IO | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">41</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">668</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E9%98%BB%E5%A1%9EIO"><span class="nav-text">一、阻塞IO</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E7%AD%89%E5%BE%85%E9%98%9F%E5%88%97"><span class="nav-text">二、等待队列</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BB%80%E4%B9%88%E6%98%AF%E7%AD%89%E5%BE%85%E9%98%9F%E5%88%97%EF%BC%9F"><span class="nav-text">1. 什么是等待队列？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E7%AD%89%E5%BE%85%E9%98%9F%E5%88%97%E5%A4%B4"><span class="nav-text">1.1 等待队列头</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E7%AD%89%E5%BE%85%E9%98%9F%E5%88%97%E9%A1%B9"><span class="nav-text">1.2 等待队列项</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%9B%B8%E5%85%B3API%E5%87%BD%E6%95%B0"><span class="nav-text">2. 相关API函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%AE%9A%E4%B9%89%E5%B9%B6%E5%88%9D%E5%A7%8B%E5%8C%96%E7%AD%89%E5%BE%85%E9%98%9F%E5%88%97%E5%A4%B4"><span class="nav-text">2.1 定义并初始化等待队列头  </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-DECLARE-WAIT-QUEUE-HEAD"><span class="nav-text">2.1.1 DECLARE_WAIT_QUEUE_HEAD()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-init-waitqueue-head"><span class="nav-text">2.1.2 init_waitqueue_head()</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%88%9B%E5%BB%BA%E7%AD%89%E5%BE%85%E9%98%9F%E5%88%97%E9%A1%B9"><span class="nav-text">2.2 创建等待队列项</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-DECLARE-WAITQUEUE"><span class="nav-text">2.2.1 DECLARE_WAITQUEUE()</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E6%B7%BB%E5%8A%A0-%E5%88%A0%E9%99%A4%E9%98%9F%E5%88%97%E9%A1%B9"><span class="nav-text">2.3 添加&#x2F;删除队列项  </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1-add-wait-queue"><span class="nav-text">2.3.1 add_wait_queue()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2-remove-wait-queue"><span class="nav-text">2.3.2 remove_wait_queue()</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E7%AD%89%E5%BE%85%E5%94%A4%E9%86%92"><span class="nav-text">2.4 等待唤醒</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-1-wake-up"><span class="nav-text">2.4.1 wake_up() </span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-2-wake-up-interruptible"><span class="nav-text">2.4.2 wake_up_interruptible()</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-%E7%AD%89%E5%BE%85%E4%BA%8B%E4%BB%B6"><span class="nav-text">2.5 等待事件</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-1-wait-event"><span class="nav-text">2.5.1 wait_event()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-2-wait-event-timeout"><span class="nav-text">2.5.2 wait_event_timeout()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-3-wait-event-interruptible"><span class="nav-text">2.5.3 wait_event_interruptible()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-4-wait-event-interruptible-timeout"><span class="nav-text">2.5.4 wait_event_interruptible_timeout()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-5-wait-event-interruptible-exclusive"><span class="nav-text">2.5.5 wait_event_interruptible_exclusive()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-3-%E6%80%BB%E7%BB%93"><span class="nav-text">2.5.3 总结</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%AD%89%E5%BE%85%E9%98%9F%E5%88%97%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95"><span class="nav-text">3. 等待队列使用方法</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E9%98%BB%E5%A1%9EIO-demo"><span class="nav-text">三、阻塞IO demo</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-demo%E6%BA%90%E7%A0%81"><span class="nav-text">1. demo源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%BC%80%E5%8F%91%E6%9D%BF%E9%AA%8C%E8%AF%81"><span class="nav-text">2. 开发板验证</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">668</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">41</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/5d492ac7.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-07-IO模型-02-阻塞IO | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-07-IO模型-02-阻塞IO
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-01-24 23:59:56" itemprop="dateCreated datePublished" datetime="2025-01-24T23:59:56+08:00">2025-01-24</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.3k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>12 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>来详细了解一下阻塞IO？若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-07-IO%E6%A8%A1%E5%9E%8B-02-%E9%98%BB%E5%A1%9EIO/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="3">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4" target="_blank">kernel/git/stable/linux.git - Linux kernel stable tree</a></td>        <td align="left">linux kernel源码(官网,tag 4.19.71)</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、阻塞IO"><a href="#一、阻塞IO" class="headerlink" title="一、阻塞IO"></a><font size=3>一、阻塞IO</font></h1><p>当应用程序对设备驱动进行操作的时候，如果不能获取到设备资源，那么阻塞式 IO 就会将应用程序对应的线程挂起，直到设备资源可以获取为止。对于非阻塞 IO，应用程序对应的线程不会挂起，它要么一直轮询等待，直到设备资源可以使用，要么就直接放弃。  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-07-IO%E6%A8%A1%E5%9E%8B-02-%E9%98%BB%E5%A1%9EIO/img/image-20250122163424347.png" alt="image-20250122163424347"  />
+
+<h1 id="二、等待队列"><a href="#二、等待队列" class="headerlink" title="二、等待队列"></a><font size=3>二、等待队列</font></h1><h2 id="1-什么是等待队列？"><a href="#1-什么是等待队列？" class="headerlink" title="1. 什么是等待队列？"></a><font size=3>1. 什么是等待队列？</font></h2><p>阻塞访问最大的好处就是当设备文件不可操作的时候进程可以进入休眠态，这样可以将CPU 资源让出来。但是，当设备文件可以操作的时候就必须唤醒进程，一般在中断函数里面完成唤醒工作。   </p>
+<p>Linux 内核提供了等待队列(wait queue)来实现阻塞进程的唤醒工作。 等待队列是内核实现阻塞和唤醒的内核机制， 以双循环链表为基础结构， 由链表头和链表项两部分组成， 分别表示等待队列头和等待队列元素， 如下图  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-07-IO%E6%A8%A1%E5%9E%8B-02-%E9%98%BB%E5%A1%9EIO/img/image-20250122163519063.png" alt="image-20250122163519063"  />
+
+<h3 id="1-1-等待队列头"><a href="#1-1-等待队列头" class="headerlink" title="1.1 等待队列头"></a><font size=3>1.1 等待队列头</font></h3><p>如果我们要在驱动中使用等待队列，必须创建并初始化一个等待队列头，等待队列头使用结构体 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L38">wait_queue_head_t</a> 来表示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">wait_queue_head</span> &#123;</span></span><br><span class="line">	<span class="type">spinlock_t</span>		lock;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>	<span class="title">head</span>;</span></span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">wait_queue_head</span> <span class="title">wait_queue_head_t</span>;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="1-2-等待队列项"><a href="#1-2-等待队列项" class="headerlink" title="1.2 等待队列项"></a><font size=3>1.2 等待队列项</font></h3><p>等待队列头就是一个等待队列的头部，每个访问设备的进程都是一个队列项，当设备不可用的时候就要将这些进程对应的等待队列项添加到等待队列里面。  等待队列项是等待队列元素，等待队列项使用结构体 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L14">wait_queue_entry_t</a> 来表示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * A single wait-queue entry structure:</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">wait_queue_entry</span> &#123;</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>		flags;</span><br><span class="line">	<span class="type">void</span>			*private;</span><br><span class="line">	<span class="type">wait_queue_func_t</span>	func;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>	<span class="title">entry</span>;</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">wait_queue_entry</span> <span class="title">wait_queue_entry_t</span>;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="2-相关API函数"><a href="#2-相关API函数" class="headerlink" title="2. 相关API函数"></a><font size=3>2. 相关API函数</font></h2><h3 id="2-1-定义并初始化等待队列头"><a href="#2-1-定义并初始化等待队列头" class="headerlink" title="2.1 定义并初始化等待队列头  "></a><font size=3>2.1 定义并初始化等待队列头  </font></h3><h4 id="2-1-1-DECLARE-WAIT-QUEUE-HEAD"><a href="#2-1-1-DECLARE-WAIT-QUEUE-HEAD" class="headerlink" title="2.1.1 DECLARE_WAIT_QUEUE_HEAD()"></a><font size=3>2.1.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L58">DECLARE_WAIT_QUEUE_HEAD()</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L58">DECLARE_WAIT_QUEUE_HEAD()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> __WAIT_QUEUE_HEAD_INITIALIZER(name) &#123;					\</span></span><br><span class="line"><span class="meta">	.lock		= __SPIN_LOCK_UNLOCKED(name.lock),			\</span></span><br><span class="line"><span class="meta">	.head		= &#123; &amp;(name).head, &amp;(name).head &#125; &#125;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DECLARE_WAIT_QUEUE_HEAD(name) \</span></span><br><span class="line"><span class="meta">	struct wait_queue_head name = __WAIT_QUEUE_HEAD_INITIALIZER(name)</span></span><br></pre></td></tr></table></figure>
+
+<p>参数 name 表示要定义的队列头名字。 通常以全局变量的方式定义，如下所示 ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">DECLARE_WAIT_QUEUE_HEAD(head);</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-1-2-init-waitqueue-head"><a href="#2-1-2-init-waitqueue-head" class="headerlink" title="2.1.2 init_waitqueue_head()"></a><font size=3>2.1.2 init_waitqueue_head()</font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L63">init_waitqueue_head()</a>定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> init_waitqueue_head(wq_head)						\</span></span><br><span class="line"><span class="meta">	do &#123;									\</span></span><br><span class="line"><span class="meta">		static struct lock_class_key __key;				\</span></span><br><span class="line"><span class="meta">										\</span></span><br><span class="line"><span class="meta">		__init_waitqueue_head((wq_head), #wq_head, &amp;__key);		\</span></span><br><span class="line"><span class="meta">	&#125; while (0)</span></span><br></pre></td></tr></table></figure>
+
+<p>参数 wq_head 表示需要初始化的队列头指针。 使用宏定义如下所示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">wait_queue_head_t</span> head;     <span class="comment">// 等待队列头</span></span><br><span class="line">init_waitqueue_head(&amp;head); <span class="comment">// 初始化等待队列头指针</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-创建等待队列项"><a href="#2-2-创建等待队列项" class="headerlink" title="2.2 创建等待队列项"></a><font size=3>2.2 创建等待队列项</font></h3><h4 id="2-2-1-DECLARE-WAITQUEUE"><a href="#2-2-1-DECLARE-WAITQUEUE" class="headerlink" title="2.2.1 DECLARE_WAITQUEUE()"></a><font size=3>2.2.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L51">DECLARE_WAITQUEUE()</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L51">DECLARE_WAITQUEUE()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> DECLARE_WAITQUEUE(name, tsk)						\</span></span><br><span class="line"><span class="meta">	struct wait_queue_entry name = __WAITQUEUE_INITIALIZER(name, tsk)</span></span><br></pre></td></tr></table></figure>
+
+<p>第一个参数 name 是等待队列项的名字， 第二个参数 tsk 表示此等待队列项属于哪个任务（进程） ， 一般设置为 current。 在 Linux 内核中 current 相当于一个全局变量， 表示当前进程。创建等待队列项如下所示： </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">DECLARE_WAITQUEUE(wait, current); <span class="comment">// 给当前正在运行的进程创建一个名为wait的等待队列项。</span></span><br><span class="line">add_wait_queue(wq, &amp;wait);        <span class="comment">// 将 wait 这个等待队列项加到 wq 这个等待队列当中</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-添加-删除队列项"><a href="#2-3-添加-删除队列项" class="headerlink" title="2.3 添加&#x2F;删除队列项  "></a><font size=3>2.3 添加&#x2F;删除队列项  </font></h3><p>当设备没有准备就绪（如没有可读数据） 而需要进程阻塞的时候， 就需要将进程对应的等待队列项添加到前面创建的等待队列中， 只有添加到等待队列中以后进程才能进入休眠态。 当设备可以访问时（如有可读数据） ， 再将进程对应的<strong>等待队列项从等待队列中移除</strong>即可。</p>
+<h4 id="2-3-1-add-wait-queue"><a href="#2-3-1-add-wait-queue" class="headerlink" title="2.3.1 add_wait_queue()"></a><font size=3>2.3.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/sched/wait.c#L17">add_wait_queue()</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/sched/wait.c#L17">add_wait_queue()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">add_wait_queue</span><span class="params">(<span class="keyword">struct</span> wait_queue_head *wq_head, <span class="keyword">struct</span> wait_queue_entry *wq_entry)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> flags;</span><br><span class="line"></span><br><span class="line">	wq_entry-&gt;flags &amp;= ~WQ_FLAG_EXCLUSIVE;</span><br><span class="line">	spin_lock_irqsave(&amp;wq_head-&gt;lock, flags);</span><br><span class="line">	__add_wait_queue(wq_head, wq_entry);</span><br><span class="line">	spin_unlock_irqrestore(&amp;wq_head-&gt;lock, flags);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(add_wait_queue);</span><br></pre></td></tr></table></figure>
+
+<p>该函数(通过等待队列头)向等待队列中添加队列项。</p>
+<p><strong>参数含义：</strong></p>
+<ul>
+<li>wq_head：表示等待队列项要加入等待队列的等待队列头 。</li>
+<li>wq_entry：表示要加入的等待队列项。</li>
+</ul>
+<p><strong>返回值：</strong>无</p>
+<h4 id="2-3-2-remove-wait-queue"><a href="#2-3-2-remove-wait-queue" class="headerlink" title="2.3.2 remove_wait_queue()"></a><font size=3>2.3.2 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/sched/wait.c#L39">remove_wait_queue()</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/sched/wait.c#L39">remove_wait_queue()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">remove_wait_queue</span><span class="params">(<span class="keyword">struct</span> wait_queue_head *wq_head, <span class="keyword">struct</span> wait_queue_entry *wq_entry)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> flags;</span><br><span class="line"></span><br><span class="line">	spin_lock_irqsave(&amp;wq_head-&gt;lock, flags);</span><br><span class="line">	__remove_wait_queue(wq_head, wq_entry);</span><br><span class="line">	spin_unlock_irqrestore(&amp;wq_head-&gt;lock, flags);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(remove_wait_queue);</span><br></pre></td></tr></table></figure>
+
+<p>该函数从等待队列头中移除一个等待队列项。</p>
+<p><strong>参数含义：</strong></p>
+<ul>
+<li>wq_head：要删除的等待队列项所处的等待队列头。</li>
+<li>wq_entry：要删除的等待队列项。</li>
+</ul>
+<p><strong>返回值：</strong>无</p>
+<h3 id="2-4-等待唤醒"><a href="#2-4-等待唤醒" class="headerlink" title="2.4 等待唤醒"></a><font size=3>2.4 等待唤醒</font></h3><p>当设备可以使用的时候就要唤醒进入休眠态的进程，唤醒可以使用如下两个函数。</p>
+<h4 id="2-4-1-wake-up"><a href="#2-4-1-wake-up" class="headerlink" title="2.4.1 wake_up() "></a><font size=3>2.4.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L195">wake_up()</a> </font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L195">wake_up()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> wake_up(x)			__wake_up(x, TASK_NORMAL, 1, NULL)</span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> __wake_up(<span class="keyword">struct</span> wait_queue_head *wq_head, <span class="type">unsigned</span> <span class="type">int</span> mode,</span><br><span class="line">			<span class="type">int</span> nr_exclusive, <span class="type">void</span> *key)</span><br><span class="line">&#123;</span><br><span class="line">	__wake_up_common_lock(wq_head, mode, nr_exclusive, <span class="number">0</span>, key);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(__wake_up);</span><br></pre></td></tr></table></figure>
+
+<p>这是一个宏，实际是执行 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/sched/wait.c#L132">__wake_up()</a> 函数，该函数会将这个等待队列头中的所有进程都唤醒。（<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L195">wake_up()</a> 函数可以唤醒处于 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/sched.h#L71">TASK_INTERRUPTIBLE</a> 和 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/sched.h#L72">TASK_UNINTERRUPTIBLE</a>状态的进程）</p>
+<p><strong>参数含义：</strong></p>
+<ul>
+<li>x：表示要唤醒的等待队列的等待队列头。</li>
+</ul>
+<p><strong>返回值：</strong>无</p>
+<h4 id="2-4-2-wake-up-interruptible"><a href="#2-4-2-wake-up-interruptible" class="headerlink" title="2.4.2 wake_up_interruptible()"></a><font size=3>2.4.2 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L201">wake_up_interruptible()</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L201">wake_up_interruptible()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> wake_up_interruptible(x)	__wake_up(x, TASK_INTERRUPTIBLE, 1, NULL)</span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> __wake_up(<span class="keyword">struct</span> wait_queue_head *wq_head, <span class="type">unsigned</span> <span class="type">int</span> mode,</span><br><span class="line">			<span class="type">int</span> nr_exclusive, <span class="type">void</span> *key)</span><br><span class="line">&#123;</span><br><span class="line">	__wake_up_common_lock(wq_head, mode, nr_exclusive, <span class="number">0</span>, key);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(__wake_up);</span><br></pre></td></tr></table></figure>
+
+<p>这是一个宏，实际是执行 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/sched/wait.c#L132">__wake_up()</a> 函数，只是传入的参数不同，它用于唤醒可中断的休眠进程  。<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L201">wake_up_interruptible()</a> 只能唤醒处于 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/sched.h#L72">TASK_UNINTERRUPTIBLE</a> 状态的进程。  </p>
+<p><strong>参数含义：</strong></p>
+<ul>
+<li>x：表示要唤醒的等待队列的等待队列头。</li>
+</ul>
+<p><strong>返回值：</strong>无</p>
+<h3 id="2-5-等待事件"><a href="#2-5-等待事件" class="headerlink" title="2.5 等待事件"></a><font size=3>2.5 等待事件</font></h3><p>除了主动唤醒以外，也可以设置等待队列等待某个事件，当这个事件满足以后就自动唤醒等待队列中的进程。这个就相当于是直接定义了一个等待队列项，并添加到了等待队列头，当标志变为真时就会</p>
+<h4 id="2-5-1-wait-event"><a href="#2-5-1-wait-event" class="headerlink" title="2.5.1 wait_event()"></a><font size=3>2.5.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L274">wait_event()</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L274">wait_event()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> wait_event(wq_head, condition)						\</span></span><br><span class="line"><span class="meta">do &#123;										\</span></span><br><span class="line"><span class="meta">	might_sleep();								\</span></span><br><span class="line"><span class="meta">	<span class="keyword">if</span> (condition)								\</span></span><br><span class="line"><span class="meta">		break;								\</span></span><br><span class="line"><span class="meta">	__wait_event(wq_head, condition);					\</span></span><br><span class="line"><span class="meta">&#125; while (0)</span></span><br></pre></td></tr></table></figure>
+
+<p>该宏会使调用进程进入不可中断的阻塞等待， 即让调用进程进入不可中断的睡眠状态， 在等待队列里面睡眠，直到 condition 变成真， 被内核唤醒。  此函数会将进程设置为 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/sched.h#L72">TASK_UNINTERRUPTIBLE</a> 状态。</p>
+<p><strong>函数参数：</strong></p>
+<ul>
+<li>wq_head：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L38">wait_queue_head_t</a>  类型变量。</li>
+<li>condition : 等待条件， 为假时才可以进入休眠。 如果 condition 为真， 则不会休眠</li>
+</ul>
+<h4 id="2-5-2-wait-event-timeout"><a href="#2-5-2-wait-event-timeout" class="headerlink" title="2.5.2 wait_event_timeout()"></a><font size=3>2.5.2 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L339">wait_event_timeout()</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L339">wait_event_timeout()</a> 定义如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">#define wait_event_timeout(wq_head, condition, timeout)				\</span><br><span class="line">(&#123;										\</span><br><span class="line">	long __ret = timeout;							\</span><br><span class="line">	might_sleep();								\</span><br><span class="line">	if (!___wait_cond_timeout(condition))					\</span><br><span class="line">		__ret = __wait_event_timeout(wq_head, condition, timeout);	\</span><br><span class="line">	__ret;									\</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L339">wait_event_timeout()</a> 功能和 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L274">wait_event()</a> 类似，但是此函数可以添加超时时间，以 jiffies 为单位。此函数有返回值，如果返回 0 的话表示超时时间到，而且 condition为假。为 1 的话表示 condition 为真，也就是条件满足了。</p>
+<p>如果所给的睡眠时间为负数则立即返回，如果在睡眠期间被唤醒，且 condition 为真则返回剩余的睡眠时间，否则继续睡眠直到到达或<br>超过给定的睡眠时间，然后返回 0。  </p>
+<h4 id="2-5-3-wait-event-interruptible"><a href="#2-5-3-wait-event-interruptible" class="headerlink" title="2.5.3 wait_event_interruptible()"></a><font size=3>2.5.3 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L427">wait_event_interruptible()</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L427">wait_event_interruptible()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> wait_event_interruptible(wq_head, condition)				\</span></span><br><span class="line"><span class="meta">(&#123;										\</span></span><br><span class="line"><span class="meta">	int __ret = 0;								\</span></span><br><span class="line"><span class="meta">	might_sleep();								\</span></span><br><span class="line"><span class="meta">	<span class="keyword">if</span> (!(condition))							\</span></span><br><span class="line"><span class="meta">		__ret = __wait_event_interruptible(wq_head, condition);		\</span></span><br><span class="line"><span class="meta">	__ret;									\</span></span><br><span class="line"><span class="meta">&#125;)</span></span><br></pre></td></tr></table></figure>
+
+<p>可中断的阻塞等待， 让调用进程进入可中断的睡眠状态， 直到 condition 变成真被内核唤醒或信号打断唤醒。 此函数将进程设置为  <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/sched.h#L71">TASK_INTERRUPTIBLE</a> ，就是可以被信号打断。</p>
+<h4 id="2-5-4-wait-event-interruptible-timeout"><a href="#2-5-4-wait-event-interruptible-timeout" class="headerlink" title="2.5.4 wait_event_interruptible_timeout()"></a><font size=3>2.5.4 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L456">wait_event_interruptible_timeout()</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L456">wait_event_interruptible_timeout()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> wait_event_interruptible_timeout(wq_head, condition, timeout)		\</span></span><br><span class="line"><span class="meta">(&#123;										\</span></span><br><span class="line"><span class="meta">	long __ret = timeout;							\</span></span><br><span class="line"><span class="meta">	might_sleep();								\</span></span><br><span class="line"><span class="meta">	<span class="keyword">if</span> (!___wait_cond_timeout(condition))					\</span></span><br><span class="line"><span class="meta">		__ret = __wait_event_interruptible_timeout(wq_head,		\</span></span><br><span class="line"><span class="meta">						condition, timeout);		\</span></span><br><span class="line"><span class="meta">	__ret;									\</span></span><br><span class="line"><span class="meta">&#125;)</span></span><br></pre></td></tr></table></figure>
+
+<p>此函数也将进程设置为 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/sched.h#L71">TASK_INTERRUPTIBLE</a>，可以被信号打断。如果在睡眠期间被信号打断则返回 ERESTARTSYS 错误码。  </p>
+<h4 id="2-5-5-wait-event-interruptible-exclusive"><a href="#2-5-5-wait-event-interruptible-exclusive" class="headerlink" title="2.5.5 wait_event_interruptible_exclusive()"></a><font size=3>2.5.5 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L566">wait_event_interruptible_exclusive()</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L566">wait_event_interruptible_exclusive()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> __wait_event_interruptible_exclusive(wq, condition)			\</span></span><br><span class="line"><span class="meta">	___wait_event(wq, condition, TASK_INTERRUPTIBLE, 1, 0,			\</span></span><br><span class="line"><span class="meta">		      schedule())</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> wait_event_interruptible_exclusive(wq, condition)			\</span></span><br><span class="line"><span class="meta">(&#123;										\</span></span><br><span class="line"><span class="meta">	int __ret = 0;								\</span></span><br><span class="line"><span class="meta">	might_sleep();								\</span></span><br><span class="line"><span class="meta">	<span class="keyword">if</span> (!(condition))							\</span></span><br><span class="line"><span class="meta">		__ret = __wait_event_interruptible_exclusive(wq, condition);	\</span></span><br><span class="line"><span class="meta">	__ret;									\</span></span><br><span class="line"><span class="meta">&#125;)</span></span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L566">wait_event_interruptible_exclusive()</a> 宏同样和<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/wait.h#L427">wait_event_interruptible()</a>一样，不过该睡眠的进程是一个互斥进程。</p>
+<h4 id="2-5-3-总结"><a href="#2-5-3-总结" class="headerlink" title="2.5.3 总结"></a><font size=3>2.5.3 总结</font></h4><p>上面那些函数，调用的时要确认 condition 值是真还是假， 如果调用 condition 为真， 则不会休眠。  </p>
+<h2 id="3-等待队列使用方法"><a href="#3-等待队列使用方法" class="headerlink" title="3. 等待队列使用方法"></a><font size=3>3. 等待队列使用方法</font></h2><p>（1）初始化等待队列头， 并将条件置成假(condition&#x3D;0)。  </p>
+<p>（2）在需要阻塞的地方调用 wait_event()， 使进程进入休眠状态。  </p>
+<p>（3）当条件满足时， 需要解除休眠， 先将条件(condition&#x3D;1),然后调用 wake_up 函数唤醒等待队列中的休眠进程。  </p>
+<h1 id="三、阻塞IO-demo"><a href="#三、阻塞IO-demo" class="headerlink" title="三、阻塞IO demo"></a><font size=3>三、阻塞IO demo</font></h1><h2 id="1-demo源码"><a href="#1-demo源码" class="headerlink" title="1. demo源码"></a><font size=3>1. demo源码</font></h2><p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/08_IO_model/02_io_block">08_IO_model&#x2F;02_io_block · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<h2 id="2-开发板验证"><a href="#2-开发板验证" class="headerlink" title="2. 开发板验证"></a><font size=3>2. 开发板验证</font></h2><p>这里就直接看图吧：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-07-IO%E6%A8%A1%E5%9E%8B-02-%E9%98%BB%E5%A1%9EIO/img/image-20250124171009296.png" alt="image-20250124171009296" />
+
+<p>我是在app中循环读的，当执行没有数据写入的时候，会阻塞，当有数据写入的时候，唤醒进程，下一次循环的时候依然还是阻塞状态。相关的测试命令可以看这个脚本：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/blob/master/08_IO_model/02_io_block/drivers_demo/module_load.sh">08_IO_model&#x2F;02_io_block&#x2F;drivers_demo&#x2F;module_load.sh · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a>：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">./app_demo.out /dev/sdevchr 1 0 &amp;</span><br><span class="line">./app_demo.out /dev/sdevchr 2 0 abcdefg</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/5d492ac7.html">LV06-07-IO模型-02-阻塞IO</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2025年01月24日 - 23:59</p>
+    <p><span>最后更新:</span>2025年04月08日 - 07:43</p>
+    <p><span>原始链接:</span><a href="/post/5d492ac7.html" title="LV06-07-IO模型-02-阻塞IO">https://sumumm.github.io/post/5d492ac7.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/7604a1db.html" rel="prev" title="LV06-07-IO模型-03-非阻塞IO">
+                  <i class="fa fa-angle-left"></i> LV06-07-IO模型-03-非阻塞IO
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/4a15a66.html" rel="next" title="LV06-07-IO模型-01-IO模型简介">
+                  LV06-07-IO模型-01-IO模型简介 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">223:41</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="平台设备和平台驱动的驱动程序怎么写？怎么注册？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-05-linux平台总线模型-02-平台设备与平台设备的注册">
+<meta property="og:url" content="https://sumumm.github.io/post/d8a77fd9.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="平台设备和平台驱动的驱动程序怎么写？怎么注册？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-02-%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E4%B8%8E%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E5%86%8C/img/image-20250118104700917.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-02-%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E4%B8%8E%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E5%86%8C/img/image-20250118105343219.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-02-%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E4%B8%8E%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E5%86%8C/img/image-20250120100437310.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-02-%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E4%B8%8E%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E5%86%8C/img/image-20250118131225389.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-02-%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E4%B8%8E%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E5%86%8C/img/image-20250118134437039.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-02-%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E4%B8%8E%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E5%86%8C/img/image-20250120101202662.png">
+<meta property="article:published_time" content="2025-01-20T14:31:00.000Z">
+<meta property="article:modified_time" content="2025-04-07T23:43:52.662Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-02-%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E4%B8%8E%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E5%86%8C/img/image-20250118104700917.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/d8a77fd9.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/d8a77fd9.html","path":"post/d8a77fd9.html","title":"LV06-05-linux平台总线模型-02-平台设备与平台设备的注册"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-05-linux平台总线模型-02-平台设备与平台设备的注册 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">41</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">668</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%B3%A8%E5%86%8C%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87"><span class="nav-text">一、注册平台设备</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%9B%B8%E5%85%B3%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8EAPI"><span class="nav-text">1. 相关数据结构与API</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-struct-platform-device"><span class="nav-text">1.1 struct platform_device</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-struct-platform-device-id"><span class="nav-text">1.2 struct platform_device_id</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-platform-device-register"><span class="nav-text">1.3 platform_device_register()</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">1.3.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-2-%E5%87%BD%E6%95%B0%E5%88%86%E6%9E%90"><span class="nav-text">1.3.2 函数分析</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-3-%E6%80%BB%E7%BB%93"><span class="nav-text">1.3.3 总结</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-platform-device-unregister"><span class="nav-text">1.4 platform_device_unregister()</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">1.4.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-2-%E5%87%BD%E6%95%B0%E5%88%86%E6%9E%90"><span class="nav-text">1.4.2 函数分析</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-3-%E6%80%BB%E7%BB%93"><span class="nav-text">1.4.3 总结</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-5-platform-add-devices"><span class="nav-text">1.5 platform_add_devices()</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E8%AE%BE%E5%A4%87%E4%BF%A1%E6%81%AF"><span class="nav-text">2. 设备信息</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E7%A1%AC%E4%BB%B6%E4%BF%A1%E6%81%AF"><span class="nav-text">2.1 硬件信息</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-struct-resource"><span class="nav-text">2.1.1 struct resource</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-%E5%B8%B8%E8%A7%81%E8%B5%84%E6%BA%90%E7%B1%BB%E5%9E%8B-flags"><span class="nav-text">2.1.2 常见资源类型(flags)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-3-%E5%AE%9A%E4%B9%89%E8%B5%84%E6%BA%90%E7%9A%84%E5%87%A0%E4%B8%AA%E5%AE%8F"><span class="nav-text">2.1.3 定义资源的几个宏</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E8%BD%AF%E4%BB%B6%E4%BF%A1%E6%81%AF"><span class="nav-text">2.2 软件信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.3 使用实例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E6%80%8E%E4%B9%88%E8%8E%B7%E5%8F%96%EF%BC%9F"><span class="nav-text">2.4 怎么获取？</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-1-platform-get-resource"><span class="nav-text">2.4.1 platform_get_resource()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-2-platform-get-irq"><span class="nav-text">2.4.2 platform_get_irq()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-3-platform-get-resource-byname"><span class="nav-text">2.4.3 platform_get_resource_byname()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-4-platform-get-irq-byname"><span class="nav-text">2.4.4 platform_get_irq_byname()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-5-dev-get-platdata"><span class="nav-text">2.4.5 dev_get_platdata()</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%B3%A8%E5%86%8C%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87demo"><span class="nav-text">3. 注册平台设备demo</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-demo%E6%BA%90%E7%A0%81"><span class="nav-text">3.1 demo源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E6%B5%8B%E8%AF%95"><span class="nav-text">3.2 开发板测试</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%B3%A8%E5%86%8C%E5%B9%B3%E5%8F%B0%E9%A9%B1%E5%8A%A8"><span class="nav-text">二、注册平台驱动</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%9B%B8%E5%85%B3%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8EAPI-1"><span class="nav-text">1. 相关数据结构与API</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-struct-platform-driver"><span class="nav-text">1.1 struct platform_driver</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-struct-platform-device-id-1"><span class="nav-text">1.2 struct platform_device_id</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-platform-driver-register"><span class="nav-text">1.3 platform_driver_register()</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E-1"><span class="nav-text">1.3.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-2-%E5%87%BD%E6%95%B0%E5%88%86%E6%9E%90-1"><span class="nav-text">1.3.2 函数分析</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-3-%E6%80%BB%E7%BB%93-1"><span class="nav-text">1.3.3 总结</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-platform-driver-unregister"><span class="nav-text">1.4 platform_driver_unregister()</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E-1"><span class="nav-text">1.4.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-2-%E5%87%BD%E6%95%B0%E5%88%86%E6%9E%90-1"><span class="nav-text">1.4.2 函数分析</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-3-%E6%80%BB%E7%BB%93-1"><span class="nav-text">1.4.3 总结</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%B3%A8%E5%86%8C%E5%B9%B3%E5%8F%B0%E9%A9%B1%E5%8A%A8demo"><span class="nav-text">2. 注册平台驱动demo</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-demo%E6%BA%90%E7%A0%81"><span class="nav-text">2.1 demo源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E9%AA%8C%E8%AF%81"><span class="nav-text">2.2 开发板验证</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">668</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">41</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/d8a77fd9.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-05-linux平台总线模型-02-平台设备与平台设备的注册 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-05-linux平台总线模型-02-平台设备与平台设备的注册
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-01-20 22:31:00" itemprop="dateCreated datePublished" datetime="2025-01-20T22:31:00+08:00">2025-01-20</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>9.8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>35 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>平台设备和平台驱动的驱动程序怎么写？怎么注册？若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-02-%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E4%B8%8E%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E5%86%8C/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="3">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4" target="_blank">kernel/git/stable/linux.git - Linux kernel stable tree</a></td>        <td align="left">linux kernel源码(官网,tag 4.19.71)</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、注册平台设备"><a href="#一、注册平台设备" class="headerlink" title="一、注册平台设备"></a><font size=3>一、注册平台设备</font></h1><h2 id="1-相关数据结构与API"><a href="#1-相关数据结构与API" class="headerlink" title="1. 相关数据结构与API"></a><font size=3>1. 相关数据结构与API</font></h2><h3 id="1-1-struct-platform-device"><a href="#1-1-struct-platform-device" class="headerlink" title="1.1 struct platform_device"></a><font size=3>1.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">struct platform_device</a></font></h3><p>先来看一下平台设备的数据类型 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">struct platform_device</a> ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">platform_device</span> &#123;</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span>	*name;  <span class="comment">// 设备的名称， 用于唯一标识设备</span></span><br><span class="line">	<span class="type">int</span>		id;         <span class="comment">// 设备的 ID， 可以用于区分同一种设备的不同实例</span></span><br><span class="line">	<span class="type">bool</span>		id_auto;<span class="comment">// 表示设备的 ID 是否自动生成</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device</span>	<span class="title">dev</span>;</span><span class="comment">// 表示平台设备对应的 struct device 结构体， 用于设备的基本管理和操作</span></span><br><span class="line">	u32		num_resources;    <span class="comment">// 设备资源的数量</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">resource</span>	*<span class="title">resource</span>;</span><span class="comment">// 指向设备资源的指针</span></span><br><span class="line">	<span class="comment">// 指向设备的 ID 表项的指针， 用于匹配设备和驱动</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">platform_device_id</span>	*<span class="title">id_entry</span>;</span></span><br><span class="line">    <span class="comment">// 强制设备与指定驱动匹配的驱动名称</span></span><br><span class="line">	<span class="type">char</span> *driver_override; <span class="comment">/* Driver name to force a match */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* MFD cell pointer */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mfd_cell</span> *<span class="title">mfd_cell</span>;</span><span class="comment">// 指向多功能设备（ MFD） 单元的指针， 用于多功能设备的描述</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* arch specific additions */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">pdev_archdata</span>	<span class="title">archdata</span>;</span><span class="comment">// 用于存储特定于架构的设备数据</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p> <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">struct platform_device</a> 结构体是用于描述平台设备的数据结构。 它包含了平台设备的各种属性和信息， 用于在内核中表示和管理平台设备。  </p>
+<ul>
+<li><strong>name：</strong> 设备名称，用于唯一标识设备。 必须提供一个唯一的名称， 以便内核能够正确识别和管理该设备。  总线进行匹配时，会比较设备和驱动的名称是否一致。</li>
+<li><strong>id：</strong> 指定设备的编号，Linux支持同名的设备，而同名设备之间则是通过该编号进行区分；这个参数是可选的， 如果不需要使用 ID 进行区分， 可以将其设置为-1 。</li>
+<li><strong>dev：</strong> <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L885">struct device</a> 类型，Linux设备模型中的device结构体，linux内核大量使用了面向对象思想，platform_device 通过继承该结构体可复用它的相关代码，方便内核管理平台设备；必须为该参数提供一个有效的 struct device 对象， <strong>该结构体的 release 方法必须要实现， 否则在编译的时候会报错</strong>。  </li>
+<li><strong>num_resources：</strong> 记录资源的个数，当结构体成员resource存放的是数组时，需要记录resource数组的个数，内核提供了宏定义<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/kernel.h#L68">ARRAY_SIZE()</a>用于计算数组的个数。</li>
+<li><strong>resource：</strong> <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/ioport.h#L19">struct resource</a> 类型，平台设备提供给驱动的资源，如irq，dma，内存等等。该结构体会在接下来的内容进行讲解；</li>
+<li><strong>id_entry：</strong> 平台总线提供的另一种匹配方式，原理依然是通过比较字符串，学习平台设备和驱动匹配的时候会去了解，这里的 id_entry 用于<strong>保存匹配的结果</strong>。</li>
+</ul>
+<h3 id="1-2-struct-platform-device-id"><a href="#1-2-struct-platform-device-id" class="headerlink" title="1.2 struct platform_device_id"></a><font size=3>1.2 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L546">struct platform_device_id</a></font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L546">struct platform_device_id</a> 结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">platform_device_id</span> &#123;</span></span><br><span class="line">	<span class="type">char</span> name[PLATFORM_NAME_SIZE];</span><br><span class="line">	<span class="type">kernel_ulong_t</span> driver_data;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L546">struct platform_device_id</a> 这个结构体中，有两个成员，第一个是数组用于指定驱动的名称，总线进行匹配时，会依据该结构体的name成员与 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">struct platform_device</a> 中的成员name进行比较匹配， 另一个成员变量driver_data，则是用于来保存设备的配置。我们知道在同系列的设备中，往往只是某些寄存器的配置不一样，为了减少代码的冗余， 尽量做到一个驱动可以匹配多个设备的目的。接下来以imx的串口为例，具体看下这个结构体的作用：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">imx_uart_data</span> <span class="title">imx_uart_devdata</span>[] =</span> &#123;</span><br><span class="line">    [IMX1_UART] = &#123;</span><br><span class="line">        .uts_reg = IMX1_UTS,</span><br><span class="line">        .devtype = IMX1_UART,</span><br><span class="line">    &#125;,</span><br><span class="line">    [IMX21_UART] = &#123;</span><br><span class="line">        .uts_reg = IMX21_UTS,</span><br><span class="line">        .devtype = IMX21_UART,</span><br><span class="line">    &#125;,</span><br><span class="line">    [IMX6Q_UART] = &#123;</span><br><span class="line">        .uts_reg = IMX21_UTS,</span><br><span class="line">        .devtype = IMX6Q_UART,</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">platform_device_id</span> <span class="title">imx_uart_devtype</span>[] =</span> &#123;</span><br><span class="line">    &#123;</span><br><span class="line">        .name = <span class="string">&quot;imx1-uart&quot;</span>,</span><br><span class="line">        .driver_data = (<span class="type">kernel_ulong_t</span>) &amp;imx_uart_devdata[IMX1_UART],</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        .name = <span class="string">&quot;imx21-uart&quot;</span>,</span><br><span class="line">        .driver_data = (<span class="type">kernel_ulong_t</span>) &amp;imx_uart_devdata[IMX21_UART],</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        .name = <span class="string">&quot;imx6q-uart&quot;</span>,</span><br><span class="line">        .driver_data = (<span class="type">kernel_ulong_t</span>) &amp;imx_uart_devdata[IMX6Q_UART],</span><br><span class="line"></span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">/* sentinel */</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>在上面的代码中，支持三种设备的串口，支持imx1、imx21、imx6q三种不同系列芯片，他们之间区别在于串口的test寄存器地址不同。 当总线成功配对平台驱动以及平台设备时，会将对应的id_table条目赋值给平台设备的id_entry成员，而平台驱动的probe函数是以平台设备为参数， 这样的话，就可以拿到当前设备串口的test寄存器地址了。</p>
+<h3 id="1-3-platform-device-register"><a href="#1-3-platform-device-register" class="headerlink" title="1.3 platform_device_register()"></a><font size=3>1.3 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L468">platform_device_register()</a></font></h3><h4 id="1-3-1-函数说明"><a href="#1-3-1-函数说明" class="headerlink" title="1.3.1 函数说明"></a><font size=3>1.3.1 函数说明</font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L468">platform_device_register()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// #include &lt;linux/platform_device.h&gt;</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">platform_device_register</span><span class="params">(<span class="keyword">struct</span> platform_device *pdev)</span></span><br><span class="line">&#123;</span><br><span class="line">	device_initialize(&amp;pdev-&gt;dev);</span><br><span class="line">	arch_setup_pdev_archdata(pdev);</span><br><span class="line">	<span class="keyword">return</span> platform_device_add(pdev);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(platform_device_register);</span><br></pre></td></tr></table></figure>
+
+<p>函数用于将 platform_device 结构体描述的平台设备注册到内核中，使其能够参与设备的资源分配和驱动的匹配。  </p>
+<p><strong>参数：</strong> </p>
+<ul>
+<li><strong>pdev：</strong> <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">struct platform_device</a> 类型结构体指针，描述要注册的平台设备的信息。其中包含了描述平台设备的各种属性和信息。  <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">struct platform_device</a>  结构体包含了设备名称、 设备资源、 设备 ID 等信息， 用于描述和标识平台设备。</li>
+</ul>
+<p><strong>返回值：</strong>返回 0， 表示设备注册成功。返回负数， 表示设备注册失败， 返回的负数值表示错误代码。  </p>
+<h4 id="1-3-2-函数分析"><a href="#1-3-2-函数分析" class="headerlink" title="1.3.2 函数分析"></a><font size=3>1.3.2 函数分析</font></h4><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-02-%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E4%B8%8E%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E5%86%8C/img/image-20250118104700917.png" alt="image-20250118104700917"  />
+
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L474">474</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">device_initialize(&amp;pdev-&gt;dev);</span><br></pre></td></tr></table></figure>
+
+<p>调用了 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1468">device_initialize()</a> 函数， 用于对 pdev-&gt;dev 进行初始化。 pdev-&gt;dev 是 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">struct platform_device</a> 结构体中的一个成员， 它表示平台设备对应的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L885">struct device</a> 结构体。 通过调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1468">device_initialize()</a> 函数， 对 pdev-&gt;dev 进行一些基本的初始化工作， 例如设置设备的引用计数、设备的类型等。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L475">475</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">arch_setup_pdev_archdata(pdev);</span><br></pre></td></tr></table></figure>
+
+<p>调用了 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L51">arch_setup_pdev_archdata()</a>函数， 用于根据平台设备的架构数据来设置 pdev的架构相关数据。 这个函数的具体实现可能与具体的架构相关， 它主要用于在不同的架构下对平台设备进行特定的设置。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L476">476</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> platform_device_add(pdev);</span><br></pre></td></tr></table></figure>
+
+<p>调用了 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L352">platform_device_add()</a> 函数，将平台设备 pdev 添加到内核中。 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L352">platform_device_add()</a> 函数会完成平台设备的添加操作， 包括将设备添加到设备层级结构中、 添加设备的资源等。 它会返回一个 int 类型的结果， 表示设备添加的结果。</p>
+<h4 id="1-3-3-总结"><a href="#1-3-3-总结" class="headerlink" title="1.3.3 总结"></a><font size=3>1.3.3 总结</font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L468">platform_device_register()</a> 函数的主要作用是将 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">struct platform_device</a> 结构体描述的平台设备注册到内核中， 包括设备的初始化、 添加到 platform 总线和设备层级结构、 添加设备资源等操作。通过该函数， 平台设备被注册后， 就能够参与设备的资源分配和驱动的匹配过程。 函数的返回值可以用于判断设备注册是否成功。</p>
+<h3 id="1-4-platform-device-unregister"><a href="#1-4-platform-device-unregister" class="headerlink" title="1.4 platform_device_unregister()"></a><font size=3>1.4 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L480">platform_device_unregister()</a></font></h3><h4 id="1-4-1-函数说明"><a href="#1-4-1-函数说明" class="headerlink" title="1.4.1 函数说明"></a><font size=3>1.4.1 函数说明</font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L480">platform_device_unregister()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// #include &lt;linux/platform_device.h&gt;</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">platform_device_unregister</span><span class="params">(<span class="keyword">struct</span> platform_device *pdev)</span></span><br><span class="line">&#123;</span><br><span class="line">	platform_device_del(pdev);</span><br><span class="line">	platform_device_put(pdev);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(platform_device_unregister);</span><br></pre></td></tr></table></figure>
+
+<p>函数用于取消注册已经注册的平台设备， 从内核中移除设备。  </p>
+<p><strong>参数：</strong> </p>
+<ul>
+<li><strong>pdev：</strong>  <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">struct platform_device</a> 类型结构体指针，指向要取消注册的平台设备。</li>
+</ul>
+<p><strong>返回值：</strong> <strong>无</strong></p>
+<h4 id="1-4-2-函数分析"><a href="#1-4-2-函数分析" class="headerlink" title="1.4.2 函数分析"></a><font size=3>1.4.2 函数分析</font></h4><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-02-%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E4%B8%8E%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E5%86%8C/img/image-20250118105343219.png" alt="image-20250118105343219"  />
+
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L490">490</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">platform_device_del(pdev);</span><br></pre></td></tr></table></figure>
+
+<p>调用了 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L438">platform_device_del()</a> 函数， 用于将设备从 platform 总线的设备列表中移除。它会将设备从设备层级结构中移除， 停止设备的资源分配和驱动的匹配。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L491">491</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">platform_device_put(pdev);</span><br></pre></td></tr></table></figure>
+
+<p>这一步调用了 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L228">platform_device_put()</a> 函数， 用于减少对设备的引用计数。 这个函数会检查设备的引用计数， 如果引用计数减为零， 则会释放设备结构体和相关资源。 通过减少引用计数， 可以确保设备在不再被使用时能够被释放。</p>
+<h4 id="1-4-3-总结"><a href="#1-4-3-总结" class="headerlink" title="1.4.3 总结"></a><font size=3>1.4.3 总结</font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L480">platform_device_unregister()</a> 函数的作用是取消注册已经注册的平台设备， 从内核中移除设备 。 它先调用  <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L438">platform_device_del()</a> 函数将设备从设备层级结构中移除，然后调用<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L228">platform_device_put()</a>函数减少设备的引用计数， 确保设备在不再被使用时能够被释放。</p>
+<h3 id="1-5-platform-add-devices"><a href="#1-5-platform-add-devices" class="headerlink" title="1.5 platform_add_devices()"></a><font size=3>1.5 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L201">platform_add_devices()</a></font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L201">platform_add_devices()</a> 函数可以用于注册多个设备，它的定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * platform_add_devices - add a numbers of platform devices</span></span><br><span class="line"><span class="comment"> * @devs: array of platform devices to add</span></span><br><span class="line"><span class="comment"> * @num: number of platform devices in array</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">platform_add_devices</span><span class="params">(<span class="keyword">struct</span> platform_device **devs, <span class="type">int</span> num)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> i, ret = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; num; i++) &#123;</span><br><span class="line">		ret = platform_device_register(devs[i]);</span><br><span class="line">		<span class="keyword">if</span> (ret) &#123;</span><br><span class="line">			<span class="keyword">while</span> (--i &gt;= <span class="number">0</span>)</span><br><span class="line">				platform_device_unregister(devs[i]);</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(platform_add_devices);</span><br></pre></td></tr></table></figure>
+
+<p>可以看到就是传入一个二级指针，然后调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L468">platform_device_register()</a> 函数逐个注册。</p>
+<h2 id="2-设备信息"><a href="#2-设备信息" class="headerlink" title="2. 设备信息"></a><font size=3>2. 设备信息</font></h2><p>平台设备的工作是为驱动程序提供设备信息，设备信息包括硬件信息和软件信息两部分。</p>
+<ul>
+<li>硬件信息：驱动程序需要使用到什么寄存器，占用哪些中断号、内存资源、IO口等等</li>
+<li>软件信息：以太网卡设备中的MAC地址、I2C设备中的设备地址、SPI设备的片选信号线等等</li>
+</ul>
+<h3 id="2-1-硬件信息"><a href="#2-1-硬件信息" class="headerlink" title="2.1 硬件信息"></a><font size=3>2.1 硬件信息</font></h3><h4 id="2-1-1-struct-resource"><a href="#2-1-1-struct-resource" class="headerlink" title="2.1.1 struct resource"></a><font size=3>2.1.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/ioport.h#L19">struct resource</a></font></h4><p>对于硬件信息，使用结构体 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/ioport.h#L19">struct resource</a> 来保存设备所提供的资源，比如设备使用的中断编号，寄存器物理地址等，结构体原型如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">resource</span> &#123;</span></span><br><span class="line">	<span class="type">resource_size_t</span> start; <span class="comment">// 资源的起始地址</span></span><br><span class="line">	<span class="type">resource_size_t</span> end;   <span class="comment">// 资源的结束地址</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span> *name;      <span class="comment">// 资源的名称</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> flags;   <span class="comment">// 资源的标志位</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> desc;    <span class="comment">// 资源的描述信息</span></span><br><span class="line">    <span class="comment">// parent 指向父资源的指针; sibling 指向同级兄弟资源的指针; child 指向子资源的指针</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">resource</span> *<span class="title">parent</span>, *<span class="title">sibling</span>, *<span class="title">child</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>start：</strong> 指定资源的起始地址。它表示资源的起始位置或者起始寄存器的地址。</li>
+<li><strong>end：</strong>指定资源的结束地址，它表示资源的结束位置或者结束寄存器的地址。</li>
+<li><strong>name：</strong> 指定资源的名字，可以设置为NULL。它是一个字符串， 用于标识和描述资源。  </li>
+<li><strong>flags：</strong> 用于指定该资源的类型。它包含了一些特定的标志， 用于表示资源的属性或者特征。 例如， 可以用标志位来指示资源的可用性、 共享性、 缓存属性等。 flags 参数的具体取值和含义可以根据系统和驱动的需求进行定义和解释， 但通常情况下， 它用于表示资源的属性、 特征或配置选项。 会有一些宏定义来表示，这些宏定义在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/ioport.h">linux&#x2F;ioport.h</a>。</li>
+</ul>
+<h4 id="2-1-2-常见资源类型-flags"><a href="#2-1-2-常见资源类型-flags" class="headerlink" title="2.1.2 常见资源类型(flags)"></a><font size=3>2.1.2 常见资源类型(flags)</font></h4><p> 在Linux中，资源包括I&#x2F;O、Memory、Register、IRQ、DMA、Bus等多种类型，最常见的有以下几种：</p>
+<table>
+<thead>
+<tr>
+<th>资源宏定义</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>IORESOURCE_IO</td>
+<td>用于IO地址空间，对应于IO端口映射方式</td>
+</tr>
+<tr>
+<td>IORESOURCE_MEM</td>
+<td>用于外设的可直接寻址的地址空间</td>
+</tr>
+<tr>
+<td>IORESOURCE_IRQ</td>
+<td>用于指定该设备使用某个中断</td>
+</tr>
+<tr>
+<td>IORESOURCE_DMA</td>
+<td>用于指定使用的DMA通道</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>（1）资源类型相关标志位：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">IORESOURCE_IO ： 表示资源是 I/O 端口资源。</span><br><span class="line">IORESOURCE_MEM： 表示资源是内存资源。</span><br><span class="line">IORESOURCE_REG： 表示资源是寄存器偏移量。</span><br><span class="line">IORESOURCE_IRQ： 表示资源是中断资源。</span><br><span class="line">IORESOURCE_DMA： 表示资源是 DMA（ 直接内存访问） 资源。</span><br></pre></td></tr></table></figure>
+
+<p>（2）资源属性和特征相关标志位：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">IORESOURCE_PREFETCH ： 表示资源是无副作用的预取资源。</span><br><span class="line">IORESOURCE_READONLY ： 表示资源是只读的。</span><br><span class="line">IORESOURCE_CACHEABLE： 表示资源支持缓存。</span><br><span class="line">IORESOURCE_RANGELENGTH： 表示资源的范围长度。</span><br><span class="line">IORESOURCE_SHADOWABLE ： 表示资源可以被影子资源替代。</span><br><span class="line">IORESOURCE_SIZEALIGN  ： 表示资源的大小表示对齐。</span><br><span class="line">IORESOURCE_STARTALIGN ： 表示起始字段是对齐的。</span><br><span class="line">IORESOURCE_MEM_64： 表示资源是 <span class="number">64</span> 位内存资源。</span><br><span class="line">IORESOURCE_WINDOW： 表示资源由桥接器转发。</span><br><span class="line">IORESOURCE_MUXED ： 表示资源是软件复用的。</span><br><span class="line">IORESOURCE_SYSRAM： 表示资源是系统 RAM（ 修饰符） 。</span><br></pre></td></tr></table></figure>
+
+<p>（3）其他状态和控制标志位：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">IORESOURCE_EXCLUSIVE： 表示用户空间无法映射此资源。</span><br><span class="line">IORESOURCE_DISABLED ： 表示资源当前被禁用。</span><br><span class="line">IORESOURCE_UNSET    ： 表示尚未分配地址给资源。</span><br><span class="line">IORESOURCE_AUTO     ： 表示地址由系统自动分配。</span><br><span class="line">IORESOURCE_BUSY     ： 表示驱动程序将此资源标记为繁忙。</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>设备驱动程序的主要目的是操作设备的寄存器。不同架构的计算机提供不同的操作接口，主要有IO端口映射和IO內存映射两种方式。 对应于IO端口映射方式，只能通过专门的接口函数（如inb、outb）才能访问； 采用IO内存映射的方式，可以像访问内存一样，去读写寄存器。在嵌入式中，基本上没有IO地址空间，所以通常使用<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/ioport.h#L38">IORESOURCE_MEM</a>。</p>
+<p>在资源的起始地址和结束地址中，对于<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/ioport.h#L37">IORESOURCE_IO</a>或者是<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/ioport.h#L38">IORESOURCE_MEM</a>，他们表示要使用的内存的起始位置以及结束位置； 若是只用一个中断引脚或者是一个通道，则它们的start和end成员值必须是相等的。</p>
+<h4 id="2-1-3-定义资源的几个宏"><a href="#2-1-3-定义资源的几个宏" class="headerlink" title="2.1.3 定义资源的几个宏"></a><font size=3>2.1.3 定义资源的几个宏</font></h4><p>一般来说我们定义资源会写成这样：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> MEM_START_ADDR    (0xFDD60000)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MEM_LENGTH        (4)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> IRQ_NUMBER        (101)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 定义一个资源数组</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">resource</span> <span class="title">g_sdev_resources</span>[] =</span> &#123;</span><br><span class="line">    [<span class="number">0</span>] = &#123;</span><br><span class="line">        .start = MEM_START_ADDR,                    <span class="comment">// 内存资源起始地址</span></span><br><span class="line">        .end = MEM_START_ADDR + MEM_LENGTH - <span class="number">1</span>,     <span class="comment">// 内存资源结束地址</span></span><br><span class="line">        .flags = IORESOURCE_MEM,                    <span class="comment">// 标记为内存资源</span></span><br><span class="line">    &#125;,</span><br><span class="line">    [<span class="number">1</span>] = &#123;</span><br><span class="line">        .start = IRQ_NUMBER,     <span class="comment">// 中断资源号</span></span><br><span class="line">        .end = IRQ_NUMBER,       <span class="comment">// 中断资源号</span></span><br><span class="line">        .flags = IORESOURCE_IRQ, <span class="comment">// 标记为中断资源</span></span><br><span class="line">    &#125;,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>这看着好像不够简洁，内核还提供了几个宏来定义资源，这几个宏定义在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/ioport.h">ioport.h - include&#x2F;linux&#x2F;ioport.h</a> 中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* helpers to define resources */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DEFINE_RES_NAMED(_start, _size, _name, _flags)			\</span></span><br><span class="line"><span class="meta">	&#123;								\</span></span><br><span class="line"><span class="meta">		.start = (_start),					\</span></span><br><span class="line"><span class="meta">		.end = (_start) + (_size) - 1,				\</span></span><br><span class="line"><span class="meta">		.name = (_name),					\</span></span><br><span class="line"><span class="meta">		.flags = (_flags),					\</span></span><br><span class="line"><span class="meta">		.desc = IORES_DESC_NONE,				\</span></span><br><span class="line"><span class="meta">	&#125;</span></span><br><span class="line"><span class="comment">// IORESOURCE_IO 资源</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DEFINE_RES_IO_NAMED(_start, _size, _name)			\</span></span><br><span class="line"><span class="meta">	DEFINE_RES_NAMED((_start), (_size), (_name), IORESOURCE_IO)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DEFINE_RES_IO(_start, _size)					\</span></span><br><span class="line"><span class="meta">	DEFINE_RES_IO_NAMED((_start), (_size), NULL)</span></span><br><span class="line"><span class="comment">// IORESOURCE_MEM 资源</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DEFINE_RES_MEM_NAMED(_start, _size, _name)			\</span></span><br><span class="line"><span class="meta">	DEFINE_RES_NAMED((_start), (_size), (_name), IORESOURCE_MEM)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DEFINE_RES_MEM(_start, _size)					\</span></span><br><span class="line"><span class="meta">	DEFINE_RES_MEM_NAMED((_start), (_size), NULL)</span></span><br><span class="line"><span class="comment">// IORESOURCE_IRQ 资源</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DEFINE_RES_IRQ_NAMED(_irq, _name)				\</span></span><br><span class="line"><span class="meta">	DEFINE_RES_NAMED((_irq), 1, (_name), IORESOURCE_IRQ)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DEFINE_RES_IRQ(_irq)						\</span></span><br><span class="line"><span class="meta">	DEFINE_RES_IRQ_NAMED((_irq), NULL)</span></span><br><span class="line"><span class="comment">// IORESOURCE_DMA 资源</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DEFINE_RES_DMA_NAMED(_dma, _name)				\</span></span><br><span class="line"><span class="meta">	DEFINE_RES_NAMED((_dma), 1, (_name), IORESOURCE_DMA)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DEFINE_RES_DMA(_dma)						\</span></span><br><span class="line"><span class="meta">	DEFINE_RES_DMA_NAMED((_dma), NULL)</span></span><br></pre></td></tr></table></figure>
+
+<p>这样，通过这些宏，上面的资源数组就可以定义为：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> MEM_START_ADDR    (0xFDD60000)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MEM_LENGTH        (4)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> IRQ_NUMBER        (101)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 定义一个资源数组</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">resource</span> <span class="title">g_sdev_resources</span>[] =</span> &#123;</span><br><span class="line">    [<span class="number">0</span>] = DEFINE_RES_MEM(MEM_START_ADDR, MEM_LENGTH),</span><br><span class="line">    [<span class="number">1</span>] = DEFINE_RES_IRQ(IRQ_NUMBER),</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="2-2-软件信息"><a href="#2-2-软件信息" class="headerlink" title="2.2 软件信息"></a><font size=3>2.2 软件信息</font></h3><p>对于软件信息，这种特殊信息需要我们以私有数据的形式进行封装保存，我们注意到 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">struct platform_device</a> 结构体中，有个 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L885">struct device</a> 结构体类型的成员 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L27">dev</a>。</p>
+<p>在前面，我们提到过Linux设备模型使用device结构体来抽象物理设备， 该结构体的成员platform_data可用于保存设备的私有数据 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L979">dev-&gt;platform_data</a> 是void *类型的万能指针，无论想要提供的是什么内容，需要把数据的地址赋值给 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L979">dev-&gt;platform_data</a>即可，还是以GPIO引脚号为例，示例代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">unsigned</span> <span class="type">int</span> pin = <span class="number">10</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">platform_device</span> <span class="title">pdev</span> =</span> &#123;</span><br><span class="line">    .dev = &#123;</span><br><span class="line">        .platform_data = &amp;pin;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>将保存了GPIO引脚号的变量pin地址赋值给platform_data指针，在驱动程序中通过调用平台设备总线中的核心函数，可以获取到我们需要的引脚号。</p>
+<h3 id="2-3-使用实例"><a href="#2-3-使用实例" class="headerlink" title="2.3 使用实例"></a><font size=3>2.3 使用实例</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 寄存器地址定义*/</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PERIPH1_REGISTER_BASE (0X20000000) <span class="comment">/* 外设 1 寄存器首地址 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PERIPH2_REGISTER_BASE (0X020E0068) <span class="comment">/* 外设 2 寄存器首地址 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> REGISTER_LENGTH 4</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 资源 */</span></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">resource</span> <span class="title">xxx_resources</span>[] =</span> &#123;</span><br><span class="line">    [<span class="number">0</span>] = &#123;</span><br><span class="line">        .start = PERIPH1_REGISTER_BASE,</span><br><span class="line">        .end = (PERIPH1_REGISTER_BASE + REGISTER_LENGTH - <span class="number">1</span>),</span><br><span class="line">        .flags = IORESOURCE_MEM,</span><br><span class="line">    &#125;,</span><br><span class="line">    [<span class="number">1</span>] = &#123;</span><br><span class="line">        .start = PERIPH2_REGISTER_BASE,</span><br><span class="line">        .end = (PERIPH2_REGISTER_BASE + REGISTER_LENGTH - <span class="number">1</span>),</span><br><span class="line">        .flags = IORESOURCE_MEM,</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* platform 设备结构体 */</span></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">platform_device</span> <span class="title">xxxdevice</span> =</span> &#123;</span><br><span class="line">    .name = <span class="string">&quot;xxx-gpio&quot;</span>,</span><br><span class="line">    .id = <span class="number">-1</span>,</span><br><span class="line">    .num_resources = ARRAY_SIZE(xxx_resources),</span><br><span class="line">    .resource = xxx_resources,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-4-怎么获取？"><a href="#2-4-怎么获取？" class="headerlink" title="2.4 怎么获取？"></a><font size=3>2.4 怎么获取？</font></h3><blockquote>
+<p>获取资源一般是在驱动中获取。</p>
+</blockquote>
+<h4 id="2-4-1-platform-get-resource"><a href="#2-4-1-platform-get-resource" class="headerlink" title="2.4.1 platform_get_resource()"></a><font size=3>2.4.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L60">platform_get_resource()</a></font></h4><p>定义了资源后，怎么获取？获取其实就是解析上面那个数组数据，linux内核为我们提供了一个函数 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L60">platform_get_resource()</a> ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> resource *<span class="title function_">platform_get_resource</span><span class="params">(<span class="keyword">struct</span> platform_device *dev,</span></span><br><span class="line"><span class="params">				       <span class="type">unsigned</span> <span class="type">int</span> type, <span class="type">unsigned</span> <span class="type">int</span> num)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> i;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; dev-&gt;num_resources; i++) &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">resource</span> *<span class="title">r</span> =</span> &amp;dev-&gt;resource[i];</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (type == resource_type(r) &amp;&amp; num-- == <span class="number">0</span>)</span><br><span class="line">			<span class="keyword">return</span> r;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(platform_get_resource);</span><br></pre></td></tr></table></figure>
+
+<p>该函数返回该 dev 中某类型(type)资源中的第几个(num，其中num的值从0开始)  。我们可以看一下这个 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/ioport.h#L200">resource_type()</a> 函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">unsigned</span> <span class="type">long</span> <span class="title function_">resource_type</span><span class="params">(<span class="type">const</span> <span class="keyword">struct</span> resource *res)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> res-&gt;flags &amp; IORESOURCE_TYPE_BITS;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>里面就是通过 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/ioport.h#L23">resource.flags</a> 来与上 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/ioport.h#L57">IORESOURCE_TYPE_BITS</a>，即0x01000000，所以总的来说 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L60">platform_get_resource()</a> 函数会遍历整个  dev-&gt;resource 数组，然后找到第 num 个类型为 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/ioport.h#L23">resource.flags</a> 的资源，并返回。例如如下资源，包含3个<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/ioport.h#L38">IORESOURCE_MEM</a>类型资源和3个<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/ioport.h#L40">IORESOURCE_IRQ</a>资源：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> MEM1_REG_BASE         (0x80000000)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MEM2_REG_BASE         (0x80000010)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MEM3_REG_BASE         (0x80000100)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> REGISTER_LENGTH	      (4)</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> IRQ1_NUMBER           (101)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> IRQ2_NUMBER           (102)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> IRQ3_NUMBER           (103)</span></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">resource</span> <span class="title">g_sdev_resources</span>[<span class="title">SDEV_RESOURCE_CNT</span>] =</span> &#123;</span><br><span class="line">    [<span class="number">0</span>] = &#123;</span><br><span class="line">        .start = MEM1_REG_BASE,                       <span class="comment">// 内存资源起始地址</span></span><br><span class="line">        .end = (MEM1_REG_BASE + REGISTER_LENGTH - <span class="number">1</span>), <span class="comment">// 内存资源结束地址</span></span><br><span class="line">        .flags = IORESOURCE_MEM,                      <span class="comment">// 标记为内存资源</span></span><br><span class="line">    &#125;,</span><br><span class="line">    [<span class="number">1</span>] = &#123;</span><br><span class="line">        .start = IRQ1_NUMBER,    <span class="comment">// 中断资源号</span></span><br><span class="line">        .end = IRQ1_NUMBER,      <span class="comment">// 中断资源号</span></span><br><span class="line">        .flags = IORESOURCE_IRQ, <span class="comment">// 标记为中断资源</span></span><br><span class="line">    &#125;,</span><br><span class="line">    [<span class="number">2</span>] = &#123;</span><br><span class="line">        .start = MEM2_REG_BASE,                       <span class="comment">// 内存资源起始地址</span></span><br><span class="line">        .end = (MEM2_REG_BASE + REGISTER_LENGTH - <span class="number">1</span>), <span class="comment">// 内存资源结束地址</span></span><br><span class="line">        .flags = IORESOURCE_MEM,                      <span class="comment">// 标记为内存资源</span></span><br><span class="line">    &#125;,</span><br><span class="line">    [<span class="number">3</span>] = &#123;</span><br><span class="line">        .start = IRQ2_NUMBER,    <span class="comment">// 中断资源号</span></span><br><span class="line">        .end = IRQ2_NUMBER,      <span class="comment">// 中断资源号</span></span><br><span class="line">        .flags = IORESOURCE_IRQ, <span class="comment">// 标记为中断资源</span></span><br><span class="line">    &#125;,</span><br><span class="line">    [<span class="number">4</span>] = &#123;</span><br><span class="line">        .start = IRQ3_NUMBER,    <span class="comment">// 中断资源号</span></span><br><span class="line">        .end = IRQ3_NUMBER,      <span class="comment">// 中断资源号</span></span><br><span class="line">        .flags = IORESOURCE_IRQ, <span class="comment">// 标记为中断资源</span></span><br><span class="line">    &#125;,</span><br><span class="line">    [<span class="number">5</span>] = &#123;</span><br><span class="line">        .start = MEM3_REG_BASE,                       <span class="comment">// 内存资源起始地址</span></span><br><span class="line">        .end = (MEM3_REG_BASE + REGISTER_LENGTH - <span class="number">1</span>), <span class="comment">// 内存资源结束地址</span></span><br><span class="line">        .flags = IORESOURCE_MEM,                      <span class="comment">// 标记为内存资源</span></span><br><span class="line">    &#125;,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>我们获取资源的时候如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">platform_get_resource(pdev, IORESOURCE_MEM, <span class="number">1</span>);<span class="comment">// 获取 IORESOURCE_MEM 资源中的第 2 个资源</span></span><br><span class="line">platform_get_resource(pdev, IORESOURCE_IRQ, <span class="number">2</span>);<span class="comment">// 获取 IORESOURCE_IRQ 资源中的第 3 个资源</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="2-4-2-platform-get-irq"><a href="#2-4-2-platform-get-irq" class="headerlink" title="2.4.2 platform_get_irq()"></a><font size=3>2.4.2 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L82">platform_get_irq()</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L82">platform_get_irq()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * platform_get_irq - get an IRQ for a device</span></span><br><span class="line"><span class="comment"> * @dev: platform device</span></span><br><span class="line"><span class="comment"> * @num: IRQ number index</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">platform_get_irq</span><span class="params">(<span class="keyword">struct</span> platform_device *dev, <span class="type">unsigned</span> <span class="type">int</span> num)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>返回该 dev 所用的第几个(num)中断。</p>
+<h4 id="2-4-3-platform-get-resource-byname"><a href="#2-4-3-platform-get-resource-byname" class="headerlink" title="2.4.3 platform_get_resource_byname()"></a><font size=3>2.4.3 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L155">platform_get_resource_byname()</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L155">platform_get_resource_byname()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * platform_get_resource_byname - get a resource for a device by name</span></span><br><span class="line"><span class="comment"> * @dev: platform device</span></span><br><span class="line"><span class="comment"> * @type: resource type</span></span><br><span class="line"><span class="comment"> * @name: resource name</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">struct</span> resource *<span class="title function_">platform_get_resource_byname</span><span class="params">(<span class="keyword">struct</span> platform_device *dev,</span></span><br><span class="line"><span class="params">					      <span class="type">unsigned</span> <span class="type">int</span> type,</span></span><br><span class="line"><span class="params">					      <span class="type">const</span> <span class="type">char</span> *name)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> i;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; dev-&gt;num_resources; i++) &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">resource</span> *<span class="title">r</span> =</span> &amp;dev-&gt;resource[i];</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (unlikely(!r-&gt;name))</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (type == resource_type(r) &amp;&amp; !<span class="built_in">strcmp</span>(r-&gt;name, name))</span><br><span class="line">			<span class="keyword">return</span> r;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(platform_get_resource_byname);</span><br></pre></td></tr></table></figure>
+
+<p>通过名字(name)返回该 dev 的某类型(type)资源。</p>
+<h4 id="2-4-4-platform-get-irq-byname"><a href="#2-4-4-platform-get-irq-byname" class="headerlink" title="2.4.4 platform_get_irq_byname()"></a><font size=3>2.4.4 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L180">platform_get_irq_byname()</a></font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * platform_get_irq_byname - get an IRQ for a device by name</span></span><br><span class="line"><span class="comment"> * @dev: platform device</span></span><br><span class="line"><span class="comment"> * @name: IRQ name</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">platform_get_irq_byname</span><span class="params">(<span class="keyword">struct</span> platform_device *dev, <span class="type">const</span> <span class="type">char</span> *name)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">resource</span> *<span class="title">r</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (IS_ENABLED(CONFIG_OF_IRQ) &amp;&amp; dev-&gt;dev.of_node) &#123;</span><br><span class="line">		<span class="type">int</span> ret;</span><br><span class="line"></span><br><span class="line">		ret = of_irq_get_byname(dev-&gt;dev.of_node, name);</span><br><span class="line">		<span class="keyword">if</span> (ret &gt; <span class="number">0</span> || ret == -EPROBE_DEFER)</span><br><span class="line">			<span class="keyword">return</span> ret;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	r = platform_get_resource_byname(dev, IORESOURCE_IRQ, name);</span><br><span class="line">	<span class="keyword">return</span> r ? r-&gt;start : -ENXIO;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(platform_get_irq_byname);</span><br></pre></td></tr></table></figure>
+
+<p>通过名字(name)返回该 dev 的中断号。</p>
+<h4 id="2-4-5-dev-get-platdata"><a href="#2-4-5-dev-get-platdata" class="headerlink" title="2.4.5 dev_get_platdata()"></a><font size=3>2.4.5 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L1252">dev_get_platdata()</a></font></h4><p>对于存放在device结构体中成员platform_data的软件信息，我们可以使用<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L1252">dev_get_platdata()</a> 函数来获取：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">void</span> *<span class="title function_">dev_get_platdata</span><span class="params">(<span class="type">const</span> <span class="keyword">struct</span> device *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> dev-&gt;platform_data;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-注册平台设备demo"><a href="#3-注册平台设备demo" class="headerlink" title="3. 注册平台设备demo"></a><font size=3>3. 注册平台设备demo</font></h2><h3 id="3-1-demo源码"><a href="#3-1-demo源码" class="headerlink" title="3.1 demo源码"></a><font size=3>3.1 demo源码</font></h3><details class="folding-tag" blue><summary> 点击查看详情 </summary>
+              <div class='content'>
+              <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/init.h&gt;</span> <span class="comment">/* module_init module_exit */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/module.h&gt;</span> <span class="comment">/* MODULE_LICENSE */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/platform_device.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/ioport.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./timestamp_autogenerated.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./version_autogenerated.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./sdrv_common.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// #undef PRT</span></span><br><span class="line"><span class="comment">// #undef PRTE</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> PRT</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PRT printk</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> PRTE</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PRTE printk</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PLATFORM_DEV_NAME <span class="string">&quot;sdev&quot;</span> <span class="comment">// 设备名称，</span></span></span><br><span class="line">                                 <span class="comment">// 会在 /sys/bus/platform/devices中创建对应目录，即/sys/bus/platform/devices/device-name</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MEM_START_ADDR    (0xFDD60000)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MEM_END_ADDR      (0xFDD60004)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> IRQ_NUMBER        (101)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 定义一个资源数组</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">resource</span> <span class="title">g_sdev_resources</span>[] =</span> &#123;</span><br><span class="line">    &#123;</span><br><span class="line">        .start = MEM_START_ADDR, <span class="comment">// 内存资源起始地址</span></span><br><span class="line">        .end = MEM_END_ADDR,     <span class="comment">// 内存资源结束地址</span></span><br><span class="line">        .flags = IORESOURCE_MEM, <span class="comment">// 标记为内存资源</span></span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        .start = IRQ_NUMBER,     <span class="comment">// 中断资源号</span></span><br><span class="line">        .end = IRQ_NUMBER,       <span class="comment">// 中断资源号</span></span><br><span class="line">        .flags = IORESOURCE_IRQ, <span class="comment">// 标记为中断资源</span></span><br><span class="line">    &#125;,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdev_release()</span></span><br><span class="line"><span class="comment"> * @note   释放资源的回调函数</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">sdev_release</span><span class="params">(<span class="keyword">struct</span> device *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 释放资源的回调函数</span></span><br><span class="line">    <span class="type">const</span> <span class="type">char</span> *device_name = dev_name(dev);</span><br><span class="line">    PRT(<span class="string">&quot;device-&gt;name=%s\n&quot;</span>, device_name);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 定义一个平台设备全局变量</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">platform_device</span> <span class="title">g_sdev_platform</span> =</span> &#123;</span><br><span class="line">    .name = PLATFORM_DEV_NAME,                     <span class="comment">// 设备名称, 会在 /sys/bus/platform/devices中创建对应目录，</span></span><br><span class="line">                                                   <span class="comment">// 即/sys/bus/platform/devices/device-name</span></span><br><span class="line">    .id = <span class="number">-1</span>,                                      <span class="comment">// 设备ID</span></span><br><span class="line">    .num_resources = ARRAY_SIZE(g_sdev_resources), <span class="comment">// 资源数量</span></span><br><span class="line">    .resource = g_sdev_resources,                  <span class="comment">// 资源数组</span></span><br><span class="line">    .dev.release = sdev_release,                   <span class="comment">// 释放资源的回调函数</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdev_demo_init()</span></span><br><span class="line"><span class="comment"> * @note   设备结构体以及属性文件结构体注册</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> __init <span class="type">int</span> <span class="title function_">sdev_demo_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> ret = <span class="number">0</span>;</span><br><span class="line">	printk(<span class="string">&quot;*** [%s:%d]Build Time: %s %s, git version:%s ***\n&quot;</span>, __FUNCTION__,</span><br><span class="line">           __LINE__, KERNEL_KO_DATE, KERNEL_KO_TIME, KERNEL_KO_VERSION);</span><br><span class="line">    </span><br><span class="line"></span><br><span class="line">	ret = platform_device_register(&amp;g_sdev_platform);   <span class="comment">// 注册平台设备</span></span><br><span class="line">    <span class="keyword">if</span> (ret) </span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;Failed to register platform device!ret=%d\n&quot;</span>, ret);</span><br><span class="line">        <span class="keyword">goto</span> err_platform_device_register;</span><br><span class="line">    &#125;</span><br><span class="line">    PRT(<span class="string">&quot;sdev_demo module init success!\n&quot;</span>);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">err_platform_device_register:</span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdev_demo_exit</span></span><br><span class="line"><span class="comment"> * @note   设备结构体以及属性文件结构体注销。</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> __exit <span class="type">void</span> <span class="title function_">sdev_demo_exit</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    platform_device_unregister(&amp;g_sdev_platform);   <span class="comment">// 注销平台设备</span></span><br><span class="line"></span><br><span class="line">    PRT(<span class="string">&quot;sdev_demo module exit!\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">module_init(sdev_demo_init); <span class="comment">// 将__init定义的函数指定为驱动的入口函数</span></span><br><span class="line">module_exit(sdev_demo_exit); <span class="comment">// 将__exit定义的函数指定为驱动的出口函数</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 模块信息(通过 modinfo xxx.ko 查看) */</span></span><br><span class="line">MODULE_LICENSE(<span class="string">&quot;GPL v2&quot;</span>);            <span class="comment">/* 源码的许可证协议 */</span></span><br><span class="line">MODULE_AUTHOR(<span class="string">&quot;sumu&quot;</span>);               <span class="comment">/* 字符串常量内容为模块作者说明 */</span></span><br><span class="line">MODULE_DESCRIPTION(<span class="string">&quot;Description&quot;</span>);   <span class="comment">/* 字符串常量内容为模块功能说明 */</span></span><br><span class="line">MODULE_ALIAS(<span class="string">&quot;module&#x27;s other name&quot;</span>); <span class="comment">/* 字符串常量内容为模块别名 */</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<h3 id="3-2-开发板测试"><a href="#3-2-开发板测试" class="headerlink" title="3.2 开发板测试"></a><font size=3>3.2 开发板测试</font></h3><p>将编译好的sdevice_demo.ko拷贝到开发板，然后加载驱动：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">insmod sdevice_demo.ko</span><br></pre></td></tr></table></figure>
+
+<p>然后就会看到在 &#x2F;sys&#x2F;bus&#x2F;platform&#x2F;devices&#x2F; 中生成了对应的设备目录：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-02-%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E4%B8%8E%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E5%86%8C/img/image-20250120100437310.png" alt="image-20250120100437310"  />
+
+<h1 id="二、注册平台驱动"><a href="#二、注册平台驱动" class="headerlink" title="二、注册平台驱动"></a><font size=3>二、注册平台驱动</font></h1><h2 id="1-相关数据结构与API-1"><a href="#1-相关数据结构与API-1" class="headerlink" title="1. 相关数据结构与API"></a><font size=3>1. 相关数据结构与API</font></h2><h3 id="1-1-struct-platform-driver"><a href="#1-1-struct-platform-driver" class="headerlink" title="1.1 struct platform_driver"></a><font size=3>1.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L180">struct platform_driver</a></font></h3><p>先来看一下平台驱动的数据类型 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L180">struct platform_driver</a> ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">platform_driver</span> &#123;</span></span><br><span class="line">	<span class="type">int</span> (*probe)(<span class="keyword">struct</span> platform_device *); <span class="comment">// 平台设备的探测函数指针</span></span><br><span class="line">	<span class="type">int</span> (*remove)(<span class="keyword">struct</span> platform_device *);<span class="comment">// 平台设备的移除函数指针</span></span><br><span class="line">	<span class="type">void</span> (*shutdown)(<span class="keyword">struct</span> platform_device *);<span class="comment">// 平台设备的关闭函数指针</span></span><br><span class="line">	<span class="type">int</span> (*suspend)(<span class="keyword">struct</span> platform_device *, <span class="type">pm_message_t</span> state);<span class="comment">// 平台设备的挂起函数指针</span></span><br><span class="line">	<span class="type">int</span> (*resume)(<span class="keyword">struct</span> platform_device *);   <span class="comment">// 平台设备的恢复函数指针</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device_driver</span> <span class="title">driver</span>;</span>               <span class="comment">// 设备驱动程序的通用数据</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">platform_device_id</span> *<span class="title">id_table</span>;</span> <span class="comment">// 平台设备与驱动程序的关联关系表</span></span><br><span class="line">	<span class="type">bool</span> prevent_deferred_probe;               <span class="comment">// 是否阻止延迟探测</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L180">struct platform_driver</a> 提供了与平台设备驱动相关的函数和数据成员， 以便与平台设备进行交互和管理。</p>
+<ul>
+<li><strong>probe：</strong> 函数指针，驱动开发人员需要在驱动程序中初始化该函数指针，当总线为设备和驱动匹配上之后，会回调执行该函数。我们一般通过该函数，对设备进行一系列的初始化。</li>
+<li><strong>remove：</strong> 函数指针，驱动开发人员需要在驱动程序中初始化该函数指针，当我们移除某个平台设备时，会回调执行该函数指针，该函数实现的操作，通常是probe函数实现操作的逆过程。</li>
+<li><strong>driver：</strong> Linux设备模型中用于抽象驱动的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L241">struct device_driver</a> 结构体，其中包括驱动程序的名称、 总线类型、 模块拥有者、 属性组数组指针等信息。<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L180">struct platform_driver</a> 继承该结构体，也就获取了设备模型驱动对象的特性。</li>
+<li><strong>id_table：</strong> 表示该驱动能够兼容的设备类型。指向 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L546">struct platform_device_id</a>结构体数组的指针， 用于匹配平台设备和驱动程序之间的关联关系。 通过该关联关系， 可以确定哪个平台设备与该驱动程序匹配， 和.driver.name 起到相同的作用， 但是优先级高于.driver.name。</li>
+</ul>
+<p>使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L180">struct platform_driver</a> 结构体， 开发人员可以定义平台设备驱动程序， 并将其注册到内核中。 当系统检测到与该驱动程序匹配的平台设备时， 内核将调用相应的函数来执行设备的初始化、 配置、 操作和管理。 驱动程序可以利用提供的函数指针和通用数据与平台设备进行交互， 并提供必要的功能和服务。</p>
+<p>需要注意的是，<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L180">struct platform_driver</a> 结构体继承了 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L241">struct device_driver</a>  结构体， 因此可以直接访问 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L241">struct device_driver</a> 中定义的成员。 这使得平台驱动程序可以利用通用的驱动程序机制， 并与其他类型的设备驱动程序共享代码和功能。</p>
+<h3 id="1-2-struct-platform-device-id-1"><a href="#1-2-struct-platform-device-id-1" class="headerlink" title="1.2 struct platform_device_id"></a><font size=3>1.2 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L546">struct platform_device_id</a></font></h3><p>和前面是一样的，<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L546">struct platform_device_id</a> 结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">platform_device_id</span> &#123;</span></span><br><span class="line">	<span class="type">char</span> name[PLATFORM_NAME_SIZE];</span><br><span class="line">	<span class="type">kernel_ulong_t</span> driver_data;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L546">struct platform_device_id</a> 这个结构体中，有两个成员，第一个是数组用于指定驱动的名称，总线进行匹配时，会依据该结构体的name成员与 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">struct platform_device</a> 中的成员name进行比较匹配， 另一个成员变量driver_data，则是用于来保存设备的配置。我们知道在同系列的设备中，往往只是某些寄存器的配置不一样，为了减少代码的冗余， 尽量做到一个驱动可以匹配多个设备的目的。接下来以imx的串口为例，具体看下这个结构体的作用：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">imx_uart_data</span> <span class="title">imx_uart_devdata</span>[] =</span> &#123;</span><br><span class="line">    [IMX1_UART] = &#123;</span><br><span class="line">        .uts_reg = IMX1_UTS,</span><br><span class="line">        .devtype = IMX1_UART,</span><br><span class="line">    &#125;,</span><br><span class="line">    [IMX21_UART] = &#123;</span><br><span class="line">        .uts_reg = IMX21_UTS,</span><br><span class="line">        .devtype = IMX21_UART,</span><br><span class="line">    &#125;,</span><br><span class="line">    [IMX6Q_UART] = &#123;</span><br><span class="line">        .uts_reg = IMX21_UTS,</span><br><span class="line">        .devtype = IMX6Q_UART,</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">platform_device_id</span> <span class="title">imx_uart_devtype</span>[] =</span> &#123;</span><br><span class="line">    &#123;</span><br><span class="line">        .name = <span class="string">&quot;imx1-uart&quot;</span>,</span><br><span class="line">        .driver_data = (<span class="type">kernel_ulong_t</span>) &amp;imx_uart_devdata[IMX1_UART],</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        .name = <span class="string">&quot;imx21-uart&quot;</span>,</span><br><span class="line">        .driver_data = (<span class="type">kernel_ulong_t</span>) &amp;imx_uart_devdata[IMX21_UART],</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        .name = <span class="string">&quot;imx6q-uart&quot;</span>,</span><br><span class="line">        .driver_data = (<span class="type">kernel_ulong_t</span>) &amp;imx_uart_devdata[IMX6Q_UART],</span><br><span class="line"></span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">/* sentinel */</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>在上面的代码中，支持三种设备的串口，支持imx1、imx21、imx6q三种不同系列芯片，他们之间区别在于串口的test寄存器地址不同。 当总线成功配对平台驱动以及平台设备时，会将对应的id_table条目赋值给平台设备的id_entry成员，而平台驱动的probe函数是以平台设备为参数， 这样的话，就可以拿到当前设备串口的test寄存器地址了。</p>
+<h3 id="1-3-platform-driver-register"><a href="#1-3-platform-driver-register" class="headerlink" title="1.3 platform_driver_register()"></a><font size=3>1.3 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L197">platform_driver_register()</a></font></h3><h4 id="1-3-1-函数说明-1"><a href="#1-3-1-函数说明-1" class="headerlink" title="1.3.1 函数说明"></a><font size=3>1.3.1 函数说明</font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L197">platform_driver_register()</a>函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// #include &lt;linux/platform_device.h&gt;</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> platform_driver_register(drv) \</span></span><br><span class="line"><span class="meta">	__platform_driver_register(drv, THIS_MODULE)</span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> __platform_driver_register(<span class="keyword">struct</span> platform_driver *drv,</span><br><span class="line">				<span class="keyword">struct</span> module *owner)</span><br><span class="line">&#123;</span><br><span class="line">	drv-&gt;driver.owner = owner;<span class="comment">// 将平台驱动程序的所有权设置为当前模块</span></span><br><span class="line">	drv-&gt;driver.bus = &amp;platform_bus_type;    <span class="comment">// 将平台驱动程序的总线类型设置为平台总线</span></span><br><span class="line">	drv-&gt;driver.probe = platform_drv_probe;  <span class="comment">// 设置平台驱动程序的探测函数</span></span><br><span class="line">	drv-&gt;driver.remove = platform_drv_remove;<span class="comment">// 设置平台驱动程序的移除函数</span></span><br><span class="line">	drv-&gt;driver.shutdown = platform_drv_shutdown;<span class="comment">// 设置平台驱动程序的关机函数</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> driver_register(&amp;drv-&gt;driver);<span class="comment">// 将平台驱动程序注册到内核</span></span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(__platform_driver_register);</span><br></pre></td></tr></table></figure>
+
+<p>这个函数是一个宏，调用了 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L620">__platform_driver_register()</a> 函数，它将一个平台驱动程序注册到内核中。 通过注册平台驱动程序， 内核可以识别并与特定的平台设备进行匹配， 并在需要时调用相应的回调函数。  </p>
+<p><strong>参数：</strong> </p>
+<ul>
+<li><strong>driver  ：</strong><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L180">struct platform_driver</a> 类型结构体指针，描述了要注册的平台驱动程序的属性和回调函数。</li>
+</ul>
+<p><strong>返回值：</strong>返回一个整数值， 表示函数的执行状态。 如果注册成功， 返回 0； 如果注册失败， 返回一个负数错误码。    </p>
+<blockquote>
+<p>由于platform_driver继承了driver结构体，结合Linux设备模型的知识， 当成功注册了一个平台驱动后，就会在&#x2F;sys&#x2F;bus&#x2F;platform&#x2F;drivers 目录下生成一个新的目录项。</p>
+</blockquote>
+<h4 id="1-3-2-函数分析-1"><a href="#1-3-2-函数分析-1" class="headerlink" title="1.3.2 函数分析"></a><font size=3>1.3.2 函数分析</font></h4><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-02-%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E4%B8%8E%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E5%86%8C/img/image-20250118131225389.png" alt="image-20250118131225389"  />
+
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L628">628</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">drv-&gt;driver.owner = owner;<span class="comment">// 将平台驱动程序的所有权设置为当前模块</span></span><br></pre></td></tr></table></figure>
+
+<p>将指向当前模块的指针 owner 赋值给平台驱动程序的 owner 成员。 这样做是为了将当前模块与平台驱动程序关联起来， 以确保模块的生命周期和驱动程序的注册和注销相关联  </p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L629">629</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">drv-&gt;driver.bus = &amp;platform_bus_type;<span class="comment">// 将平台驱动程序的总线类型设置为平台总线</span></span><br></pre></td></tr></table></figure>
+
+<p>将指向平台总线类型的指针 &amp;<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L1154">platform_bus_type</a>赋值给平台驱动程序的 bus 成员。这样做是为了指定该驱动程序所属的总线类型为平台总线， 以便内核能够将平台设备与正确的驱动程序进行匹配。  </p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L630">630</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">drv-&gt;driver.probe = platform_drv_probe;<span class="comment">// 设置平台驱动程序的探测函数</span></span><br></pre></td></tr></table></figure>
+
+<p>将指向平台驱动程序探测函数 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L564">platform_drv_probe()</a>的指针赋值给平台驱动程序的 probe 成员。 这样做是为了指定当内核发现与驱动程序匹配的平台设备时， 要调用的驱动程序探测函数。  </p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L631">631</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">drv-&gt;driver.remove = platform_drv_remove;<span class="comment">// 设置平台驱动程序的移除函数</span></span><br></pre></td></tr></table></figure>
+
+<p>将指向平台驱动程序移除函数 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L598">platform_drv_remove()</a>的指针赋值给平台驱动程序的 remove 成员。 这样做是为了指定当内核需要从系统中移除与驱动程序匹配的平台设备时，要调用的驱动程序移除函数。  </p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L632">632</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">drv-&gt;driver.shutdown = platform_drv_shutdown;<span class="comment">// 设置平台驱动程序的关机函数</span></span><br></pre></td></tr></table></figure>
+
+<p>将指向平台驱动程序关机函数 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L611">platform_drv_shutdow()</a> 的指针赋值给平台驱动程序的 shutdown 成员。 这样做是为了指定当系统关机时， 要调用的驱动程序关机函数。  </p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L634">634</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> driver_register(&amp;drv-&gt;driver);<span class="comment">// 将平台驱动程序注册到内核</span></span><br></pre></td></tr></table></figure>
+
+<p>调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L138">driver_register()</a> 函数， 将平台驱动程序的 driver 成员注册到内核中。 该函数负责将驱动程序注册到相应的总线上， 并在注册成功时返回 0， 注册失败时返回一个负数错误码。</p>
+<h4 id="1-3-3-总结-1"><a href="#1-3-3-总结-1" class="headerlink" title="1.3.3 总结"></a><font size=3>1.3.3 总结</font></h4><p>通过上面哪些操作， <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L620">__platform_driver_register()</a> 函数将平台驱动程序与内核关联起来， 并确保内核能够正确识别和调用驱动程序的各种回调函数， 以实现与平台设备的交互和管理。 函数的返回值表示注册过程的执行状态， 以便在需要时进行错误处理。  </p>
+<h3 id="1-4-platform-driver-unregister"><a href="#1-4-platform-driver-unregister" class="headerlink" title="1.4 platform_driver_unregister()"></a><font size=3>1.4 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L638">platform_driver_unregister()</a></font></h3><h4 id="1-4-1-函数说明-1"><a href="#1-4-1-函数说明-1" class="headerlink" title="1.4.1 函数说明"></a><font size=3>1.4.1 函数说明</font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L638">platform_driver_unregister()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// #include &lt;linux/platform_device.h&gt;</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * platform_driver_unregister - unregister a driver for platform-level devices</span></span><br><span class="line"><span class="comment"> * @drv: platform driver structure</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">platform_driver_unregister</span><span class="params">(<span class="keyword">struct</span> platform_driver *drv)</span></span><br><span class="line">&#123;</span><br><span class="line">	driver_unregister(&amp;drv-&gt;driver);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(platform_driver_unregister);</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">driver_unregister</span><span class="params">(<span class="keyword">struct</span> device_driver *drv)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">if</span> (!drv || !drv-&gt;p) &#123;<span class="comment">// 检查传入的设备驱动程序指针和 p 成员是否有效</span></span><br><span class="line">		WARN(<span class="number">1</span>, <span class="string">&quot;Unexpected driver unregister!\n&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	driver_remove_groups(drv, drv-&gt;groups); <span class="comment">// 移除与设备驱动程序关联的属性组</span></span><br><span class="line">	bus_remove_driver(drv);<span class="comment">// 从总线中移除设备驱动程序</span></span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(driver_unregister);</span><br></pre></td></tr></table></figure>
+
+<p>函数用于从内核中注销平台驱动。 通过调用该函数， 可以将指定的平台驱动从系统中移除。  </p>
+<p><strong>参数：</strong> </p>
+<ul>
+<li><strong>drv：</strong>  <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L180">struct platform_driver</a> 类型结构体指针，指向要取消注册的平台驱动。</li>
+</ul>
+<p><strong>返回值：</strong> <strong>无</strong></p>
+<h4 id="1-4-2-函数分析-1"><a href="#1-4-2-函数分析-1" class="headerlink" title="1.4.2 函数分析"></a><font size=3>1.4.2 函数分析</font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L638">platform_driver_unregister()</a> 函数最后调用的是<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L184">driver_unregister()</a> :</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-02-%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E4%B8%8E%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E5%86%8C/img/image-20250118134437039.png" alt="image-20250118134437039"  />
+
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L192">192</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L195">195</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!drv || !drv-&gt;p) &#123;</span><br><span class="line">	WARN(<span class="number">1</span>, <span class="string">&quot;Unexpected driver unregister!\n&quot;</span>);</span><br><span class="line">	<span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>检查传入的设备驱动程序指针 drv 是否为空， 或者驱动程序的 p 成员是否为空。如果其中任何一个条件为真， 表示传入的参数无效， 会发出警告并返回。  </p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L196">196</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">driver_remove_groups(drv, drv-&gt;groups);</span><br></pre></td></tr></table></figure>
+
+<p>调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L132">driver_remove_groups()</a> 函数， 用于从内核中移除与设备驱动程序关联的属性组。 drv-&gt;groups 是指向属性组的指针， 指定了要移除的属性组列表。  </p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L197">197</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bus_remove_driver(drv);</span><br></pre></td></tr></table></figure>
+
+<p>调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L711">bus_remove_driver()</a>函数， 用于从总线中移除设备驱动程序。 该函数会执行以下操作：  </p>
+<p>（1） 从总线驱动程序列表中移除指定的设备驱动程序。</p>
+<p>（2） 调用与设备驱动程序关联的 remove 回调函数（ 如果有定义） 。</p>
+<p>（3） 释放设备驱动程序所占用的资源和内存。</p>
+<p>（4） 最终销毁设备驱动程序的数据结构。</p>
+<h4 id="1-4-3-总结-1"><a href="#1-4-3-总结-1" class="headerlink" title="1.4.3 总结"></a><font size=3>1.4.3 总结</font></h4><p>通过调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L184">driver_unregister()</a> 函数， 可以正确地注销设备驱动程序， 并在注销过程中进行必要的清理工作。 这样可以避免资源泄漏和其他问题。 在调用该函数后， 应避免继续使用已注销的设备驱动程序指针， 因为该驱动程序已不再存在于内核中。  </p>
+<h2 id="2-注册平台驱动demo"><a href="#2-注册平台驱动demo" class="headerlink" title="2. 注册平台驱动demo"></a><font size=3>2. 注册平台驱动demo</font></h2><h3 id="2-1-demo源码"><a href="#2-1-demo源码" class="headerlink" title="2.1 demo源码"></a><font size=3>2.1 demo源码</font></h3><details class="folding-tag" blue><summary> 点击查看详情 </summary>
+              <div class='content'>
+              <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/init.h&gt;</span> <span class="comment">/* module_init module_exit */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/module.h&gt;</span> <span class="comment">/* MODULE_LICENSE */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/platform_device.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./timestamp_autogenerated.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./version_autogenerated.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./sdrv_common.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// #undef PRT</span></span><br><span class="line"><span class="comment">// #undef PRTE</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> PRT</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PRT printk</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> PRTE</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PRTE printk</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PLATFORM_DRV_MATCH_NAME <span class="string">&quot;sdrv&quot;</span> <span class="comment">// 驱动名称，和设备名称相同时可以匹配成功</span></span></span><br><span class="line">                                       <span class="comment">// 会在 /sys/bus/platform/drivers中创建对应目录，即/sys/bus/platform/drivers/driver-name</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdrv_probe()</span></span><br><span class="line"><span class="comment"> * @note   平台设备的探测函数</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">sdrv_probe</span><span class="params">(<span class="keyword">struct</span> platform_device *pdev)</span></span><br><span class="line">&#123;</span><br><span class="line">    PRT(<span class="string">&quot;probing platform device &amp; driver!pdev-&gt;name=%s\n&quot;</span>, pdev-&gt;name);</span><br><span class="line">    <span class="comment">// 添加设备特定的操作</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdrv_remove()</span></span><br><span class="line"><span class="comment"> * @note   平台设备的移除函数</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">sdrv_remove</span><span class="params">(<span class="keyword">struct</span> platform_device *pdev)</span></span><br><span class="line">&#123;</span><br><span class="line">    PRT(<span class="string">&quot;removing platform driver!pdev-&gt;name=%s\n&quot;</span>, pdev-&gt;name);</span><br><span class="line">    <span class="comment">// 清理设备特定的操作</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 定义平台驱动结构体</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">platform_driver</span> <span class="title">g_sdrv_platform</span> =</span> &#123;</span><br><span class="line">    .probe = sdrv_probe,   <span class="comment">// 平台设备的探测函数指针</span></span><br><span class="line">    .remove = sdrv_remove, <span class="comment">//  平台设备的移除函数指针</span></span><br><span class="line">    .driver = &#123;</span><br><span class="line">        .name = PLATFORM_DRV_MATCH_NAME, <span class="comment">// 和设备名称相同时，可以匹配成功</span></span><br><span class="line">                                         <span class="comment">// 会在 /sys/bus/platform/drivers中创建对应目录，即/sys/bus/platform/drivers/driver-name</span></span><br><span class="line">        .owner = THIS_MODULE,</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdrv_demo_init</span></span><br><span class="line"><span class="comment"> * @note   调用driver_register函数注册我们的驱动</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> __init <span class="type">int</span> <span class="title function_">sdrv_demo_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> ret = <span class="number">0</span>;</span><br><span class="line">	printk(<span class="string">&quot;*** [%s:%d]Build Time: %s %s, git version:%s ***\n&quot;</span>, __FUNCTION__,</span><br><span class="line">           __LINE__, KERNEL_KO_DATE, KERNEL_KO_TIME, KERNEL_KO_VERSION);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 注册平台驱动</span></span><br><span class="line">    ret = platform_driver_register(&amp;g_sdrv_platform);</span><br><span class="line">    <span class="keyword">if</span> (ret) </span><br><span class="line">    &#123;</span><br><span class="line">        PRT(<span class="string">&quot;Failed to register platform driver!ret=%d\n&quot;</span>, ret);</span><br><span class="line">        <span class="keyword">goto</span> err_platform_driver_register;</span><br><span class="line">    &#125;</span><br><span class="line">    PRT(<span class="string">&quot;sdrv_demo module init success!\n&quot;</span>);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">err_platform_driver_register:</span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdrv_demo_exit</span></span><br><span class="line"><span class="comment"> * @note   注销驱动以及驱动属性文件</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> __exit <span class="type">void</span> <span class="title function_">sdrv_demo_exit</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 注销平台驱动</span></span><br><span class="line">    platform_driver_unregister(&amp;g_sdrv_platform);</span><br><span class="line">    PRT(<span class="string">&quot;sdrv_demo module exit!\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">module_init(sdrv_demo_init); <span class="comment">// 将__init定义的函数指定为驱动的入口函数</span></span><br><span class="line">module_exit(sdrv_demo_exit); <span class="comment">// 将__exit定义的函数指定为驱动的出口函数</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 模块信息(通过 modinfo xxx.ko 查看) */</span></span><br><span class="line">MODULE_LICENSE(<span class="string">&quot;GPL v2&quot;</span>);            <span class="comment">/* 源码的许可证协议 */</span></span><br><span class="line">MODULE_AUTHOR(<span class="string">&quot;sumu&quot;</span>);               <span class="comment">/* 字符串常量内容为模块作者说明 */</span></span><br><span class="line">MODULE_DESCRIPTION(<span class="string">&quot;Description&quot;</span>);   <span class="comment">/* 字符串常量内容为模块功能说明 */</span></span><br><span class="line">MODULE_ALIAS(<span class="string">&quot;module&#x27;s other name&quot;</span>); <span class="comment">/* 字符串常量内容为模块别名 */</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<h3 id="2-2-开发板验证"><a href="#2-2-开发板验证" class="headerlink" title="2.2 开发板验证"></a><font size=3>2.2 开发板验证</font></h3><p>将编译好的sdriver_demo.ko拷贝到开发板，然后加载驱动：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">insmod sdriver_demo.ko</span><br></pre></td></tr></table></figure>
+
+<p>然后就会看到在 &#x2F;sys&#x2F;bus&#x2F;platform&#x2F;drivers&#x2F; 中生成了对应的驱动目录：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-02-%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E4%B8%8E%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E5%86%8C/img/image-20250120101202662.png" alt="image-20250120101202662"  />
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/d8a77fd9.html">LV06-05-linux平台总线模型-02-平台设备与平台设备的注册</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2025年01月20日 - 22:31</p>
+    <p><span>最后更新:</span>2025年04月08日 - 07:43</p>
+    <p><span>原始链接:</span><a href="/post/d8a77fd9.html" title="LV06-05-linux平台总线模型-02-平台设备与平台设备的注册">https://sumumm.github.io/post/d8a77fd9.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/92014e92.html" rel="prev" title="LV06-05-linux平台总线模型-03-平台总线的匹配">
+                  <i class="fa fa-angle-left"></i> LV06-05-linux平台总线模型-03-平台总线的匹配
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/85bb1a56.html" rel="next" title="LV06-05-linux平台总线模型-01-平台总线简介">
+                  LV06-05-linux平台总线模型-01-平台总线简介 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">223:41</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

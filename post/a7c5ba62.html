@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是uboot启动内核流程的相关笔记。若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV05-01-uboot-05-uboot启动内核">
+<meta property="og:url" content="https://sumumm.github.io/post/a7c5ba62.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是uboot启动内核流程的相关笔记。若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-01-uboot-05-uboot%E5%90%AF%E5%8A%A8%E5%86%85%E6%A0%B8/img/image-20221016160914087.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-01-uboot-05-uboot%E5%90%AF%E5%8A%A8%E5%86%85%E6%A0%B8/img/image-20221016170514552.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-01-uboot-05-uboot%E5%90%AF%E5%8A%A8%E5%86%85%E6%A0%B8/img/bootz.png">
+<meta property="article:published_time" content="2023-09-08T11:22:58.000Z">
+<meta property="article:modified_time" content="2025-04-07T23:43:52.651Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="(ALPHA)LV05-uboot与内核">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-01-uboot-05-uboot%E5%90%AF%E5%8A%A8%E5%86%85%E6%A0%B8/img/image-20221016160914087.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/a7c5ba62.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/a7c5ba62.html","path":"post/a7c5ba62.html","title":"LV05-01-uboot-05-uboot启动内核"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV05-01-uboot-05-uboot启动内核 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">41</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">668</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81images-%E5%85%A8%E5%B1%80%E5%8F%98%E9%87%8F"><span class="nav-text">一、images 全局变量</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81do-bootz-%E5%87%BD%E6%95%B0"><span class="nav-text">二、do_bootz 函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-do-bootz-%E5%9C%A8%E5%93%AA"><span class="nav-text">1. do_bootz 在哪?</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%81%9A%E4%BA%86%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 做了什么？</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81bootz-start-%E5%87%BD%E6%95%B0"><span class="nav-text">三、bootz_start 函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-bootz-start-%E5%87%BD%E6%95%B0%E5%9C%A8%E5%93%AA%EF%BC%9F"><span class="nav-text">1. bootz_start 函数在哪？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%81%9A%E4%BA%86%E4%BB%80%E4%B9%88%EF%BC%9F-1"><span class="nav-text">2. 做了什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-bootz-setup-%E5%87%BD%E6%95%B0"><span class="nav-text">3. bootz_setup 函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-bootm-find-images-%E5%87%BD%E6%95%B0"><span class="nav-text">4. bootm_find_images 函数</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81do-bootm-states-%E5%87%BD%E6%95%B0"><span class="nav-text">三、do_bootm_states 函数  </span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-do-bootm-states-%E5%87%BD%E6%95%B0%E5%9C%A8%E5%93%AA%EF%BC%9F"><span class="nav-text">1. do_bootm_states 函数在哪？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%81%9A%E4%BA%86%E4%BB%80%E4%B9%88%EF%BC%9F-2"><span class="nav-text">2. 做了什么？</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81bootm-os-get-boot-func-%E5%87%BD%E6%95%B0"><span class="nav-text">四、bootm_os_get_boot_func 函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-bootm-os-get-boot-func-%E5%87%BD%E6%95%B0%E5%9C%A8%E5%93%AA%EF%BC%9F"><span class="nav-text">1. bootm_os_get_boot_func 函数在哪？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%81%9A%E4%BA%86%E4%BB%80%E4%B9%88"><span class="nav-text">2. 做了什么</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%94%E3%80%81do-bootm-linux-%E5%87%BD%E6%95%B0"><span class="nav-text">五、do_bootm_linux 函数  </span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-do-bootm-linux-%E5%87%BD%E6%95%B0%E5%9C%A8%E5%93%AA%EF%BC%9F"><span class="nav-text">1. do_bootm_linux 函数在哪？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%81%9A%E4%BA%86%E4%BB%80%E4%B9%88%EF%BC%9F-3"><span class="nav-text">2. 做了什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-boot-jump-linux"><span class="nav-text">3. boot_jump_linux</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%85%AD%E3%80%81bootz-%E5%91%BD%E4%BB%A4%E6%80%BB%E7%BB%93"><span class="nav-text">六、bootz 命令总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">668</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">41</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/a7c5ba62.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV05-01-uboot-05-uboot启动内核 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV05-01-uboot-05-uboot启动内核
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-09-08 19:22:58" itemprop="dateCreated datePublished" datetime="2023-09-08T19:22:58+08:00">2023-09-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/" itemprop="url" rel="index"><span itemprop="name">LV05-uboot与内核</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5.7k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>21 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是uboot启动内核流程的相关笔记。若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-01-uboot-05-uboot%E5%90%AF%E5%8A%A8%E5%86%85%E6%A0%B8/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows版本</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu版本</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>      </tr>    <tr>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="4">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">在线阅读linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga" target="_blank">nxp-imx/linux-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga</a></td>        <td align="left">NXP linux内核仓库tags中的rel_imx_4.1.15_2.1.0_ga</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.1.15_2.1.0_ga</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、images-全局变量"><a href="#一、images-全局变量" class="headerlink" title="一、images 全局变量"></a><font size=3>一、images 全局变量</font></h1><p>不管是 bootz 还是 bootm 命令，在启动 Linux 内核的时候都会用到一个重要的全局变量：images，全局变量 images 会在 bootz 命令的执行中频繁使用到，相当于 Linux 内核启动的“灵魂”。images 变量在文件 cmd&#x2F;bootm.c 中有如下定义：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">bootm_headers_t</span> images;		<span class="comment">/* pointers to os/initrd/fdt images */</span></span><br></pre></td></tr></table></figure>
+
+<p>images 是 bootm_headers_t 类型的全局变量， bootm_headers_t 是个 boot 头结构体，在文件include&#x2F;image.h 中的定义如下(删除了一些条件编译代码)：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">bootm_headers</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	* Legacy os image header, if it is a multi component image</span></span><br><span class="line"><span class="comment">	* then boot_get_ramdisk() and get_fdt() will attempt to get</span></span><br><span class="line"><span class="comment">	* data from second and third component accordingly.</span></span><br><span class="line"><span class="comment">	*/</span></span><br><span class="line">	<span class="type">image_header_t</span> *legacy_hdr_os; <span class="comment">/* image header pointer */</span></span><br><span class="line">	<span class="type">image_header_t</span> legacy_hdr_os_copy; <span class="comment">/* header copy */</span></span><br><span class="line">	ulong legacy_hdr_valid;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 中间的省略 ...</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> USE_HOSTCC</span></span><br><span class="line">	<span class="type">image_info_t</span> os; <span class="comment">/* OS 镜像信息 */</span></span><br><span class="line">	ulong ep; <span class="comment">/* OS 入口点 */</span></span><br><span class="line"></span><br><span class="line">	ulong rd_start, rd_end; <span class="comment">/* ramdisk 开始和结束位置 */</span></span><br><span class="line"></span><br><span class="line">	<span class="type">char</span> *ft_addr; <span class="comment">/* 设备树地址 */</span></span><br><span class="line">	ulong ft_len; <span class="comment">/* 设备树长度 */</span></span><br><span class="line"></span><br><span class="line">	ulong initrd_start; <span class="comment">/* initrd 开始位置 */</span></span><br><span class="line">	ulong initrd_end; <span class="comment">/* initrd 结束位置 */</span></span><br><span class="line">	ulong cmdline_start; <span class="comment">/* cmdline 开始位置 */</span></span><br><span class="line">	ulong cmdline_end; <span class="comment">/* cmdline 结束位置 */</span></span><br><span class="line">	<span class="type">bd_t</span> *kbd;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">	<span class="type">int</span> verify; <span class="comment">/* getenv(&quot;verify&quot;)[0] != &#x27;n&#x27; */</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BOOTM_STATE_START (0x00000001)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BOOTM_STATE_FINDOS (0x00000002)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BOOTM_STATE_FINDOTHER (0x00000004)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BOOTM_STATE_LOADOS (0x00000008)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BOOTM_STATE_RAMDISK (0x00000010)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BOOTM_STATE_FDT (0x00000020)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BOOTM_STATE_OS_CMDLINE (0x00000040)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BOOTM_STATE_OS_BD_T (0x00000080)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BOOTM_STATE_OS_PREP (0x00000100)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BOOTM_STATE_OS_FAKE_GO (0x00000200)<span class="comment">/*&#x27;Almost&#x27; run the OS*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BOOTM_STATE_OS_GO (0x00000400)</span></span><br><span class="line">	<span class="type">int</span> state;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_LMB</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">lmb</span> <span class="title">lmb</span>;</span> <span class="comment">/* 内存管理相关，不深入研究 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">&#125; <span class="type">bootm_headers_t</span>;</span><br></pre></td></tr></table></figure>
+
+<p>第 15 行（第 335 行）： os 成员变量是 image_info_t 类型的，为系统镜像信息。  </p>
+<details class="folding-tag" blue><summary> 点击查看 image_info_t </summary>
+              <div class='content'>
+              <p>结构体 image_info_t，也就是系统镜像信息结构体，此结构体在文件include&#x2F;image.h 中的定义如下：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">image_info</span> &#123;</span></span><br><span class="line">	ulong		start, end;		<span class="comment">/* start/end of blob */</span></span><br><span class="line">	ulong		image_start, image_len; <span class="comment">/* start of image within blob, len of image */</span></span><br><span class="line">	ulong		load;			<span class="comment">/* load addr for the image */</span></span><br><span class="line">	<span class="type">uint8_t</span>		comp, type, os;		<span class="comment">/* compression, type of image, os type */</span></span><br><span class="line">	<span class="type">uint8_t</span>		arch;			<span class="comment">/* CPU architecture */</span></span><br><span class="line">&#125; <span class="type">image_info_t</span>;</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<p>第 32 ~ 42 行（第 352 ~ 362 行）：这 11 个宏定义表示 BOOT 的不同阶段。  </p>
+<h1 id="二、do-bootz-函数"><a href="#二、do-bootz-函数" class="headerlink" title="二、do_bootz 函数"></a><font size=3>二、do_bootz 函数</font></h1><p>前边我们分析uboot启动流程的时候有分析过，每一个命令最后执行的都是命令对应的 do_xxx 函数。</p>
+<h2 id="1-do-bootz-在哪"><a href="#1-do-bootz-在哪" class="headerlink" title="1. do_bootz 在哪?"></a><font size=3>1. do_bootz 在哪?</font></h2><p>该函数在 cmd&#x2F;bootm.c 文件中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">do_bootz</span><span class="params">(<span class="type">cmd_tbl_t</span> *cmdtp, <span class="type">int</span> flag, <span class="type">int</span> argc, <span class="type">char</span> * <span class="type">const</span> argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> ret;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Consume &#x27;bootz&#x27; */</span></span><br><span class="line">	argc--; argv++;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (bootz_start(cmdtp, flag, argc, argv, &amp;images))</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * We are doing the BOOTM_STATE_LOADOS state ourselves, so must</span></span><br><span class="line"><span class="comment">	 * disable interrupts ourselves</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	bootm_disable_interrupts();</span><br><span class="line"></span><br><span class="line">	images.os.os = IH_OS_LINUX;</span><br><span class="line">	ret = do_bootm_states(cmdtp, flag, argc, argv,</span><br><span class="line">			      BOOTM_STATE_OS_PREP | BOOTM_STATE_OS_FAKE_GO |</span><br><span class="line">			      BOOTM_STATE_OS_GO,</span><br><span class="line">			      &amp;images, <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-做了什么？"><a href="#2-做了什么？" class="headerlink" title="2. 做了什么？"></a><font size=3>2. 做了什么？</font></h2><p>我们以下边的行号进行分析：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">do_bootz</span><span class="params">(<span class="type">cmd_tbl_t</span> *cmdtp, <span class="type">int</span> flag, <span class="type">int</span> argc, <span class="type">char</span> * <span class="type">const</span> argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> ret;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Consume &#x27;bootz&#x27; */</span></span><br><span class="line">	argc--; argv++;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (bootz_start(cmdtp, flag, argc, argv, &amp;images))</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * We are doing the BOOTM_STATE_LOADOS state ourselves, so must</span></span><br><span class="line"><span class="comment">	 * disable interrupts ourselves</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	bootm_disable_interrupts();</span><br><span class="line"></span><br><span class="line">	images.os.os = IH_OS_LINUX;</span><br><span class="line">	ret = do_bootm_states(cmdtp, flag, argc, argv,</span><br><span class="line">			      BOOTM_STATE_OS_PREP | BOOTM_STATE_OS_FAKE_GO |</span><br><span class="line">			      BOOTM_STATE_OS_GO,</span><br><span class="line">			      &amp;images, <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第 8 行（第 629 行）：调用 bootz_start 函数， bootz_start 函数执行过程后边会再详细分析。</p>
+<p>第 15 行（第 636 行）：调用函数 bootm_disable_interrupts 关闭中断。</p>
+<p>第 17 行（第 638 行）：设置 images.os.os 为 IH_OS_LINUX，也就是设置系统镜像为 Linux，表示我们要启动的是 Linux 系统！后面会用到 images.os.os 来挑选具体的启动函数。</p>
+<p>第 18 行（第 639 行）：调用函数 do_bootm_states 来执行不同的 BOOT 阶段，这里要执行的 BOOT 阶段有：BOOTM_STATE_OS_PREP 、BOOTM_STATE_OS_FAKE_GO 和BOOTM_STATE_OS_GO。  </p>
+<h1 id="三、bootz-start-函数"><a href="#三、bootz-start-函数" class="headerlink" title="三、bootz_start 函数"></a><font size=3>三、bootz_start 函数</font></h1><p>bootz_start 主要用于初始化 images 的相关成员变量。  </p>
+<h2 id="1-bootz-start-函数在哪？"><a href="#1-bootz-start-函数在哪？" class="headerlink" title="1. bootz_start 函数在哪？"></a><font size=3>1. bootz_start 函数在哪？</font></h2><p>bootz_start 函数也定义在文件 cmd&#x2F;bootm.c 中，函数内容如下：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * zImage booting support</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">bootz_start</span><span class="params">(<span class="type">cmd_tbl_t</span> *cmdtp, <span class="type">int</span> flag, <span class="type">int</span> argc,</span></span><br><span class="line"><span class="params">			<span class="type">char</span> * <span class="type">const</span> argv[], <span class="type">bootm_headers_t</span> *images)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> ret;</span><br><span class="line">	ulong zi_start, zi_end;</span><br><span class="line"></span><br><span class="line">	ret = do_bootm_states(cmdtp, flag, argc, argv, BOOTM_STATE_START,</span><br><span class="line">			      images, <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Setup Linux kernel zImage entry point */</span></span><br><span class="line">	<span class="keyword">if</span> (!argc) &#123;</span><br><span class="line">		images-&gt;ep = load_addr;</span><br><span class="line">		debug(<span class="string">&quot;*  kernel: default image load address = 0x%08lx\n&quot;</span>,</span><br><span class="line">				load_addr);</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		images-&gt;ep = simple_strtoul(argv[<span class="number">0</span>], <span class="literal">NULL</span>, <span class="number">16</span>);</span><br><span class="line">		debug(<span class="string">&quot;*  kernel: cmdline image address = 0x%08lx\n&quot;</span>,</span><br><span class="line">			images-&gt;ep);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	ret = bootz_setup(images-&gt;ep, &amp;zi_start, &amp;zi_end);</span><br><span class="line">	<span class="keyword">if</span> (ret != <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	lmb_reserve(&amp;images-&gt;lmb, images-&gt;ep, zi_end - zi_start);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Handle the BOOTM_STATE_FINDOTHER state ourselves as we do not</span></span><br><span class="line"><span class="comment">	 * have a header that provide this informaiton.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (bootm_find_images(flag, argc, argv))</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_SECURE_BOOT</span></span><br><span class="line">	<span class="keyword">extern</span> <span class="type">uint32_t</span> <span class="title function_">authenticate_image</span><span class="params">(</span></span><br><span class="line"><span class="params">			<span class="type">uint32_t</span> ddr_start, <span class="type">uint32_t</span> image_size)</span>;</span><br><span class="line">	<span class="keyword">if</span> (authenticate_image(images-&gt;ep, zi_end - zi_start) == <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;Authenticate zImage Fail, Please check\n&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-做了什么？-1"><a href="#2-做了什么？-1" class="headerlink" title="2. 做了什么？"></a><font size=3>2. 做了什么？</font></h2><p>我们以下边的行号进行分析：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">bootz_start</span><span class="params">(<span class="type">cmd_tbl_t</span> *cmdtp, <span class="type">int</span> flag, <span class="type">int</span> argc,</span></span><br><span class="line"><span class="params">			<span class="type">char</span> * <span class="type">const</span> argv[], <span class="type">bootm_headers_t</span> *images)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> ret;</span><br><span class="line">	ulong zi_start, zi_end;</span><br><span class="line"></span><br><span class="line">	ret = do_bootm_states(cmdtp, flag, argc, argv, BOOTM_STATE_START,</span><br><span class="line">			      images, <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Setup Linux kernel zImage entry point */</span></span><br><span class="line">	<span class="keyword">if</span> (!argc) &#123;</span><br><span class="line">		images-&gt;ep = load_addr;</span><br><span class="line">		debug(<span class="string">&quot;*  kernel: default image load address = 0x%08lx\n&quot;</span>,</span><br><span class="line">				load_addr);</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		images-&gt;ep = simple_strtoul(argv[<span class="number">0</span>], <span class="literal">NULL</span>, <span class="number">16</span>);</span><br><span class="line">		debug(<span class="string">&quot;*  kernel: cmdline image address = 0x%08lx\n&quot;</span>,</span><br><span class="line">			images-&gt;ep);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	ret = bootz_setup(images-&gt;ep, &amp;zi_start, &amp;zi_end);</span><br><span class="line">	<span class="keyword">if</span> (ret != <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	lmb_reserve(&amp;images-&gt;lmb, images-&gt;ep, zi_end - zi_start);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Handle the BOOTM_STATE_FINDOTHER state ourselves as we do not</span></span><br><span class="line"><span class="comment">	 * have a header that provide this informaiton.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (bootm_find_images(flag, argc, argv))</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_SECURE_BOOT</span></span><br><span class="line">	<span class="keyword">extern</span> <span class="type">uint32_t</span> <span class="title function_">authenticate_image</span><span class="params">(</span></span><br><span class="line"><span class="params">			<span class="type">uint32_t</span> ddr_start, <span class="type">uint32_t</span> image_size)</span>;</span><br><span class="line">	<span class="keyword">if</span> (authenticate_image(images-&gt;ep, zi_end - zi_start) == <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;Authenticate zImage Fail, Please check\n&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第 7 行（第 584 行）：调用函数 do_bootm_states，执行 BOOTM_STATE_START 阶段。</p>
+<p>第 16 行（第 593 行）：设置 images 的 ep 成员变量，也就是系统镜像的入口点，使用 bootz 命令启动系统的时候就会设置系统在 DRAM 中的存储位置，这个存储位置就是系统镜像的入口点，因此 images-&gt;ep&#x3D;0X80800000。</p>
+<p>第 21 行（第 598 行）调用 bootz_setup 函数，此函数会判断当前的系统镜像文件是否为 Linux 的镜像文件，并且会打印出镜像相关信息， 这个函数后边会再详细说明。</p>
+<p>第 31 行（第 608 行）：调用函数 bootm_find_images 查找 ramdisk 和设备树(dtb)文件，但是我们没有用到 ramdisk，因此此函数在这里仅仅用于查找设备树(dtb)文件，此函数后边会详细说明。  </p>
+<h2 id="3-bootz-setup-函数"><a href="#3-bootz-setup-函数" class="headerlink" title="3. bootz_setup 函数"></a><font size=3>3. bootz_setup 函数</font></h2><p>bootz_setup 函数，此函数定义在文件 arch&#x2F;arm&#x2F;lib&#x2F;bootm.c 中，函数内容如下：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span>	LINUX_ARM_ZIMAGE_MAGIC	0x016f2818</span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">bootz_setup</span><span class="params">(ulong image, ulong *start, ulong *end)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">zimage_header</span> *<span class="title">zi</span>;</span></span><br><span class="line"></span><br><span class="line">	zi = (<span class="keyword">struct</span> zimage_header *)map_sysmem(image, <span class="number">0</span>);</span><br><span class="line">	<span class="keyword">if</span> (zi-&gt;zi_magic != LINUX_ARM_ZIMAGE_MAGIC) &#123;</span><br><span class="line">		<span class="built_in">puts</span>(<span class="string">&quot;Bad Linux ARM zImage magic!\n&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	*start = zi-&gt;zi_start;</span><br><span class="line">	*end = zi-&gt;zi_end;</span><br><span class="line"></span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;Kernel image @ %#08lx [ %#08lx - %#08lx ]\n&quot;</span>, image, *start,</span><br><span class="line">	      *end);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第 1 行（第 370 行）：宏 LINUX_ARM_ZIMAGE_MAGIC 就是 ARM Linux 系统魔术数。</p>
+<p>第 7 行（第 376 行）：从传递进来的参数 image(也就是系统镜像首地址)中获取 zimage 头。 zImage 头结构体为 zimage_header。</p>
+<p>第 8 ~ 11 行（第 377 ~ 380 行）：判断 image 是否为 ARM 的 Linux 系统镜像，如果不是的话就直接返回，并且打印出“Bad Linux ARM zImage magic!”。</p>
+<p>第 13、14 行（第 382、 383 行）：初始化函数 bootz_setup 的参数 start 和 end。  </p>
+<p>第 16 行（第 385 行）打印启动信息，如果 Linux 系统镜像正常的话就会输出下图所示的信息：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-01-uboot-05-uboot%E5%90%AF%E5%8A%A8%E5%86%85%E6%A0%B8/img/image-20221016160914087.png" alt="image-20221016160914087" style="zoom:50%;" />
+
+<h2 id="4-bootm-find-images-函数"><a href="#4-bootm-find-images-函数" class="headerlink" title="4. bootm_find_images 函数"></a><font size=3>4. bootm_find_images 函数</font></h2><p>bootm_find_images 函数，此函数定义在文件 common&#x2F;bootm.c 中 ，函数内容如下：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * bootm_find_images - wrapper to find and locate various images</span></span><br><span class="line"><span class="comment"> * @flag: Ignored Argument</span></span><br><span class="line"><span class="comment"> * @argc: command argument count</span></span><br><span class="line"><span class="comment"> * @argv: command argument list</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * boot_find_images() will attempt to load an available ramdisk,</span></span><br><span class="line"><span class="comment"> * flattened device tree, as well as specifically marked</span></span><br><span class="line"><span class="comment"> * &quot;loadable&quot; images (loadables are FIT only)</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Note: bootm_find_images will skip an image if it is not found</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * @return:</span></span><br><span class="line"><span class="comment"> *     0, if all existing images were loaded correctly</span></span><br><span class="line"><span class="comment"> *     1, if an image is found but corrupted, or invalid</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">bootm_find_images</span><span class="params">(<span class="type">int</span> flag, <span class="type">int</span> argc, <span class="type">char</span> * <span class="type">const</span> argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> ret;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* find ramdisk */</span></span><br><span class="line">	ret = boot_get_ramdisk(argc, argv, &amp;images, IH_INITRD_ARCH,</span><br><span class="line">			       &amp;images.rd_start, &amp;images.rd_end);</span><br><span class="line">	<span class="keyword">if</span> (ret) &#123;</span><br><span class="line">		<span class="built_in">puts</span>(<span class="string">&quot;Ramdisk image is corrupt or invalid\n&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(CONFIG_OF_LIBFDT)</span></span><br><span class="line">	<span class="comment">/* find flattened device tree */</span></span><br><span class="line">	ret = boot_get_fdt(flag, argc, argv, IH_ARCH_DEFAULT, &amp;images,</span><br><span class="line">			   &amp;images.ft_addr, &amp;images.ft_len);</span><br><span class="line">	<span class="keyword">if</span> (ret) &#123;</span><br><span class="line">		<span class="built_in">puts</span>(<span class="string">&quot;Could not find a valid device tree\n&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	set_working_fdt_addr((ulong)images.ft_addr);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(CONFIG_FIT)</span></span><br><span class="line">	<span class="comment">/* find all of the loadables */</span></span><br><span class="line">	ret = boot_get_loadable(argc, argv, &amp;images, IH_ARCH_DEFAULT,</span><br><span class="line">			       <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line">	<span class="keyword">if</span> (ret) &#123;</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;Loadable(s) is corrupt or invalid\n&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第 21 ~ 27 行（第 230~235 行）：查找 ramdisk，但是我们没有用到 ramdisk，因此这部分代码就不用关心了。</p>
+<p>第 29 ~ 36 行（第 237~244 行）：查找设备树(dtb)文件，找到以后就将设备树的起始地址和长度分别写到 images 的 ft_addr 和 ft_len 成员变量中。我们使用 bootz 启动 Linux 的时候已经指明了设备树在DRAM 中的存储地址，因此 images.ft_addr&#x3D;0X83000000，长度根据具体的设备树文件而定，比如我现在使用的设备树文件长度为 0X8C81的话，images.ft_len就为0X8C81。  </p>
+<h1 id="三、do-bootm-states-函数"><a href="#三、do-bootm-states-函数" class="headerlink" title="三、do_bootm_states 函数  "></a><font size=3>三、do_bootm_states 函数  </font></h1><p>do_bootz 最后调用的就是函数 do_bootm_states ，而且在 bootz_start 中也调用了do_bootm_states 函数。  </p>
+<h2 id="1-do-bootm-states-函数在哪？"><a href="#1-do-bootm-states-函数在哪？" class="headerlink" title="1. do_bootm_states 函数在哪？"></a><font size=3>1. do_bootm_states 函数在哪？</font></h2><p>do_bootm_states 函数定义在 common&#x2F;bootm.c 中 ，函数内容如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Execute selected states of the bootm command.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Note the arguments to this state must be the first argument, Any &#x27;bootm&#x27;</span></span><br><span class="line"><span class="comment"> * or sub-command arguments must have already been taken.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Note that if states contains more than one flag it MUST contain</span></span><br><span class="line"><span class="comment"> * BOOTM_STATE_START, since this handles and consumes the command line args.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Also note that aside from boot_os_fn functions and bootm_load_os no other</span></span><br><span class="line"><span class="comment"> * functions we store the return value of in &#x27;ret&#x27; may use a negative return</span></span><br><span class="line"><span class="comment"> * value, without special handling.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * @param cmdtp		Pointer to bootm command table entry</span></span><br><span class="line"><span class="comment"> * @param flag		Command flags (CMD_FLAG_...)</span></span><br><span class="line"><span class="comment"> * @param argc		Number of subcommand arguments (0 = no arguments)</span></span><br><span class="line"><span class="comment"> * @param argv		Arguments</span></span><br><span class="line"><span class="comment"> * @param states	Mask containing states to run (BOOTM_STATE_...)</span></span><br><span class="line"><span class="comment"> * @param images	Image header information</span></span><br><span class="line"><span class="comment"> * @param boot_progress 1 to show boot progress, 0 to not do this</span></span><br><span class="line"><span class="comment"> * @return 0 if ok, something else on error. Some errors will cause this</span></span><br><span class="line"><span class="comment"> *	function to perform a reboot! If states contains BOOTM_STATE_OS_GO</span></span><br><span class="line"><span class="comment"> *	then the intent is to boot an OS, so this function will not return</span></span><br><span class="line"><span class="comment"> *	unless the image type is standalone.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">do_bootm_states</span><span class="params">(<span class="type">cmd_tbl_t</span> *cmdtp, <span class="type">int</span> flag, <span class="type">int</span> argc, <span class="type">char</span> * <span class="type">const</span> argv[],</span></span><br><span class="line"><span class="params">		    <span class="type">int</span> states, <span class="type">bootm_headers_t</span> *images, <span class="type">int</span> boot_progress)</span></span><br><span class="line">&#123;</span><br><span class="line">	boot_os_fn *boot_fn;</span><br><span class="line">	ulong iflag = <span class="number">0</span>;</span><br><span class="line">	<span class="type">int</span> ret = <span class="number">0</span>, need_boot_fn;</span><br><span class="line"></span><br><span class="line">	images-&gt;state |= states;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Work through the states and see how far we get. We stop on</span></span><br><span class="line"><span class="comment">	 * any error.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (states &amp; BOOTM_STATE_START)</span><br><span class="line">		ret = bootm_start(cmdtp, flag, argc, argv);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!ret &amp;&amp; (states &amp; BOOTM_STATE_FINDOS))</span><br><span class="line">		ret = bootm_find_os(cmdtp, flag, argc, argv);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!ret &amp;&amp; (states &amp; BOOTM_STATE_FINDOTHER)) &#123;</span><br><span class="line">		ret = bootm_find_other(cmdtp, flag, argc, argv);</span><br><span class="line">		argc = <span class="number">0</span>;	<span class="comment">/* consume the args */</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Load the OS */</span></span><br><span class="line">	<span class="keyword">if</span> (!ret &amp;&amp; (states &amp; BOOTM_STATE_LOADOS)) &#123;</span><br><span class="line">		ulong load_end;</span><br><span class="line"></span><br><span class="line">		iflag = bootm_disable_interrupts();</span><br><span class="line">		ret = bootm_load_os(images, &amp;load_end, <span class="number">0</span>);</span><br><span class="line">		<span class="keyword">if</span> (ret == <span class="number">0</span>)</span><br><span class="line">			lmb_reserve(&amp;images-&gt;lmb, images-&gt;os.load,</span><br><span class="line">				    (load_end - images-&gt;os.load));</span><br><span class="line">		<span class="keyword">else</span> <span class="keyword">if</span> (ret &amp;&amp; ret != BOOTM_ERR_OVERLAP)</span><br><span class="line">			<span class="keyword">goto</span> err;</span><br><span class="line">		<span class="keyword">else</span> <span class="keyword">if</span> (ret == BOOTM_ERR_OVERLAP)</span><br><span class="line">			ret = <span class="number">0</span>;</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(CONFIG_SILENT_CONSOLE) &amp;&amp; !defined(CONFIG_SILENT_U_BOOT_ONLY)</span></span><br><span class="line">		<span class="keyword">if</span> (images-&gt;os.os == IH_OS_LINUX)</span><br><span class="line">			fixup_silent_linux();</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Relocate the ramdisk */</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_SYS_BOOT_RAMDISK_HIGH</span></span><br><span class="line">	<span class="keyword">if</span> (!ret &amp;&amp; (states &amp; BOOTM_STATE_RAMDISK)) &#123;</span><br><span class="line">		ulong rd_len = images-&gt;rd_end - images-&gt;rd_start;</span><br><span class="line"></span><br><span class="line">		ret = boot_ramdisk_high(&amp;images-&gt;lmb, images-&gt;rd_start,</span><br><span class="line">			rd_len, &amp;images-&gt;initrd_start, &amp;images-&gt;initrd_end);</span><br><span class="line">		<span class="keyword">if</span> (!ret) &#123;</span><br><span class="line">			setenv_hex(<span class="string">&quot;initrd_start&quot;</span>, images-&gt;initrd_start);</span><br><span class="line">			setenv_hex(<span class="string">&quot;initrd_end&quot;</span>, images-&gt;initrd_end);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(CONFIG_OF_LIBFDT) &amp;&amp; defined(CONFIG_LMB)</span></span><br><span class="line">	<span class="keyword">if</span> (!ret &amp;&amp; (states &amp; BOOTM_STATE_FDT)) &#123;</span><br><span class="line">		boot_fdt_add_mem_rsv_regions(&amp;images-&gt;lmb, images-&gt;ft_addr);</span><br><span class="line">		ret = boot_relocate_fdt(&amp;images-&gt;lmb, &amp;images-&gt;ft_addr,</span><br><span class="line">					&amp;images-&gt;ft_len);</span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* From now on, we need the OS boot function */</span></span><br><span class="line">	<span class="keyword">if</span> (ret)</span><br><span class="line">		<span class="keyword">return</span> ret;</span><br><span class="line">	boot_fn = bootm_os_get_boot_func(images-&gt;os.os);</span><br><span class="line">	need_boot_fn = states &amp; (BOOTM_STATE_OS_CMDLINE |</span><br><span class="line">			BOOTM_STATE_OS_BD_T | BOOTM_STATE_OS_PREP |</span><br><span class="line">			BOOTM_STATE_OS_FAKE_GO | BOOTM_STATE_OS_GO);</span><br><span class="line">	<span class="keyword">if</span> (boot_fn == <span class="literal">NULL</span> &amp;&amp; need_boot_fn) &#123;</span><br><span class="line">		<span class="keyword">if</span> (iflag)</span><br><span class="line">			enable_interrupts();</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;ERROR: booting os &#x27;%s&#x27; (%d) is not supported\n&quot;</span>,</span><br><span class="line">		       genimg_get_os_name(images-&gt;os.os), images-&gt;os.os);</span><br><span class="line">		bootstage_error(BOOTSTAGE_ID_CHECK_BOOT_OS);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Call various other states that are not generally used */</span></span><br><span class="line">	<span class="keyword">if</span> (!ret &amp;&amp; (states &amp; BOOTM_STATE_OS_CMDLINE))</span><br><span class="line">		ret = boot_fn(BOOTM_STATE_OS_CMDLINE, argc, argv, images);</span><br><span class="line">	<span class="keyword">if</span> (!ret &amp;&amp; (states &amp; BOOTM_STATE_OS_BD_T))</span><br><span class="line">		ret = boot_fn(BOOTM_STATE_OS_BD_T, argc, argv, images);</span><br><span class="line">	<span class="keyword">if</span> (!ret &amp;&amp; (states &amp; BOOTM_STATE_OS_PREP))</span><br><span class="line">		ret = boot_fn(BOOTM_STATE_OS_PREP, argc, argv, images);</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_TRACE</span></span><br><span class="line">	<span class="comment">/* Pretend to run the OS, then run a user command */</span></span><br><span class="line">	<span class="keyword">if</span> (!ret &amp;&amp; (states &amp; BOOTM_STATE_OS_FAKE_GO)) &#123;</span><br><span class="line">		<span class="type">char</span> *cmd_list = getenv(<span class="string">&quot;fakegocmd&quot;</span>);</span><br><span class="line"></span><br><span class="line">		ret = boot_selected_os(argc, argv, BOOTM_STATE_OS_FAKE_GO,</span><br><span class="line">				images, boot_fn);</span><br><span class="line">		<span class="keyword">if</span> (!ret &amp;&amp; cmd_list)</span><br><span class="line">			ret = run_command_list(cmd_list, <span class="number">-1</span>, flag);</span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Check for unsupported subcommand. */</span></span><br><span class="line">	<span class="keyword">if</span> (ret) &#123;</span><br><span class="line">		<span class="built_in">puts</span>(<span class="string">&quot;subcommand not supported\n&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> ret;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Now run the OS! We hope this doesn&#x27;t return */</span></span><br><span class="line">	<span class="keyword">if</span> (!ret &amp;&amp; (states &amp; BOOTM_STATE_OS_GO))</span><br><span class="line">		ret = boot_selected_os(argc, argv, BOOTM_STATE_OS_GO,</span><br><span class="line">				images, boot_fn);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Deal with any fallout */</span></span><br><span class="line">err:</span><br><span class="line">	<span class="keyword">if</span> (iflag)</span><br><span class="line">		enable_interrupts();</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (ret == BOOTM_ERR_UNIMPLEMENTED)</span><br><span class="line">		bootstage_error(BOOTSTAGE_ID_DECOMP_UNIMPL);</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (ret == BOOTM_ERR_RESET)</span><br><span class="line">		do_reset(cmdtp, flag, argc, argv);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-做了什么？-2"><a href="#2-做了什么？-2" class="headerlink" title="2. 做了什么？"></a><font size=3>2. 做了什么？</font></h2><p>函数 do_bootm_states 根据不同的 BOOT 状态执行不同的代码段，通过如下代码来判断BOOT 状态：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">states &amp; BOOTM_STATE_XXX</span><br></pre></td></tr></table></figure>
+
+<p>在 do_bootz 函数中会用到 BOOTM_STATE_OS_PREP 、BOOTM_STATE_OS_FAKE_GO 和 BOOTM_STATE_OS_GO 这三个 BOOT 状态，bootz_start 函数中会用到 BOOTM_STATE_START 这个 BOOT 状态。为了精简代码，方便分析，因此我们将上边的函数do_bootm_states 进行精简，只留下下面这 4 个 BOOT 状态对应的处理代码：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">do_bootm_states</span><span class="params">(<span class="type">cmd_tbl_t</span> *cmdtp, <span class="type">int</span> flag, <span class="type">int</span> argc, <span class="type">char</span> *</span></span><br><span class="line"><span class="params">                    <span class="type">const</span> argv[],</span></span><br><span class="line"><span class="params">                    <span class="type">int</span> states, <span class="type">bootm_headers_t</span> *images, <span class="type">int</span> boot_progress)</span></span><br><span class="line">&#123;</span><br><span class="line">	boot_os_fn *boot_fn;</span><br><span class="line">	ulong iflag = <span class="number">0</span>;</span><br><span class="line">	<span class="type">int</span> ret = <span class="number">0</span>, need_boot_fn;</span><br><span class="line"></span><br><span class="line">	images-&gt;state |= states;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	* Work through the states and see how far we get. We stop on</span></span><br><span class="line"><span class="comment">	* any error.</span></span><br><span class="line"><span class="comment">	*/</span></span><br><span class="line">	<span class="keyword">if</span> (states &amp; BOOTM_STATE_START)</span><br><span class="line">		ret = bootm_start(cmdtp, flag, argc, argv);</span><br><span class="line">	<span class="comment">// 中间部分省略 ......</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* From now on, we need the OS boot function */</span></span><br><span class="line">	<span class="keyword">if</span> (ret)</span><br><span class="line">		<span class="keyword">return</span> ret;</span><br><span class="line">	boot_fn = bootm_os_get_boot_func(images-&gt;os.os);</span><br><span class="line">	need_boot_fn = states &amp; (BOOTM_STATE_OS_CMDLINE |</span><br><span class="line">	                         BOOTM_STATE_OS_BD_T | BOOTM_STATE_OS_PREP |</span><br><span class="line">	                         BOOTM_STATE_OS_FAKE_GO | BOOTM_STATE_OS_GO);</span><br><span class="line">	<span class="keyword">if</span> (boot_fn == <span class="literal">NULL</span> &amp;&amp; need_boot_fn)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">if</span> (iflag)</span><br><span class="line">			enable_interrupts();</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;ERROR: booting os &#x27;%s&#x27; (%d) is not supported\n&quot;</span>,</span><br><span class="line">		       genimg_get_os_name(images-&gt;os.os), images-&gt;os.os);</span><br><span class="line">		bootstage_error(BOOTSTAGE_ID_CHECK_BOOT_OS);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 中间部分省略 ......</span></span><br><span class="line">	<span class="keyword">if</span> (!ret &amp;&amp; (states &amp; BOOTM_STATE_OS_PREP))</span><br><span class="line">		ret = boot_fn(BOOTM_STATE_OS_PREP, argc, argv, images);</span><br><span class="line"></span><br><span class="line">	<span class="meta">#<span class="keyword">ifdef</span> CONFIG_TRACE</span></span><br><span class="line">	<span class="comment">/* Pretend to run the OS, then run a user command */</span></span><br><span class="line">	<span class="keyword">if</span> (!ret &amp;&amp; (states &amp; BOOTM_STATE_OS_FAKE_GO))</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="type">char</span> *cmd_list = getenv(<span class="string">&quot;fakegocmd&quot;</span>);</span><br><span class="line"></span><br><span class="line">		ret = boot_selected_os(argc, argv, BOOTM_STATE_OS_FAKE_GO,</span><br><span class="line">		                       images, boot_fn);</span><br><span class="line">		<span class="keyword">if</span> (!ret &amp;&amp; cmd_list)</span><br><span class="line">			ret = run_command_list(cmd_list, <span class="number">-1</span>, flag);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Check for unsupported subcommand. */</span></span><br><span class="line">	<span class="keyword">if</span> (ret)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="built_in">puts</span>(<span class="string">&quot;subcommand not supported\n&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> ret;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Now run the OS! We hope this doesn&#x27;t return */</span></span><br><span class="line">	<span class="keyword">if</span> (!ret &amp;&amp; (states &amp; BOOTM_STATE_OS_GO))</span><br><span class="line">		ret = boot_selected_os(argc, argv, BOOTM_STATE_OS_GO,</span><br><span class="line">		                       images, boot_fn);</span><br><span class="line">	<span class="comment">// 中间部分省略 ......</span></span><br><span class="line">	<span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第 15、16 行（第 604、 605 行）：处理 BOOTM_STATE_START 阶段， bootz_start 会执行这一段代码，这里调用函数 bootm_start。</p>
+<details class="folding-tag" blue><summary> 点击查看 bootm_start 函数 </summary>
+              <div class='content'>
+              <p>函数定义在文件 common&#x2F;bootm.c 中，函数内容如下：  </p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">bootm_start</span><span class="params">(<span class="type">cmd_tbl_t</span> *cmdtp, <span class="type">int</span> flag, <span class="type">int</span> argc,</span></span><br><span class="line"><span class="params">		       <span class="type">char</span> * <span class="type">const</span> argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="built_in">memset</span>((<span class="type">void</span> *)&amp;images, <span class="number">0</span>, <span class="keyword">sizeof</span>(images));</span><br><span class="line">	images.verify = getenv_yesno(<span class="string">&quot;verify&quot;</span>);</span><br><span class="line"></span><br><span class="line">	boot_start_lmb(&amp;images);</span><br><span class="line"></span><br><span class="line">	bootstage_mark_name(BOOTSTAGE_ID_BOOTM_START, <span class="string">&quot;bootm_start&quot;</span>);</span><br><span class="line">	images.state = BOOTM_STATE_START;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>  
+
+<p>第 22 行（第 658 行）：通过函数 bootm_os_get_boot_func 来查找系统启动函数，参数 images-&gt;os.os 就是系统类型，根据这个系统类型来选择对应的启动函数，在 do_bootz 中设置 images.os.os&#x3D; IH_OS_LINUX。函数返回值就是找到的系统启动函数，这里找到的 Linux 系统启动函数为 do_bootm_linux，关于此函数查找系统启动函数的过程后边会再单独分析（第四节）。因此 boot_fn &#x3D; do_bootm_linux ，后面执行 boot_fn函数的地方实际上是执行的 do_bootm_linux 函数。  </p>
+<p>第 37 行（第 676 行）：处理 BOOTM_STATE_OS_PREP 状态，调用函数 do_bootm_linux， do_bootm_linux 也是调用 boot_prep_linux 来完成具体的处理过程。 boot_prep_linux 主要用于处理环境变量bootargs， bootargs 保存着传递给 Linux kernel 的参数。  </p>
+<p>第 40 ~ 51 行（第 679 ~ 689 行）：是处理 BOOTM_STATE_OS_FAKE_GO 状态的，但是要我们没有使能 TRACE功能，因此CONFIG_TRACE 也就没有定义，所以这段程序不会编译。  </p>
+<p>第 62 行（第 699 行）：调用函数 boot_selected_os 启动 Linux 内核，此函数第 4 个参数为 Linux 系统镜像头，第 5 个参数就是 Linux 系统启动函数 do_bootm_linux。   </p>
+<details class="folding-tag" blue><summary> 点击查看 boot_selected_os 函数 </summary>
+              <div class='content'>
+              <p>boot_selected_os 函数定义在文件 common&#x2F;bootm_os.c 中，函数内容如下：  </p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">boot_selected_os</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> * <span class="type">const</span> argv[], <span class="type">int</span> state,</span></span><br><span class="line"><span class="params">		     <span class="type">bootm_headers_t</span> *images, boot_os_fn *boot_fn)</span></span><br><span class="line">&#123;</span><br><span class="line">	arch_preboot_os();</span><br><span class="line">	boot_fn(state, argc, argv, images);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Stand-alone may return when &#x27;autostart&#x27; is &#x27;no&#x27; */</span></span><br><span class="line">	<span class="keyword">if</span> (images-&gt;os.type == IH_TYPE_STANDALONE ||</span><br><span class="line">	    state == BOOTM_STATE_OS_FAKE_GO) <span class="comment">/* We expect to return */</span></span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	bootstage_error(BOOTSTAGE_ID_BOOT_OS_RETURNED);</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> DEBUG</span></span><br><span class="line">	<span class="built_in">puts</span>(<span class="string">&quot;\n## Control returned to monitor - resetting...\n&quot;</span>);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="keyword">return</span> BOOTM_ERR_RESET;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>第 5 行（第 480 行）：调用 boot_fn 函数，也就是 do_bootm_linux 函数来启动 Linux 内核。  </p>
+              </div>
+            </details>
+
+<h1 id="四、bootm-os-get-boot-func-函数"><a href="#四、bootm-os-get-boot-func-函数" class="headerlink" title="四、bootm_os_get_boot_func 函数"></a><font size=3>四、bootm_os_get_boot_func 函数</font></h1><p>do_bootm_states 会调用 bootm_os_get_boot_func 来查找对应系统的启动函数 。</p>
+<h2 id="1-bootm-os-get-boot-func-函数在哪？"><a href="#1-bootm-os-get-boot-func-函数在哪？" class="headerlink" title="1. bootm_os_get_boot_func 函数在哪？"></a><font size=3>1. bootm_os_get_boot_func 函数在哪？</font></h2><p>bootm_os_get_boot_func 函数定义在文件 common&#x2F;bootm_os.c 中，函数内容如下： </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">boot_os_fn *<span class="title function_">bootm_os_get_boot_func</span><span class="params">(<span class="type">int</span> os)</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_NEEDS_MANUAL_RELOC</span></span><br><span class="line">	<span class="type">static</span> <span class="type">bool</span> relocated;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!relocated) &#123;</span><br><span class="line">		<span class="type">int</span> i;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* relocate boot function table */</span></span><br><span class="line">		<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; ARRAY_SIZE(boot_os); i++)</span><br><span class="line">			<span class="keyword">if</span> (boot_os[i] != <span class="literal">NULL</span>)</span><br><span class="line">				boot_os[i] += gd-&gt;reloc_off;</span><br><span class="line"></span><br><span class="line">		relocated = <span class="literal">true</span>;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="keyword">return</span> boot_os[os];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-做了什么"><a href="#2-做了什么" class="headerlink" title="2. 做了什么"></a><font size=3>2. 做了什么</font></h2><p>我们使用下边的行号进行分析：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">boot_os_fn *<span class="title function_">bootm_os_get_boot_func</span><span class="params">(<span class="type">int</span> os)</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_NEEDS_MANUAL_RELOC</span></span><br><span class="line">	<span class="type">static</span> <span class="type">bool</span> relocated;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!relocated) &#123;</span><br><span class="line">		<span class="type">int</span> i;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* relocate boot function table */</span></span><br><span class="line">		<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; ARRAY_SIZE(boot_os); i++)</span><br><span class="line">			<span class="keyword">if</span> (boot_os[i] != <span class="literal">NULL</span>)</span><br><span class="line">				boot_os[i] += gd-&gt;reloc_off;</span><br><span class="line"></span><br><span class="line">		relocated = <span class="literal">true</span>;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="keyword">return</span> boot_os[os];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第 3 ~ 16 行（第 495~508 行）：条件编译，在我们使用的这个 uboot 中没有用到，因此这段代码无效。</p>
+<p>第 17 行（第 509 行）：boot_os 是个数组，这个数组里面存放着不同的系统对应的启动函数。  </p>
+<details class="folding-tag" blue><summary> 点击查看 boot_os </summary>
+              <div class='content'>
+              <p>boot_os 定义在文件 common&#x2F;bootm_os.c 中，如下所示： </p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> boot_os_fn *boot_os[] = &#123;</span><br><span class="line">	[IH_OS_U_BOOT] = do_bootm_standalone,</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_BOOTM_LINUX</span></span><br><span class="line">	[IH_OS_LINUX] = do_bootm_linux,</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_BOOTM_NETBSD</span></span><br><span class="line">	[IH_OS_NETBSD] = do_bootm_netbsd,</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_LYNXKDI</span></span><br><span class="line">	[IH_OS_LYNXOS] = do_bootm_lynxkdi,</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_BOOTM_RTEMS</span></span><br><span class="line">	[IH_OS_RTEMS] = do_bootm_rtems,</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(CONFIG_BOOTM_OSE)</span></span><br><span class="line">	[IH_OS_OSE] = do_bootm_ose,</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(CONFIG_BOOTM_PLAN9)</span></span><br><span class="line">	[IH_OS_PLAN9] = do_bootm_plan9,</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(CONFIG_BOOTM_VXWORKS) &amp;&amp; \</span></span><br><span class="line"><span class="meta">	(defined(CONFIG_PPC) || defined(CONFIG_ARM))</span></span><br><span class="line">	[IH_OS_VXWORKS] = do_bootm_vxworks,</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(CONFIG_CMD_ELF)</span></span><br><span class="line">	[IH_OS_QNX] = do_bootm_qnxelf,</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_INTEGRITY</span></span><br><span class="line">	[IH_OS_INTEGRITY] = do_bootm_integrity,</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_BOOTM_OPENRTOS</span></span><br><span class="line">	[IH_OS_OPENRTOS] = do_bootm_openrtos,</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure><p>第 4 行（ 第 438 行）：是 Linux 系统对应的启动函数 do_bootm_linux 。  </p>
+              </div>
+            </details>
+
+<h1 id="五、do-bootm-linux-函数"><a href="#五、do-bootm-linux-函数" class="headerlink" title="五、do_bootm_linux 函数  "></a><font size=3>五、do_bootm_linux 函数  </font></h1><h2 id="1-do-bootm-linux-函数在哪？"><a href="#1-do-bootm-linux-函数在哪？" class="headerlink" title="1. do_bootm_linux 函数在哪？"></a><font size=3>1. do_bootm_linux 函数在哪？</font></h2><p>do_bootm_linux 就是最终启动 Linux 内核的函数，此函数定义在文件 arch&#x2F;arm&#x2F;lib&#x2F;bootm.c，函数内容如下：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Main Entry point for arm bootm implementation</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Modeled after the powerpc implementation</span></span><br><span class="line"><span class="comment"> * DIFFERENCE: Instead of calling prep and go at the end</span></span><br><span class="line"><span class="comment"> * they are called if subcommand is equal 0.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">do_bootm_linux</span><span class="params">(<span class="type">int</span> flag, <span class="type">int</span> argc, <span class="type">char</span> * <span class="type">const</span> argv[],</span></span><br><span class="line"><span class="params">		   <span class="type">bootm_headers_t</span> *images)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">/* No need for those on ARM */</span></span><br><span class="line">	<span class="keyword">if</span> (flag &amp; BOOTM_STATE_OS_BD_T || flag &amp; BOOTM_STATE_OS_CMDLINE)</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (flag &amp; BOOTM_STATE_OS_PREP) &#123;</span><br><span class="line">		boot_prep_linux(images);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (flag &amp; (BOOTM_STATE_OS_GO | BOOTM_STATE_OS_FAKE_GO)) &#123;</span><br><span class="line">		boot_jump_linux(images, flag);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	boot_prep_linux(images);</span><br><span class="line">	boot_jump_linux(images, flag);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-做了什么？-3"><a href="#2-做了什么？-3" class="headerlink" title="2. 做了什么？"></a><font size=3>2. 做了什么？</font></h2><p>我们以下边的行号进行分析：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">do_bootm_linux</span><span class="params">(<span class="type">int</span> flag, <span class="type">int</span> argc, <span class="type">char</span> * <span class="type">const</span> argv[],</span></span><br><span class="line"><span class="params">		   <span class="type">bootm_headers_t</span> *images)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">/* No need for those on ARM */</span></span><br><span class="line">	<span class="keyword">if</span> (flag &amp; BOOTM_STATE_OS_BD_T || flag &amp; BOOTM_STATE_OS_CMDLINE)</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (flag &amp; BOOTM_STATE_OS_PREP) &#123;</span><br><span class="line">		boot_prep_linux(images);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (flag &amp; (BOOTM_STATE_OS_GO | BOOTM_STATE_OS_FAKE_GO)) &#123;</span><br><span class="line">		boot_jump_linux(images, flag);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	boot_prep_linux(images);</span><br><span class="line">	boot_jump_linux(images, flag);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第 13 行（第 351 行）：如果参数flag等于BOOTM_STATE_OS_GO或者BOOTM_STATE_OS_FAKE_GO 的话就执行 boot_jump_linux 函数。 boot_selected_os 函数在调用 do_bootm_linux 的时候会将 flag设置为 BOOTM_STATE_OS_GO。</p>
+<p>第 14 行（第 352 行）：执行函数 boot_jump_linux，这个函数可以看下一小节。</p>
+<h2 id="3-boot-jump-linux"><a href="#3-boot-jump-linux" class="headerlink" title="3. boot_jump_linux"></a><font size=3>3. boot_jump_linux</font></h2><p>此函数定义在文件 arch&#x2F;arm&#x2F;lib&#x2F;bootm.c 中，函数内容如下：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">boot_jump_linux</span><span class="params">(<span class="type">bootm_headers_t</span> *images, <span class="type">int</span> flag)</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_ARM64</span></span><br><span class="line">	<span class="type">void</span> (*kernel_entry)(<span class="type">void</span> *fdt_addr, <span class="type">void</span> *res0, <span class="type">void</span> *res1,</span><br><span class="line">			<span class="type">void</span> *res2);</span><br><span class="line">	<span class="type">int</span> fake = (flag &amp; BOOTM_STATE_OS_FAKE_GO);</span><br><span class="line"></span><br><span class="line">	kernel_entry = (<span class="type">void</span> (*)(<span class="type">void</span> *fdt_addr, <span class="type">void</span> *res0, <span class="type">void</span> *res1,</span><br><span class="line">				<span class="type">void</span> *res2))images-&gt;ep;</span><br><span class="line"></span><br><span class="line">	debug(<span class="string">&quot;## Transferring control to Linux (at address %lx)...\n&quot;</span>,</span><br><span class="line">		(ulong) kernel_entry);</span><br><span class="line">	bootstage_mark(BOOTSTAGE_ID_RUN_OS);</span><br><span class="line"></span><br><span class="line">	announce_and_cleanup(fake);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!fake) &#123;</span><br><span class="line">		do_nonsec_virt_switch();</span><br><span class="line">		kernel_entry(images-&gt;ft_addr, <span class="literal">NULL</span>, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> machid = gd-&gt;bd-&gt;bi_arch_number;</span><br><span class="line">	<span class="type">char</span> *s;</span><br><span class="line">	<span class="type">void</span> (*kernel_entry)(<span class="type">int</span> zero, <span class="type">int</span> arch, uint params);</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> r2;</span><br><span class="line">	<span class="type">int</span> fake = (flag &amp; BOOTM_STATE_OS_FAKE_GO);</span><br><span class="line"></span><br><span class="line">	kernel_entry = (<span class="type">void</span> (*)(<span class="type">int</span>, <span class="type">int</span>, uint))images-&gt;ep;</span><br><span class="line"></span><br><span class="line">	s = getenv(<span class="string">&quot;machid&quot;</span>);</span><br><span class="line">	<span class="keyword">if</span> (s) &#123;</span><br><span class="line">		<span class="keyword">if</span> (strict_strtoul(s, <span class="number">16</span>, &amp;machid) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">			debug(<span class="string">&quot;strict_strtoul failed!\n&quot;</span>);</span><br><span class="line">			<span class="keyword">return</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;Using machid 0x%lx from environment\n&quot;</span>, machid);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	debug(<span class="string">&quot;## Transferring control to Linux (at address %08lx)&quot;</span> \</span><br><span class="line">		<span class="string">&quot;...\n&quot;</span>, (ulong) kernel_entry);</span><br><span class="line">	bootstage_mark(BOOTSTAGE_ID_RUN_OS);</span><br><span class="line">	announce_and_cleanup(fake);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (IMAGE_ENABLE_OF_LIBFDT &amp;&amp; images-&gt;ft_len)</span><br><span class="line">		r2 = (<span class="type">unsigned</span> <span class="type">long</span>)images-&gt;ft_addr;</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		r2 = gd-&gt;bd-&gt;bi_boot_params;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!fake) &#123;</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_ARMV7_NONSEC</span></span><br><span class="line">		<span class="keyword">if</span> (armv7_boot_nonsec()) &#123;</span><br><span class="line">			armv7_init_nonsec();</span><br><span class="line">			secure_ram_addr(_do_nonsec_entry)(kernel_entry,</span><br><span class="line">							  <span class="number">0</span>, machid, r2);</span><br><span class="line">		&#125; <span class="keyword">else</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">			kernel_entry(<span class="number">0</span>, machid, r2);</span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第 3 ~ 21 行（第 274~292 行）：是 64 位 ARM 芯片对应的代码， Cortex-A7 是 32 位芯片，因此用不到。</p>
+<p>第 22 行（第 293 行）：变量 machid 保存机器 ID，如果不使用设备树的话这个机器 ID 会被传递给 Linux内核， Linux 内核会在自己的机器 ID 列表里面查找是否存在与 uboot 传递进来的 machid 匹配的项目，如果存在就说明 Linux 内核支持这个机器，那么 Linux 就会启动！如果使用设备树的话这个 machid 就无效了，设备树存有一个“兼容性”这个属性， Linux 内核会比较“兼容性”属性的值(字符串)来查看是否支持这个机器。】、</p>
+<p>第 24 行（第 295 行）函数 kernel_entry，看名字“内核_进入”，说明此函数是进入 Linux 内核的，也就是最终的启动内核函数。此函数有三个参数： zero， arch， params，第一个参数 zero 同样为 0；第二个参数为机器 ID； 第三个参数 ATAGS 或者设备树(DTB)首地址，ATAGS 是传统的方法，用于传递一些命令行信息，如果使用设备树的话就要传递设备树(DTB)。</p>
+<p>第 28 行（第 299 行）：获取 kernel_entry 函数，函数 kernel_entry 并不是 uboot 定义的，而是 Linux 内核定义的， Linux 内核镜像文件的第一行代码就是函数 kernel_entry，而 images-&gt;ep 保存着 Linux内核镜像的起始地址，起始地址保存的正是 Linux 内核第一行代码。</p>
+<p>第 42 行（第 313 行）：调用函数 announce_and_cleanup 来打印一些信息并做一些清理工作。  </p>
+<details class="folding-tag" blue><summary> 点击查看 announce_and_cleanup 函数 </summary>
+              <div class='content'>
+              <p>此函数定义在文件 arch&#x2F;arm&#x2F;lib&#x2F;bootm.c 中，函数内容如下：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">announce_and_cleanup</span><span class="params">(<span class="type">int</span> fake)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;\nStarting kernel ...%s\n\n&quot;</span>, fake ?</span><br><span class="line">		<span class="string">&quot;(fake run for tracing)&quot;</span> : <span class="string">&quot;&quot;</span>);</span><br><span class="line">	bootstage_mark_name(BOOTSTAGE_ID_BOOTM_HANDOFF, <span class="string">&quot;start_kernel&quot;</span>);</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_BOOTSTAGE_FDT</span></span><br><span class="line">	bootstage_fdt_add_report();</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_BOOTSTAGE_REPORT</span></span><br><span class="line">	bootstage_report();</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_USB_DEVICE</span></span><br><span class="line">	udc_disconnect();</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	cleanup_before_linux();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>第 3 行（第 74 行）：在启动 Linux 之前输出“Starting kernel …”信息 。</p><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-01-uboot-05-uboot%E5%90%AF%E5%8A%A8%E5%86%85%E6%A0%B8/img/image-20221016170514552.png" alt="image-20221016170514552" style="zoom:50%;" /><p>第 16 行（第 87 行）：调用 cleanup_before_linux 函数做一些清理工作。  </p>
+              </div>
+            </details>  
+
+<p>第 44 ~ 47 行（第 315 ~ 318 行）：是设置寄存器 r2 的值，Linux 内核一开始是汇编代码，因此函数 kernel_entry 就是个汇编函数。向汇编函数传递参数要使用 r0、 r1 和 r2(参数数量不超过 3 个的时候)，所以 r2 寄存器就是函数 kernel_entry 的第三个参数。</p>
+<p>第 45 行（第 316 行）：如果使用设备树的话， r2 应该是设备树的起始地址，而设备树地址保存在 images的 ftd_addr 成员变量中。</p>
+<p>第 46 行（第 317 行）：如果不使用设备树的话， r2 应该是 uboot 传递给 Linux 的参数起始地址，也就是环境变量 bootargs 的值。</p>
+<p>第 57 行（第 328 行）：调用 kernel_entry 函数进入 Linux 内核， uboot 的使命也就完成了。  </p>
+<h1 id="六、bootz-命令总结"><a href="#六、bootz-命令总结" class="headerlink" title="六、bootz 命令总结"></a><font size=3>六、bootz 命令总结</font></h1><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/LV05-01-uboot-05-uboot%E5%90%AF%E5%8A%A8%E5%86%85%E6%A0%B8/img/bootz.png" alt="bootz" style="zoom:50%;" />
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/a7c5ba62.html">LV05-01-uboot-05-uboot启动内核</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年09月08日 - 19:22</p>
+    <p><span>最后更新:</span>2025年04月08日 - 07:43</p>
+    <p><span>原始链接:</span><a href="/post/a7c5ba62.html" title="LV05-01-uboot-05-uboot启动内核">https://sumumm.github.io/post/a7c5ba62.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/ALPHA-LV05-uboot%E4%B8%8E%E5%86%85%E6%A0%B8/" rel="tag"><i class="fa fa-tag"></i> (ALPHA)LV05-uboot与内核</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/aadd7195.html" rel="prev" title="LV05-01-uboot-06-顶层Makefile-01-基础分析">
+                  <i class="fa fa-angle-left"></i> LV05-01-uboot-06-顶层Makefile-01-基础分析
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/e99b9cbc.html" rel="next" title="LV05-01-uboot-04-uboot启动流程">
+                  LV05-01-uboot-04-uboot启动流程 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">223:41</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

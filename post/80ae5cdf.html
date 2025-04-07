@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是MJPG-streamer移植的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV11-03-MJPGstreamer-01-移植过程">
+<meta property="og:url" content="https://sumumm.github.io/post/80ae5cdf.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是MJPG-streamer移植的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV11-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/LV11-03-MJPGstreamer-01-%E7%A7%BB%E6%A4%8D%E8%BF%87%E7%A8%8B/img/image-20220921125818332.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV11-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/LV11-03-MJPGstreamer-01-%E7%A7%BB%E6%A4%8D%E8%BF%87%E7%A8%8B/img/image-20220908195109650.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV11-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/LV11-03-MJPGstreamer-01-%E7%A7%BB%E6%A4%8D%E8%BF%87%E7%A8%8B/img/image-20220908195641133.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV11-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/LV11-03-MJPGstreamer-01-%E7%A7%BB%E6%A4%8D%E8%BF%87%E7%A8%8B/img/image-20220908200205038.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV11-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/LV11-03-MJPGstreamer-01-%E7%A7%BB%E6%A4%8D%E8%BF%87%E7%A8%8B/img/image-20220909071115108.png">
+<meta property="article:published_time" content="2023-07-08T11:17:40.000Z">
+<meta property="article:modified_time" content="2025-04-07T23:43:52.616Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV11-第三方库">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV11-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/LV11-03-MJPGstreamer-01-%E7%A7%BB%E6%A4%8D%E8%BF%87%E7%A8%8B/img/image-20220921125818332.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/80ae5cdf.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/80ae5cdf.html","path":"post/80ae5cdf.html","title":"LV11-03-MJPGstreamer-01-移植过程"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV11-03-MJPGstreamer-01-移植过程 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">41</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">668</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81mjpg-streamer%E7%AE%80%E4%BB%8B"><span class="nav-text">一、mjpg-streamer简介</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-MJPG"><span class="nav-text">1. MJPG</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%91%84%E5%83%8F%E5%A4%B4"><span class="nav-text">2. 摄像头</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-mjpg-streamer%E8%A7%86%E9%A2%91%E6%B5%81%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="nav-text">3. mjpg-streamer视频流服务器</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%96%87%E4%BB%B6%E5%87%86%E5%A4%87"><span class="nav-text">二、文件准备</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-jpeg-%E5%BA%93"><span class="nav-text">1. jpeg 库</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E6%BA%90%E7%A0%81%E8%8E%B7%E5%8F%96%E9%80%94%E5%BE%84"><span class="nav-text">1.1 源码获取途径</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E8%8E%B7%E5%8F%96%E6%BA%90%E7%A0%81%E6%96%87%E4%BB%B6"><span class="nav-text">1.2 获取源码文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E6%8B%B7%E8%B4%9D%E8%A7%A3%E5%8E%8B"><span class="nav-text">1.3 拷贝解压</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-mjpg-stream"><span class="nav-text">2. mjpg-stream </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E6%BA%90%E7%A0%81%E8%8E%B7%E5%8F%96%E9%80%94%E5%BE%84"><span class="nav-text">2.1 源码获取途径</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E8%8E%B7%E5%8F%96%E6%BA%90%E7%A0%81%E6%96%87%E4%BB%B6"><span class="nav-text">2.2 获取源码文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E6%8B%B7%E8%B4%9D%E8%A7%A3%E5%8E%8B-1"><span class="nav-text">1.3 拷贝解压</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81-USB-%E6%94%AF%E6%8C%81"><span class="nav-text">三、 USB 支持</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%B7%B2%E6%9C%89%E9%85%8D%E7%BD%AE"><span class="nav-text">1. 已有配置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-USB-support"><span class="nav-text">1.1 USB support </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-SCSI-device-support"><span class="nav-text">1.2 SCSI device support </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%96%B0%E5%A2%9E%E9%85%8D%E7%BD%AE"><span class="nav-text">2. 新增配置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-Multimedia-support"><span class="nav-text">2.1 Multimedia support </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%BC%96%E8%AF%91%E5%86%85%E6%A0%B8"><span class="nav-text">3. 编译内核</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E9%87%8D%E5%90%AF%E6%B5%8B%E8%AF%95"><span class="nav-text">4. 重启测试</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81jpeg-%E5%BA%93%E7%A7%BB%E6%A4%8D"><span class="nav-text">四、jpeg 库移植</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AA%E7%9B%AE%E5%BD%95"><span class="nav-text">1. 创建一个目录</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%85%8D%E7%BD%AE%E6%BA%90%E7%A0%81"><span class="nav-text">2. 配置源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%BC%96%E8%AF%91%E6%BA%90%E7%A0%81"><span class="nav-text">3. 编译源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%AE%89%E8%A3%85%E5%88%B0%E5%88%9B%E5%BB%BA%E7%9A%84%E7%9B%AE%E5%BD%95"><span class="nav-text">4. 安装到创建的目录</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%8B%B7%E8%B4%9D%E5%BA%93%E6%96%87%E4%BB%B6%E5%88%B0%E7%B3%BB%E7%BB%9F"><span class="nav-text">5. 拷贝库文件到系统</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%94%E3%80%81mjpg-streamer-%E7%A7%BB%E6%A4%8D"><span class="nav-text">五、mjpg-streamer 移植</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%BA%90%E7%A0%81%E4%BF%AE%E6%94%B9"><span class="nav-text">1. 源码修改</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%BC%96%E8%AF%91%E6%BA%90%E7%A0%81"><span class="nav-text">2. 编译源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BF%AE%E6%94%B9-start-sh"><span class="nav-text">3. 修改 start.sh </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%AE%89%E8%A3%85%E5%88%B0%E5%BC%80%E5%8F%91%E6%9D%BF"><span class="nav-text">4. 安装到开发板</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E5%90%AF%E5%8A%A8%E6%B5%8B%E8%AF%95"><span class="nav-text">5. 启动测试</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%85%AD%E3%80%81%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3"><span class="nav-text">六、问题解决</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E9%97%AE%E9%A2%98%E4%B8%80"><span class="nav-text">1. 问题一</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%97%AE%E9%A2%98%E4%BA%8C"><span class="nav-text">2. 问题二</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E9%97%AE%E9%A2%98%E4%B8%89"><span class="nav-text">3. 问题三</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E9%97%AE%E9%A2%98%E5%9B%9B"><span class="nav-text">4. 问题四</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">668</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">41</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/80ae5cdf.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV11-03-MJPGstreamer-01-移植过程 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV11-03-MJPGstreamer-01-移植过程
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-07-08 19:17:40" itemprop="dateCreated datePublished" datetime="2023-07-08T19:17:40+08:00">2023-07-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV11-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/" itemprop="url" rel="index"><span itemprop="name">LV11-第三方库</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>18 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是MJPG-streamer移植的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV11-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/LV11-03-MJPGstreamer-01-%E7%A7%BB%E6%A4%8D%E8%BF%87%E7%A8%8B/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center" width=150>Linux开发板</td>        <td align="left">华清远见 底板: FS4412_DEV_V5 核心板: FS4412 V2</td>      </tr>    <tr>        <td align="center" width=150>u-boot</td>        <td align="left">2013.01</td>      </tr>    <tr>        <td align="center" width=150>linux内核</td>        <td align="left">linuz-3.14</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向</td><td align="center">参考原文</td></tr>    <tr><td align="left">华清远见课程</td><td align="left">华清远见课程</td></tr>    <tr><td align="left">MJPG-streamer</td><td align="left"><a href="https://sourceforge.net/projects/mjpg-streamer/" target="_blank">MJPG-streamer download | SourceForge.net <i class="fa fa-external-link-alt"></i> </a></td></tr>    <tr><td align="left">jpeg库</td><td align="left"><a href="http://www.ijg.org/" target="_blank">Independent JPEG Group (ijg.org) <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">文件</td><td align="center">下载链接</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<h1 id="一、mjpg-streamer简介"><a href="#一、mjpg-streamer简介" class="headerlink" title="一、mjpg-streamer简介"></a><font size=3>一、mjpg-streamer简介</font></h1><h2 id="1-MJPG"><a href="#1-MJPG" class="headerlink" title="1. MJPG"></a><font size=3>1. MJPG</font></h2><p>MJPG 是 MJPEG 的缩写，但是 MJPEG 还可以表示一种文件格式扩展名。MJPEG 全名为 “Motion Joint Photographic Experts Group”，是一种<strong>视频编码格式</strong>，Motion JPEG 技术常用与闭合电路的电视摄像机的模拟视频信号“翻译”成视频流，并存储在硬盘上。</p>
+<p>典型的应用如数字视频记录器等。 MJPEG 不像 MPEG，不使用帧间编码，因此用一个非线性编辑器就很容易编辑。</p>
+<p>MJPEG 的压缩算法与 MPEG 一脉相承，功能很强大，能发送高质图片，生成完全动画视频等。但相应地， MJPEG 对带宽的要求也很高，相当于 T-1， MJPEG 信息是存储在数字媒体中的庞然大物，需要大量的存储空间以满足如今多数用户的需求。因此从另一个角度说，在某些条件下， MJPEG 也许是效率最低的编码&#x2F;解码器之一。</p>
+<p>MJPEG 是 24-bit 的 “true-color” 影像标准， MJPEG 的工作是将 RGB 格式的影像转换成 YCrCB 格式，目的是为了减少档案大小，一般约可减少   1&#x2F;3 ~ 1&#x2F;2 左右。</p>
+<h2 id="2-摄像头"><a href="#2-摄像头" class="headerlink" title="2. 摄像头"></a><font size=3>2. 摄像头</font></h2><p>免驱动摄像头，是一种遵循视频设备类（USB Video Class，简称 UVC ）标准协议的摄像头产品。将符合标准的摄像头连接到符合标准的操作系统，系统就会自动为其安装驱动并进行设置，使摄像头实现真正意义上的即插即用。</p>
+<p>UVC 是一种硬件的框架结构，只有当其是通过一种标准的设计使其实现了免驱；而 V4L2 是一种驱动程序，其是实现系统与 UVC 设备等的通信。</p>
+<h2 id="3-mjpg-streamer视频流服务器"><a href="#3-mjpg-streamer视频流服务器" class="headerlink" title="3. mjpg-streamer视频流服务器"></a><font size=3>3. mjpg-streamer视频流服务器</font></h2><p>mjpg-streamer简单来说就是一个jpeg文件的传输流服务器，它最常用的用途就是<strong>采集摄像头的数据</strong>，然后启动 http server，用户就可以通过浏览器查看图像数据了。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV11-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/LV11-03-MJPGstreamer-01-%E7%A7%BB%E6%A4%8D%E8%BF%87%E7%A8%8B/img/image-20220921125818332.png" alt="image-20220921125818332" style="zoom: 50%;" />
+
+<p>UVC摄像头 + 驱动 + JPEG图库 + mjpeg-streamer + HTML 就完成了对用户远程提供视屏展示的服务。首先底层通过摄像头采集图片，通过驱动将数据流存储到JPEG图库，最终通过html交给用户的浏览器来解析，而mjpeg-streamer用来实现对这一流程的的控制。构成mjpeg-streamer视频流服务器。</p>
+<p>当所有的工作完成后，启动mjpg-streamer视频流服务器，然后在打开这个网页：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://&lt;开发板IP&gt;:8080/?action=stream</span><br></pre></td></tr></table></figure>
+
+<p>就可以看到我们采集到的视频流了，后边一直完成的测试会有演示。</p>
+<h1 id="二、文件准备"><a href="#二、文件准备" class="headerlink" title="二、文件准备"></a><font size=3>二、文件准备</font></h1><h2 id="1-jpeg-库"><a href="#1-jpeg-库" class="headerlink" title="1. jpeg 库"></a><font size=3>1. jpeg 库</font></h2><h3 id="1-1-源码获取途径"><a href="#1-1-源码获取途径" class="headerlink" title="1.1 源码获取途径"></a><font size=3>1.1 源码获取途径</font></h3><p>关于 jpeg 库的官方源码我们可以从这里获取：<a target="_blank" rel="noopener" href="http://www.ijg.org/files/">Directory Listing of &#x2F;files (ijg.org)  <i class="fa fa-external-link-alt"></i></a></p>
+<h3 id="1-2-获取源码文件"><a href="#1-2-获取源码文件" class="headerlink" title="1.2 获取源码文件"></a><font size=3>1.2 获取源码文件</font></h3><p>我下载的是 jpegsrc.v8b.tar.gz 这个压缩包并将其存放于 ubuntu 下的共享文件夹下，路径为：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/mnt/hgfs/Sharedfiles/jpegsrc.v8b.tar.gz</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-3-拷贝解压"><a href="#1-3-拷贝解压" class="headerlink" title="1.3 拷贝解压"></a><font size=3>1.3 拷贝解压</font></h3><p>然后我们可以将这个源码文件拷贝解压到 ubuntu 中，方便后边编译，我们可以在终端执行以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cp /mnt/hgfs/Sharedfiles/jpegsrc.v8b.tar.gz ~/5linux/    # 拷贝压缩包</span><br><span class="line">cd ~/5linux/</span><br><span class="line">tar xvf jpegsrc.v8b.tar.gz                               # 解压</span><br></pre></td></tr></table></figure>
+
+<p>然后我们可以得到下边这些文件（通过 ls 命令查看）：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV11-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/LV11-03-MJPGstreamer-01-%E7%A7%BB%E6%A4%8D%E8%BF%87%E7%A8%8B/img/image-20220908195109650.png" alt="image-20220908195109650" style="zoom:50%;" />
+
+<p>还有很多文件，图中仅显示了一部分。</p>
+<h2 id="2-mjpg-stream"><a href="#2-mjpg-stream" class="headerlink" title="2. mjpg-stream "></a><font size=3>2. mjpg-stream </font></h2><h3 id="2-1-源码获取途径"><a href="#2-1-源码获取途径" class="headerlink" title="2.1 源码获取途径"></a><font size=3>2.1 源码获取途径</font></h3><p>关于 mjpg-stream 的官方源码我们可以从这里获取：<a target="_blank" rel="noopener" href="https://sourceforge.net/p/mjpg-streamer/code/HEAD/tree/">MJPG-streamer-Code-r182 (sourceforge.net)  <i class="fa fa-external-link-alt"></i></a></p>
+<h3 id="2-2-获取源码文件"><a href="#2-2-获取源码文件" class="headerlink" title="2.2 获取源码文件"></a><font size=3>2.2 获取源码文件</font></h3><p>我下载的是 182 版本的压缩包，并将其存放于 ubuntu 下的共享文件夹下，路径为：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/mnt/hgfs/Sharedfiles/mjpg-streamer-code-r182.zip</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-3-拷贝解压-1"><a href="#1-3-拷贝解压-1" class="headerlink" title="1.3 拷贝解压"></a><font size=3>1.3 拷贝解压</font></h3><p>然后我们可以将这个源码文件拷贝解压到 ubuntu 中，方便后边编译，我们可以在终端执行以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cp /mnt/hgfs/Sharedfiles/mjpg-streamer-code-r182.zip ~/5linux/    # 拷贝压缩包</span><br><span class="line">cd ~/5linux/</span><br><span class="line">unzip mjpg-streamer-code-r182.zip                                  # 解压</span><br></pre></td></tr></table></figure>
+
+<p>然后我们可以得到下边这些文件（通过 ls 命令查看）：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV11-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/LV11-03-MJPGstreamer-01-%E7%A7%BB%E6%A4%8D%E8%BF%87%E7%A8%8B/img/image-20220908195641133.png" alt="image-20220908195641133" style="zoom:50%;" />
+
+<details class="folding-tag" blue><summary> 点击查看部分文件说明 </summary>
+              <div class='content'>
+              <table><thead><tr><th>目录名</th><th>说明</th></tr></thead><tbody><tr><td>mjpg-streamer</td><td>提供了执行程序和各个输入输出设备组件</td></tr><tr><td>uvc-streamer</td><td>提供了 uvc-streamer的可执行目录</td></tr><tr><td>mjpeg-client</td><td>分别有 linux和windows 的客户端</td></tr></tbody></table>
+              </div>
+            </details>
+
+<h1 id="三、-USB-支持"><a href="#三、-USB-支持" class="headerlink" title="三、 USB 支持"></a><font size=3>三、 USB 支持</font></h1><p>我们后边要使用 USB 摄像头，就需要先添加 USB 驱动的支持，之前的时候我们已经移植了 USB 驱动，可以看这篇笔记：《LV10-06-USB驱动移植》，但是这里还需要一些其他的支持。</p>
+<h2 id="1-已有配置"><a href="#1-已有配置" class="headerlink" title="1. 已有配置"></a><font size=3>1. 已有配置</font></h2><p>我们还是先来看一下之前做驱动移植的时候已经配置过的选项：</p>
+<h3 id="1-1-USB-support"><a href="#1-1-USB-support" class="headerlink" title="1.1 USB support "></a><font size=3>1.1 USB support </font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Device Drivers  ---&gt;</span><br><span class="line">	[*] USB support  ---&gt;</span><br><span class="line">		&lt;*&gt;     EHCI HCD (USB 2.0) support</span><br><span class="line">		&lt;*&gt;     EHCI support for Samsung S5P/EXYNOS SoC Series</span><br><span class="line">		&lt;*&gt;     USB Mass Storage support</span><br><span class="line">		&lt;*&gt;   USB3503 HSIC to USB20 Driver</span><br><span class="line">			USB Physical Layer drivers  ---&gt;</span><br><span class="line">				&lt;*&gt; Samsung USB 2.0 PHY controller Driver</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-2-SCSI-device-support"><a href="#1-2-SCSI-device-support" class="headerlink" title="1.2 SCSI device support "></a><font size=3>1.2 SCSI device support </font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Device Drivers  ---&gt;</span><br><span class="line">		SCSI device support  ---&gt;</span><br><span class="line">			&lt;*&gt; SCSI device support</span><br><span class="line">			&lt;*&gt; SCSI disk support</span><br><span class="line">			&lt;*&gt; SCSI generic support</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-新增配置"><a href="#2-新增配置" class="headerlink" title="2. 新增配置"></a><font size=3>2. 新增配置</font></h2><h3 id="2-1-Multimedia-support"><a href="#2-1-Multimedia-support" class="headerlink" title="2.1 Multimedia support "></a><font size=3>2.1 Multimedia support </font></h3><p>我们首先进入 Multimedia support 选项中：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV11-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/LV11-03-MJPGstreamer-01-%E7%A7%BB%E6%A4%8D%E8%BF%87%E7%A8%8B/img/image-20220908200205038.png" alt="image-20220908200205038" style="zoom:50%;" />
+
+<p>然后开始进行自选项的配置：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">Device Drivers  ---&gt;</span><br><span class="line">		&lt;*&gt; Multimedia support  ---&gt;</span><br><span class="line">			[*]   Cameras/video grabbers support</span><br><span class="line">			[*]   Media Controller API</span><br><span class="line">			[*]   V4L2 sub-device userspace API</span><br><span class="line">			[*]   Media USB Adapters  ---&gt;</span><br><span class="line">					&lt;*&gt;   USB Video Class (UVC)</span><br><span class="line">					[*]     UVC input events device support </span><br><span class="line">					&lt;*&gt;   GSPCA based webcams  ---&gt;</span><br><span class="line">							&lt;*&gt;   ZC3XX USB Camera Driver</span><br><span class="line">					&lt;*&gt;   CPiA2 Video For Linux</span><br><span class="line">			[*]   V4L platform devices  ---&gt;</span><br><span class="line">					&lt;*&gt;   Support for timberdale Video In/LogiWIN</span><br><span class="line">					&lt;*&gt;   SoC camera support </span><br><span class="line">					&lt;*&gt;   platform camera support</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-编译内核"><a href="#3-编译内核" class="headerlink" title="3. 编译内核"></a><font size=3>3. 编译内核</font></h2><p>配置完成后我们重新编译内核：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd ~/5linux/linux-3.14/</span><br><span class="line">make uImage</span><br></pre></td></tr></table></figure>
+
+<p>最后将重新生成的 uImage 拷贝到 tftp 服务器中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cp ~/5linux/linux-3.14/arch/arm/boot/uImage ~/3tftp/fs4412/</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-重启测试"><a href="#4-重启测试" class="headerlink" title="4. 重启测试"></a><font size=3>4. 重启测试</font></h2><p>我们重启开发板，让其重新加载内核，然后我们插上 USB 摄像头，若有以下信息输出，说明摄像头已被开发板识别：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">[root@farsight]#</span><span class="language-bash">[  293.180000] usb 1-3.1: new high-speed USB device number 5 using exynos-ehci</span></span><br><span class="line">[  293.365000] uvcvideo: Found UVC 1.00 device USB2.0 PC CAMERA (1908:2311)</span><br><span class="line">[  293.375000] input: USB2.0 PC CAMERA as /devices/12580000.ehci/usb1/1-3/1-3.1/1-3.1:1.0/input/input3</span><br></pre></td></tr></table></figure>
+
+<p>摄像头的设备节点一般是 video 开头，我们查看一下 &#x2F;dev&#x2F; 下是否有这样的设备：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">[root@farsight]#</span><span class="language-bash"><span class="built_in">ls</span> /dev/video*</span></span><br><span class="line">/dev/video0</span><br></pre></td></tr></table></figure>
+
+<h1 id="四、jpeg-库移植"><a href="#四、jpeg-库移植" class="headerlink" title="四、jpeg 库移植"></a><font size=3>四、jpeg 库移植</font></h1><p>我们移植 mjpg-stream 的时候需要用到 jpeg 的库，所以需要先移植 jpeg 的库。我们首先进入刚才解压的目录：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cd ~/5linux/jpeg-8b/</span><br></pre></td></tr></table></figure>
+
+<h2 id="1-创建一个目录"><a href="#1-创建一个目录" class="headerlink" title="1. 创建一个目录"></a><font size=3>1. 创建一个目录</font></h2><p>我们首先创建一个目录用于存放最终生成的文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkdir jpegarm</span><br></pre></td></tr></table></figure>
+
+<p>应该是创建在哪都可以，我比较懒，直接创建到解压的目录下了，所以这个新建的目录路径为（后边有用）：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/home/hk/5linux/jpeg-8b/jpegarm</span><br></pre></td></tr></table></figure>
+
+<p>老师给的文档中说这个目录建议自己创建一个在 mjpeg-streamer （后边移植它的时候就会看到这个目录了）的上一级目录下。</p>
+<h2 id="2-配置源码"><a href="#2-配置源码" class="headerlink" title="2. 配置源码"></a><font size=3>2. 配置源码</font></h2><p>我们在 jpeg 源码目录下执行以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./configure --prefix=/home/hk/5linux/jpeg-8b/jpegarm --host=arm-none-linux-gnueabi</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>–prefix 表示最终生成的库和头文件等存放的目录，自己指定一个存在的路径就可以，后面编译 mjpeg-streamer 的时候会用到，此处必须使用绝对路径。</li>
+<li>–host&#x3D;arm-none-linux-gnueabi 中 –host 表示生成的库的运行平台，注意是两个  -  ，末尾不能加 -  。</li>
+</ul>
+<p>【注意】 .&#x2F;configure 之后为一行命令。</p>
+<h2 id="3-编译源码"><a href="#3-编译源码" class="headerlink" title="3. 编译源码"></a><font size=3>3. 编译源码</font></h2><p>我们在 jpeg 源码目录下执行：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd ~/5linux/jpeg-8b/</span><br><span class="line">make</span><br></pre></td></tr></table></figure>
+
+<p>这样便会完成 jpeg 源码的编译了。</p>
+<h2 id="4-安装到创建的目录"><a href="#4-安装到创建的目录" class="headerlink" title="4. 安装到创建的目录"></a><font size=3>4. 安装到创建的目录</font></h2><p>我们在 jpeg 源码目录下执行：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd ~/5linux/jpeg-8b/</span><br><span class="line">make install</span><br></pre></td></tr></table></figure>
+
+<p>然后我们查看一下我们刚才创建的目录（使用 ls 命令），将会生成以下文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hk@vm:~/5linux/jpeg-8b$ ls jpegarm</span><br><span class="line">bin  include  lib  share</span><br></pre></td></tr></table></figure>
+
+<h2 id="5-拷贝库文件到系统"><a href="#5-拷贝库文件到系统" class="headerlink" title="5. 拷贝库文件到系统"></a><font size=3>5. 拷贝库文件到系统</font></h2><p>这里我们需要把生成的 jpegarm&#x2F;lib 目录下的所有文件拷贝到根文件系统的 &#x2F;lib 目录下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo cp -v ~/5linux/jpeg-8b/jpegarm/lib/* ~/4nfs/rootfs/lib/</span><br></pre></td></tr></table></figure>
+
+<h1 id="五、mjpg-streamer-移植"><a href="#五、mjpg-streamer-移植" class="headerlink" title="五、mjpg-streamer 移植"></a><font size=3>五、mjpg-streamer 移植</font></h1><p>前边我们已经解压好了文件，我们可以进入解压后的目录：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cd ~/5linux/mjpg-streamer-code-r182/</span><br></pre></td></tr></table></figure>
+
+<h2 id="1-源码修改"><a href="#1-源码修改" class="headerlink" title="1. 源码修改"></a><font size=3>1. 源码修改</font></h2><p>这里我们主要是修改 Makefile 文件，我们进入 mjpg-streamer 目录，并打开 plugins&#x2F;input_uvc&#x2F;Makfile 文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd ~/5linux/mjpg-streamer-code-r182/mjpg-streamer</span><br><span class="line">plugins/input_uvc/Makfile</span><br></pre></td></tr></table></figure>
+
+<p>（1）我们找到如下语句：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">CFLAGS += -O1 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC</span><br></pre></td></tr></table></figure>
+
+<p>将其修改为：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">CFLAGS += -O1 -DLINUX -D_GNU_SOURCE -Wall -shared -fPIC -I /home/hk/5linux/jpeg-8b/jpegarm/<span class="keyword">include</span></span><br></pre></td></tr></table></figure>
+
+<p>其实就是添加了 -I 参数，后边的路径记得换成自己上一步在 jpeg 库移植部分创建的那个目录中的 include 目录。</p>
+<p>（2）我们找到如下语句：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">input_uvc.so: <span class="variable">$(OTHER_HEADERS)</span> input_uvc.c v4l2uvc.lo jpeg_utils.lo dynctrl.lo</span></span><br><span class="line">	<span class="variable">$(CC)</span> <span class="variable">$(CFLAGS)</span> -o <span class="variable">$@</span> input_uvc.c v4l2uvc.lo jpeg_utils.lo dynctrl.lo <span class="variable">$(LFLAGS)</span></span><br></pre></td></tr></table></figure>
+
+<p>将其修改为：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">input_uvc.so: <span class="variable">$(OTHER_HEADERS)</span> input_uvc.c v4l2uvc.lo jpeg_utils.lo dynctrl.lo</span></span><br><span class="line">	<span class="variable">$(CC)</span> <span class="variable">$(CFLAGS)</span> -L /home/hk/5linux/jpeg-8b/jpegarm/lib -o <span class="variable">$@</span> input_uvc.c v4l2uvc.lo jpeg_utils.lo dynctrl.lo <span class="variable">$(LFLAGS)</span></span><br></pre></td></tr></table></figure>
+
+<p>其实就是添加了 -L 参数，后边的路径记得换成自己上一步在 jpeg 库移植部分创建的那个目录中的 lib 目录。</p>
+<h2 id="2-编译源码"><a href="#2-编译源码" class="headerlink" title="2. 编译源码"></a><font size=3>2. 编译源码</font></h2><p>然后我们到 mjpg-streamer 目录，编译源码：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd ~/5linux/mjpg-streamer-code-r182/mjpg-streamer</span><br><span class="line">make CC=arm-linux-gcc</span><br></pre></td></tr></table></figure>
+
+<details class="folding-tag" blue><summary> 点击查看可能出现的问题 </summary>
+              <div class='content'>
+              <p>我们编译的时候可能会报以下问题：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make: svnversion: Command not found</span><br></pre></td></tr></table></figure><p>我们执行以下命令安装 subversion 即可：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get update             # 更新软件源</span><br><span class="line">sudo apt-get -f install         # 更新依赖</span><br><span class="line">sudo apt-get install subversion</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<p>编译完成后会生成一些库和可执行文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">hk@vm:~/5linux/mjpg-streamer-code-r182/mjpg-streamer$ ls *.so</span><br><span class="line">input_file.so  input_testpicture.so  input_uvc.so  output_file.so  output_http.so  output_udp.so</span><br><span class="line">hk@vm:~/5linux/mjpg-streamer-code-r182/mjpg-streamer$ ls mjpg_streamer</span><br><span class="line">mjpg_streamer</span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>文件名</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>input_testpicture.so</td>
+<td>这是一个图像测试插件，它将预设好的图像编译成一个头文件，可以在没有摄像头的情况下传输图像，从而方便调试程序。</td>
+</tr>
+<tr>
+<td>input_uvc.so</td>
+<td>此文件调用USB摄像头驱动程序V4L2，从摄像头读取视频数据。</td>
+</tr>
+<tr>
+<td>output_http.so</td>
+<td>这是一个功能齐全的网站服务器，它不仅可以从单一文件夹中处理文件，还可以执行一定的命令，它可以从输入插件中处理一幅图像，也可以将输入插件的视频文件根据现有M-JPEG标准以HTTP视频数据服务流形式输出。</td>
+</tr>
+<tr>
+<td>output_file.so</td>
+<td>这个插件的功能是将输入插件的JPEG图像存储到特定的文件夹下，它可以用来抓取图像。</td>
+</tr>
+</tbody></table>
+<h2 id="3-修改-start-sh"><a href="#3-修改-start-sh" class="headerlink" title="3. 修改 start.sh "></a><font size=3>3. 修改 start.sh </font></h2><p> mjpg-stream 支持 JPEG 和 YUV 两种格式的输出，默认输出格式为 JPEG ，而后边经过实验证明我使用的这款摄像头是 YUV 输出的，所以就需要修改 start.sh 啦（不修改的话可能就是可以正常启动摄像头，但是没有视频输出），我们打开 start.sh 文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /home/hk/5linux/mjpg-streamer-code-r182/mjpg-streamer/start.sh </span><br></pre></td></tr></table></figure>
+
+<p>然后找到如下语句：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./mjpg_streamer -i &quot;./input_uvc.so&quot; -o &quot;./output_http.so -w ./www&quot;</span><br></pre></td></tr></table></figure>
+
+<p>我们修改为以下内容，就可以指定输出格式为 YUV 啦：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./mjpg_streamer -i &quot;./input_uvc.so -y&quot; -o &quot;./output_http.so -w ./www&quot;</span><br></pre></td></tr></table></figure>
+
+<p>【注意】这里需要我们提前确认好摄像头的图像输出格式。</p>
+<h2 id="4-安装到开发板"><a href="#4-安装到开发板" class="headerlink" title="4. 安装到开发板"></a><font size=3>4. 安装到开发板</font></h2><ul>
+<li>创建相关目录</li>
+</ul>
+<p>我们在开发板的根文件系统创建文件夹用于存放 mjpg_streamer 所需要的文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo mkdir /home/hk/4nfs/rootfs/mjpg-streamer</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>拷贝文件</li>
+</ul>
+<p>接下来向根文件系统中的 mjpg-streamer 目录中添加文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">cd /home/hk/5linux/mjpg-streamer-code-r182/mjpg-streamer/</span><br><span class="line"></span><br><span class="line">sudo cp -v ./*.so /home/hk/4nfs/rootfs/mjpg-streamer/</span><br><span class="line"></span><br><span class="line">sudo cp -v mjpg_streamer /home/hk/4nfs/rootfs/mjpg-streamer/</span><br><span class="line"></span><br><span class="line">sudo cp -rv start.sh www/ /home/hk/4nfs/rootfs/mjpg-streamer/</span><br></pre></td></tr></table></figure>
+
+<h2 id="5-启动测试"><a href="#5-启动测试" class="headerlink" title="5. 启动测试"></a><font size=3>5. 启动测试</font></h2><p>我们来到开发板根文件系统的 mjpg-streamer 目录，执行以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">[root@farsight]#</span><span class="language-bash"><span class="built_in">cd</span> /mjpg-streamer/</span></span><br><span class="line"><span class="meta prompt_">[root@farsightmjpg-streamer]#</span><span class="language-bash">./start.sh</span></span><br></pre></td></tr></table></figure>
+
+<p>这样便可以启动 mjpg-streamer 了，若是启动不报错，启动正常的话可能会出现下边的提示信息：</p>
+<details class="folding-tag" blue><summary> 点击查看详情 </summary>
+              <div class='content'>
+              <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line">MJPG-streamer [1410]: starting application</span><br><span class="line">MJPG Streamer Version: svn rev: 目录   未版本控制</span><br><span class="line">MJPG-streamer [1410]: MJPG Streamer Version: svn rev: 目录   未版本控制</span><br><span class="line"></span><br><span class="line"> i: Using V4L2 device.: /dev/video0</span><br><span class="line">MJPG-streamer [1410]: Using V4L2 device.: /dev/video0</span><br><span class="line"></span><br><span class="line"> i: Desired Resolution: 640 x 480</span><br><span class="line">MJPG-streamer [1410]: Desired Resolution: 640 x 480</span><br><span class="line"></span><br><span class="line"> i: Frames Per Second.: 5</span><br><span class="line">MJPG-streamer [1410]: Frames Per Second.: 5</span><br><span class="line"></span><br><span class="line"> i: Format............: YUV</span><br><span class="line">MJPG-streamer [1410]: Format............: YUV</span><br><span class="line"></span><br><span class="line"> i: JPEG Quality......: 80</span><br><span class="line">MJPG-streamer [1410]: JPEG Quality......: 80</span><br><span class="line"></span><br><span class="line">Adding control for Pan (relative)</span><br><span class="line">UVCIOC_CTRL_ADD - Error: Inappropriate ioctl for device</span><br><span class="line">Adding control for Tilt (relative)</span><br><span class="line">UVCIOC_CTRL_ADD - Error: Inappropriate ioctl for device</span><br><span class="line">Adding control for Pan Reset</span><br><span class="line">UVCIOC_CTRL_ADD - Error: Inappropriate ioctl for device</span><br><span class="line">Adding control for Tilt Reset</span><br><span class="line">UVCIOC_CTRL_ADD - Error: Inappropriate ioctl for device</span><br><span class="line">Adding control for Pan/tilt Reset</span><br><span class="line">UVCIOC_CTRL_ADD - Error: Inappropriate ioctl for device</span><br><span class="line">Adding control for Focus (absolute)</span><br><span class="line">UVCIOC_CTRL_ADD - Error: Inappropriate ioctl for device</span><br><span class="line">mapping control for Pan (relative)</span><br><span class="line">UVCIOC_CTRL_MAP - Error: Inappropriate ioctl for device</span><br><span class="line">mapping control for Tilt (relative)</span><br><span class="line">UVCIOC_CTRL_MAP - Error: Inappropriate ioctl for device</span><br><span class="line">mapping control for Pan Reset</span><br><span class="line">UVCIOC_CTRL_MAP - Error: Inappropriate ioctl for device</span><br><span class="line">mapping control for Tilt Reset</span><br><span class="line">UVCIOC_CTRL_MAP - Error: Inappropriate ioctl for device</span><br><span class="line">mapping control for Pan/tilt Reset</span><br><span class="line">UVCIOC_CTRL_MAP - Error: Inappropriate ioctl for device</span><br><span class="line">mapping control for Focus (absolute)</span><br><span class="line">UVCIOC_CTRL_MAP - Error: Inappropriate ioctl for device</span><br><span class="line">mapping control for LED1 Mode</span><br><span class="line">UVCIOC_CTRL_MAP - Error: Inappropriate ioctl for device</span><br><span class="line">mapping control for LED1 Frequency</span><br><span class="line">UVCIOC_CTRL_MAP - Error: Inappropriate ioctl for device</span><br><span class="line">mapping control for Disable video processing</span><br><span class="line">UVCIOC_CTRL_MAP - Error: Inappropriate ioctl for device</span><br><span class="line">mapping control for Raw bits per pixel</span><br><span class="line">UVCIOC_CTRL_MAP - Error: Inappropriate ioctl for device</span><br><span class="line"> o: www-folder-path...: ./www/</span><br><span class="line">MJPG-streamer [1410]: www-folder-path...: ./www/</span><br><span class="line"></span><br><span class="line"> o: HTTP TCP port.....: 8080</span><br><span class="line">MJPG-streamer [1410]: HTTP TCP port.....: 8080</span><br><span class="line"></span><br><span class="line"> o: username:password.: disabled</span><br><span class="line">MJPG-streamer [1410]: username:password.: disabled</span><br><span class="line"></span><br><span class="line"> o: commands..........: enabled</span><br><span class="line">MJPG-streamer [1410]: commands..........: enabled</span><br><span class="line"></span><br><span class="line">MJPG-streamer [1410]: starting input plugin ./input_uvc.so</span><br><span class="line">MJPG-streamer [1410]: starting output plugin: ./output_http.so (ID: 00)</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<p>上边的那些 error 可以忽略掉，并不影响我们采集图像。我们打开一个网页，在地址栏输入以下内容，便可以看到图像啦：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://&lt;开发板IP&gt;:8080/?action=stream</span><br></pre></td></tr></table></figure>
+
+<p>若是一切正常的话，我们将会看到如下信息：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV11-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/LV11-03-MJPGstreamer-01-%E7%A7%BB%E6%A4%8D%E8%BF%87%E7%A8%8B/img/image-20220909071115108.png" alt="image-20220909071115108" style="zoom:33%;" />
+
+<p>一般来说 mjpg-streamer 默认使用的是 8080 端口。但是似乎并不会这么顺利的看到图像，可能会出现各种问题，出现的问题及解决方法笔记的第五章中。</p>
+<h1 id="六、问题解决"><a href="#六、问题解决" class="headerlink" title="六、问题解决"></a><font size=3>六、问题解决</font></h1><h2 id="1-问题一"><a href="#1-问题一" class="headerlink" title="1. 问题一"></a><font size=3>1. 问题一</font></h2><p> MJPEG 格式错误的话可能会报以下问题：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ERROR opening V4L interface: No such file or directory</span><br><span class="line"> Init v4L2 failed !! exit fatal </span><br><span class="line"> i: init_VideoIn failed</span><br><span class="line">MJPG-streamer [1296]: init_VideoIn failed</span><br></pre></td></tr></table></figure>
+
+<p>【解决方法】</p>
+<p>一般来讲出现这个问题应该都是没有这个设备节点的，插上 USB 摄像头，查看设备节点，确认是否成功创建了设备节点</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">[root@farsight]#</span><span class="language-bash"><span class="built_in">ls</span> /dev/video0</span></span><br></pre></td></tr></table></figure>
+
+<p>没有设备节点的话说明我们的 USB 驱动很可能移植的有问题，这个时候我们需要重新看一下 USB 支持这一部分相关的笔记，看一下是不是有哪里忘记配置了，然后重新编译内核，重启开发板即可。</p>
+<ul>
+<li>《LV13-03-mjpg-stream移植——二、USB支持》</li>
+<li>《LV10-06-USB驱动移植》</li>
+</ul>
+<h2 id="2-问题二"><a href="#2-问题二" class="headerlink" title="2. 问题二"></a><font size=3>2. 问题二</font></h2><p>视频流格式错误可能会报以下问题：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cannot be displayed because it contains errors</span><br></pre></td></tr></table></figure>
+
+<p>【解决方法】</p>
+<p>修改 start.sh 文件，加参数 -y ，然后运行 start.sh </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./mjpg_streamer -i “./input_uvc.so -y” -o “./output_http.so -w ./www” </span><br></pre></td></tr></table></figure>
+
+<h2 id="3-问题三"><a href="#3-问题三" class="headerlink" title="3. 问题三"></a><font size=3>3. 问题三</font></h2><p>缺少相关库的支持，可能会报下边的问题：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">MJPG-streamer [1308]: starting application</span><br><span class="line">MJPG Streamer Version: svn rev: </span><br><span class="line">MJPG-streamer [1308]: MJPG Streamer Version: svn rev: </span><br><span class="line"></span><br><span class="line">ERROR: could not find input plugin</span><br><span class="line">MJPG-streamer [1308]: ERROR: could not find input plugin</span><br><span class="line"></span><br><span class="line">       Perhaps you want to adjust the search path with:</span><br><span class="line">MJPG-streamer [1308]:        Perhaps you want to adjust the search path with:</span><br><span class="line"></span><br><span class="line">       # export LD_LIBRARY_PATH=/path/to/plugin/folder</span><br><span class="line">MJPG-streamer [1308]:        # export LD_LIBRARY_PATH=/path/to/plugin/folder</span><br><span class="line"></span><br><span class="line"> dlopen: libjpeg.so.8: cannot open shared object file: No such file or directory</span><br><span class="line">MJPG-streamer [1308]:        dlopen: libjpeg.so.8: cannot open shared object file: No such file or directory</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>【解决方法】</p>
+<p>重新拷贝相关库：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sudo cp -v ~/5linux/jpeg-8b/jpegarm/lib/* ~/4nfs/rootfs/lib/</span><br><span class="line"></span><br><span class="line">cd /home/hk/5linux/mjpg-streamer-code-r182/mjpg-streamer/</span><br><span class="line">sudo cp -v ./*.so /home/hk/4nfs/rootfs/mjpg-streamer/</span><br><span class="line">sudo cp -v mjpg_streamer /home/hk/4nfs/rootfs/mjpg-streamer/</span><br><span class="line">sudo cp -rv start.sh www/ /home/hk/4nfs/rootfs/mjpg-streamer/</span><br></pre></td></tr></table></figure>
+
+<p>需要注意的是，要保证我们拷贝的库是 arm 格式的，我们可以用 file 命令确认，如</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file libjpeg.so.8</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-问题四"><a href="#4-问题四" class="headerlink" title="4. 问题四"></a><font size=3>4. 问题四</font></h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Init v4L2 failed !! exit fatal </span><br><span class="line">init_VideoIn failed </span><br></pre></td></tr></table></figure>
+
+<p>市面上大部分摄像头都是支持 YUV 的，而不是 JPEG 的，这个问题一般会出现在 .&#x2F;start.sh 过程中。</p>
+<p>【解决方法】</p>
+<p>由于 mjpg-stream 支持 JPEG 和 YUV 两种格式，所以只需修改 start.sh ，在输入中加入  - y  ：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./mjpg_streamer -i “./input_uvc.so -y” -o “./output_http.so -w ./www” </span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/80ae5cdf.html">LV11-03-MJPGstreamer-01-移植过程</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年07月08日 - 19:17</p>
+    <p><span>最后更新:</span>2025年04月08日 - 07:43</p>
+    <p><span>原始链接:</span><a href="/post/80ae5cdf.html" title="LV11-03-MJPGstreamer-01-移植过程">https://sumumm.github.io/post/80ae5cdf.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV11-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93/" rel="tag"><i class="fa fa-tag"></i> LV11-第三方库</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/33aace5.html" rel="prev" title="LV06-02-字符设备驱动-01-pinctrl与gpio子系统-01-pinctrl">
+                  <i class="fa fa-angle-left"></i> LV06-02-字符设备驱动-01-pinctrl与gpio子系统-01-pinctrl
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/6ea0d6ed.html" rel="next" title="LV11-02-CGIC库-01-移植过程">
+                  LV11-02-CGIC库-01-移植过程 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">223:41</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="在linux下，如何对gpio进行控制？怎么调试？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV09-01-pinctrl和gpio子系统-04-gpio控制与调试">
+<meta property="og:url" content="https://sumumm.github.io/post/65b0edd7.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="在linux下，如何对gpio进行控制？怎么调试？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331194840703.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331195332131.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331195813023.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250329200416047.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330201742032.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330200240035.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330200343468.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330200751064.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330200929794.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330201107727.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330201532652.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330202215788.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330203444260.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330203718614.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330203948308.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330204232094.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330205939376.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330205852190.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330212959779.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330224153850.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330224509577.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330224917005.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330225009867.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330225107272.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330070045481.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330070701979.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330175127447.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330175521101.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230317526.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230349257.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230423922.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230509599.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330180041908.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330202215788.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230015999.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230227730.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230605378.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230629595.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230754356.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230942937.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331232650428.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331232419021.png">
+<meta property="article:published_time" content="2025-04-07T23:39:44.000Z">
+<meta property="article:modified_time" content="2025-04-07T23:43:52.669Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV09-pinctrl和gpio子系统">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331194840703.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/65b0edd7.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/65b0edd7.html","path":"post/65b0edd7.html","title":"LV09-01-pinctrl和gpio子系统-04-gpio控制与调试"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV09-01-pinctrl和gpio子系统-04-gpio控制与调试 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">41</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">668</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C"><span class="nav-text">一、准备工作</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-LED%E7%81%AF"><span class="nav-text">1. LED灯</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-KEY%E6%8C%89%E9%94%AE"><span class="nav-text">2. KEY按键</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-I2C1%E2%80%94%E2%80%94ap3216c"><span class="nav-text">3. I2C1——ap3216c</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%8F%82%E8%80%83%E6%96%87%E6%A1%A3"><span class="nav-text">4. 参考文档</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81GPIO%E8%B0%83%E8%AF%95"><span class="nav-text">二、GPIO调试</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-debugfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-text">1. debugfs文件系统</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-debugfs-%E7%AE%80%E4%BB%8B"><span class="nav-text">1.1 debugfs 简介</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-debug%E7%9B%AE%E5%BD%95%E4%B8%8B%E6%B2%A1%E6%9C%89%E6%96%87%E4%BB%B6%EF%BC%9F"><span class="nav-text">1.2 debug目录下没有文件？</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1-%E5%86%85%E6%A0%B8%E9%85%8D%E7%BD%AE"><span class="nav-text">1.2.1 内核配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2-%E6%8C%82%E8%BD%BDdebugfs"><span class="nav-text">1.2.2 挂载debugfs</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-sys-kernel-debug-gpio"><span class="nav-text">1.3 &#x2F;sys&#x2F;kernel&#x2F;debug&#x2F;gpio</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-1-%E8%BF%99%E4%B8%AA%E6%96%87%E4%BB%B6%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">1.3.1 这个文件是什么？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-2-gpio%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84"><span class="nav-text">1.3.2 gpio文件结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-2-%E6%80%BB%E7%BB%93%E4%B8%80%E4%B8%8B"><span class="nav-text">1.3.2 总结一下</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-sys-kernel-debug-pinctrl"><span class="nav-text">1.4 &#x2F;sys&#x2F;kernel&#x2F;debug&#x2F;pinctrl</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-dev-mem%E8%AE%BE%E5%A4%87"><span class="nav-text">2. &#x2F;dev&#x2F;mem设备</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-dev-mem%E7%AE%80%E4%BB%8B"><span class="nav-text">2.1 &#x2F;dev&#x2F;mem简介</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E6%94%AF%E6%8C%81-dev-mem"><span class="nav-text">2.2 支持&#x2F;dev&#x2F;mem</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-dev-mem-%E8%AE%BE%E5%A4%87%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="nav-text">2.3 &#x2F;dev&#x2F;mem 设备的使用</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1-%E4%BD%BF%E7%94%A8%E6%AD%A5%E9%AA%A4"><span class="nav-text">2.3.1 使用步骤</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2-mmap"><span class="nav-text">2.3.2 mmap()</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E8%87%AA%E5%B7%B1%E5%86%99%E4%B8%80%E4%B8%AAmemdev"><span class="nav-text">2.4 自己写一个memdev</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-1-%E6%BA%90%E7%A0%81%E7%BC%96%E5%86%99"><span class="nav-text">2.4.1 源码编写</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E6%B5%8B%E8%AF%95"><span class="nav-text">2.4.2 开发板测试</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-%E6%A0%B9%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E6%94%AF%E6%8C%81memdev"><span class="nav-text">2.5 根文件系统支持memdev</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-1-busybox%E9%85%8D%E7%BD%AE"><span class="nav-text">2.5.1 busybox配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E6%B5%8B%E8%AF%95"><span class="nav-text">2.5.2 开发板测试</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81GPIO%E7%9A%84%E6%8E%A7%E5%88%B6"><span class="nav-text">三、GPIO的控制</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BD%BF%E7%94%A8%E5%91%BD%E4%BB%A4%E9%80%9A%E8%BF%87-sysfs-%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E6%8E%A7%E5%88%B6-GPIO"><span class="nav-text">1. 使用命令通过 sysfs 文件系统控制 GPIO  </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E5%BC%80%E5%A7%8B%E4%B9%8B%E5%89%8D%E8%A6%81%E7%9F%A5%E9%81%93%E7%9A%84"><span class="nav-text">1.1 开始之前要知道的</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-1-%E5%86%85%E6%A0%B8%E9%85%8D%E7%BD%AE"><span class="nav-text">1.1.1 内核配置  </span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-2-GPIO%E7%BC%96%E5%8F%B7%E8%AE%A1%E7%AE%97"><span class="nav-text">1.1.2 GPIO编号计算</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-GPIO%E6%8E%A7%E5%88%B6%E5%99%A8%E7%9B%B8%E5%85%B3"><span class="nav-text">1.2 GPIO控制器相关</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1-%E6%80%8E%E4%B9%88%E6%9F%A5%E7%9C%8B%E6%9C%89%E5%93%AA%E4%BA%9BGPIO%E6%8E%A7%E5%88%B6%E5%99%A8"><span class="nav-text">1.2.1 怎么查看有哪些GPIO控制器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2-%E6%AF%8F%E4%B8%AAGPIO%E6%8E%A7%E5%88%B6%E5%99%A8%E7%9A%84%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF"><span class="nav-text">1.2.2 每个GPIO控制器的详细信息</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-gpio%E5%AF%BC%E5%87%BA%E4%B8%8E%E5%8F%96%E6%B6%88"><span class="nav-text">1.3 gpio导出与取消</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-1-gpio%E5%AF%BC%E5%87%BA"><span class="nav-text">1.3.1 gpio导出</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-2-gpio%E5%8F%96%E6%B6%88%E5%AF%BC%E5%87%BA"><span class="nav-text">1.3.2 gpio取消导出</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-3-%E5%AF%BC%E5%87%BA%E5%A4%B1%E8%B4%A5%EF%BC%9F"><span class="nav-text">1.3.3 导出失败？</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-gpio%E5%B1%9E%E6%80%A7%E4%BF%AE%E6%94%B9"><span class="nav-text">1.4 gpio属性修改</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-1-direction"><span class="nav-text">1.4.1 direction</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-2-active-low"><span class="nav-text">1.4.2 active_low</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-3-edge"><span class="nav-text">1.4.3 edge</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-4-value"><span class="nav-text">1.4.4 value  </span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BD%BF%E7%94%A8-C-%E7%A8%8B%E5%BA%8F%E9%80%9A%E8%BF%87-sysfs-%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E6%8E%A7%E5%88%B6-GPIO"><span class="nav-text">2. 使用 C 程序通过 sysfs 文件系统控制 GPIO  </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%85%B3%E9%94%AE%E5%87%BD%E6%95%B0%E5%AE%9E%E7%8E%B0"><span class="nav-text">2.1 关键函数实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-%E5%AF%BC%E5%87%BAGPIO%E5%BC%95%E8%84%9A"><span class="nav-text">2.1.1 导出GPIO引脚</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-%E5%8F%96%E6%B6%88%E5%AF%BC%E5%87%BAGPIO%E5%BC%95%E8%84%9A"><span class="nav-text">2.1.2 取消导出GPIO引脚</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-3-%E6%8E%A7%E5%88%B6GPIO%E5%B1%9E%E6%80%A7"><span class="nav-text">2.1.3 控制GPIO属性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-4-%E8%AF%BB%E5%8F%96GPIO%E6%95%B0%E6%8D%AE"><span class="nav-text">2.1.4 读取GPIO数据</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-5-%E7%9B%91%E5%90%AC%E4%B8%AD%E6%96%AD"><span class="nav-text">2.1.5 监听中断</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E6%8E%A7%E5%88%B6-GPIO-%E8%BE%93%E5%87%BA-demo"><span class="nav-text">2.2 控制 GPIO 输出 demo</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E6%8E%A7%E5%88%B6-GPIO-%E8%BE%93%E5%85%A5demo"><span class="nav-text">2.3 控制 GPIO 输入demo</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E7%9B%91%E5%90%AC-GPIO-%E4%B8%AD%E6%96%AD-demo"><span class="nav-text">2.4 监听 GPIO 中断 demo</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">668</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">41</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/65b0edd7.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV09-01-pinctrl和gpio子系统-04-gpio控制与调试 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV09-01-pinctrl和gpio子系统-04-gpio控制与调试
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-04-08 07:39:44" itemprop="dateCreated datePublished" datetime="2025-04-08T07:39:44+08:00">2025-04-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/" itemprop="url" rel="index"><span itemprop="name">LV09-pinctrl和gpio子系统</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>11k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>42 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>在linux下，如何对gpio进行控制？怎么调试？若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="3">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4" target="_blank">kernel/git/stable/linux.git - Linux kernel stable tree</a></td>        <td align="left">linux kernel源码(官网,tag 4.19.71)</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、准备工作"><a href="#一、准备工作" class="headerlink" title="一、准备工作"></a><font size=3>一、准备工作</font></h1><p>这里既然是做GPIO的调试，那肯定要先知道几个GPIO，我这里用的是整点原子alpha开发板，我们准备三种GPIO用于测试。我们选择连接了外设的GPIO，例如连接了I2C设备的I2C1，LED灯以及按键这些，用来测试的话现象比较直观。</p>
+<h2 id="1-LED灯"><a href="#1-LED灯" class="headerlink" title="1. LED灯"></a><font size=3>1. LED灯</font></h2><p>LED灯的硬件原理图如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331194840703.png" alt="image-20250331194840703" style="zoom:50%;" />
+
+<p>搜一下原理图，就可以知道这个LED灯所连的GPIO为GPIO1_IO03，相关的寄存器如下：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">0X020E0068 IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO03 </span><br><span class="line">0X020E02F4 IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO03 </span><br><span class="line"></span><br><span class="line">0x0209C000 GPIO data register (GPIO1_DR)    </span><br><span class="line">0x0209C004 GPIO direction register (GPIO1_GDIR) </span><br><span class="line">0X0209C008 GPIO pad status register (GPIO1_PSR)</span><br><span class="line">0X0209C00C GPIO interrupt configuration register1 (GPIO1_ICR1)</span><br><span class="line">0X0209C010 GPIO interrupt configuration register2 (GPIO1_ICR2)</span><br><span class="line">0X0209C014 GPIO interrupt mask register (GPIO1_IMR)</span><br><span class="line">0X0209C018 GPIO interrupt status register (GPIO1_ISR)</span><br><span class="line">0X0209C01C GPIO edge select register (GPIO1_EDGE_SEL)</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-KEY按键"><a href="#2-KEY按键" class="headerlink" title="2. KEY按键"></a><font size=3>2. KEY按键</font></h2><p>接下来是按键：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331195332131.png" alt="image-20250331195332131" style="zoom:45%;" />
+
+<p>这个按键key0是使用的GPIO为UART1_CTS，我们可以用它来作为输入或者中断，它可以复用为GPIO1_IO18，相关的寄存器如下：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">0x020E008C IOMUXC_SW_MUX_CTL_PAD_UART1_CTS_B</span><br><span class="line">0x020E0318 IOMUXC_SW_PAD_CTL_PAD_UART1_CTS_B</span><br><span class="line"></span><br><span class="line">0x0209C000 GPIO data register (GPIO1_DR)    </span><br><span class="line">0x0209C004 GPIO direction register (GPIO1_GDIR) </span><br><span class="line">0X0209C008 GPIO pad status register (GPIO1_PSR)</span><br><span class="line">0X0209C00C GPIO interrupt configuration register1 (GPIO1_ICR1)</span><br><span class="line">0X0209C010 GPIO interrupt configuration register2 (GPIO1_ICR2)</span><br><span class="line">0X0209C014 GPIO interrupt mask register (GPIO1_IMR)</span><br><span class="line">0X0209C018 GPIO interrupt status register (GPIO1_ISR)</span><br><span class="line">0X0209C01C GPIO edge select register (GPIO1_EDGE_SEL)</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-I2C1——ap3216c"><a href="#3-I2C1——ap3216c" class="headerlink" title="3. I2C1——ap3216c"></a><font size=3>3. I2C1——ap3216c</font></h2><p>我们还有一个I2C1，上面接了ap3216c：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331195813023.png" alt="image-20250331195813023" style="zoom:45%;" />
+
+<p>I2C1其实是可以用由不同的GPIO复用而来的：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250329200416047.png" alt="image-20250329200416047"  />
+
+<p>但是在正点原子alpha开发板上，其中 I2C1_SCL 使用的 UART4_TXD 这个IO、 I2C1_SDA 使用的是 UART4_RXD 这个 IO。  所以我们也就要看UART4_TX_DATA和UART4_RX_DATA这两个引脚。前面学习pinctrl子系统的时候有分析过这个UART4_TX_DATA相关寄存器的取值情况：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">0x020E00b4 IOMUXC_SW_MUX_CTL_PAD_UART4_TX_DATA (0x2)</span><br><span class="line">0x020E0340 IOMUXC_SW_PAD_CTL_PAD_UART4_TX_DATA (0x4001b8b0)</span><br><span class="line">0x020E05A4 IOMUXC_I2C1_SCL_SELECT_INPUT        (0x1)</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-参考文档"><a href="#4-参考文档" class="headerlink" title="4. 参考文档"></a><font size=3>4. 参考文档</font></h2><p>linux内核源码中有一些参考文档可以看：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/Documentation/gpio/sysfs.txt">sysfs.txt - Documentation&#x2F;gpio&#x2F;sysfs.txt</a></p>
+<h1 id="二、GPIO调试"><a href="#二、GPIO调试" class="headerlink" title="二、GPIO调试"></a><font size=3>二、GPIO调试</font></h1><p>先来看怎么调试把，后面控制的时候也会有一些问题，可能需要查看引脚情况。</p>
+<h2 id="1-debugfs文件系统"><a href="#1-debugfs文件系统" class="headerlink" title="1. debugfs文件系统"></a><font size=3>1. debugfs文件系统</font></h2><h3 id="1-1-debugfs-简介"><a href="#1-1-debugfs-简介" class="headerlink" title="1.1 debugfs 简介"></a><font size=3>1.1 debugfs 简介</font></h3><p>debugfs 是 Linux 内核提供的一个调试文件系统， 可以用于查看和调试内核中的各种信息，包括 GPIO 的使用情况。 通过挂载 debugfs 文件系统， 并查看&#x2F;sys&#x2F;kernel&#x2F;debug&#x2F;目录下的相关文件， 可以获取 GPIO 的状态， 配置和其他调试信息。如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330201742032.png" alt="image-20250330201742032" />
+
+<h3 id="1-2-debug目录下没有文件？"><a href="#1-2-debug目录下没有文件？" class="headerlink" title="1.2 debug目录下没有文件？"></a><font size=3>1.2 debug目录下没有文件？</font></h3><p>我们打开这个目录，发现什么都没有：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330200240035.png" alt="image-20250330200240035" />
+
+<p>这个时候怎么办？</p>
+<h4 id="1-2-1-内核配置"><a href="#1-2-1-内核配置" class="headerlink" title="1.2.1 内核配置"></a><font size=3>1.2.1 内核配置</font></h4><p>我们先看一下linux系统是否支持debugfs文件系统：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /proc/filesystems</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330200343468.png" alt="image-20250330200343468" />
+
+<p>发现是支持的，若是不支持的话，我们需要在内核打开对应的配置项，我们执行：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- imx_v6_v7_defconfig</span><br><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig</span><br></pre></td></tr></table></figure>
+
+<p>按照以下路径，找到对应的菜单项：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Kernel hacking  ---&gt;</span><br><span class="line">	    Compile-time checks and compiler options  ---&gt;</span><br><span class="line">	    	-*- Debug Filesystem</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330200751064.png" alt="image-20250330200751064" style="zoom:50%;" />
+
+<p>勾选后，我们把它编译进内核，然后重新编译内核并更新。</p>
+<h4 id="1-2-2-挂载debugfs"><a href="#1-2-2-挂载debugfs" class="headerlink" title="1.2.2 挂载debugfs"></a><font size=3>1.2.2 挂载debugfs</font></h4><p>我们已经支持了debugfs文件系统，但是debug目录还是空的，我们可以执行mount命令看一下是不是没挂载：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mount</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330200929794.png" alt="image-20250330200929794" />
+
+<p>发现确实没有挂载，然后我们可以手动挂载：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mount -t debugfs none /sys/kernel/debug/</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330201107727.png" alt="image-20250330201107727" />
+
+<p>然后就有对应的目录了，要是想开机自动挂载的话，可以修改<code>/etc/fstab</code>文件自动挂载到该目录：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">debugfs /sys/kernel/debug debugfs defaults 0 0</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330201532652.png" alt="image-20250330201532652" />
+
+<h3 id="1-3-sys-kernel-debug-gpio"><a href="#1-3-sys-kernel-debug-gpio" class="headerlink" title="1.3 &#x2F;sys&#x2F;kernel&#x2F;debug&#x2F;gpio"></a><font size=3>1.3 &#x2F;sys&#x2F;kernel&#x2F;debug&#x2F;gpio</font></h3><h4 id="1-3-1-这个文件是什么？"><a href="#1-3-1-这个文件是什么？" class="headerlink" title="1.3.1 这个文件是什么？"></a><font size=3>1.3.1 这个文件是什么？</font></h4><p>在Linux系统中，<code>/sys/kernel/debug/gpio</code> 文件提供了关于系统GPIO（通用输入输出）状态的调试信息。通过解析该文件，可以查看GPIO引脚的使用情况、配置和当前状态。</p>
+<h4 id="1-3-2-gpio文件结构"><a href="#1-3-2-gpio文件结构" class="headerlink" title="1.3.2 gpio文件结构"></a><font size=3>1.3.2 gpio文件结构</font></h4><p>文件内容通常分为两部分：<strong>GPIO控制器信息</strong>和<strong>具体GPIO引脚状态</strong>，例如imx6ull：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330202215788.png" alt="image-20250330202215788" />
+
+<p><strong>GPIO控制器信息</strong>：</p>
+<ul>
+<li><code>gpiochipx</code>：看图中，x的值为0、1、2、3、4，这就是imx6ull的5组GPIO。</li>
+<li><code>GPIOs x-y</code>：该控制器管理的GPIO编号范围（全局编号）。</li>
+<li><code>parent</code>：控制器所属的硬件设备（如芯片或外设地址）。</li>
+<li><code>platform/209c000.gpio</code> ：是 GPIO 控制器的名称或地址。</li>
+</ul>
+<p><strong>GPIO引脚状态</strong>：</p>
+<ul>
+<li><code>gpio-3</code>、<code>gpio-9</code>和<code>gpio-19</code>表示这几个gpio已经被内核空间或者用户空间占用。</li>
+</ul>
+<p>（1）<code>in</code> 表示引脚是输入模式，<code>out</code> 表示输出模式。</p>
+<p>（2）<code>hi</code> 表示引脚当前为高电平，<code>lo</code> 表示低电平。</p>
+<p>（3）有时候还会有<code>IRQ</code> ，表示该引脚被配置为中断引脚。</p>
+<h4 id="1-3-2-总结一下"><a href="#1-3-2-总结一下" class="headerlink" title="1.3.2 总结一下"></a><font size=3>1.3.2 总结一下</font></h4><p><code>/sys/kernel/debug/gpio</code> 是一个虚拟文件系统（debugfs）中的文件，用于显示当前系统中 GPIO（通用输入输出）引脚的状态和配置信息。它通常包含以下信息：</p>
+<ul>
+<li><strong>GPIO 控制器信息</strong>‌：系统中每个 GPIO 控制器的名称和状态、控制器的基地址或标识符。</li>
+<li>‌<strong>GPIO 使用情况</strong>‌：哪些 GPIO 引脚已被占用（被内核或用户空间程序使用）、使用该引脚的驱动或模块的名称。</li>
+<li><strong>GPIO 引脚状态</strong>‌：每个 GPIO 引脚的编号（如 <code>gpiochipX</code> 中的引脚）、引脚的方向（输入或输出）、引脚的当前值（高电平或低电平）、引脚是否被配置为中断引脚。</li>
+<li><strong>GPIO 中断信息</strong>‌：如果 GPIO 引脚被配置为中断引脚，可能会显示中断触发类型（如上升沿、下降沿等）。</li>
+</ul>
+<h3 id="1-4-sys-kernel-debug-pinctrl"><a href="#1-4-sys-kernel-debug-pinctrl" class="headerlink" title="1.4 &#x2F;sys&#x2F;kernel&#x2F;debug&#x2F;pinctrl"></a><font size=3>1.4 &#x2F;sys&#x2F;kernel&#x2F;debug&#x2F;pinctrl</font></h3><p>当进入&#x2F;sys&#x2F;kernel&#x2F;debug&#x2F;pinctrl 目录时， 我们可以获取有关 GPIO 控制器的调试信息。在该目录下， 通常会有以下文件和目录：</p>
+<ul>
+<li>（1）<code>/sys/kernel/debug/pinctrl/*/pinmux-pins</code>： 这些文件列出了每个 GPIO 引脚的引脚复用配置。</li>
+</ul>
+<p>可以查看每个引脚的功能模式、 引脚复用选择以及其他相关的配置信息。 我们进入下面的目录：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cd /sys/kernel/debug/pinctrl/20e0000.iomuxc/</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330203444260.png" alt="image-20250330203444260" />
+
+<ul>
+<li>（2）<code>/sys/kernel/debug/pinctrl/*/pins</code>：这些文件列出了 GPIO 的引脚编号， 可以查看 GPIO 编号。</li>
+</ul>
+<p>我们进入下面的目录看一下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ls /sys/kernel/debug/pinctrl/20e0000.iomuxc</span><br><span class="line">cat /sys/kernel/debug/pinctrl/20e0000.iomuxc/pins</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330203718614.png" alt="image-20250330203718614" />
+
+<ul>
+<li>（3）<code>/sys/kernel/debug/pinctrl/*/gpio-ranges</code>：这些文件列出了每个 GPIO 控制器支持的 GPIO 范围。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /sys/kernel/debug/pinctrl/20e0000.iomuxc</span><br><span class="line">cat cd /sys/kernel/debug/pinctrl/20e0000.iomuxc/gpio-ranges</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330203948308.png" alt="image-20250330203948308" />
+
+<ul>
+<li>（4）<code>/sys/kernel/debug/pinctrl/*/pinmux-functions</code>：这些文件列出了每个功能模式的名称以及与之关联的 GPIO 引脚。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ls /sys/kernel/debug/pinctrl/20e0000.iomuxc/</span><br><span class="line">cat /sys/kernel/debug/pinctrl/20e0000.iomuxc/pinmux-functions</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330204232094.png" alt="image-20250330204232094" />
+
+<ul>
+<li>（5）<code>/sys/kernel/debug/pinctrl/*/pingroups</code>：该路径提供有关用于配置和控制系统上的 GPIO 引脚的引脚组的信息。</li>
+<li>（6）<code>/sys/kernel/debug/pinctrl/*/pinconf-pins</code>：这些文件包含了 GPIO 引脚的配置信息， 如输入&#x2F;输出模式、 上拉&#x2F;下拉设置等。可以查看和修改 GPIO 的电气属性， 以便进行 GPIO 的调试和配置。</li>
+</ul>
+<h2 id="2-dev-mem设备"><a href="#2-dev-mem设备" class="headerlink" title="2. &#x2F;dev&#x2F;mem设备"></a><font size=3>2. &#x2F;dev&#x2F;mem设备</font></h2><h3 id="2-1-dev-mem简介"><a href="#2-1-dev-mem简介" class="headerlink" title="2.1 &#x2F;dev&#x2F;mem简介"></a><font size=3>2.1 &#x2F;dev&#x2F;mem简介</font></h3><p>&#x2F;dev&#x2F;mem 是 Linux 系统中的一个虚拟设备， 通常与 mmap 结合使用， 可以将设备的物理内存映射到用户态， 以实现用户空间对内核态的直接访问。 无论是标准 Linux 系统还是嵌入式Linux 系统， 都支持使用&#x2F;dev&#x2F;mem 设备。</p>
+<p>&#x2F;dev&#x2F;mem 设备是内核所有物理地址空间的全映像，这些地址包括：</p>
+<ul>
+<li>物理内存（RAM）空间</li>
+<li>物理存储（ROM）空间</li>
+<li>cpu总线地址</li>
+<li>cpu寄存器地址</li>
+<li>外设寄存器地址，GPIO、定时器、ADC</li>
+</ul>
+<p>因为涉及访问内核空间，因此<strong>只有root用户才有访问“&#x2F;dev&#x2F;mem”设备的权限</strong>。</p>
+<h3 id="2-2-支持-dev-mem"><a href="#2-2-支持-dev-mem" class="headerlink" title="2.2 支持&#x2F;dev&#x2F;mem"></a><font size=3>2.2 支持&#x2F;dev&#x2F;mem</font></h3><p>然而， 直接访问内核空间是一项潜在危险的操作， 因此只有 root 用户才能访问&#x2F;dev&#x2F;mem设备。 此外有些系统可能需要单独启动&#x2F;dev&#x2F;mem 设备的功能。  我们执行：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- imx_v6_v7_defconfig</span><br><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig</span><br></pre></td></tr></table></figure>
+
+<p>按照以下路径，找到对应的菜单项：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Device Drivers  ---&gt;</span><br><span class="line"> Character devices  ---&gt;</span><br><span class="line"> 	[*] /dev/mem virtual device support</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330205939376.png" alt="image-20250330205939376" style="zoom:50%;" />
+
+<p>打开之后，编译更新内核，当出现 &#x2F;dev&#x2F;mem 设备的时候说明开启成功：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls /dev/mem</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330205852190.png" alt="image-20250330205852190" />
+
+<h3 id="2-3-dev-mem-设备的使用"><a href="#2-3-dev-mem-设备的使用" class="headerlink" title="2.3 &#x2F;dev&#x2F;mem 设备的使用"></a><font size=3>2.3 &#x2F;dev&#x2F;mem 设备的使用</font></h3><h4 id="2-3-1-使用步骤"><a href="#2-3-1-使用步骤" class="headerlink" title="2.3.1 使用步骤"></a><font size=3>2.3.1 使用步骤</font></h4><p>使用&#x2F;dev&#x2F;mem 设备需要具有 root 权限， 并且谨慎操作， 因为直接访问内核空间是一项潜在的危险操作。 以下是使用&#x2F;dev&#x2F;mem 设备的基本步骤：  </p>
+<ul>
+<li>（1）使用 open 函数打开”&#x2F;dev&#x2F;mem”文件描述符， 并指定访问权限和阻塞方式。 访问权限可以是只读（O_RDONLY） 、 只写（O_WRONLY） 或读写（O_RDWR） 阻塞方式或非阻塞（O_NDELAY）。</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> fd = <span class="number">0</span>;</span><br><span class="line">fd = open(<span class="string">&quot;/dev/mem&quot;</span>, O_RDWR | O_NDELAY); <span class="comment">/* 读写权限， 非阻塞 */</span></span><br></pre></td></tr></table></figure>
+
+<p>请注意， 这里使用 O_RDWR 表示读写权限， 并使用 O_NDELAY 表示非阻塞方式。 可以根据实际需求选择适当的访问权限和阻塞方式。 </p>
+<ul>
+<li>（2）使用 mmap 函数将需要访问的物理地址与”&#x2F;dev&#x2F;mem”文件描述符建立映射。mmap 函数将返回一个指向映射内存区域的指针。</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">char</span> *mmap_addr = <span class="literal">NULL</span>;</span><br><span class="line">mmap_addr = (<span class="type">char</span> *)mmap(<span class="literal">NULL</span>, MMAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, MMAP_ADDR);</span><br></pre></td></tr></table></figure>
+
+<p>在这里， 使用 mmap 函数将物理内存地址映射到 mmap_addr 指针所指向的内存区域。MMAP_SIZE 表示映射的大小， PROT_READ | PROT_WRITE 表示访问权限为读写， MAP_SHARED表示共享映射， fd 是之前打开的 &#x2F;dev&#x2F;mem 文件描述符， MMAP_ADDR 是要映射的物理地址。  </p>
+<ul>
+<li>（3）对映射的地址进行访问， 即对寄存器进行读写操作。</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> a = <span class="number">0</span>;</span><br><span class="line">*(<span class="type">int</span> *)mmap_addr = <span class="number">0xff</span>; <span class="comment">// 写地址</span></span><br><span class="line">a = *(<span class="type">int</span> *)mmap_addr;    <span class="comment">// 读地址</span></span><br></pre></td></tr></table></figure>
+
+<p>在这里， 使用指针操作对 mmap_addr 指向的地址进行读写操作。 *(int *)mmap_addr 表示将 mmap_addr 解释为 int 类型的指针， 对于写操作， 将 0xff 写入该地址； 对于读操作， 将地址的值读取到变量 a 中。  </p>
+<h4 id="2-3-2-mmap"><a href="#2-3-2-mmap" class="headerlink" title="2.3.2 mmap()"></a><font size=3>2.3.2 mmap()</font></h4><p>mmap 函数原型如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span>* <span class="title function_">mmap</span><span class="params">(<span class="type">void</span>* start,<span class="type">size_t</span> length,<span class="type">int</span> prot,<span class="type">int</span> flags,<span class="type">int</span> fd,<span class="type">off_t</span> offset)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>函数参数：</strong>  </p>
+<ul>
+<li>start: 指定文件应被映射到进程空间的起始地址， 一般被指定为一个空指针， 选择起始地址的任务留给内核来完成。 映射成功之后， 函数返回值为最后文件映射到进程空间的地址， 进程可直接操作起始地址为该值的有效地址。</li>
+<li>length: 是映射到调用进程地址空间的字节数。</li>
+<li>prot: 参数指定共享内存的访问权限。 可取如下几个值的或。 PROT_READ(映射区域可读)、PROT_EXEC(映射区域可执行)、PROT_WRITE(映射区域可写)、 PROT_NONE(映射区域不可访问)。</li>
+<li>flags: 由以下几个常值指定， MAP_SHARED， MAP_PRIVATE， MAP_FIXED， 其中 MAP_SHARED，MAP_PRIVATE 必选其一， MAP_FIXED 不推荐使用。</li>
+<li>fd: 有效的文件描述符。 一般是由 open()函数返回。</li>
+<li>offset: 文件映射的偏移量， offset 的大小必须是页的整数倍， 如果设备为 0 代表从文件最前方开始映射。</li>
+</ul>
+<p><strong>函数返回值：</strong> 成功执行时， mmap()返回被映射区的指针， 失败时， mmap()返回-1.  </p>
+<h3 id="2-4-自己写一个memdev"><a href="#2-4-自己写一个memdev" class="headerlink" title="2.4 自己写一个memdev"></a><font size=3>2.4 自己写一个memdev</font></h3><h4 id="2-4-1-源码编写"><a href="#2-4-1-源码编写" class="headerlink" title="2.4.1 源码编写"></a><font size=3>2.4.1 源码编写</font></h4><p>我们会在有些地方看到memdev工具，它可以直接读写内存，方便我们调试，这个其实就是通过访问&#x2F;dev&#x2F;mem实现的，网上也会有源码，例如<a target="_blank" rel="noopener" href="https://sources.buildroot.net/devmem2.c">sources.buildroot.net&#x2F;devmem2.c</a>。这个其实就是个应用程序，我们可以自己实现的。</p>
+<h4 id="2-4-2-开发板测试"><a href="#2-4-2-开发板测试" class="headerlink" title="2.4.2 开发板测试"></a><font size=3>2.4.2 开发板测试</font></h4><p>我们用这个带有ap3216c的demo，加载相关驱动后，可以读一下i2c相关的寄存器：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">./app_demo.out 0x020e0340</span><br><span class="line">./app_demo.out 0x020e00b4</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330212959779.png" alt="image-20250330212959779" />
+
+<h3 id="2-5-根文件系统支持memdev"><a href="#2-5-根文件系统支持memdev" class="headerlink" title="2.5 根文件系统支持memdev"></a><font size=3>2.5 根文件系统支持memdev</font></h3><h4 id="2-5-1-busybox配置"><a href="#2-5-1-busybox配置" class="headerlink" title="2.5.1 busybox配置"></a><font size=3>2.5.1 busybox配置</font></h4><p>其实busybox中是支持memdev命令的，只是，在1.36.1版本的busybox中叫devmem，我之前用的是buildroot构建的根文件系统，它其实用到了busybox，我们可以在buildroot源码顶层目录下执行以下命令配置busybox：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo make busybox-menuconfig</span><br></pre></td></tr></table></figure>
+
+<p>然后就会打开busybox的配置界面：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330224153850.png" alt="image-20250330224153850" style="zoom:50%;" />
+
+<p>我们按以下路径找到对应的配置项：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Miscellaneous Utilities  ---&gt;</span><br><span class="line">	[*] devmem (2.5 kb)</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330224509577.png" alt="image-20250330224509577" style="zoom:50%;" />
+
+<p>退出的时候保存，注意这个配置修改后，会修改busybox源码目录中的.config文件，要是需要保存的话，这里需要注意一下。然后重新编译buildroot：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo make</span><br></pre></td></tr></table></figure>
+
+<p>编译完成后看一下 output&#x2F;images 目录下 rootfs.tar 的创建时间是否为刚刚编译的，如果不是的话就删除掉 rootfs.tar，然后重新执行“sudo make”重新编译一下即可。我们可以把这个目录解压看一下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">tar xvf rootfs.tar</span><br><span class="line">find ./ -name &quot;devmem&quot;</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330224917005.png" alt="image-20250330224917005" style="zoom:50%;" />
+
+<p>会发现有这个命令，我们进入开发板，使用以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">which devmem</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330225009867.png" alt="image-20250330225009867" />
+
+<p>可以看到确实有这个命令。</p>
+<h4 id="2-5-2-开发板测试"><a href="#2-5-2-开发板测试" class="headerlink" title="2.5.2 开发板测试"></a><font size=3>2.5.2 开发板测试</font></h4><p>我们还是读这两个寄存器：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">devmem 0x020e0340 32</span><br><span class="line">devmem 0x020e00b4 32</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330225107272.png" alt="image-20250330225107272" />
+
+<p>会发现和前面读到的结果一致，其实都一样，都是通过mmap来映射内存，只是根文件系统这个直接做成命令了。</p>
+<h1 id="三、GPIO的控制"><a href="#三、GPIO的控制" class="headerlink" title="三、GPIO的控制"></a><font size=3>三、GPIO的控制</font></h1><p>GPIO 软件编程方式有多种， 可以写驱动程序调用 GPIO 函数操作 GPIO， 也可以直接通过操作寄存器的方式操作 GPIO， 还可以通过 sysfs 方式实现对 GPIO 的控制。 本章节我们来学习使用 sysfs 方式实现对 GPIO 的控制。  </p>
+<h2 id="1-使用命令通过-sysfs-文件系统控制-GPIO"><a href="#1-使用命令通过-sysfs-文件系统控制-GPIO" class="headerlink" title="1. 使用命令通过 sysfs 文件系统控制 GPIO  "></a><font size=3>1. 使用命令通过 sysfs 文件系统控制 GPIO  </font></h2><h3 id="1-1-开始之前要知道的"><a href="#1-1-开始之前要知道的" class="headerlink" title="1.1 开始之前要知道的"></a><font size=3>1.1 开始之前要知道的</font></h3><h4 id="1-1-1-内核配置"><a href="#1-1-1-内核配置" class="headerlink" title="1.1.1 内核配置  "></a><font size=3>1.1.1 内核配置  </font></h4><p>使用 sysfs 方式控制 gpio， 首先需要底层驱动的支持， 执行以下命令打开图形化配置界面</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- imx_v6_v7_defconfig</span><br><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig</span><br></pre></td></tr></table></figure>
+
+<p>按以下路径找到配置菜单：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Device Drivers  ---&gt;</span><br><span class="line">	-*- GPIO Support  ---&gt;</span><br><span class="line">		[*]   /sys/class/gpio/... (sysfs interface) </span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330070045481.png" alt="image-20250330070045481"  />
+
+<h4 id="1-1-2-GPIO编号计算"><a href="#1-1-2-GPIO编号计算" class="headerlink" title="1.1.2 GPIO编号计算"></a><font size=3>1.1.2 GPIO编号计算</font></h4><p>i.MX6ULL的GPIO引脚被组织成多个Bank，每个Bank包含32个GPIO引脚。这个我们可以看数据手册过着参考手册，我这里看的数据手册：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330070701979.png" alt="image-20250330070701979"  />
+
+<p>GPIO引脚的编号通常以<code>GPIOx_y</code>的形式表示，其中<code>x</code>表示Bank编号，<code>y</code>表示该Bank中的引脚编号。例如：</p>
+<ul>
+<li><code>GPIO1_0</code> 表示Bank 1的第0个引脚。</li>
+<li><code>GPIO2_15</code> 表示Bank 2的第15个引脚。</li>
+</ul>
+<p>那么，i.MX6ULL的GPIO编号可以通过以下公式计算：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GPIO编号 = (Bank编号 - 1) * 32 + 引脚编号</span><br></pre></td></tr></table></figure>
+
+<p>像正点原子alpha开发板上的led接在GPIO1_IO03上，这里GPIO编号就是3.</p>
+<h3 id="1-2-GPIO控制器相关"><a href="#1-2-GPIO控制器相关" class="headerlink" title="1.2 GPIO控制器相关"></a><font size=3>1.2 GPIO控制器相关</font></h3><h4 id="1-2-1-怎么查看有哪些GPIO控制器"><a href="#1-2-1-怎么查看有哪些GPIO控制器" class="headerlink" title="1.2.1 怎么查看有哪些GPIO控制器"></a><font size=3>1.2.1 怎么查看有哪些GPIO控制器</font></h4><p><code>/sys/bus/gpio/devices</code>目录下，列出了所有的GPIO控制器，如下表示有5个GPIO控制器：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -alh /sys/bus/gpio/devices</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330175127447.png" alt="image-20250330175127447" />
+
+<h4 id="1-2-2-每个GPIO控制器的详细信息"><a href="#1-2-2-每个GPIO控制器的详细信息" class="headerlink" title="1.2.2 每个GPIO控制器的详细信息"></a><font size=3>1.2.2 每个GPIO控制器的详细信息</font></h4><p>GPIO控制器的详细信息在<code>/sys/class/gpio/gpiochipXXX</code>下，有gpio这些信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -alh /sys/class/gpio/gpiochipX</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330175521101.png" alt="image-20250330175521101" />
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">base     # 这个GPIO控制器的GPIO编号</span><br><span class="line">device</span><br><span class="line">label    # 名字</span><br><span class="line">ngpio    # 引脚个数</span><br><span class="line">power</span><br><span class="line">subsystem</span><br><span class="line">uevent</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-3-gpio导出与取消"><a href="#1-3-gpio导出与取消" class="headerlink" title="1.3 gpio导出与取消"></a><font size=3>1.3 gpio导出与取消</font></h3><p>我们可以通过sysfs文件系统，将GPIO导出到用户空间，这样我们就可以通过sysfs直接控制gpio。sysfs 控制接口为 &#x2F;sys&#x2F;class&#x2F;gpio&#x2F;export 和&#x2F;sys&#x2F;class&#x2F;gpio&#x2F;unexport。 如下图所示：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230317526.png" alt="image-20250331230317526" />
+
+<p>export 和unexport这两个文件<strong>都是只写的</strong>。 这里的 gpiochipX 代表 GPIO 控制器。  </p>
+<h4 id="1-3-1-gpio导出"><a href="#1-3-1-gpio导出" class="headerlink" title="1.3.1 gpio导出"></a><font size=3>1.3.1 gpio导出</font></h4><blockquote>
+<p>&#x2F;sys&#x2F;class&#x2F;gpio&#x2F;export 用于将GPIO 控制从内核空间导出到用户空间 。</p>
+</blockquote>
+<p><strong>export：</strong>用于将指定编号的 GPIO 引脚导出。 在使用 GPIO 引脚之前， 需要将其导出，导出成功之后才能使用它。 注意 export 文件是只写文件， 不能读取， 将一个指定的编号写入到 export 文件中即可将对应的 GPIO 引脚导出， 以 GPIO0_PB7 为例（pin 计算值为 15） 使用 export 文件进行导出(如果这个gpio被内核或者用户程序占用，那么就会导出不成功)， 导出成功如下图所示：  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo 3 &gt; /sys/class/gpio/export</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230349257.png" alt="image-20250331230349257" />
+
+<p>会发现在&#x2F;sys&#x2F;class&#x2F;gpio 目录下生成了一个名为 gpio3 的文件夹（gpioX， X 表示对应的编 号） ， 该文件夹就是导出来的 GPIO 引脚对应的文件夹， 用于管理、 控制该 GPIO 引脚。导出成功之后进入 gpio3 文件夹如下图所示：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230423922.png" alt="image-20250331230423922" />
+
+<p>会发现里面生成了很多属性文件，通过在这些文件就可以控制gpio，这些文件我们后面再来了解。</p>
+<h4 id="1-3-2-gpio取消导出"><a href="#1-3-2-gpio取消导出" class="headerlink" title="1.3.2 gpio取消导出"></a><font size=3>1.3.2 gpio取消导出</font></h4><blockquote>
+<p>&#x2F;sys&#x2F;class&#x2F;gpio&#x2F;unexport 用于取消 GPIO 控制从内核空间到用户空间的导出。 </p>
+</blockquote>
+<p><strong>unexport：</strong>将导出的 GPIO 引脚删除。 当使用完 GPIO 引脚之后， 需要将导出的引脚删除， 同样该文件也是只写文件、 不可读， 使用 unexport 文件进行删除 GPIO0_PB7， 删除成功如下图所示：  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo 3 &gt; /sys/class/gpio/unexport</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230509599.png" alt="image-20250331230509599" />
+
+<p>可以看到之前生成的 gpio3 文件夹消失了！</p>
+<h4 id="1-3-3-导出失败？"><a href="#1-3-3-导出失败？" class="headerlink" title="1.3.3 导出失败？"></a><font size=3>1.3.3 导出失败？</font></h4><p>需要注意的是， 并不是所有 GPIO 引脚都可以成功导出， 如果对应的 GPIO 已经被导出或者在内核中被使用了， 那便无法成功导出， 例如我用的整点原子alpha开发板中，led灯是接在GPIO1_IO03，对应的gpio编号为3，这里导出就会失败，导出失败如下图所示：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330180041908.png" alt="image-20250330180041908" />
+
+<p>这个是因为设备树中用到了这个gpio：我们可以看一下 <code>sys/kernel/debug/gpio</code>：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat sys/kernel/debug/gpio</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250330202215788.png" alt="image-20250330202215788" />
+
+<p>如会发现，这里gpio-3是被用掉了的，这个时候我们就需要找到设备树中对应的地方，就找相关的关键词，可以找到<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/arch/arm/boot/dts/imx6ul-14x14-evk.dtsi#L198">imx6ul-14x14-evk.dtsi</a>这个文件中有：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&amp;tsc &#123;</span><br><span class="line">	pinctrl-names = <span class="string">&quot;default&quot;</span>;</span><br><span class="line">	pinctrl<span class="number">-0</span> = &lt;&amp;pinctrl_tsc&gt;;</span><br><span class="line">	xnur-gpio = &lt;&amp;gpio1 <span class="number">3</span> GPIO_ACTIVE_LOW&gt;;</span><br><span class="line">	measure-delay-time = &lt;<span class="number">0xffff</span>&gt;;</span><br><span class="line">	pre-charge-time = &lt;<span class="number">0xfff</span>&gt;;</span><br><span class="line">	status = <span class="string">&quot;okay&quot;</span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>这里我们就可以把它屏蔽掉，然后更新设备树：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230015999.png" alt="image-20250331230015999" />
+
+<p>这个时候重新导出就没问题啦。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo 3 &gt; export</span><br></pre></td></tr></table></figure>
+
+<p>这个时候就正常了。</p>
+<h3 id="1-4-gpio属性修改"><a href="#1-4-gpio属性修改" class="headerlink" title="1.4 gpio属性修改"></a><font size=3>1.4 gpio属性修改</font></h3><p>导出gpio成功之后进入对应的文件夹，会发现生成了一些属性文件：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230227730.png" alt="image-20250331230227730" />
+
+<p>可以看到 gpio3 文件夹下分别有 active_low、 device、 direction、 edge、 power、 subsystem、uevent、 value 八个文件， 需要关心的文件是 active_low、 direction、 edge 以及 value 这四个属性文件， 接下来分别介绍这四个属性文件的作用。  </p>
+<h4 id="1-4-1-direction"><a href="#1-4-1-direction" class="headerlink" title="1.4.1 direction"></a><font size=3>1.4.1 direction</font></h4><p>direction：配置 GPIO 引脚为输入或输出模式。 该文件可读、 可写， 读表示查看 GPIO 当前是输入还是输出模式， 写表示将 GPIO 配置为输入或输出模式； 读取或写入操作可取的值为”out”（输出模式） 和”in”（输入模式） 。  </p>
+<p>在“&#x2F;sys&#x2F;class&#x2F;gpio&#x2F;gpio15”目录下使用 cat 命令查看 direction 输入输出模式， 如下图所示：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat direction</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230605378.png" alt="image-20250331230605378" />
+
+<p>默认状态下的输入输出状态为“in”,由于 direction 为可读可写， 可以使用以下命令将模式配置为输出， 配置完成如下图所示  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">echo out &gt; direction</span><br><span class="line">cat direction</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230629595.png" alt="image-20250331230629595" />
+
+<h4 id="1-4-2-active-low"><a href="#1-4-2-active-low" class="headerlink" title="1.4.2 active_low"></a><font size=3>1.4.2 active_low</font></h4><p>active_low： 用于控制<strong>极性的属性文件</strong>， 可读可写， 默认情况下为 0， 使用 cat 命令进行文件内容的查看， 如下图所示 ：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat active_low</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230754356.png" alt="image-20250331230754356" />
+
+<p>当 active_low 等于 0 时， value 值若为 1 则引脚输出高电平， value 值若为 0 则引脚输出低电平。 当 active_low 等于 1 时 ， value 值若为 0 则引脚输出高电平， value 值若为 1 则引脚输出低电平。  </p>
+<h4 id="1-4-3-edge"><a href="#1-4-3-edge" class="headerlink" title="1.4.3 edge"></a><font size=3>1.4.3 edge</font></h4><p>edge：控制中断的触发模式， 该文件可读可写。 在配置 GPIO 引脚的中断触发模式之前，需将其设置为输入模式， 四种触发模式的设置如下所示：  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">echo &quot;none&quot; &gt; edge    # 非中断引脚</span><br><span class="line">echo &quot;rising&quot; &gt; edge  # 上升沿触发</span><br><span class="line">echo &quot;falling&quot; &gt; edge # 下降沿触发</span><br><span class="line">echo &quot;both&quot; &gt; edge    # 边沿触发</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-4-4-value"><a href="#1-4-4-value" class="headerlink" title="1.4.4 value  "></a><font size=3>1.4.4 value  </font></h4><p>value: 设置高低电平， 如果我们要把这个管脚设置成高电平， 我们只需要给 value 设置成 1 ，即可， 反之， 则设置成 0。 使用命令  :</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="built_in">cat</span> active_low <span class="comment"># 通过它看极性</span></span></span><br><span class="line"></span><br><span class="line">echo 1 &gt; value # 把 GPIO 设置成高电平</span><br><span class="line">echo 0 &gt; value # 把 GPIO 设置成低电平</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331230942937.png" alt="image-20250331230942937" />
+
+<p>这个引脚是连接了LED灯，根据原理图可知，LED的一端接GPIO，另一端接3.3v，这里输出1会熄灭LED，输出0会点亮LED。</p>
+<h2 id="2-使用-C-程序通过-sysfs-文件系统控制-GPIO"><a href="#2-使用-C-程序通过-sysfs-文件系统控制-GPIO" class="headerlink" title="2. 使用 C 程序通过 sysfs 文件系统控制 GPIO  "></a><font size=3>2. 使用 C 程序通过 sysfs 文件系统控制 GPIO  </font></h2><p>上面我们已经实现了用cat、echo通过sysfs文件系统控制gpio，其实就会发现，我们做的都是去操作一些属性文件，那么既然如此，我们肯定是可以通过C语言程序来操作这些文件的。</p>
+<h3 id="2-1-关键函数实现"><a href="#2-1-关键函数实现" class="headerlink" title="2.1 关键函数实现"></a><font size=3>2.1 关键函数实现</font></h3><h4 id="2-1-1-导出GPIO引脚"><a href="#2-1-1-导出GPIO引脚" class="headerlink" title="2.1.1 导出GPIO引脚"></a><font size=3>2.1.1 导出GPIO引脚</font></h4><p>导出的时候，我们需要访问<code>/sys/class/gpio/export</code>，通过open和write函数就可以实现：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  gpio_export()</span></span><br><span class="line"><span class="comment"> * @note   导出 GPIO 引脚,相当于 echo X &gt; /sys/class/gpio/export</span></span><br><span class="line"><span class="comment"> *         导出成功会生成 /sys/class/gpio/gpioX 目录</span></span><br><span class="line"><span class="comment"> * @param  [in] pins : gpio编号，传进来的是一个字符串</span></span><br><span class="line"><span class="comment"> * @param  [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">gpio_export</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *pins)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> fd = <span class="number">-1</span>;</span><br><span class="line">    <span class="type">size_t</span> len = <span class="number">0</span>; <span class="comment">// size_t  --&gt; 32bit下通常为 unsigned int</span></span><br><span class="line">    <span class="type">ssize_t</span> ret = <span class="number">0</span>;<span class="comment">// ssize_t --&gt; 32bit下通常为 int</span></span><br><span class="line">    <span class="type">char</span> attr_file_path[<span class="number">32</span>] = &#123;<span class="number">0</span>&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(pins == <span class="literal">NULL</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;pins is NULL\n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">sprintf</span>(attr_file_path, <span class="string">&quot;%s&quot;</span>, <span class="string">&quot;/sys/class/gpio/export&quot;</span>); <span class="comment">// 构建文件路径</span></span><br><span class="line">    fd = open(attr_file_path, O_WRONLY);      <span class="comment">// 打开 export 文件</span></span><br><span class="line">    <span class="keyword">if</span> (fd &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;open %s error!\n&quot;</span>, attr_file_path); <span class="comment">// 打开文件失败</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">-2</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//PRT(&quot;open %s success!\n&quot;, attr_file_path);</span></span><br><span class="line"></span><br><span class="line">    len = <span class="built_in">strlen</span>(pins);         <span class="comment">// 获取参数字符串的长度</span></span><br><span class="line">    ret = write(fd, pins, len); <span class="comment">// 将参数字符串写入文件， 导出 GPIO 引脚</span></span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;write %s error!\n&quot;</span>, attr_file_path); <span class="comment">// 写入文件失败</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">-3</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    close(fd); <span class="comment">// 关闭文件</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-1-2-取消导出GPIO引脚"><a href="#2-1-2-取消导出GPIO引脚" class="headerlink" title="2.1.2 取消导出GPIO引脚"></a><font size=3>2.1.2 取消导出GPIO引脚</font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  gpio_unexport()</span></span><br><span class="line"><span class="comment"> * @note   取消导出 GPIO 引脚,相当于 echo X &gt; /sys/class/gpio/unexport</span></span><br><span class="line"><span class="comment"> *         取消导出成功会删除 /sys/class/gpio/gpioX 目录</span></span><br><span class="line"><span class="comment"> * @param  [in] pins : gpio编号，传进来的是一个字符串</span></span><br><span class="line"><span class="comment"> * @param  [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">gpio_unexport</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *pins)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> fd = <span class="number">-1</span>;</span><br><span class="line">    <span class="type">size_t</span> len = <span class="number">0</span>;</span><br><span class="line">    <span class="type">ssize_t</span> ret = <span class="number">0</span>;</span><br><span class="line">    <span class="type">char</span> attr_file_path[<span class="number">32</span>] = &#123;<span class="number">0</span>&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(pins == <span class="literal">NULL</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;pins is NULL\n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">sprintf</span>(attr_file_path, <span class="string">&quot;%s&quot;</span>, <span class="string">&quot;/sys/class/gpio/unexport&quot;</span>); <span class="comment">// 构建文件路径</span></span><br><span class="line">    fd = open(attr_file_path, O_WRONLY); <span class="comment">// 打开 unexport 文件</span></span><br><span class="line">    <span class="keyword">if</span> (fd &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;open %s error!\n&quot;</span>, attr_file_path); <span class="comment">// 打开文件失败</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">-2</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//PRT(&quot;open %s success!\n&quot;, attr_file_path);</span></span><br><span class="line"></span><br><span class="line">    len = <span class="built_in">strlen</span>(pins);         <span class="comment">// 获取参数字符串的长度</span></span><br><span class="line">    ret = write(fd, pins, len); <span class="comment">// 将参数字符串写入文件， 取消导出 GPIO 引脚</span></span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;write %s error!\n&quot;</span>, attr_file_path); <span class="comment">// 写入文件失败</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">-3</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    close(fd); <span class="comment">// 关闭文件</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-1-3-控制GPIO属性"><a href="#2-1-3-控制GPIO属性" class="headerlink" title="2.1.3 控制GPIO属性"></a><font size=3>2.1.3 控制GPIO属性</font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  gpio_ctrl()</span></span><br><span class="line"><span class="comment"> * @note   控制 GPIO 引脚的属性</span></span><br><span class="line"><span class="comment"> *         /sys/class/gpio/gpioX/direction  : 配置 GPIO 引脚为输入或输出模式。 </span></span><br><span class="line"><span class="comment"> *         /sys/class/gpio/gpioX/active_low : 配置 GPIO 极性</span></span><br><span class="line"><span class="comment"> *         /sys/class/gpio/gpioX/edge       : 控制中断的触发模式</span></span><br><span class="line"><span class="comment"> *         /sys/class/gpio/gpioX/value      : 设置高低电平/读取引脚高低电平状态</span></span><br><span class="line"><span class="comment"> * @param  [in] p_gpio_path : gpio路径，/sys/class/gpio/gpioX</span></span><br><span class="line"><span class="comment"> * @param  [in] p_attr_name : 属性文件名称，direction，active_low，edge，value</span></span><br><span class="line"><span class="comment"> * @param  [in] val         : 要写入的值 direction  - in/out ;</span></span><br><span class="line"><span class="comment"> *                                      active_low - 1/0 ;</span></span><br><span class="line"><span class="comment"> *                                      edge       - none/rising/falling/both ;</span></span><br><span class="line"><span class="comment"> *                                      value      - 1/0 ;</span></span><br><span class="line"><span class="comment"> * @param  [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">gpio_ctrl</span><span class="params">(<span class="type">char</span> *p_gpio_path, <span class="type">const</span> <span class="type">char</span> *p_attr_name, <span class="type">const</span> <span class="type">char</span> *val)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> fd = <span class="number">-1</span>;</span><br><span class="line">    <span class="type">size_t</span> len = <span class="number">0</span>;</span><br><span class="line">    <span class="type">ssize_t</span> ret = <span class="number">0</span>;</span><br><span class="line">    <span class="type">char</span> attr_file_path[<span class="number">32</span>] = &#123;<span class="number">0</span>&#125;;                 <span class="comment">// 文件路径</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(p_gpio_path == <span class="literal">NULL</span> || p_attr_name == <span class="literal">NULL</span> || val == <span class="literal">NULL</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;p_gpio_path, p_attr_name or val is NULL\n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">sprintf</span>(attr_file_path, <span class="string">&quot;%s/%s&quot;</span>, p_gpio_path, p_attr_name); <span class="comment">// 构建文件路径， 格式为 p_gpio_path/p_attr_name </span></span><br><span class="line">    fd = open(attr_file_path, O_WRONLY);           <span class="comment">// 打开文件</span></span><br><span class="line">    <span class="keyword">if</span> (fd &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;open %s error!\n&quot;</span>, attr_file_path); <span class="comment">// 打开文件失败</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">-2</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//PRT(&quot;open %s success!\n&quot;, attr_file_path);</span></span><br><span class="line"></span><br><span class="line">    len = <span class="built_in">strlen</span>(val);         <span class="comment">// 获取参数字符串的长度</span></span><br><span class="line"></span><br><span class="line">    ret = write(fd, val, len); <span class="comment">// 将参数字符串写入文件， 控制 GPIO 引脚的属性</span></span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;write %s error!\n&quot;</span>, attr_file_path); <span class="comment">// 写入文件失败</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">-3</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    close(fd); <span class="comment">// 关闭文件</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-1-4-读取GPIO数据"><a href="#2-1-4-读取GPIO数据" class="headerlink" title="2.1.4 读取GPIO数据"></a><font size=3>2.1.4 读取GPIO数据</font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  gpio_read_value()</span></span><br><span class="line"><span class="comment"> * @note   获取 GPIO 引脚的电平状态</span></span><br><span class="line"><span class="comment"> *         /sys/class/gpio/gpioX/value      : 设置高低电平/读取引脚高低电平状态</span></span><br><span class="line"><span class="comment"> * @param  [in] p_gpio_path : gpio路径，/sys/class/gpio/gpioX</span></span><br><span class="line"><span class="comment"> * @param  [in] p_attr_name : 属性文件名称，value</span></span><br><span class="line"><span class="comment"> * @param  [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">gpio_read_value</span><span class="params">(<span class="type">char</span> *p_gpio_path, <span class="type">const</span> <span class="type">char</span> *p_attr_name)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> fd = <span class="number">-1</span>;</span><br><span class="line">    <span class="type">ssize_t</span> ret = <span class="number">0</span>;</span><br><span class="line">    <span class="type">char</span> attr_file_path[<span class="number">32</span>] = &#123;<span class="number">0</span>&#125;;                 <span class="comment">// 文件路径</span></span><br><span class="line">    <span class="type">char</span> buf[<span class="number">2</span>] = &#123;<span class="number">0</span>&#125;; <span class="comment">// 缓冲区</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span>(p_gpio_path == <span class="literal">NULL</span> || p_attr_name == <span class="literal">NULL</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;p_gpio_path, p_attr_name is NULL\n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">sprintf</span>(attr_file_path, <span class="string">&quot;%s/%s&quot;</span>, p_gpio_path, p_attr_name); <span class="comment">// 构建文件路径， 格式为 &quot;p_gpio_path/p_attr_name&quot;</span></span><br><span class="line">    fd = open(attr_file_path, O_RDONLY);              <span class="comment">// 打开文件</span></span><br><span class="line">    <span class="keyword">if</span> (fd &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;open %s error!\n&quot;</span>, attr_file_path); <span class="comment">// 打开文件失败</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">	<span class="comment">//PRT(&quot;open %s success!\n&quot;, attr_file_path);</span></span><br><span class="line">    ret = read(fd, buf, <span class="number">1</span>); <span class="comment">// 读取文件内容到缓冲区</span></span><br><span class="line">    <span class="keyword">if</span>(ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;read from %s fail!\n&quot;</span>, attr_file_path);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!<span class="built_in">strcmp</span>(buf, <span class="string">&quot;1&quot;</span>))</span><br><span class="line">    &#123;</span><br><span class="line">        PRT(<span class="string">&quot;The value is high!\n&quot;</span>); <span class="comment">// GPIO 引脚值为高电平</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (!<span class="built_in">strcmp</span>(buf, <span class="string">&quot;0&quot;</span>))</span><br><span class="line">    &#123;</span><br><span class="line">        PRT(<span class="string">&quot;The value is low!\n&quot;</span>); <span class="comment">// GPIO 引脚值为低电平</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    close(fd); <span class="comment">// 关闭文件</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-1-5-监听中断"><a href="#2-1-5-监听中断" class="headerlink" title="2.1.5 监听中断"></a><font size=3>2.1.5 监听中断</font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  gpio_interrupt()</span></span><br><span class="line"><span class="comment"> * @note   监听 GPIO 引脚的中断事件,中断发生时读取gpio的值</span></span><br><span class="line"><span class="comment"> *         /sys/class/gpio/gpioX/value      : 设置高低电平/读取引脚高低电平状态</span></span><br><span class="line"><span class="comment"> * @param  [in] p_gpio_path : gpio路径，/sys/class/gpio/gpioX</span></span><br><span class="line"><span class="comment"> * @param  [in] p_attr_name : 属性文件名称，value</span></span><br><span class="line"><span class="comment"> * @param  [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">gpio_interrupt</span><span class="params">(<span class="type">char</span> *p_gpio_path, <span class="type">const</span> <span class="type">char</span> *p_attr_name)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> fd = <span class="number">-1</span>;</span><br><span class="line">    <span class="type">ssize_t</span> ret = <span class="number">0</span>;</span><br><span class="line">    <span class="type">char</span> attr_file_path[<span class="number">32</span>] = &#123;<span class="number">0</span>&#125;; <span class="comment">// 文件路径</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">pollfd</span> <span class="title">fds</span>[1];</span>          <span class="comment">// poll 结构体数组</span></span><br><span class="line">    <span class="type">char</span> buf[<span class="number">2</span>] = &#123;<span class="number">0</span>&#125;;             <span class="comment">// 缓冲区</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">sprintf</span>(attr_file_path, <span class="string">&quot;%s/%s&quot;</span>, p_gpio_path, p_attr_name); <span class="comment">// 构建文件路径</span></span><br><span class="line">    fd = open(attr_file_path, O_WRONLY);           <span class="comment">// 打开文件</span></span><br><span class="line">    <span class="keyword">if</span> (fd &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;open %s error!\n&quot;</span>, attr_file_path); <span class="comment">// 打开文件失败</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//PRT(&quot;open %s success!\n&quot;, attr_file_path);</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">memset</span>((<span class="type">void</span> *)fds, <span class="number">0</span>, <span class="keyword">sizeof</span>(fds)); <span class="comment">// 清空 poll 结构体数组</span></span><br><span class="line">    fds[<span class="number">0</span>].fd = fd;                      <span class="comment">// 设置 poll 结构体的文件描述符</span></span><br><span class="line">    fds[<span class="number">0</span>].events = POLLPRI;             <span class="comment">// 设置 poll 结构体的事件类型为 POLLPRI， 表示有紧急数据可读</span></span><br><span class="line">    read(fd, buf, <span class="number">2</span>);                    <span class="comment">// 读取文件内容， 清除中断事件</span></span><br><span class="line">    <span class="keyword">while</span> (<span class="number">1</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        ret = poll(fds, <span class="number">1</span>, <span class="number">-1</span>); <span class="comment">// 调用 poll 函数等待中断事件发生， 阻塞直到事件发生</span></span><br><span class="line">        <span class="keyword">if</span> (ret &lt;= <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            PRTE(<span class="string">&quot;poll error \n&quot;</span>); <span class="comment">// 调用 poll 失败或超时</span></span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        PRT(<span class="string">&quot;poll return!ret=%d,fds[0].revents=0x%x,fds[0].events=0x%x\n&quot;</span>, ret, fds[<span class="number">0</span>].revents, fds[<span class="number">0</span>].events); <span class="comment">// 输出中断事件的值</span></span><br><span class="line">        <span class="keyword">if</span> (fds[<span class="number">0</span>].revents &amp; POLLPRI)</span><br><span class="line">        &#123;</span><br><span class="line">            lseek(fd, <span class="number">0</span>, SEEK_SET); <span class="comment">// 重新定位文件指针到文件开头</span></span><br><span class="line">            read(fd, buf, <span class="number">2</span>);       <span class="comment">// 读取文件内容， 获取中断事件的值</span></span><br><span class="line">            PRT(<span class="string">&quot;value from %s : buf[0]=%x buf[1]=%x\n&quot;</span>, attr_file_path, buf[<span class="number">0</span>], buf[<span class="number">1</span>]); <span class="comment">// 输出中断事件的值</span></span><br><span class="line">        &#125;</span><br><span class="line">        sleep(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="2-2-控制-GPIO-输出-demo"><a href="#2-2-控制-GPIO-输出-demo" class="headerlink" title="2.2 控制 GPIO 输出 demo"></a><font size=3>2.2 控制 GPIO 输出 demo</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">gpio_out_demo</span><span class="params">(<span class="type">int</span> argc, <span class="type">const</span> <span class="type">char</span> *argv[])</span> <span class="comment">// 主函数</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">char</span> gpio_path[<span class="number">32</span>] = &#123;<span class="number">0</span>&#125;;                 <span class="comment">// 文件路径</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">sprintf</span>(gpio_path, <span class="string">&quot;/sys/class/gpio/gpio%s&quot;</span>, argv[<span class="number">1</span>]); <span class="comment">// 构建 GPIO 路径， 格式为“/sys/class/gpio/gpio 引脚号”</span></span><br><span class="line">    <span class="keyword">if</span> (access(gpio_path, F_OK))                           <span class="comment">// 检查 GPIO 路径是否存在</span></span><br><span class="line">    &#123;</span><br><span class="line">        gpio_export(argv[<span class="number">1</span>]); <span class="comment">// 不存在则导出 GPIO 引脚</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    PRT(<span class="string">&quot;gpio_path:%s\n&quot;</span>, gpio_path);</span><br><span class="line">    gpio_ctrl(gpio_path, <span class="string">&quot;direction&quot;</span>, <span class="string">&quot;out&quot;</span>); <span class="comment">// 配置 GPIO 为输出模式</span></span><br><span class="line">    gpio_ctrl(gpio_path, <span class="string">&quot;value&quot;</span>, argv[<span class="number">2</span>]);   <span class="comment">// 控制 GPIO 输出高低电平</span></span><br><span class="line">    </span><br><span class="line">    gpio_unexport(argv[<span class="number">1</span>]);        <span class="comment">// 最后取消导出 GPIO 引脚</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;                      <span class="comment">// 返回 0 表示程序正常退出</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个就主要是看led灯的亮灭了：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331232650428.png" alt="image-20250331232650428" />
+
+<h3 id="2-3-控制-GPIO-输入demo"><a href="#2-3-控制-GPIO-输入demo" class="headerlink" title="2.3 控制 GPIO 输入demo"></a><font size=3>2.3 控制 GPIO 输入demo</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">gpio_in_demo</span><span class="params">(<span class="type">int</span> argc, <span class="type">const</span> <span class="type">char</span> *argv[])</span> <span class="comment">// 主函数</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> value = <span class="number">-1</span>;</span><br><span class="line">    <span class="type">char</span> gpio_path[<span class="number">32</span>] = &#123;<span class="number">0</span>&#125;;                              <span class="comment">// 文件路径</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">sprintf</span>(gpio_path, <span class="string">&quot;/sys/class/gpio/gpio%s&quot;</span>, argv[<span class="number">1</span>]); <span class="comment">// 构建 GPIO 路径， 格式为&quot;/sys/class/gpio/gpio 引脚号&quot;</span></span><br><span class="line">    <span class="keyword">if</span> (access(gpio_path, F_OK))                           <span class="comment">// 检查 GPIO 路径是否存在</span></span><br><span class="line">    &#123;</span><br><span class="line">        gpio_export(argv[<span class="number">1</span>]); <span class="comment">// 不存在则导出 GPIO 引脚</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    PRT(<span class="string">&quot;gpio_path:%s\n&quot;</span>, gpio_path);</span><br><span class="line">    gpio_ctrl(gpio_path, <span class="string">&quot;direction&quot;</span>, <span class="string">&quot;in&quot;</span>);       <span class="comment">// 配置 GPIO 为输入模式</span></span><br><span class="line"></span><br><span class="line">    value = gpio_read_value(gpio_path, <span class="string">&quot;value&quot;</span>);   <span class="comment">// 读取 GPIO 引脚的值</span></span><br><span class="line"></span><br><span class="line">    PRT(<span class="string">&quot;The value is %d\n&quot;</span>, value); <span class="comment">// 打印读取的 GPIO 引脚的值</span></span><br><span class="line">    gpio_unexport(argv[<span class="number">1</span>]);             <span class="comment">// 最后取消导出 GPIO 引脚</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;                           <span class="comment">// 返回 0 表示程序正常退出</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们编译后，拷贝到开发板，抬起按键的时候执行一次，按下按键不松，再执行一次：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/LV09-01-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F-04-gpio%E6%8E%A7%E5%88%B6%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20250331232419021.png" alt="image-20250331232419021" />
+
+<h3 id="2-4-监听-GPIO-中断-demo"><a href="#2-4-监听-GPIO-中断-demo" class="headerlink" title="2.4 监听 GPIO 中断 demo"></a><font size=3>2.4 监听 GPIO 中断 demo</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">gpio_interrupt_demo</span><span class="params">(<span class="type">int</span> argc, <span class="type">const</span> <span class="type">char</span> *argv[])</span> <span class="comment">// 主函数</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">char</span> gpio_path[<span class="number">32</span>] = &#123;<span class="number">0</span>&#125;; <span class="comment">// 文件路径</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">sprintf</span>(gpio_path, <span class="string">&quot;/sys/class/gpio/gpio%s&quot;</span>, argv[<span class="number">1</span>]); <span class="comment">// 构建 GPIO 路径</span></span><br><span class="line">    <span class="keyword">if</span> (access(gpio_path, F_OK))                           <span class="comment">// 检查 GPIO 路径是否存在</span></span><br><span class="line">    &#123;</span><br><span class="line">        gpio_export(argv[<span class="number">1</span>]); <span class="comment">// 不存在则导出 GPIO 引脚</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    PRT(<span class="string">&quot;gpio_path:%s\n&quot;</span>, gpio_path);</span><br><span class="line">    gpio_ctrl(gpio_path, <span class="string">&quot;direction&quot;</span>, <span class="string">&quot;in&quot;</span>); <span class="comment">// 设置 GPIO 引脚为输入模式</span></span><br><span class="line">    gpio_ctrl(gpio_path, <span class="string">&quot;edge&quot;</span>, <span class="string">&quot;rising&quot;</span>);    <span class="comment">// 设置 GPIO 引脚的中断触发方式为上升沿</span></span><br><span class="line">    gpio_interrupt(gpio_path, <span class="string">&quot;value&quot;</span>);      <span class="comment">// 监听 GPIO 引脚的中断事件</span></span><br><span class="line"></span><br><span class="line">    gpio_unexport(argv[<span class="number">1</span>]); <span class="comment">// 最后取消导出 GPIO 引脚</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;               <span class="comment">// 返回 0 表示程序正常退出</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/65b0edd7.html">LV09-01-pinctrl和gpio子系统-04-gpio控制与调试</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2025年04月08日 - 07:39</p>
+    <p><span>最后更新:</span>2025年04月08日 - 07:43</p>
+    <p><span>原始链接:</span><a href="/post/65b0edd7.html" title="LV09-01-pinctrl和gpio子系统-04-gpio控制与调试">https://sumumm.github.io/post/65b0edd7.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV09-pinctrl%E5%92%8Cgpio%E5%AD%90%E7%B3%BB%E7%BB%9F/" rel="tag"><i class="fa fa-tag"></i> LV09-pinctrl和gpio子系统</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/b41925f2.html" rel="prev" title="LV09-01-pinctrl和gpio子系统-05-虚拟GPIO控制器实例">
+                  <i class="fa fa-angle-left"></i> LV09-01-pinctrl和gpio子系统-05-虚拟GPIO控制器实例
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/5388e523.html" rel="next" title="LV09-01-pinctrl和gpio子系统-03-gpio子系统简介">
+                  LV09-01-pinctrl和gpio子系统-03-gpio子系统简介 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">223:41</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>
