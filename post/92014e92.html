@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="平台总线怎么完成平台设备和平台驱动的匹配的？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-05-linux平台总线模型-03-平台总线的匹配">
+<meta property="og:url" content="https://sumumm.github.io/post/92014e92.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="平台总线怎么完成平台设备和平台驱动的匹配的？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119100853784.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119101404739.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119105029722.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119104932229.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119105102343.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119105133421.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/id_table_match.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119110516247.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/name_match.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119115206386.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250120104158719.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250120104604003.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250120110322289.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250120110453176.png">
+<meta property="article:published_time" content="2025-01-20T14:31:02.000Z">
+<meta property="article:modified_time" content="2025-04-16T12:57:33.466Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119100853784.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/92014e92.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/92014e92.html","path":"post/92014e92.html","title":"LV06-05-linux平台总线模型-03-平台总线的匹配"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-05-linux平台总线模型-03-平台总线的匹配 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">672</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E5%8C%B9%E9%85%8D"><span class="nav-text">一、平台总线匹配</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-platform-match"><span class="nav-text">1. platform_match()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%9B%9B%E7%A7%8D%E5%8C%B9%E9%85%8D%E6%96%B9%E5%BC%8F"><span class="nav-text">2. 四种匹配方式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E6%96%B9%E5%BC%8F%E4%B8%80%EF%BC%9A%E6%98%AF%E5%90%A6%E5%BC%BA%E5%88%B6%E9%80%89%E6%8B%A9%E6%9F%90%E4%B8%AA-driver"><span class="nav-text">2.1 方式一：是否强制选择某个 driver  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E6%96%B9%E5%BC%8F%E4%BA%8C%EF%BC%9A%E8%AE%BE%E5%A4%87%E6%A0%91%E5%8C%B9%E9%85%8D"><span class="nav-text">2.2 方式二：设备树匹配</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E6%96%B9%E5%BC%8F%E4%B8%89%EF%BC%9AACPI%E5%8C%B9%E9%85%8D"><span class="nav-text">2.3 方式三：ACPI匹配</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E6%96%B9%E5%BC%8F%E5%9B%9B%EF%BC%9Aid%E5%8C%B9%E9%85%8D"><span class="nav-text">2.4 方式四：id匹配</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-%E6%96%B9%E5%BC%8F%E4%BA%94%EF%BC%9Aname%E5%8C%B9%E9%85%8D"><span class="nav-text">2.5 方式五：name匹配</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%8C%B9%E9%85%8D%E6%96%B9%E5%BC%8F%E6%80%BB%E7%BB%93"><span class="nav-text">3. 匹配方式总结</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E5%8C%B9%E9%85%8D%E5%AE%9E%E7%8E%B0demo"><span class="nav-text">二、平台总线匹配实现demo</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%90%8D%E7%A7%B0%E5%8C%B9%E9%85%8Ddemo"><span class="nav-text">1. 名称匹配demo</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-demo%E6%BA%90%E7%A0%81"><span class="nav-text">1.1 demo源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E9%AA%8C%E8%AF%81"><span class="nav-text">1.2 开发板验证</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-id%E5%8C%B9%E9%85%8Ddemo"><span class="nav-text">2. id匹配demo</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-demo%E6%BA%90%E7%A0%81"><span class="nav-text">2.1 demo源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E9%AA%8C%E8%AF%81"><span class="nav-text">2.2 开发板验证</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%AE%BE%E5%A4%87%E6%A0%91%E5%8C%B9%E9%85%8D"><span class="nav-text">3. 设备树匹配</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">672</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/92014e92.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-05-linux平台总线模型-03-平台总线的匹配 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-05-linux平台总线模型-03-平台总线的匹配
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-01-20 22:31:02" itemprop="dateCreated datePublished" datetime="2025-01-20T22:31:02+08:00">2025-01-20</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.9k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>14 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>平台总线怎么完成平台设备和平台驱动的匹配的？若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="3">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4" target="_blank">kernel/git/stable/linux.git - Linux kernel stable tree</a></td>        <td align="left">linux kernel源码(官网,tag 4.19.71)</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、平台总线匹配"><a href="#一、平台总线匹配" class="headerlink" title="一、平台总线匹配"></a><font size=3>一、平台总线匹配</font></h1><p>在前面学习总线的时候，我们知道，在编写总线驱动的时候都会实现一个xxx_match()函数来完成驱动和设备的匹配，平台总线也属于总线，内核已经帮我们实现好了这个函数：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L950">platform_match()</a>。接下来就来了解一下。</p>
+<h2 id="1-platform-match"><a href="#1-platform-match" class="headerlink" title="1. platform_match()"></a><font size=3>1. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L950">platform_match()</a></font></h2><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L950">platform_match()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">platform_match</span><span class="params">(<span class="keyword">struct</span> device *dev, <span class="keyword">struct</span> device_driver *drv)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">platform_device</span> *<span class="title">pdev</span> =</span> to_platform_device(dev);</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">platform_driver</span> *<span class="title">pdrv</span> =</span> to_platform_driver(drv);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* When driver_override is set, only bind to the matching driver */</span></span><br><span class="line">	<span class="keyword">if</span> (pdev-&gt;driver_override)</span><br><span class="line">		<span class="keyword">return</span> !<span class="built_in">strcmp</span>(pdev-&gt;driver_override, drv-&gt;name);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Attempt an OF style match first */</span></span><br><span class="line">	<span class="keyword">if</span> (of_driver_match_device(dev, drv))</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Then try ACPI style match */</span></span><br><span class="line">	<span class="keyword">if</span> (acpi_driver_match_device(dev, drv))</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Then try to match against the id table */</span></span><br><span class="line">	<span class="keyword">if</span> (pdrv-&gt;id_table)</span><br><span class="line">		<span class="keyword">return</span> platform_match_id(pdrv-&gt;id_table, pdev) != <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* fall-back to driver name match */</span></span><br><span class="line">	<span class="keyword">return</span> (<span class="built_in">strcmp</span>(pdev-&gt;name, drv-&gt;name) == <span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L965">965</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L966">966</a> 行</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119100853784.png" alt="image-20250119100853784"  />
+
+<p>这里调用了 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L43">to_platform_device()</a> 和 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L191">to_platform_driver()</a> 宏。这两个宏定义的原型如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> to_platform_device(x)     (container_of((x), struct platform_device, dev)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> to_platform_driver(drv)   (container_of((drv), struct platform_driver, driver))</span></span><br></pre></td></tr></table></figure>
+
+<p>其中， <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L43">to_platform_device()</a> 和 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L191">to_platform_driver()</a> 实现了对 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/kernel.h#L989">container_of()</a> 的封装， dev、driver分别作为<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">struct platform_device</a>、<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L180">struct platform_driver</a> 的成员变量， 通过 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/kernel.h#L989">container_of()</a> 宏可以获取到正在进行匹配的platform_driver 和platform_device 。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L968">968</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L985">985</a> 行</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119101404739.png" alt="image-20250119101404739"  />
+
+<p>platform总线提供了<strong>四种匹配方式</strong>，并且这四种方式存在着优先级：设备树机制 &gt; ACPI匹配模式 &gt; id_table方式 &gt; 字符串比较。</p>
+<blockquote>
+<p>虽然匹配方式有这么多种，但是并没有涉及到任何复杂的算法，都只是在匹配的过程中，比较一下设备和驱动提供的某个成员的字符串是否相同。 设备树是一种描述硬件的数据结构，它用一个非C语言的脚本来描述这些硬件设备的信息，后面会详细学习。驱动和设备之间的匹配时通过比较compatible的值。 acpi主要是用于电源管理，基本上用不到，这里就暂时不去了解了。</p>
+</blockquote>
+<h2 id="2-四种匹配方式"><a href="#2-四种匹配方式" class="headerlink" title="2. 四种匹配方式"></a><font size=3>2. 四种匹配方式</font></h2><p>其实算起来算是5种匹配方式，并且有有优先级：</p>
+<ul>
+<li>方式一：最先比较是否强制选择某个 driver  </li>
+<li>方式二：设备树匹配</li>
+<li>方式三：ACPI匹配</li>
+<li>方式四：id匹配</li>
+<li>方式五：name匹配</li>
+</ul>
+<h3 id="2-1-方式一：是否强制选择某个-driver"><a href="#2-1-方式一：是否强制选择某个-driver" class="headerlink" title="2.1 方式一：是否强制选择某个 driver  "></a><font size=3>2.1 方式一：是否强制选择某个 driver  </font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119105029722.png" alt="image-20250119105029722"  />
+
+<p>这种方式比较的是 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L32">platform_device.driver_override</a> 和 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L186">platform_driver.driver.</a><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L278">name</a>。可以设置 platform_device 的 driver_override，强制选择某个 platform_driver。这里就暂时不深入了解了。</p>
+<h3 id="2-2-方式二：设备树匹配"><a href="#2-2-方式二：设备树匹配" class="headerlink" title="2.2 方式二：设备树匹配"></a><font size=3>2.2 方式二：设备树匹配</font></h3><blockquote>
+<p>这个后面学习设备树的时候再学习，这里先简单了解一下。</p>
+</blockquote>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119104932229.png" alt="image-20250119104932229"  />
+
+<p>设备树匹配比较的是 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L27">platform_device.dev.</a><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L1023">of_node</a> 和 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L186">platform_driver.driver.</a><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L287">of_match_table</a>。由设备树节点转换得来的 platform_device 中，含有一个结构： <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L51">struct device_node</a>。它的类型如下：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">device_node</span> &#123;</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span> *name; <span class="comment">// 来自节点的 name 属性</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span> *type; <span class="comment">// 来自节点的 device_type 属性</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span>	<span class="title">property</span> *<span class="title">properties</span>;</span><span class="comment">// 含有 compatible 属性</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>如果一个platform_driver支持设备树，它的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L186">platform_driver.driver.</a><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L287">of_match_table</a> 是一个数组，类型为 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L241">struct of_device_id</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Struct used for matching a device</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">of_device_id</span> &#123;</span></span><br><span class="line">	<span class="type">char</span>	name[<span class="number">32</span>];</span><br><span class="line">	<span class="type">char</span>	type[<span class="number">32</span>];</span><br><span class="line">	<span class="type">char</span>	compatible[<span class="number">128</span>];</span><br><span class="line">	<span class="type">const</span> <span class="type">void</span> *data;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>使用设备树信息来判断 dev 和 drv 是否配对时 ：</p>
+<p>（1）首先，如果 of_match_table 中含有 compatible 值，就跟 dev 的 compatile属性比较，若一致则成功，否则返回失败；</p>
+<p>（2）其次，如果 of_match_table 中含有 type 值，就跟 dev 的 device_type 属性比较，若一致则成功，否则返回失败；</p>
+<p>（3）最后，如果 of_match_table 中含有 name 值，就跟 dev 的 name 属性比较，若一致则成功，否则返回失败。而设备树中建议不再使用 devcie_type 和 name 属性，所以基本上只使用设备节点的 compatible 属性来寻找匹配的 platform_driver。</p>
+<h3 id="2-3-方式三：ACPI匹配"><a href="#2-3-方式三：ACPI匹配" class="headerlink" title="2.3 方式三：ACPI匹配"></a><font size=3>2.3 方式三：ACPI匹配</font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119105102343.png" alt="image-20250119105102343"  />
+
+<p><strong>ACPI</strong>（高级配置和电源接口），这里就暂时不去了解了。</p>
+<h3 id="2-4-方式四：id匹配"><a href="#2-4-方式四：id匹配" class="headerlink" title="2.4 方式四：id匹配"></a><font size=3>2.4 方式四：id匹配</font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119105133421.png" alt="image-20250119105133421"  />
+
+<p>比较 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L24">platform_device.name</a> 和 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L187">platform_driver.id_table[i].</a><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L546">name</a>， id_table 中可能有多项。 </p>
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L187">platform_driver.id_table</a>是“<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L546">platform_device_id</a>”指针，表示该 drv支持若干个 device，它里面列出了各个 device 的{.name, .driver_data}，其中的“ name”表示该 drv 支持的设备的名字， driver_data 是些提供给该device 的私有数据。  </p>
+<p>在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L31">platform_device</a>和<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L187">platform_driver</a>中均含有“<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L546">platform_device_id</a>”指针，名字分别为<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L31">platform_device.id_entry</a> 和 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L187">platform_driver.id_table</a> 。<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L187">platform_driver.id_table</a> 将会提供一个数组，里面包含这个驱动支持的所有设备的名称，以及私有数据，当设备和驱动匹配之后，会将驱动中匹配的这个设备的名字以及驱动将要提供的私有信息<strong>返回</strong>给设备中的<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L31">platform_device.id_entry</a> 成员：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/id_table_match.jpg" alt="驱动和设备匹配过程"  />
+
+<p>所以，通过这种方式匹配的时候，<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L24">platform_device.name</a> 一定要存在于 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L187">platform_driver.id_table</a> 指向的数组中，这样才可以完成匹配，并且匹配后，还可以获取到驱动中的一些信息。</p>
+<h3 id="2-5-方式五：name匹配"><a href="#2-5-方式五：name匹配" class="headerlink" title="2.5 方式五：name匹配"></a><font size=3>2.5 方式五：name匹配</font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119110516247.png" alt="image-20250119110516247"  />
+
+<p>当前面的都没有匹配上时，就会使用名称匹配，就是比较 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L24">platform_device.name</a> 和 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L186">platform_driver.driver.</a><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L278">name</a> ：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/name_match.jpg" alt="名称匹配方式"  />
+
+<p>通过这种方式完成匹配的话， <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L187">platform_driver.id_table</a> 需要为空或者里面没有 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L24">platform_device.name</a> 。</p>
+<h2 id="3-匹配方式总结"><a href="#3-匹配方式总结" class="headerlink" title="3. 匹配方式总结"></a><font size=3>3. 匹配方式总结</font></h2><p>画张图来帮助理解，不考虑ACPI匹配方式：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250119115206386.png" alt="image-20250119115206386"  />
+
+<h1 id="二、平台总线匹配实现demo"><a href="#二、平台总线匹配实现demo" class="headerlink" title="二、平台总线匹配实现demo"></a><font size=3>二、平台总线匹配实现demo</font></h1><h2 id="1-名称匹配demo"><a href="#1-名称匹配demo" class="headerlink" title="1. 名称匹配demo"></a><font size=3>1. 名称匹配demo</font></h2><h3 id="1-1-demo源码"><a href="#1-1-demo源码" class="headerlink" title="1.1 demo源码"></a><font size=3>1.1 demo源码</font></h3><p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/06_platform_bus/03_name_match">06_platform_bus&#x2F;03_name_match · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<h3 id="1-2-开发板验证"><a href="#1-2-开发板验证" class="headerlink" title="1.2 开发板验证"></a><font size=3>1.2 开发板验证</font></h3><p>将编译完的sdriver_demo.ko、sdevice_demo.ko拷贝到开发板，然后执行以下命令加载：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">insmod sdriver_demo.ko</span><br><span class="line">insmod sdevice_demo.ko</span><br></pre></td></tr></table></figure>
+
+<p>然后就会看到以下打印信息：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250120104158719.png" alt="image-20250120104158719"  />
+
+<p>可以看到设备和驱动名称相同时，驱动中的xxx_probe()函数执行，然后会有提示驱动和设备匹配成功。我们再看一下  &#x2F;sys&#x2F;bus&#x2F;platform&#x2F;devices 和 &#x2F;sys&#x2F;bus&#x2F;platform&#x2F;drivers：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250120104604003.png" alt="image-20250120104604003"  />
+
+<p>发现两个设备和驱动已经绑定在一起了。需要知道的是，这种匹配方式，驱动和设备的名称都是一样的，都是 sumu-sdev。</p>
+<h2 id="2-id匹配demo"><a href="#2-id匹配demo" class="headerlink" title="2. id匹配demo"></a><font size=3>2. id匹配demo</font></h2><h3 id="2-1-demo源码"><a href="#2-1-demo源码" class="headerlink" title="2.1 demo源码"></a><font size=3>2.1 demo源码</font></h3><p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/06_platform_bus/04_id_match">06_platform_bus&#x2F;04_id_match · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<h3 id="2-2-开发板验证"><a href="#2-2-开发板验证" class="headerlink" title="2.2 开发板验证"></a><font size=3>2.2 开发板验证</font></h3><p>将编译完的sdriver_demo.ko、sdevice_demo.ko拷贝到开发板，然后执行以下命令加载：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">insmod sdevice_demo.ko</span><br><span class="line">insmod sdriver_demo.ko</span><br></pre></td></tr></table></figure>
+
+<p>然后就会看到以下打印信息：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250120110322289.png" alt="image-20250120110322289"  />
+
+<p>驱动中的xxx_probe()函数执行，然后会有提示驱动和设备匹配成功。我们再看一下  &#x2F;sys&#x2F;bus&#x2F;platform&#x2F;devices 和 &#x2F;sys&#x2F;bus&#x2F;platform&#x2F;drivers：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-03-%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E7%9A%84%E5%8C%B9%E9%85%8D/img/image-20250120110453176.png" alt="image-20250120110453176"  />
+
+<p>可以看到驱动和设备的名字已经不同了，但是两者还是成功进行了匹配。</p>
+<h2 id="3-设备树匹配"><a href="#3-设备树匹配" class="headerlink" title="3. 设备树匹配"></a><font size=3>3. 设备树匹配</font></h2><p>这个后面学习设备树了再说。</p>
+<blockquote>
+<p>参考资料：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_16504163/article/details/118562670">一张图掌握 Linux platform 平台设备驱动框架！【建议收藏】-CSDN博客</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/92014e92.html">LV06-05-linux平台总线模型-03-平台总线的匹配</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2025年01月20日 - 22:31</p>
+    <p><span>最后更新:</span>2025年04月16日 - 20:57</p>
+    <p><span>原始链接:</span><a href="/post/92014e92.html" title="LV06-05-linux平台总线模型-03-平台总线的匹配">https://sumumm.github.io/post/92014e92.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/54561d2a.html" rel="prev" title="LV06-05-linux平台总线模型-04-驱动和设备资源的获取">
+                  <i class="fa fa-angle-left"></i> LV06-05-linux平台总线模型-04-驱动和设备资源的获取
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/d8a77fd9.html" rel="next" title="LV06-05-linux平台总线模型-02-平台设备与平台设备的注册">
+                  LV06-05-linux平台总线模型-02-平台设备与平台设备的注册 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:08</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>
