@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="前面已经可以注册自定义总线了，现在来看看怎么在总线上注册一个设备？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-04-linux设备模型-07-注册设备到总线">
+<meta property="og:url" content="https://sumumm.github.io/post/cbba698.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="前面已经可以注册自定义总线了，现在来看看怎么在总线上注册一个设备？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-07-%E6%B3%A8%E5%86%8C%E8%AE%BE%E5%A4%87%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20241228155953533.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-07-%E6%B3%A8%E5%86%8C%E8%AE%BE%E5%A4%87%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250110090229245.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-07-%E6%B3%A8%E5%86%8C%E8%AE%BE%E5%A4%87%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250110090519148.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-07-%E6%B3%A8%E5%86%8C%E8%AE%BE%E5%A4%87%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250110090821795.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-07-%E6%B3%A8%E5%86%8C%E8%AE%BE%E5%A4%87%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250110091049995.png">
+<meta property="article:published_time" content="2025-01-16T14:26:33.000Z">
+<meta property="article:modified_time" content="2025-06-04T12:22:23.492Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-07-%E6%B3%A8%E5%86%8C%E8%AE%BE%E5%A4%87%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20241228155953533.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/cbba698.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/cbba698.html","path":"post/cbba698.html","title":"LV06-04-linux设备模型-07-注册设备到总线"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-04-linux设备模型-07-注册设备到总线 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E8%AE%BE%E5%A4%87"><span class="nav-text">一、设备</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BE%E5%A4%87%E7%AE%80%E4%BB%8B"><span class="nav-text">1. 设备简介</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-struct-device"><span class="nav-text">1.1 struct device</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E5%86%8C%E4%B8%8E%E6%B3%A8%E9%94%80"><span class="nav-text">1.2 设备的注册与注销</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1-device-register"><span class="nav-text">1.2.1 device_register()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2-device-unregister"><span class="nav-text">1.2.2 device_unregister()</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E6%80%BB%E7%BB%93"><span class="nav-text">1.3 总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E8%AE%BE%E5%A4%87%E5%B1%9E%E6%80%A7%E6%96%87%E4%BB%B6"><span class="nav-text">2. 设备属性文件</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-DEVICE-ATTR"><span class="nav-text">2.1 DEVICE_ATTR()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-device-create-file"><span class="nav-text">2.2 device_create_file()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-device-remove-file"><span class="nav-text">2.3 device_remove_file()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.4 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%AE%BE%E5%A4%87%E6%B3%A8%E5%86%8C%E5%88%B0%E6%80%BB%E7%BA%BFdemo"><span class="nav-text">3. 设备注册到总线demo</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-demo%E6%BA%90%E7%A0%81"><span class="nav-text">3.1 demo源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E6%B5%8B%E8%AF%95"><span class="nav-text">3.2 开发板测试</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E8%AE%BE%E5%A4%87%E6%80%8E%E4%B9%88%E6%B3%A8%E5%86%8C%E7%9A%84%EF%BC%9F"><span class="nav-text">二、设备怎么注册的？</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-device-register"><span class="nav-text">1. device_register()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-device-initialize"><span class="nav-text">2. device_initialize()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-device-add"><span class="nav-text">3. device_add()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-bus-add-device"><span class="nav-text">4. bus_add_device()</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/cbba698.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-04-linux设备模型-07-注册设备到总线 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-04-linux设备模型-07-注册设备到总线
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-01-16 22:26:33" itemprop="dateCreated datePublished" datetime="2025-01-16T22:26:33+08:00">2025-01-16</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>7.3k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>27 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>前面已经可以注册自定义总线了，现在来看看怎么在总线上注册一个设备？若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-07-%E6%B3%A8%E5%86%8C%E8%AE%BE%E5%A4%87%E5%88%B0%E6%80%BB%E7%BA%BF/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="3">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4" target="_blank">kernel/git/stable/linux.git - Linux kernel stable tree</a></td>        <td align="left">linux kernel源码(官网,tag 4.19.71)</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、设备"><a href="#一、设备" class="headerlink" title="一、设备"></a><font size=3>一、设备</font></h1><p>其实下面这些大部分在《LV06-04-linux设备模型-01-设备模型简介.md》这一节中都已经大概了解过了，这里简单回顾一下吧。</p>
+<h2 id="1-设备简介"><a href="#1-设备简介" class="headerlink" title="1. 设备简介"></a><font size=3>1. 设备简介</font></h2><p>驱动开发的过程中，我们最关心的莫过于设备以及对应的驱动了。我们编写驱动的目的，最终就是为了使设备可以正常工作。在Linux中，一切都是以文件的形式存在， 设备也不例外。&#x2F;sys&#x2F;devices目录记录了系统中所有设备，实际上在sys目录下所有设备文件最终都会指向该目录对应的设备文件；此外还有另一个目录&#x2F;sys&#x2F;dev记录所有的设备节点， 但实际上都是些链接文件，同样指向了devices目录下的文件。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-07-%E6%B3%A8%E5%86%8C%E8%AE%BE%E5%A4%87%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20241228155953533.png" alt="image-20241228155953533" />
+
+<h3 id="1-1-struct-device"><a href="#1-1-struct-device" class="headerlink" title="1.1 struct device"></a><font size=3>1.1 struct device</font></h3><p>在内核使用device结构体来描述我们的物理设备，这个结构体定义在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L963">device.h - include&#x2F;linux&#x2F;device.h - <em>struct device</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">device</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device</span>		*<span class="title">parent</span>;</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">    <span class="type">const</span> <span class="type">char</span>		*init_name; <span class="comment">/* initial name of the device */</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">bus_type</span>	*<span class="title">bus</span>;</span>		<span class="comment">/* type of bus device is on */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device_driver</span> *<span class="title">driver</span>;</span>	<span class="comment">/* which driver has allocated this device */</span></span><br><span class="line">	<span class="type">void</span>		*platform_data;	<span class="comment">/* Platform specific data, device core doesn&#x27;t touch it */</span></span><br><span class="line">	<span class="type">void</span>		*driver_data;	<span class="comment">/* Driver data, set and get with dev_set/get_drvdata */</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device_node</span>	*<span class="title">of_node</span>;</span> <span class="comment">/* associated device tree node */</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="type">dev_t</span>			devt;	<span class="comment">/* dev_t, creates the sysfs &quot;dev&quot; */</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="keyword">class</span>		*<span class="keyword">class</span>;</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">attribute_group</span> **<span class="title">groups</span>;</span>	<span class="comment">/* optional groups */</span></span><br><span class="line"></span><br><span class="line">	<span class="type">void</span>	(*release)(<span class="keyword">struct</span> device *dev);</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>parent</strong> ：表示该设备的父对象，前面提到过，旧版本的设备之间没有任何关联，引入Linux设备模型之后，设备之间呈树状结构，便于管理各种设备；</li>
+<li><strong>init_name</strong> ：指定该设备的名称，总线匹配时，一般会根据比较名字，来进行配对；</li>
+<li><strong>bus</strong> ：表示该设备依赖于哪个总线，当我们注册设备时，内核便会将该设备注册到对应的总线。</li>
+<li><strong>platform_data</strong> ：特定设备的私有数据，通常定义在板级文件中；</li>
+<li><strong>driver_data</strong> ：同上，驱动层可通过dev_set&#x2F;get_drvdata函数来获取该成员；</li>
+<li><strong>of_node</strong> ：存放设备树中匹配的设备节点。当内核使能设备树，总线负责将驱动的of_match_table以及设备树的compatible属性进行比较之后，将匹配的节点保存到该变量。</li>
+<li><strong>devt</strong> ：dev_t类型变量，字符设备章节提及过，它是用于标识设备的设备号，该变量主要用于向&#x2F;sys目录中导出对应的设备。</li>
+<li><strong>class</strong> ：指向了该设备对应类，开篇我们提到的触摸，鼠标以及键盘等设备，对于计算机而言，他们都具有相同的功能，都归属于输入设备。我们可以在&#x2F;sys&#x2F;class目录下对应的类找到该设备，如input、leds、pwm等目录;</li>
+<li><strong>group</strong> ：指向struct attribute_group类型的指针，指定该设备的属性；</li>
+<li><strong>release</strong> ：回调函数，当设备被注销时，会调用该函数。如果我们没定义该函数时，移除设备时，会提示“Device ‘xxxx’ does not have a release() function, it is broken and must be fixed”的错误。</li>
+</ul>
+<h3 id="1-2-设备的注册与注销"><a href="#1-2-设备的注册与注销" class="headerlink" title="1.2 设备的注册与注销"></a><font size=3>1.2 设备的注册与注销</font></h3><h4 id="1-2-1-device-register"><a href="#1-2-1-device-register" class="headerlink" title="1.2.1 device_register()"></a><font size=3>1.2.1 device_register()</font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L2001">device_register()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">device_register</span><span class="params">(<span class="keyword">struct</span> device *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">	device_initialize(dev);</span><br><span class="line">	<span class="keyword">return</span> device_add(dev);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(device_register);</span><br></pre></td></tr></table></figure>
+
+<p><strong>参数：</strong> </p>
+<ul>
+<li><strong>dev</strong> ： <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L963">struct device</a> 结构体类型指针。</li>
+</ul>
+<p><strong>返回值：</strong></p>
+<ul>
+<li><strong>成功：</strong> 0</li>
+<li><strong>失败：</strong> 负数</li>
+</ul>
+<h4 id="1-2-2-device-unregister"><a href="#1-2-2-device-unregister" class="headerlink" title="1.2.2 device_unregister()"></a><font size=3>1.2.2 device_unregister()</font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L2138">device_unregister()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">device_unregister</span><span class="params">(<span class="keyword">struct</span> device *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">	pr_debug(<span class="string">&quot;device: &#x27;%s&#x27;: %s\n&quot;</span>, dev_name(dev), __func__);</span><br><span class="line">	device_del(dev);</span><br><span class="line">	put_device(dev);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(device_unregister);</span><br></pre></td></tr></table></figure>
+
+<p><strong>参数：</strong></p>
+<ul>
+<li><strong>dev</strong> ：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L963">struct device</a> 结构体类型指针</li>
+</ul>
+<p><strong>返回值：</strong> <strong>无</strong></p>
+<h3 id="1-3-总结"><a href="#1-3-总结" class="headerlink" title="1.3 总结"></a><font size=3>1.3 总结</font></h3><p>当成功注册总线时，会在&#x2F;sys&#x2F;bus目录下创建对应总线的目录，该目录下有两个子目录，分别是drivers和devices， 我们使用device_register注册的设备从属于某个总线时，该总线的devices目录下便会存在该设备文件。</p>
+<h2 id="2-设备属性文件"><a href="#2-设备属性文件" class="headerlink" title="2. 设备属性文件"></a><font size=3>2. 设备属性文件</font></h2><p>在开发单片机的时候，如果想要读取某个寄存器的值，我们可能需要加入一些新的代码，并重新编译。但对于Linux内核来讲，每次都需要编译一遍源码， 实在太浪费时间和精力了。为此，Linux提供以下接口，来注册和注销一个设备属性文件。我们可以通过这些接口直接在用户层进行查询&#x2F;修改，避免了重新编译内核的麻烦。</p>
+<h3 id="2-1-DEVICE-ATTR"><a href="#2-1-DEVICE-ATTR" class="headerlink" title="2.1 DEVICE_ATTR()"></a><font size=3>2.1 DEVICE_ATTR()</font></h3><p>DEVICE_ATTR()是一个宏，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L590">device.h - include&#x2F;linux&#x2F;device.h - <em>DEVICE_ATTR</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> DEVICE_ATTR(_name, _mode, _show, _store) \</span></span><br><span class="line"><span class="meta">	struct device_attribute dev_attr_##_name = __ATTR(_name, _mode, _show, _store)</span></span><br></pre></td></tr></table></figure>
+
+<p>struct device_attribute定义在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L564">device.h - include&#x2F;linux&#x2F;device.h - <em>struct device_attribute</em></a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* interface for exporting device attributes */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">device_attribute</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">attribute</span>	<span class="title">attr</span>;</span></span><br><span class="line">	<span class="type">ssize_t</span> (*show)(<span class="keyword">struct</span> device *dev, <span class="keyword">struct</span> device_attribute *attr,</span><br><span class="line">			<span class="type">char</span> *buf);</span><br><span class="line">	<span class="type">ssize_t</span> (*store)(<span class="keyword">struct</span> device *dev, <span class="keyword">struct</span> device_attribute *attr,</span><br><span class="line">			 <span class="type">const</span> <span class="type">char</span> *buf, <span class="type">size_t</span> count);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>DEVICE_ATTR宏</strong>：定义用于定义一个device_attribute类型的变量，##表示将##左右两边的标签拼接在一起，因此， 我们得到变量的名称应该是带有dev_attr_前缀的。该宏定义需要传入四个参数_name，_mode，_show，_store，分别代表了文件名， 文件权限，show回调函数，store回调函数。show回调函数以及store回调函数分别对应着用户层的cat和echo命令， 当我们使用cat命令，来获取&#x2F;sys目录下某个文件时，最终会执行show回调函数；使用echo命令，则会执行store回调函数。 参数_mode的值，可以使用S_IRUSR、S_IWUSR、S_IXUSR等宏定义。</li>
+</ul>
+<h3 id="2-2-device-create-file"><a href="#2-2-device-create-file" class="headerlink" title="2.2 device_create_file()"></a><font size=3>2.2 device_create_file()</font></h3><p>device_create_file()函数，声明在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L614">device.h - include&#x2F;linux&#x2F;device.h - <em>device_create_file</em></a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">extern</span> <span class="type">int</span> <span class="title function_">device_create_file</span><span class="params">(<span class="keyword">struct</span> device *device,</span></span><br><span class="line"><span class="params">			      <span class="type">const</span> <span class="keyword">struct</span> device_attribute *entry)</span>;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>**device_create_file()**函数用于创建文件，它有两个参数成员，第一个参数表示的是设备，前面学习device结构体时，其成员中有个bus_type变量， 用于指定设备挂载在某个总线上，并且会在总线的devices子目录创建一个属于该设备的目录，device参数可以理解为在哪个设备目录下，创建设备文件。 第二个参数则是我们自己定义的device_attribute类型变量。</li>
+</ul>
+<h3 id="2-3-device-remove-file"><a href="#2-3-device-remove-file" class="headerlink" title="2.3 device_remove_file()"></a><font size=3>2.3 device_remove_file()</font></h3><p>device_remove_file()函数，声明在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L616">device.h - include&#x2F;linux&#x2F;device.h - <em>device_remove_file</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">device_remove_file</span><span class="params">(<span class="keyword">struct</span> device *dev,</span></span><br><span class="line"><span class="params">			       <span class="type">const</span> <span class="keyword">struct</span> device_attribute *attr)</span>;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>device_remove_file()</strong> 函数用于删除文件，当我们的驱动注销时，对应目录以及文件都需要被移除。 其参数和device_create_file函数的参数是一样。</li>
+</ul>
+<h3 id="2-4-使用实例"><a href="#2-4-使用实例" class="headerlink" title="2.4 使用实例"></a><font size=3>2.4 使用实例</font></h3><p>在调用<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L614">device_create_file()</a> 函数之前，需要先定义好属性结构体 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L564">struct device_attribute</a> ，并将其相关字段填充好。有两种方式，一种是直接定义：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">device_attribute</span> <span class="title">sdev_attr_data_var</span> =</span> &#123;</span><br><span class="line">    .attr = &#123;</span><br><span class="line">        .name = <span class="string">&quot;sdev_attr_data&quot;</span>,    <span class="comment">// 属性的名称,将会显示在 下，并可以使用cat/echo 进行操作</span></span><br><span class="line">        .mode = <span class="number">0664</span>,                <span class="comment">// 属性的访问权限</span></span><br><span class="line">    &#125;,</span><br><span class="line">    .show = sdev_attr_data_show,              <span class="comment">// 属性的 show 回调函数</span></span><br><span class="line">    .store = sdev_attr_data_store,            <span class="comment">// 属性的 show 回调函数</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">ret = device_create_file(&amp;sdev, &amp;sdev_attr_data_var);</span><br></pre></td></tr></table></figure>
+
+<p>另一种是通过宏来定义：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 下面这个宏可以简化属性变量的定义，从定义可以看出，这里定义的属性的变量前缀是 dev_attr_，后面要再拼接name才行</span></span><br><span class="line"><span class="comment">// #define DEVICE_ATTR(_name, _mode, _show, _store) </span></span><br><span class="line"><span class="comment">//	struct device_attribute dev_attr_##_name = __ATTR(_name, _mode, _show, _store)</span></span><br><span class="line">DEVICE_ATTR(name_var, S_IRUSR, sdev_attr_data_show, sdev_attr_data_store);</span><br><span class="line">ret = bus_create_file(&amp;sdev, &amp;dev_attr_name_var); <span class="comment">// dev_attr_ 是固定的，由宏决定</span></span><br></pre></td></tr></table></figure>
+
+<p>show和store函数实现如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> __<span class="title">SDEV_ATTR_VAR_</span>&#123;</span></span><br><span class="line">    <span class="type">char</span> name_attr[<span class="number">32</span>];</span><br><span class="line">    <span class="type">int</span> data;</span><br><span class="line">&#125;<span class="type">sdev_attr_var_t</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">sdev_attr_var_t</span> sdev_attr = &#123;<span class="number">0</span>&#125;;     <span class="comment">// sdevice 的属性</span></span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">sdev_attr_data_show</span><span class="params">(<span class="keyword">struct</span> device *dev, <span class="keyword">struct</span> device_attribute *attr, <span class="type">char</span> *buf)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">ssize_t</span> count = <span class="number">0</span>;</span><br><span class="line">    count = <span class="built_in">sprintf</span>(buf, <span class="string">&quot;%d\n&quot;</span>, sdev_attr.data);</span><br><span class="line">    PRT(<span class="string">&quot;attr-&gt;name=%s count=%d\n&quot;</span>, attr-&gt;attr.name, count);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">sdev_attr_data_store</span><span class="params">(<span class="keyword">struct</span> device * dev, <span class="keyword">struct</span> device_attribute * attr, <span class="type">const</span> <span class="type">char</span> *buf, <span class="type">size_t</span> count)</span></span><br><span class="line">&#123;</span><br><span class="line">    PRT(<span class="string">&quot;attr-&gt;name=%s count=%d\n&quot;</span>, attr-&gt;attr.name, count);</span><br><span class="line">    <span class="built_in">sscanf</span>(buf, <span class="string">&quot;%d\n&quot;</span>, &amp;sdev_attr.data);</span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-设备注册到总线demo"><a href="#3-设备注册到总线demo" class="headerlink" title="3. 设备注册到总线demo"></a><font size=3>3. 设备注册到总线demo</font></h2><p>这里会涉及到两个内核模块的编译，一个是设备的内核模块，一个是总线的内核模块。</p>
+<h3 id="3-1-demo源码"><a href="#3-1-demo源码" class="headerlink" title="3.1 demo源码"></a><font size=3>3.1 demo源码</font></h3><p>源码可以看这里，这里有两个，一个是只创建设备，另一个还为设备添加了属性文件操作。</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/05_device_model/13_device_register">05_device_model&#x2F;13_device_register · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/05_device_model/14_device_register_with_attr">05_device_model&#x2F;14_device_register_with_attr · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<details class="folding-tag" blue><summary> 点击查看详情 </summary>
+              <div class='content'>
+              <p>这里直接已加了属性的demo为例 <a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/blob/master/05_device_model/14_device_register_with_attr/sdevice_demo.c">05_device_model&#x2F;14_device_register_with_attr&#x2F;sdevice_demo.c · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a>：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/init.h&gt;</span> <span class="comment">/* module_init module_exit */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/module.h&gt;</span> <span class="comment">/* MODULE_LICENSE */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/device.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./timestamp_autogenerated.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./version_autogenerated.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./sdrv_common.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// #undef PRT</span></span><br><span class="line"><span class="comment">// #undef PRTE</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> PRT</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PRT printk</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> PRTE</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PRTE printk</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SDEV_NAME  <span class="string">&quot;sdev&quot;</span>     <span class="comment">// 和驱动中的匹配名称相同时就可以匹配对应的驱动</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">extern</span> <span class="class"><span class="keyword">struct</span> <span class="title">bus_type</span> <span class="title">sbus</span>;</span>  <span class="comment">// sbus 操作函数集的那个全局变量，包含了match函数</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> __<span class="title">SDEV_ATTR_VAR_</span>&#123;</span></span><br><span class="line">    <span class="type">char</span> name_attr[<span class="number">32</span>];</span><br><span class="line">    <span class="type">int</span> data;</span><br><span class="line">&#125;<span class="type">sdev_attr_var_t</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">sdev_attr_var_t</span> sdev_attr = &#123;<span class="number">0</span>&#125;;     <span class="comment">// sdevice 的属性</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdev_release()</span></span><br><span class="line"><span class="comment"> * @note   </span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">sdev_release</span><span class="params">(<span class="keyword">struct</span> device *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> len = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="type">const</span> <span class="type">char</span> *device_name = dev_name(dev);</span><br><span class="line">    len = <span class="built_in">strlen</span>(device_name);</span><br><span class="line"></span><br><span class="line">	PRT(<span class="string">&quot;dev name is %s, len = %d\n&quot;</span>, device_name, len);</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">device</span> <span class="title">sdev</span> =</span> &#123;</span><br><span class="line">	.init_name = SDEV_NAME,    <span class="comment">// 设备的初始化名称 &quot;sdev&quot;</span></span><br><span class="line">	.bus = &amp;sbus,              <span class="comment">// 所属总线</span></span><br><span class="line">	.release = sdev_release,   <span class="comment">// 设备的释放回调函数</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdev_show()</span></span><br><span class="line"><span class="comment"> * @note   提供show回调函数，这样用户便可以通过cat命令， 来查询相关属性参数</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">sdev_attr_data_show</span><span class="params">(<span class="keyword">struct</span> device *dev, <span class="keyword">struct</span> device_attribute *attr, <span class="type">char</span> *buf)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">ssize_t</span> count = <span class="number">0</span>;</span><br><span class="line">    count = <span class="built_in">sprintf</span>(buf, <span class="string">&quot;%d\n&quot;</span>, sdev_attr.data);</span><br><span class="line">    PRT(<span class="string">&quot;attr-&gt;name=%s count=%d\n&quot;</span>, attr-&gt;attr.name, count);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdev_store()</span></span><br><span class="line"><span class="comment"> * @note   提供store回调函数，这样用户便可以通过echo命令， 来修改相关属性参数</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">sdev_attr_data_store</span><span class="params">(<span class="keyword">struct</span> device * dev, <span class="keyword">struct</span> device_attribute * attr, <span class="type">const</span> <span class="type">char</span> *buf, <span class="type">size_t</span> count)</span></span><br><span class="line">&#123;</span><br><span class="line">    PRT(<span class="string">&quot;attr-&gt;name=%s count=%d\n&quot;</span>, attr-&gt;attr.name, count);</span><br><span class="line">    <span class="built_in">sscanf</span>(buf, <span class="string">&quot;%d\n&quot;</span>, &amp;sdev_attr.data);</span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 下面这个宏可以简化属性变量的定义，从定义可以看出，这里定义的属性的变量前缀是 dev_attr_，后面要再拼接name才行</span></span><br><span class="line"><span class="comment">// #define DEVICE_ATTR(_name, _mode, _show, _store) </span></span><br><span class="line"><span class="comment">//	struct device_attribute dev_attr_##_name = __ATTR(_name, _mode, _show, _store)</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">device_attribute</span> <span class="title">sdev_attr_data_var</span> =</span> &#123;</span><br><span class="line">    .attr = &#123;</span><br><span class="line">        .name = <span class="string">&quot;sdev_attr_data&quot;</span>,    <span class="comment">// 属性的名称,将会显示在 下，并可以使用cat/echo 进行操作</span></span><br><span class="line">        .mode = <span class="number">0664</span>,                <span class="comment">// 属性的访问权限</span></span><br><span class="line">    &#125;,</span><br><span class="line">    .show = sdev_attr_data_show,              <span class="comment">// 属性的 show 回调函数</span></span><br><span class="line">    .store = sdev_attr_data_store,            <span class="comment">// 属性的 show 回调函数</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdev_demo_init()</span></span><br><span class="line"><span class="comment"> * @note   设备结构体以及属性文件结构体注册</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> __init <span class="type">int</span> <span class="title function_">sdev_demo_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> ret = <span class="number">0</span>;</span><br><span class="line">	printk(<span class="string">&quot;*** [%s:%d]Build Time: %s %s, git version:%s ***\n&quot;</span>, __FUNCTION__,</span><br><span class="line">           __LINE__, KERNEL_KO_DATE, KERNEL_KO_TIME, KERNEL_KO_VERSION);</span><br><span class="line">    PRT(<span class="string">&quot;sdev_demo module init!\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">	ret = device_register(&amp;sdev);</span><br><span class="line">    <span class="keyword">if</span>(ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;device_register fail! ret = %d\n&quot;</span>, ret);</span><br><span class="line">        <span class="keyword">goto</span> err_device_register;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">	ret = device_create_file(&amp;sdev, &amp;sdev_attr_data_var);</span><br><span class="line">    <span class="keyword">if</span>(ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;device_create_file fail!\n&quot;</span>);</span><br><span class="line">        <span class="keyword">goto</span> err_device_create_file;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">err_device_create_file:</span><br><span class="line">    device_unregister(&amp;sdev);</span><br><span class="line">err_device_register:</span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdev_demo_exit</span></span><br><span class="line"><span class="comment"> * @note   设备结构体以及属性文件结构体注销。</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> __exit <span class="type">void</span> <span class="title function_">sdev_demo_exit</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    device_remove_file(&amp;sdev, &amp;sdev_attr_data_var);</span><br><span class="line">	device_unregister(&amp;sdev); <span class="comment">// 取消注册设备</span></span><br><span class="line">    PRT(<span class="string">&quot;sdev_demo module exit!\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">module_init(sdev_demo_init); <span class="comment">// 将__init定义的函数指定为驱动的入口函数</span></span><br><span class="line">module_exit(sdev_demo_exit); <span class="comment">// 将__exit定义的函数指定为驱动的出口函数</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 模块信息(通过 modinfo chrdev_led_demo 查看) */</span></span><br><span class="line">MODULE_LICENSE(<span class="string">&quot;GPL v2&quot;</span>);            <span class="comment">/* 源码的许可证协议 */</span></span><br><span class="line">MODULE_AUTHOR(<span class="string">&quot;sumu&quot;</span>);               <span class="comment">/* 字符串常量内容为模块作者说明 */</span></span><br><span class="line">MODULE_DESCRIPTION(<span class="string">&quot;Description&quot;</span>);   <span class="comment">/* 字符串常量内容为模块功能说明 */</span></span><br><span class="line">MODULE_ALIAS(<span class="string">&quot;module&#x27;s other name&quot;</span>); <span class="comment">/* 字符串常量内容为模块别名 */</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<h3 id="3-2-开发板测试"><a href="#3-2-开发板测试" class="headerlink" title="3.2 开发板测试"></a><font size=3>3.2 开发板测试</font></h3><p>我们编译完，把对对应的驱动拷贝到开发板中，按以下步骤测试效果。</p>
+<ul>
+<li>（1）一开始的 &#x2F;sys&#x2F;bus 目录 和 &#x2F;sys&#x2F;devices 目录</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-07-%E6%B3%A8%E5%86%8C%E8%AE%BE%E5%A4%87%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250110090229245.png" alt="image-20250110090229245"  />
+
+<ul>
+<li>（2）加载模块</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-07-%E6%B3%A8%E5%86%8C%E8%AE%BE%E5%A4%87%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250110090519148.png" alt="image-20250110090519148"  />
+
+<p>加载模块后，会发现，在&#x2F;sys&#x2F;bus目录生成了 sbus目录，并且&#x2F;sys&#x2F;bus&#x2F;sbus&#x2F;devices 目录下也生成了指向设备的软链接，我们注册的设备可以在 &#x2F;sys&#x2F;devices 中看到。</p>
+<ul>
+<li>（3）查看&#x2F;修改sdev_attr_data的值</li>
+</ul>
+<p>总线的属性，之前已经修改和验证过了，这里只看一下设备的属性文件，其实操作都是一样的：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-07-%E6%B3%A8%E5%86%8C%E8%AE%BE%E5%A4%87%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250110090821795.png" alt="image-20250110090821795"  />
+
+<ul>
+<li>（5）卸载模块</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-07-%E6%B3%A8%E5%86%8C%E8%AE%BE%E5%A4%87%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250110091049995.png" alt="image-20250110091049995"  />
+
+<p>可以看到，卸载模块后，资源释放，sbus目录被删除，相关的属性文件也都删除了，&#x2F;sys&#x2F;devices 中的sdev目录也删除了。</p>
+<h1 id="二、设备怎么注册的？"><a href="#二、设备怎么注册的？" class="headerlink" title="二、设备怎么注册的？"></a><font size=3>二、设备怎么注册的？</font></h1><p>那肯定是从 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L2001">device_register()</a> 函数开始了。</p>
+<h2 id="1-device-register"><a href="#1-device-register" class="headerlink" title="1. device_register()"></a><font size=3>1. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L2001">device_register()</a></font></h2><p> <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L2001">device_register()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">device_register</span><span class="params">(<span class="keyword">struct</span> device *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">	device_initialize(dev);</span><br><span class="line">	<span class="keyword">return</span> device_add(dev);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(device_register);</span><br></pre></td></tr></table></figure>
+
+<p>该函数用于注册设备到内核中。函数接受 一个指向 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L885">struct device</a> 类型的设备对象指针作为参数。首先，代码调用  <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1468">device_initialize()</a> 函数对 设备对象进行初始化。接下来，代码调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1809">device_add()</a> 函数将设备添加到内核中。</p>
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1809">device_add()</a> 函数会将设备添加到设备总线的设备列表中，并执行与设备添加相关的操作，例如分配设备号、 创建设备节点等。最后，函数返回设备添加的结果，通常是一个整数值表示成功或失败的状态码。</p>
+<h2 id="2-device-initialize"><a href="#2-device-initialize" class="headerlink" title="2. device_initialize()"></a><font size=3>2. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1468">device_initialize()</a></font></h2><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1468">device_initialize()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">device_initialize</span><span class="params">(<span class="keyword">struct</span> device *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">	dev-&gt;kobj.kset = devices_kset;</span><br><span class="line">	kobject_init(&amp;dev-&gt;kobj, &amp;device_ktype);</span><br><span class="line">	INIT_LIST_HEAD(&amp;dev-&gt;dma_pools);</span><br><span class="line">	mutex_init(&amp;dev-&gt;mutex);</span><br><span class="line">	lockdep_set_novalidate_class(&amp;dev-&gt;mutex);</span><br><span class="line">	spin_lock_init(&amp;dev-&gt;devres_lock);</span><br><span class="line">	INIT_LIST_HEAD(&amp;dev-&gt;devres_head);</span><br><span class="line">	device_pm_init(dev);</span><br><span class="line">	set_dev_node(dev, <span class="number">-1</span>);</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_GENERIC_MSI_IRQ</span></span><br><span class="line">	INIT_LIST_HEAD(&amp;dev-&gt;msi_list);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	INIT_LIST_HEAD(&amp;dev-&gt;links.consumers);</span><br><span class="line">	INIT_LIST_HEAD(&amp;dev-&gt;links.suppliers);</span><br><span class="line">	dev-&gt;links.status = DL_DEV_NO_DRIVER;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(device_initialize);</span><br></pre></td></tr></table></figure>
+
+<p>该函数用于对设备对象进行初始化。函数 接收一个指向 struct device 类型的设备对象指针作为参数。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1490">第 1490 行</a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dev-&gt;kobj.kset = devices_kset;</span><br></pre></td></tr></table></figure>
+
+<p>代码将设备对象的 kobj.kset 成员设置为 devices_kset，表示该设备对象所属的 kset 为 devices_kset，即设备对象属于 devices 子系统。 </p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1491">第 1491 行</a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kobject_init(&amp;dev-&gt;kobj, &amp;device_ktype);</span><br></pre></td></tr></table></figure>
+
+<p>代码调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L329">kobject_init()</a> 函数初始化设备对象的 kobj 成员，使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L918">device_ktype</a> 作为 ktype。通过这个函数调用，设备对象的 kobject 被正确地初始化和设置。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1492">第 1492 行</a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">INIT_LIST_HEAD(&amp;dev-&gt;dma_pools);</span><br></pre></td></tr></table></figure>
+
+<p>代码使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/list.h#L26">INIT_LIST_HEAD</a> 宏初始化设备对象的 dma_pools链表头，以确保它为空链表。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1493">第 1493 行</a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mutex_init(&amp;dev-&gt;mutex);</span><br></pre></td></tr></table></figure>
+
+<p>代码接着调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mutex.h#L106">mutex_init()</a>函数初始化设备对象的 mutex 互斥锁，用于对设备进行互斥操作。 </p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1494">第 1494 行</a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lockdep_set_novalidate_class(&amp;dev-&gt;mutex);</span><br></pre></td></tr></table></figure>
+
+<p>通过 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/lockdep.h#L303">lockdep_set_novalidate_class()</a> 函数，设置 dev-&gt;mutex 的验证类别为无效，以避免死锁分析 器对该互斥锁的验证。 </p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1495">第 1495 行</a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">spin_lock_init(&amp;dev-&gt;devres_lock);</span><br></pre></td></tr></table></figure>
+
+<p>调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/spinlock.h#L321">spin_lock_init()</a> 函数初始化设备对象的 devres_lock 自旋锁，用于对设备 资源进行保护。通</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1496">第 1496 行</a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">INIT_LIST_HEAD(&amp;dev-&gt;devres_head);</span><br></pre></td></tr></table></figure>
+
+<p>过 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/list.h#L26">INIT_LIST_HEAD</a>  宏初始化设备对象的 devres_head 链表头，以确保它为空链表。 </p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1497">第 1497 行</a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">device_pm_init(dev);</span><br></pre></td></tr></table></figure>
+
+<p>调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/power/power.h#L145">device_pm_init()</a> 函数初始化设备对象的电源管理相关信息。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1498">第 1498 行</a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">set_dev_node(dev, <span class="number">-1</span>);</span><br></pre></td></tr></table></figure>
+
+<p>代码使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L1070">set_dev_node()</a> 函数将设备对象的设备节点设置为 -1，表示没有指定设备节点。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1500">第 1500 行</a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_GENERIC_MSI_IRQ</span></span><br><span class="line">	INIT_LIST_HEAD(&amp;dev-&gt;msi_list);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+
+<p>在#ifdef CONFIG_GENERIC_MSI_IRQ 条件编译块内，代码使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/list.h#L26">INIT_LIST_HEAD</a> 宏初始化设备对象的 msi_list 链表头，用于管理设备的 MSI（消息信号中断）信息。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1502">第 1502 行</a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">INIT_LIST_HEAD(&amp;dev-&gt;links.consumers);</span><br><span class="line">INIT_LIST_HEAD(&amp;dev-&gt;links.suppliers);</span><br></pre></td></tr></table></figure>
+
+<p>代码使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/list.h#L26">INIT_LIST_HEAD</a> 宏初始化设备对象的 consumers、suppliers等链表头，用于管理设备间的连接关系。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1504">第 1504 行</a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dev-&gt;links.status = DL_DEV_NO_DRIVER;</span><br></pre></td></tr></table></figure>
+
+<p>代码将设备对象的 status 成员设置为 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L867">DL_DEV_NO_DRIVER</a> ，表示设备当前没有驱动程序。</p>
+<h2 id="3-device-add"><a href="#3-device-add" class="headerlink" title="3. device_add()"></a><font size=3>3. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1809">device_add()</a></font></h2><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1809">device_add()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">device_add</span><span class="params">(<span class="keyword">struct</span> device *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device</span> *<span class="title">parent</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kobject</span> *<span class="title">kobj</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">class_interface</span> *<span class="title">class_intf</span>;</span></span><br><span class="line">	<span class="type">int</span> error = -EINVAL;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kobject</span> *<span class="title">glue_dir</span> =</span> <span class="literal">NULL</span>;</span><br><span class="line">	<span class="comment">// 获取设备的引用</span></span><br><span class="line">	dev = get_device(dev);</span><br><span class="line">	<span class="keyword">if</span> (!dev)</span><br><span class="line">		<span class="keyword">goto</span> done;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!dev-&gt;p) &#123;</span><br><span class="line">        <span class="comment">// 如果设备的私有数据（private data）未初始化，则进行初始化</span></span><br><span class="line">		error = device_private_init(dev);</span><br><span class="line">		<span class="keyword">if</span> (error)</span><br><span class="line">			<span class="keyword">goto</span> done;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * for statically allocated devices, which should all be converted</span></span><br><span class="line"><span class="comment">	 * some day, we need to initialize the name. We prevent reading back</span></span><br><span class="line"><span class="comment">	 * the name, and force the use of dev_name()</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">    <span class="comment">/* 对于静态分配的设备（应该都会被转换），需要初始化设备名称。我们禁止读回名称，并强制使用 dev_name()函数。*/</span></span><br><span class="line">	<span class="keyword">if</span> (dev-&gt;init_name) &#123;</span><br><span class="line">        <span class="comment">// 初始化设备的名称</span></span><br><span class="line">		dev_set_name(dev, <span class="string">&quot;%s&quot;</span>, dev-&gt;init_name);</span><br><span class="line">		dev-&gt;init_name = <span class="literal">NULL</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* subsystems can specify simple device enumeration */</span></span><br><span class="line">    <span class="comment">/* 子系统可以指定简单的设备枚举 */</span></span><br><span class="line">    <span class="comment">// 如果设备的名称为空，并且设备所属总线的名称不为空，则设置设备名称</span></span><br><span class="line">	<span class="keyword">if</span> (!dev_name(dev) &amp;&amp; dev-&gt;bus &amp;&amp; dev-&gt;bus-&gt;dev_name)</span><br><span class="line">		dev_set_name(dev, <span class="string">&quot;%s%u&quot;</span>, dev-&gt;bus-&gt;dev_name, dev-&gt;id);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!dev_name(dev)) &#123;</span><br><span class="line">		error = -EINVAL;</span><br><span class="line">		<span class="keyword">goto</span> name_error;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	pr_debug(<span class="string">&quot;device: &#x27;%s&#x27;: %s\n&quot;</span>, dev_name(dev), __func__);</span><br><span class="line">	<span class="comment">// 获取设备的父设备引用</span></span><br><span class="line">	parent = get_device(dev-&gt;parent);</span><br><span class="line">    <span class="comment">// 获取设备的父 kobject</span></span><br><span class="line">	kobj = get_device_parent(dev, parent);</span><br><span class="line">	<span class="keyword">if</span> (IS_ERR(kobj)) &#123;</span><br><span class="line">		error = PTR_ERR(kobj);</span><br><span class="line">		<span class="keyword">goto</span> parent_error;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (kobj)</span><br><span class="line">		dev-&gt;kobj.parent = kobj;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* use parent numa_node */</span></span><br><span class="line">    <span class="comment">// 使用父设备的 NUMA 节点</span></span><br><span class="line">	<span class="keyword">if</span> (parent &amp;&amp; (dev_to_node(dev) == NUMA_NO_NODE))</span><br><span class="line">		set_dev_node(dev, dev_to_node(parent));</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* first, register with generic layer. 首先，向通用层注册设备 */</span></span><br><span class="line">	<span class="comment">/* we require the name to be set before, and pass NULL 我们需要在此之前设置设备的名称，并将 parent 设置为 NULL */</span></span><br><span class="line">	error = kobject_add(&amp;dev-&gt;kobj, dev-&gt;kobj.parent, <span class="literal">NULL</span>);</span><br><span class="line">	<span class="keyword">if</span> (error) &#123;</span><br><span class="line">		glue_dir = get_glue_dir(dev);</span><br><span class="line">		<span class="keyword">goto</span> Error;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* notify platform of device entry */</span></span><br><span class="line">    <span class="comment">// 通知平台设备的添加</span></span><br><span class="line">	<span class="keyword">if</span> (platform_notify)</span><br><span class="line">		platform_notify(dev);</span><br><span class="line">	<span class="comment">// 创建设备的 uevent 属性文件</span></span><br><span class="line">	error = device_create_file(dev, &amp;dev_attr_uevent);</span><br><span class="line">	<span class="keyword">if</span> (error)</span><br><span class="line">		<span class="keyword">goto</span> attrError;</span><br><span class="line">	<span class="comment">// 添加设备类的符号链接</span></span><br><span class="line">	error = device_add_class_symlinks(dev);</span><br><span class="line">	<span class="keyword">if</span> (error)</span><br><span class="line">		<span class="keyword">goto</span> SymlinkError;</span><br><span class="line">    <span class="comment">// 添加设备的属性</span></span><br><span class="line">	error = device_add_attrs(dev);</span><br><span class="line">	<span class="keyword">if</span> (error)</span><br><span class="line">		<span class="keyword">goto</span> AttrsError;</span><br><span class="line">    <span class="comment">// 将设备添加到总线</span></span><br><span class="line">	error = bus_add_device(dev);</span><br><span class="line">	<span class="keyword">if</span> (error)</span><br><span class="line">		<span class="keyword">goto</span> BusError;</span><br><span class="line">    <span class="comment">// 在设备电源管理目录中添加设备</span></span><br><span class="line">	error = dpm_sysfs_add(dev);</span><br><span class="line">	<span class="keyword">if</span> (error)</span><br><span class="line">		<span class="keyword">goto</span> DPMError;</span><br><span class="line">	device_pm_add(dev); <span class="comment">// 添加设备到电源管理</span></span><br><span class="line">	<span class="comment">// 如果设备的 devt 存在主设备号</span></span><br><span class="line">	<span class="keyword">if</span> (MAJOR(dev-&gt;devt)) &#123;</span><br><span class="line">        <span class="comment">// 创建设备的 dev 属性文件</span></span><br><span class="line">		error = device_create_file(dev, &amp;dev_attr_dev);</span><br><span class="line">		<span class="keyword">if</span> (error)</span><br><span class="line">			<span class="keyword">goto</span> DevAttrError;</span><br><span class="line">		<span class="comment">// 创建设备的 sys 设备节点</span></span><br><span class="line">		error = device_create_sys_dev_entry(dev);</span><br><span class="line">		<span class="keyword">if</span> (error)</span><br><span class="line">			<span class="keyword">goto</span> SysEntryError;</span><br><span class="line">		<span class="comment">// 在 devtmpfs 上创建设备节点</span></span><br><span class="line">		devtmpfs_create_node(dev);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Notify clients of device addition.  This call must come</span></span><br><span class="line"><span class="comment">	 * after dpm_sysfs_add() and before kobject_uevent().</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">    <span class="comment">// 通知设备添加的事件链</span></span><br><span class="line">	<span class="keyword">if</span> (dev-&gt;bus)</span><br><span class="line">		blocking_notifier_call_chain(&amp;dev-&gt;bus-&gt;p-&gt;bus_notifier,</span><br><span class="line">					     BUS_NOTIFY_ADD_DEVICE, dev);</span><br><span class="line">	<span class="comment">// 为设备的 kobject 发送 KOBJ_ADD 事件</span></span><br><span class="line">	kobject_uevent(&amp;dev-&gt;kobj, KOBJ_ADD);</span><br><span class="line">    <span class="comment">// 对总线中的设备进行探测</span></span><br><span class="line">	bus_probe_device(dev);</span><br><span class="line">	<span class="keyword">if</span> (parent) <span class="comment">// 如果存在父设备，则将当前设备添加到父设备的子设备列表中</span></span><br><span class="line">		klist_add_tail(&amp;dev-&gt;p-&gt;knode_parent,</span><br><span class="line">			       &amp;parent-&gt;p-&gt;klist_children);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (dev-&gt;class) &#123; <span class="comment">// 如果设备有类别</span></span><br><span class="line">		mutex_lock(&amp;dev-&gt;class-&gt;p-&gt;mutex);</span><br><span class="line">		<span class="comment">/* tie the class to the device */</span></span><br><span class="line">        <span class="comment">// 将设备添加到类别的设备列表中</span></span><br><span class="line">		klist_add_tail(&amp;dev-&gt;knode_class,</span><br><span class="line">			       &amp;dev-&gt;class-&gt;p-&gt;klist_devices);</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* notify any interfaces that the device is here */</span></span><br><span class="line">        <span class="comment">// 通知所有接口，设备已添加</span></span><br><span class="line">		list_for_each_entry(class_intf,</span><br><span class="line">				    &amp;dev-&gt;class-&gt;p-&gt;interfaces, node)</span><br><span class="line">			<span class="keyword">if</span> (class_intf-&gt;add_dev)</span><br><span class="line">				class_intf-&gt;add_dev(dev, class_intf);</span><br><span class="line">		mutex_unlock(&amp;dev-&gt;class-&gt;p-&gt;mutex);</span><br><span class="line">	&#125;</span><br><span class="line">done:</span><br><span class="line">	put_device(dev); <span class="comment">// 释放设备的引用</span></span><br><span class="line">	<span class="keyword">return</span> error;</span><br><span class="line"> SysEntryError:</span><br><span class="line">	<span class="keyword">if</span> (MAJOR(dev-&gt;devt)) <span class="comment">// 如果存在主设备号，则移除设备的 dev 属性文件</span></span><br><span class="line">		device_remove_file(dev, &amp;dev_attr_dev);</span><br><span class="line"> DevAttrError:</span><br><span class="line">	device_pm_remove(dev); <span class="comment">// 移除设备的电源管理</span></span><br><span class="line">	dpm_sysfs_remove(dev); <span class="comment">// 从设备电源管理目录中移除设备</span></span><br><span class="line"> DPMError:</span><br><span class="line">	bus_remove_device(dev);<span class="comment">// 从总线中移除设备</span></span><br><span class="line"> BusError:</span><br><span class="line">	device_remove_attrs(dev);<span class="comment">// 移除设备的属性</span></span><br><span class="line"> AttrsError:</span><br><span class="line">	device_remove_class_symlinks(dev); <span class="comment">// 移除设备类的符号链接</span></span><br><span class="line"> SymlinkError:</span><br><span class="line">	device_remove_file(dev, &amp;dev_attr_uevent); <span class="comment">// 移除设备的 uevent 属性文件</span></span><br><span class="line"> attrError:</span><br><span class="line">	kobject_uevent(&amp;dev-&gt;kobj, KOBJ_REMOVE); <span class="comment">// 为设备的 kobject 发送 KOBJ_REMOVE 事件</span></span><br><span class="line">	glue_dir = get_glue_dir(dev); <span class="comment">// 获取设备的粘合目录</span></span><br><span class="line">	kobject_del(&amp;dev-&gt;kobj); <span class="comment">// 删除设备的 kobject</span></span><br><span class="line"> Error:</span><br><span class="line">	cleanup_glue_dir(dev, glue_dir); <span class="comment">// 清理设备的粘合目录</span></span><br><span class="line">parent_error:</span><br><span class="line">	put_device(parent); <span class="comment">// 释放父设备的引用</span></span><br><span class="line">name_error:</span><br><span class="line">	kfree(dev-&gt;p); <span class="comment">// 释放设备的私有数据</span></span><br><span class="line">	dev-&gt;p = <span class="literal">NULL</span>;</span><br><span class="line">	<span class="keyword">goto</span> done;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1833">1833</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1837">1937</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">device</span> *<span class="title">parent</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kobject</span> *<span class="title">kobj</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">class_interface</span> *<span class="title">class_intf</span>;</span></span><br><span class="line"><span class="type">int</span> error = -EINVAL;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kobject</span> *<span class="title">glue_dir</span> =</span> <span class="literal">NULL</span>;</span><br></pre></td></tr></table></figure>
+
+<p>初始化了函数中使用的一些局部变量。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1839">1839</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">dev = get_device(dev);</span><br><span class="line"><span class="keyword">if</span> (!dev)</span><br><span class="line">	<span class="keyword">goto</span> done;</span><br></pre></td></tr></table></figure>
+
+<p>调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L2008">get_device()</a>函数以获取设备的引用。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1843">1843</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!dev-&gt;p) &#123;</span><br><span class="line">	error = device_private_init(dev);</span><br><span class="line">	<span class="keyword">if</span> (error)</span><br><span class="line">		<span class="keyword">goto</span> done;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果设备结构体的 p 成员为空，那么调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1797">device_private_init()</a> 函数进行设备的私有初始化。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1854">1854</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * for statically allocated devices, which should all be converted</span></span><br><span class="line"><span class="comment"> * some day, we need to initialize the name. We prevent reading back</span></span><br><span class="line"><span class="comment"> * the name, and force the use of dev_name()</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (dev-&gt;init_name) &#123;</span><br><span class="line">	dev_set_name(dev, <span class="string">&quot;%s&quot;</span>, dev-&gt;init_name);</span><br><span class="line">	dev-&gt;init_name = <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果设备的 init_name 成员非空，那么使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1732">dev_set_name()</a> 函数将其作为设备的名称，并将 init_name 设置为空。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1860">1860</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1866">1866</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* subsystems can specify simple device enumeration */</span></span><br><span class="line"><span class="keyword">if</span> (!dev_name(dev) &amp;&amp; dev-&gt;bus &amp;&amp; dev-&gt;bus-&gt;dev_name)</span><br><span class="line">	dev_set_name(dev, <span class="string">&quot;%s%u&quot;</span>, dev-&gt;bus-&gt;dev_name, dev-&gt;id);</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (!dev_name(dev)) &#123;</span><br><span class="line">	error = -EINVAL;</span><br><span class="line">	<span class="keyword">goto</span> name_error;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果设备的名称为空且设备的总线(bus)和总线的名称(dev_name)非空，那么使用总线名称 和设备 ID 设置设备的名称。接着，检查一下设备名称，如果设备的名称为空，那么设置错误码为-EINVAL，并跳转到 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1976">name_error</a> 标签处。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1868">1868</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1877">1877</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">pr_debug(<span class="string">&quot;device: &#x27;%s&#x27;: %s\n&quot;</span>, dev_name(dev), __func__);</span><br><span class="line"></span><br><span class="line">parent = get_device(dev-&gt;parent);</span><br><span class="line">kobj = get_device_parent(dev, parent);</span><br><span class="line"><span class="keyword">if</span> (IS_ERR(kobj)) &#123;</span><br><span class="line">	error = PTR_ERR(kobj);</span><br><span class="line">	<span class="keyword">goto</span> parent_error;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (kobj)</span><br><span class="line">	dev-&gt;kobj.parent = kobj;</span><br></pre></td></tr></table></figure>
+
+<p>打印调试信息，包括设备的名称和函数名。获取设备的父设备，并设置设备的父对象。如果获取父对象的过程中发生错误，那么将错误码设为获取父对象的返回值，并跳转到 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1974">parent_error</a> 标签处。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1879">1879</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* use parent numa_node */</span></span><br><span class="line"><span class="keyword">if</span> (parent &amp;&amp; (dev_to_node(dev) == NUMA_NO_NODE))</span><br><span class="line">	set_dev_node(dev, dev_to_node(parent));</span><br></pre></td></tr></table></figure>
+
+<p>如果设备有父设备且设备的节点号为 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/numa.h#L14">NUMA_NO_NODE</a>，那么将设备的节点号设为父设备 的节点号。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1885">1885</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* first, register with generic layer. */</span></span><br><span class="line"><span class="comment">/* we require the name to be set before, and pass NULL */</span></span><br><span class="line">error = kobject_add(&amp;dev-&gt;kobj, dev-&gt;kobj.parent, <span class="literal">NULL</span>);</span><br><span class="line"><span class="keyword">if</span> (error) &#123;</span><br><span class="line">	glue_dir = get_glue_dir(dev);</span><br><span class="line">	<span class="keyword">goto</span> Error;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L385">kobject_add()</a> 函数将设备的内核对象添加到内核对象层次结构中。如果添加过程中发 生错误，那么获取设备的”粘合目录”（glue_dir）并跳转到 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1972">Error</a> 标签处。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1892">1892</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* notify platform of device entry */</span></span><br><span class="line"><span class="keyword">if</span> (platform_notify)</span><br><span class="line">	platform_notify(dev);</span><br></pre></td></tr></table></figure>
+
+<p>如果存在平台通知函数（platform_notify），则调用该函数通知平台设备已添加。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1895">1895</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L1895">1911</a> 行</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">error = device_create_file(dev, &amp;dev_attr_uevent);</span><br><span class="line"><span class="keyword">if</span> (error)</span><br><span class="line">	<span class="keyword">goto</span> attrError;</span><br><span class="line"></span><br><span class="line">error = device_add_class_symlinks(dev);</span><br><span class="line"><span class="keyword">if</span> (error)</span><br><span class="line">	<span class="keyword">goto</span> SymlinkError;</span><br><span class="line">error = device_add_attrs(dev);</span><br><span class="line"><span class="keyword">if</span> (error)</span><br><span class="line">	<span class="keyword">goto</span> AttrsError;</span><br><span class="line">error = bus_add_device(dev);</span><br><span class="line"><span class="keyword">if</span> (error)</span><br><span class="line">	<span class="keyword">goto</span> BusError;</span><br><span class="line">error = dpm_sysfs_add(dev);</span><br><span class="line"><span class="keyword">if</span> (error)</span><br><span class="line">	<span class="keyword">goto</span> DPMError;</span><br><span class="line">device_pm_add(dev);</span><br></pre></td></tr></table></figure>
+
+<p>创建设备的 uevent 属性文件。添加设备的类符号链接。添加设备的属性。添加设备到总 线。添加设备电源管理相关的 sysfs 接口。启动设备接下来的代码主要是处理设备的设备号 （devt）相关操作，以及通知相关组件设备添加的过程。</p>
+<p>后面就不再详细分析了。</p>
+<h2 id="4-bus-add-device"><a href="#4-bus-add-device" class="headerlink" title="4. bus_add_device()"></a><font size=3>4. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L470">bus_add_device()</a></font></h2><p> <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L470">bus_add_device()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * bus_add_device - add device to bus</span></span><br><span class="line"><span class="comment"> * @dev: device being added</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * - Add device&#x27;s bus attributes.</span></span><br><span class="line"><span class="comment"> * - Create links to device&#x27;s bus.</span></span><br><span class="line"><span class="comment"> * - Add the device to its bus&#x27;s list of devices.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">bus_add_device</span><span class="params">(<span class="keyword">struct</span> device *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 获取设备所属的总线类型(bus_type)的指针</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">bus_type</span> *<span class="title">bus</span> =</span> bus_get(dev-&gt;bus);</span><br><span class="line">	<span class="type">int</span> error = <span class="number">0</span>; <span class="comment">// 错误码初始化为 0</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (bus) &#123; <span class="comment">// 如果成功获取总线类型指针</span></span><br><span class="line">        <span class="comment">// 打印调试信息，包括总线名称和设备名称</span></span><br><span class="line">		pr_debug(<span class="string">&quot;bus: &#x27;%s&#x27;: add device %s\n&quot;</span>, bus-&gt;name, dev_name(dev));</span><br><span class="line">        <span class="comment">// 将设备添加到总线类型的设备组(dev_groups)中</span></span><br><span class="line">		error = device_add_groups(dev, bus-&gt;dev_groups);</span><br><span class="line">		<span class="keyword">if</span> (error) <span class="comment">// 如果添加过程中发生错误</span></span><br><span class="line">			<span class="keyword">goto</span> out_put;<span class="comment">// 跳转到 out_put 标签处，执行错误处理代码</span></span><br><span class="line">        <span class="comment">// 在总线类型的设备集(kset)的内核对象(kobj)下创建设备的符号链接</span></span><br><span class="line">		error = sysfs_create_link(&amp;bus-&gt;p-&gt;devices_kset-&gt;kobj,</span><br><span class="line">						&amp;dev-&gt;kobj, dev_name(dev));</span><br><span class="line">		<span class="keyword">if</span> (error)</span><br><span class="line">			<span class="keyword">goto</span> out_groups;</span><br><span class="line">        <span class="comment">// 在设备的内核对象(kobj)下创建指向总线类型子系统(subsystem)的符号链接</span></span><br><span class="line">		error = sysfs_create_link(&amp;dev-&gt;kobj,</span><br><span class="line">				&amp;dev-&gt;bus-&gt;p-&gt;subsys.kobj, <span class="string">&quot;subsystem&quot;</span>);</span><br><span class="line">		<span class="keyword">if</span> (error)</span><br><span class="line">			<span class="keyword">goto</span> out_subsys;</span><br><span class="line">        <span class="comment">// 将设备的节点添加到总线类型的设备列表中</span></span><br><span class="line">		klist_add_tail(&amp;dev-&gt;p-&gt;knode_bus, &amp;bus-&gt;p-&gt;klist_devices);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>; <span class="comment">// 返回 0 表示成功添加设备</span></span><br><span class="line"></span><br><span class="line">out_subsys:</span><br><span class="line">    <span class="comment">// 移除设备和总线类型子系统之间的符号链接</span></span><br><span class="line">	sysfs_remove_link(&amp;bus-&gt;p-&gt;devices_kset-&gt;kobj, dev_name(dev));</span><br><span class="line">out_groups:</span><br><span class="line">    <span class="comment">// 从总线类型的设备组中移除设备</span></span><br><span class="line">	device_remove_groups(dev, bus-&gt;dev_groups);</span><br><span class="line">out_put:</span><br><span class="line">	bus_put(dev-&gt;bus);<span class="comment">// 减少设备的总线引用计数</span></span><br><span class="line">	<span class="keyword">return</span> error;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L480">bus_get(dev-&gt;bus)</a></li>
+</ul>
+<p>通过设备的 bus 字段获取设备所属的总线类型（bus_type）的指针。 这个函数会增加总线的引用计数，确保总线在设备添加过程中不会被释放。 </p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L483">if (bus)</a></li>
+</ul>
+<p>检查总线类型指针是否有效。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L484">pr_debug(“bus: ‘%s’: add device %s\n”, bus-&gt;name, dev_name(dev)</a></li>
+</ul>
+<p>打印调试信息，包括 总线名称和设备名称，以便跟踪设备添加的过程。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L485">device_add_groups(dev, bus-&gt;dev_groups)</a></li>
+</ul>
+<p>将设备添加到总线类型的设备组（dev_groups） 中。设备组是一组属性文件，用于在设备的 sysfs 目录中显示和设置设备的属性。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L488">sysfs_create_link(&amp;bus-&gt;p-&gt;devices_kset-&gt;kobj, &amp;dev-&gt;kobj, dev_name(dev))</a></li>
+</ul>
+<p>在总线类型 的设备集（devices_kset）的内核对象（kobj）下创建设备的符号链接。这个符号链接将设备的 sysfs 目录链接到总线类型的设备集目录中。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L492">sysfs_create_link(&amp;dev-&gt;kobj, &amp;dev-&gt;bus-&gt;p-&gt;subsys.kobj, “subsystem”)</a></li>
+</ul>
+<p>在设备的内核对 象（kobj）下创建指向总线类型子系统（subsystem）的符号链接。这个符号链接将设备的 sysfs 目录链接到总线类型子系统的目录中。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L496">klist_add_tail(&amp;dev-&gt;p-&gt;knode_bus, &amp;bus-&gt;p-&gt;klist_devices)</a></li>
+</ul>
+<p>将设备的节点添加到总线类 型的设备列表中。这个步骤用于维护总线类型下的设备列表。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/cbba698.html">LV06-04-linux设备模型-07-注册设备到总线</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2025年01月16日 - 22:26</p>
+    <p><span>最后更新:</span>2025年06月04日 - 20:22</p>
+    <p><span>原始链接:</span><a href="/post/cbba698.html" title="LV06-04-linux设备模型-07-注册设备到总线">https://sumumm.github.io/post/cbba698.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/eb412581.html" rel="prev" title="LV06-04-linux设备模型-08-注册驱动到总线">
+                  <i class="fa fa-angle-left"></i> LV06-04-linux设备模型-08-注册驱动到总线
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/d35cf265.html" rel="next" title="LV06-04-linux设备模型-06-注册自定义总线">
+                  LV06-04-linux设备模型-06-注册自定义总线 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>
