@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是STM32中的独立看门狗和窗口看门狗相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV16-23-WDG-01-看门狗基础知识">
+<meta property="og:url" content="https://sumumm.github.io/post/7e7fa731.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是STM32中的独立看门狗和窗口看门狗相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513163538939.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513163706079.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513170017085.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513170156865.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513170302170.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513170436820.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513170654645.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513171742678.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513172237246.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513185255349.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513191357558.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513191523752.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513191655737.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513190841123.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513190146147.png">
+<meta property="article:published_time" content="2023-06-04T14:07:23.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.012Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV16-STM32开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513163538939.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/7e7fa731.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/7e7fa731.html","path":"post/7e7fa731.html","title":"LV16-23-WDG-01-看门狗基础知识"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV16-23-WDG-01-看门狗基础知识 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E7%9C%8B%E9%97%A8%E7%8B%97%E7%AE%80%E4%BB%8B"><span class="nav-text">一、看门狗简介</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%AE%80%E4%BB%8B"><span class="nav-text">1. 简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%B8%A4%E7%A7%8D%E7%9C%8B%E9%97%A8%E7%8B%97"><span class="nav-text">2. 两种看门狗</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E7%8B%AC%E7%AB%8B%E7%9C%8B%E9%97%A8%E7%8B%97"><span class="nav-text">二、独立看门狗</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%B8%BB%E8%A6%81%E7%89%B9%E6%80%A7"><span class="nav-text">1. 主要特性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%8A%9F%E8%83%BD%E6%A1%86%E5%9B%BE"><span class="nav-text">2. 功能框图</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E2%91%A0%E7%8B%AC%E7%AB%8B%E7%9C%8B%E9%97%A8%E7%8B%97%E6%97%B6%E9%92%9F"><span class="nav-text">2.1 ①独立看门狗时钟</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E2%91%A1%E8%AE%A1%E6%95%B0%E5%99%A8%E6%97%B6%E9%92%9F"><span class="nav-text">2.2 ②计数器时钟</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E2%91%A2%E8%AE%A1%E6%95%B0%E5%99%A8"><span class="nav-text">2.3 ③计数器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E2%91%A3%E9%87%8D%E8%A3%85%E8%BD%BD%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">2.4 ④重装载寄存器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-%E2%91%A4%E9%94%AE%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">2.5 ⑤键寄存器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6-%E2%91%A5%E7%8A%B6%E6%80%81%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">2.6 ⑥状态寄存器  </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%9B%B8%E5%85%B3%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">3. 相关寄存器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E9%94%AE%E5%AF%84%E5%AD%98%E5%99%A8-IWDG-KR"><span class="nav-text">3.1 键寄存器(IWDG_KR) </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E9%A2%84%E5%88%86%E9%A2%91%E5%AF%84%E5%AD%98%E5%99%A8-IWDG-PR"><span class="nav-text">3.2 预分频寄存器(IWDG_PR) </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E9%87%8D%E8%A3%85%E8%BD%BD%E5%AF%84%E5%AD%98%E5%99%A8-IWDG-RLR"><span class="nav-text">3.3 重装载寄存器(IWDG_RLR)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E7%8A%B6%E6%80%81%E5%AF%84%E5%AD%98%E5%99%A8-IWDG-SR"><span class="nav-text">3.4 状态寄存器(IWDG_SR)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%B6%85%E6%97%B6%E6%97%B6%E9%97%B4%E8%AE%A1%E7%AE%97"><span class="nav-text">4. 超时时间计算</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-HAL%E5%BA%93%E5%87%BD%E6%95%B0"><span class="nav-text">5. HAL库函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E5%88%9D%E5%A7%8B%E5%8C%96%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">5.1 初始化结构体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E7%9B%B8%E5%85%B3%E5%87%BD%E6%95%B0"><span class="nav-text">5.2 相关函数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8%E7%8B%AC%E7%AB%8B%E7%9C%8B%E9%97%A8%E7%8B%97%EF%BC%9F"><span class="nav-text">6. 如何使用独立看门狗？</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E7%AA%97%E5%8F%A3%E7%9C%8B%E9%97%A8%E7%8B%97"><span class="nav-text">三、窗口看门狗</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%B8%8E%E7%8B%AC%E7%AB%8B%E7%9C%8B%E9%97%A8%E7%8B%97%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="nav-text">1. 与独立看门狗的区别</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%B8%BB%E8%A6%81%E7%89%B9%E6%80%A7"><span class="nav-text">2. 主要特性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%8A%9F%E8%83%BD%E6%A1%86%E5%9B%BE"><span class="nav-text">3. 功能框图</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E2%91%A0%E7%AA%97%E5%8F%A3%E7%9C%8B%E9%97%A8%E7%8B%97%E6%97%B6%E9%92%9F"><span class="nav-text">3.1 ①窗口看门狗时钟  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E2%91%A1%E8%AE%A1%E6%95%B0%E5%99%A8%E6%97%B6%E9%92%9F"><span class="nav-text">3.2 ②计数器时钟  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E2%91%A2%E8%AE%A1%E6%95%B0%E5%99%A8"><span class="nav-text">3.3 ③计数器  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E2%91%A3%E7%AA%97%E5%8F%A3%E5%80%BC"><span class="nav-text">3.4 ④窗口值  </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E7%9B%B8%E5%85%B3%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">4. 相关寄存器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E6%8E%A7%E5%88%B6%E5%AF%84%E5%AD%98%E5%99%A8-WWDG-CR"><span class="nav-text">4.1 控制寄存器(WWDG_CR)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E9%85%8D%E7%BD%AE%E5%AF%84%E5%AD%98%E5%99%A8-WWDG-CFR"><span class="nav-text">4.2 配置寄存器(WWDG_CFR) </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E7%8A%B6%E6%80%81%E5%AF%84%E5%AD%98%E5%99%A8-WWDG-SR"><span class="nav-text">4.3 状态寄存器(WWDG_SR)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E8%B6%85%E6%97%B6%E6%97%B6%E9%97%B4%E8%AE%A1%E7%AE%97"><span class="nav-text">5. 超时时间计算</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-HAL%E5%BA%93%E5%87%BD%E6%95%B0"><span class="nav-text">6. HAL库函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-%E5%88%9D%E5%A7%8B%E5%8C%96%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">6.1 初始化结构体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-%E7%9B%B8%E5%85%B3%E5%87%BD%E6%95%B0"><span class="nav-text">6.2 相关函数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8%E7%AA%97%E5%8F%A3%E7%9C%8B%E9%97%A8%E7%8B%97%EF%BC%9F"><span class="nav-text">7. 如何使用窗口看门狗？</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81IWDG%E4%B8%8EWWDG"><span class="nav-text">四、IWDG与WWDG</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%9B%B8%E5%90%8C%E7%82%B9"><span class="nav-text">1. 相同点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%B8%8D%E5%90%8C%E7%82%B9"><span class="nav-text">2. 不同点</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/7e7fa731.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV16-23-WDG-01-看门狗基础知识 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV16-23-WDG-01-看门狗基础知识
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-06-04 22:07:23" itemprop="dateCreated datePublished" datetime="2023-06-04T22:07:23+08:00">2023-06-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV16-STM32开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>7.9k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>29 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是STM32中的独立看门狗和窗口看门狗相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <ul><li>通用</li></ul><table><tr><td align="center">分类  </td><td align="center">网址</td><td align="center">说明</td></tr><tr><td align="center" rowspan="4">官方网站</td><td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td><td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td></tr><tr>                                            <td align="left"><a href="https://www.st.com/content/st_com/zh.html" target="_blank">https://www.st.com/content/st_com/zh.html</a></td><td align="left">ST官方网站，在这里我们可以找到STM32的相关文档</td></tr><tr>                                            <td align="left"><a href="https://www.stmcu.com.cn/" target="_blank">https://www.stmcu.com.cn/</a></td><td align="left">意法半导体ST中文官方网站，在这里我们可以找到STM32的相关中文参考文档</td></tr><tr>                                            <td align="left"><a href="http://elm-chan.org/fsw/ff/00index_e.html" target="_blank">http://elm-chan.org/fsw/ff/00index_e.html</a></td><td align="left">FatFs文件系统官网</td></tr><tr><td align="center" rowspan="3">教程书籍</td><td align="left"><a href="STM32开发相关资料/01ARM参考资料/ARM Cortex-M3权威指南(中文).pdf" target="_blank">《ARM Cortex-M3权威指南》</a></td><td alirn="left" rowspan="3">ARM公司专家Joseph Yiu（姚文祥）的力作，中文翻译是NXP的宋岩</td></tr><tr>                                            <td align="left"><a href="STM32开发相关资料/01ARM参考资料/ARM Cortex-M0权威指南(中文).pdf" target="_blank">《ARM Cortex-M0权威指南》</a></td></tr><tr>                                            <td align="left"><a href="" target="_blank">《ARM Cortex-M3与Cortex-M4权威指南》</a></td></tr><tr><td align="center" rowspan="4">开发论坛</td><td align="left"><a href="http://47.111.11.73/forum.php" target="_blank">http://47.111.11.73/forum.php</a></td><td align="left">开源电子网，正点原子的资料下载及问题讨论论坛</td></tr><tr>                                            <td align="left"><a href="https://www.firebbs.cn/forum.php" target="_blank">https://www.firebbs.cn/forum.php</a></td><td align="left">国内Kinetis开发板-野火/秉火（刘火良）主持的论坛，现也做STM32和i.MX RT</td></tr><tr>                                            <td align="left"><a href="https://www.amobbs.com/index.php" target="_blank">https://www.amobbs.com/index.php</a></td><td align="left">阿莫（莫进明）主持的论坛，号称国内最早最火的电子论坛，以交流Atmel AVR系列单片机起家，现已拓展到嵌入式全平台，其STM32系列帖子有70W+。</td></tr><tr>                                            <td align="left"><a href="http://download.100ask.net/index.html" target="_blank">http://download.100ask.net/index.html</a></td><td align="left">韦东山嵌入式资料中心，有些STM32和linux的相关资料也可以来这里找。</td></tr><tr><td align="center" rowspan="3">博客参考</td><td align="left"><a href="http://www.openedv.com/" target="_blank">http://www.openedv.com/</a></td><td align="left">开源网-原子哥个人博客</td></tr><tr>                                            <td align="left"><a href="http://blog.chinaaet.com/jihceng0622" target="_blank">http://blog.chinaaet.com/jihceng0622</a></td><td align="left">博主是原Freescale现NXP的现场应用工程师</td></tr><tr>                                            <td align="left"><a href="https://community.arm.com/arm-community-blogs/b/architectures-and-processors-blog/posts/cortex-m-resources" target="_blank">cortex-m-resources</a></td><td align="left">这其实并不算是一个博客，这是ARM公司专家Joseph Yiu收集整理的所有对开发者有用的官方Cortex-M资料链接（也包含极少数外部资源链接）</td></tr></table><ul><li>STM32</li></ul><table>    <tr><td align="center" rowspan="2">STM32</td><td align="left"><a href="https://doc.embedfire.com/mcu/stm32/f103/hal_general/zh/latest/index.html" target="_blank">STM32 HAL库开发实战指南——基于F103系列开发板</a></td><td align="left">野火STM32开发教程在线文档</td></tr><tr>                                            <td align="left"><a href="https://doc.embedfire.com/mcu/stm32/f103badao/std/zh/latest/index.html" target="_blank">STM32库开发实战指南——基于野火霸道开发板</a></td><td align="left">野火STM32开发教程在线文档</td></tr></table><ul><li>SD卡</li></ul><table>    <tr><td align="left"><a href="https://www.sdcard.org/" target="_blank">SD Association</a></td><td align="left">提供了SD存储卡和SDIO卡系统规范</td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr><td align="left"><a href="https://www.st.com/resource/en/datasheet/stm32f103ze.pdf" target="_blank">STM32F103xx英文数据手册</a></td><td align="left">STM32F103xC/D/E系列的英文数据手册</td></tr>    <tr><td align="left"><a href="https://www.stmcu.com.cn/Designresource/detail/localization_document%20/709978" target="_blank">STM32F103xx中文数据手册</a></td><td align="left">STM32F103xC/D/E系列的中文数据手册</td></tr>    <tr><td align="left"><a href="https://www.st.com/resource/en/reference_manual/rm0008-stm32f101xx-stm32f102xx-stm32f103xx-stm32f105xx-and-stm32f107xx-advanced-armbased-32bit-mcus-stmicroelectronics.pdf" target="_blank">STM32F10xxx英文参考手册（RM0008）</a></td><td align="left">STM32F10xxx系列的英文参考手册</td></tr>    <tr><td align="left"><a href="https://www.stmcu.com.cn/Designresource/detail/localization_document%20/710001" target="_blank">STM32F10xxx中文参考手册（RM0008）</a></td><td align="left">STM32F10xxx系列的中文参考手册</td></tr>    <tr><td align="left"><a href="https://developer.arm.com/documentation/100165/0201/?lang=en" target="_blank">Arm Cortex-M3 处理器技术参考手册-英文版</a></td><td align="left">Cortex-M3技术参考手册-英文版</td></tr>    <tr><td align="left"><a href="https://www.st.com/resource/en/programming_manual/pm0056-stm32f10xxx20xxx21xxxl1xxxx-cortexm3-programming-manual-stmicroelectronics.pdf" target="_blank">STM32F10xxx Cortex-M3编程手册-英文版(PM0056)</a></td><td align="left">STM32F10xxx/20xxx/21xxx/L1xxxx系列Cortex-M3编程手册-英文版</td></tr>    <tr><td align="left"><a href="https://www.sdcard.org/downloads/pls/" target="_blank">SD卡相关资料——最新版本</a></td><td align="left">有关SD卡的一些资料可以从这里下载</td></tr>    <tr><td align="left"><a href="https://www.sdcard.org/downloads/pls/archives/" target="_blank">SD卡相关资料——历史版本</a></td><td align="left">有关SD卡的一些历史版本资料可以从这里下载，比如后边看的SD卡2.0协议</td></tr>    <tr><td align="left"><a href="./" target="_blank">SD 2.0 协议标准完整版</a></td><td align="left">这是一篇关于SD卡2.0协议的中文文档，还是比较有参考价值的，可以一看</td></tr></table>
+              </div>
+            </details>
+
+<h1 id="一、看门狗简介"><a href="#一、看门狗简介" class="headerlink" title="一、看门狗简介"></a><font size=3>一、看门狗简介</font></h1><h2 id="1-简介"><a href="#1-简介" class="headerlink" title="1. 简介"></a><font size=3>1. 简介</font></h2><p>在由单片机构成的微型计算机系统中，由于单片机的工作常常会受到来自外界电磁场的干扰，造成程序的跑飞，而陷入死循环，程序的正常运行被打断，由单片机控制的系统无法继续工作，会造成整个系统的陷入停滞状态，发生不可预料的后果，所以出于对单片机运行状态进行实时监测的考虑，便产生了一种专门用于监测单片机程序运行状态的模块或者芯片，俗称“<strong>看门狗</strong>”(watchdog) 。</p>
+<p>看门狗主要用于解决什么问题呢？在启动正常运行的时候，系统不能复位。在系统跑飞（程序异常执行）的情况，系统复位，程序重新执行。看门狗的本质也是一个定时器，在启动后，需要在一定时间内再给它一个信号，俗称“喂狗”，如果没有按时“喂狗”，说明MCU可能处于非正常状态，这时看门狗就向MCU发送个复位信号，使整个系统重启， 重新进入正常的工作状态。  </p>
+<h2 id="2-两种看门狗"><a href="#2-两种看门狗" class="headerlink" title="2. 两种看门狗"></a><font size=3>2. 两种看门狗</font></h2><p>STM32 有两个看门狗，一个是独立看门狗另外一个是窗口看门狗，独立看门狗号称宠物狗，窗口看门狗号称警犬 ：</p>
+<ul>
+<li><p>独立看门狗（IWDG)由专用的低速时钟（LSI)驱动，即使主时钟发生故障它仍有效。独立看门狗适合应用于需要看门狗作为一个在主程序之外 能够完全独立工作，并且对时间精度要求低的场合。</p>
+</li>
+<li><p>窗口看门狗由从APB1时钟分频后得到时钟驱动。通过可配置的时间窗口来检测应用程序非正常的过迟或过早操作。 窗口看门狗最适合那些要求看门狗在精确计时窗口起作用的程序。</p>
+</li>
+</ul>
+<h1 id="二、独立看门狗"><a href="#二、独立看门狗" class="headerlink" title="二、独立看门狗"></a><font size=3>二、独立看门狗</font></h1><p>这一部分我们可以查看[STM32中文参考手册](<a target="_blank" rel="noopener" href="https://www.stmcu.com.cn/Designresource/detail/localization_document">https://www.stmcu.com.cn/Designresource/detail/localization_document</a> &#x2F;710001)的17 独立看门狗(IWDG)。</p>
+<h2 id="1-主要特性"><a href="#1-主要特性" class="headerlink" title="1. 主要特性"></a><font size=3>1. 主要特性</font></h2><p>（1）自由运行的递减计数器。</p>
+<p>（2）时钟由独立的RC振荡器提供(可在停止和待机模式下工作) 。</p>
+<p>（3）看门狗被激活后，则在计数器计数至0x000时产生复位。</p>
+<h2 id="2-功能框图"><a href="#2-功能框图" class="headerlink" title="2. 功能框图"></a><font size=3>2. 功能框图</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513163538939.png" alt="image-20230513163538939" style="zoom:50%;" />
+
+<h3 id="2-1-①独立看门狗时钟"><a href="#2-1-①独立看门狗时钟" class="headerlink" title="2.1 ①独立看门狗时钟"></a><font size=3>2.1 ①独立看门狗时钟</font></h3><p>独立看门狗的时钟由独立的 RC 振荡器 LSI 提供，即使主时钟发生故障它仍然有效，非常独立。LSI 的频率一般在 30~60KHZ 之间，根据温度和工作场合会有一定的漂移，我们一般取 40KHZ，所以独立看门狗的定时时间并不一定非常精确，只适用于对时间精度要求比较低的场合。我们可以看一下时钟树，[STM32中文参考手册](<a target="_blank" rel="noopener" href="https://www.stmcu.com.cn/Designresource/detail/localization_document">https://www.stmcu.com.cn/Designresource/detail/localization_document</a> &#x2F;710001)的6.2 时钟：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513163706079.png" alt="image-20230513163706079" style="zoom:50%;" />
+
+<h3 id="2-2-②计数器时钟"><a href="#2-2-②计数器时钟" class="headerlink" title="2.2 ②计数器时钟"></a><font size=3>2.2 ②计数器时钟</font></h3><p>递减计数器的时钟由 LSI （ 内部低速时钟） 经过一个 8 位的预分频器得到，这意味着它不受外部晶振电路影响，同时就算系统主时钟发生故障时，也可以正常工作。 使用内部晶振，也意味精度并不高， 因此只适合应用在对时间精度要求比较低的场合。  </p>
+<p>LSI的频率为40KHz  ，我们可以操作预分频器寄存器IWDG_PR 来设置分频因子，分频因子可以是[4，8，16，32，64，128，256，256]，计数器时钟：<br>$$<br>CK_CNT&#x3D;\frac{40<em>1000}{2^n}&#x3D;\frac{40</em>1000}{4*2^{prv}}Hz<br>$$<br>其中prv为设置的分频因子，0≤prv≤6，一个计数器时钟计数器就减一。  </p>
+<h3 id="2-3-③计数器"><a href="#2-3-③计数器" class="headerlink" title="2.3 ③计数器"></a><font size=3>2.3 ③计数器</font></h3><p>独立看门狗的计数器是一个 12 位的<strong>递减</strong>计数器，最大值为 0XFFF，当计数器减到 0 时，会产生一个复位信号:IWDG_RESET，让程序重新启动运行。如果在递减到0之前，将重装载数值写入递减计数器，就会由重装载数值开始递减到0， 如此反复，就永远不会到0，也就不会产生复位信号，这个重装载计数值写入递减计数器的过程就叫“喂狗”。  </p>
+<h3 id="2-4-④重装载寄存器"><a href="#2-4-④重装载寄存器" class="headerlink" title="2.4 ④重装载寄存器"></a><font size=3>2.4 ④重装载寄存器</font></h3><p>重装载寄存器是一个 12 位的寄存器，里面装着要刷新到计数器的值，这个值的大小决定着独立看门狗的溢出时间。超时时间计算方式为：<br>$$<br>T_{out}&#x3D;\frac{4<em>2^{prv}}{40</em>1000}<em>rlr<br>$$<br>其中 prv 是预分频器寄存器的值（0<del>0xFFF）， rlr 是重装载寄存器的值（0</del>6），最后计算得到的时间单位为秒(s)。假设当前预分频寄存器值为6<br>（ 256分频）， 重装载寄存器的值为15，则溢出时间为  ：<br>$$<br>T_{out}&#x3D;\frac{4</em>2^{prv}}{40*1000}<em>rlr&#x3D;\frac{4</em>2^6}{40000}*15&#x3D;0.096秒<br>$$<br>即启动独立看门狗后，需要在0.96s内喂狗一次，否则系统将复位。  </p>
+<h3 id="2-5-⑤键寄存器"><a href="#2-5-⑤键寄存器" class="headerlink" title="2.5 ⑤键寄存器"></a><font size=3>2.5 ⑤键寄存器</font></h3><p>键寄存器 IWDG_KR 可以说是独立看门狗的一个控制寄存器，主要有三种控制方式，往这个寄存器写入下面三个不同的值有不同的效果。  </p>
+<table>
+<thead>
+<tr>
+<th align="center">键值</th>
+<th>键值作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">0XAAAA</td>
+<td>将重载寄存器（ IWDG_RLR） 的值更新到计数器；</td>
+</tr>
+<tr>
+<td align="center">0X5555</td>
+<td>PR 和 RLR 这两个寄存器可写</td>
+</tr>
+<tr>
+<td align="center">0XCCCC</td>
+<td>启动 IWDG</td>
+</tr>
+</tbody></table>
+<p>（1）默认预分频寄存器（ IWDG_PR）和重装载寄存器（ IWDG_RLR）有写保护，不允许直接写值，需要先向键值寄存器（ IWDG_KY） 写0x5555 关闭保护，才能写预分频寄存器（ IWDG_PR）和重装载寄存器（ IWDG_RLR）。写完后，向键值寄存器（ IWDG_KY）写入其它任意值，将重新启用写保护；  </p>
+<p>（2）通过写往键寄存器写 0XCCC 来启动看门狗是属于软件启动的方式，一旦独立看门狗启动，它就关不掉，只有复位才能关掉。  </p>
+<h3 id="2-6-⑥状态寄存器"><a href="#2-6-⑥状态寄存器" class="headerlink" title="2.6 ⑥状态寄存器  "></a><font size=3>2.6 ⑥状态寄存器  </font></h3><p>状态寄存器 SR 只有位 0： PVU 和位 1： RVU 有效，这两位只能由硬件操作，软件操作不了。 </p>
+<p>（1）RVU：看门狗计数器重装载值更新，硬件置 1 表示重装载值的更新正在进行中，更新完毕之后由硬件清0。</p>
+<p>（2）PVU: 看门狗预分频值更新，硬件置’ 1’指示预分频值的更新正在进行中，当更新完成后，由硬件清 0。</p>
+<p>所以只有当 RVU&#x2F;PVU 等于 0 的时候才可以更新重装载寄存器&#x2F;预分频寄存器。  </p>
+<h2 id="3-相关寄存器"><a href="#3-相关寄存器" class="headerlink" title="3. 相关寄存器"></a><font size=3>3. 相关寄存器</font></h2><h3 id="3-1-键寄存器-IWDG-KR"><a href="#3-1-键寄存器-IWDG-KR" class="headerlink" title="3.1 键寄存器(IWDG_KR) "></a><font size=3>3.1 键寄存器(IWDG_KR) </font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513170017085.png" alt="image-20230513170017085" style="zoom:50%;" />
+
+<p>在键寄存器(IWDG_KR)中写入 0xCCCC，开始启用独立看门狗；此时计数器开始从其复位值 0xFFF 递减计数。当计数器计数到末尾 0x000 时，会产生一个复位信号(IWDG_RESET)。 无论何时，只要键寄存器 IWDG_KR 中被写入 0xAAAA， IWDG_RLR 中的值就会被重新加载到计数器中从而避免产生看门狗复位 。</p>
+<p>IWDG_PR 和 IWDG_RLR 寄存器具有写保护功能。要修改这两个寄存器的值，必须先向IWDG_KR 寄存器中写入 0x5555。 将其他值写入这个寄存器将会打乱操作顺序，寄存器将重新被保护。重装载操作(即写入 0xAAAA)也会启动写保护功能。  </p>
+<h3 id="3-2-预分频寄存器-IWDG-PR"><a href="#3-2-预分频寄存器-IWDG-PR" class="headerlink" title="3.2 预分频寄存器(IWDG_PR) "></a><font size=3>3.2 预分频寄存器(IWDG_PR) </font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513170156865.png" alt="image-20230513170156865" style="zoom:50%;" />
+
+<p>该寄存器用来设置看门狗时钟的分频系数，最低为 4，最高位 256，该寄存器是一个 32 位的寄存器，但是我们只用了最低 3 位，其他都是保留位。  </p>
+<h3 id="3-3-重装载寄存器-IWDG-RLR"><a href="#3-3-重装载寄存器-IWDG-RLR" class="headerlink" title="3.3 重装载寄存器(IWDG_RLR)"></a><font size=3>3.3 重装载寄存器(IWDG_RLR)</font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513170302170.png" alt="image-20230513170302170" style="zoom:50%;" />
+
+<p>该寄存器用来保存重装载到计数器中的值。该寄存器也是一个 32 位寄存器，但是只有低 12 位是有效的。</p>
+<h3 id="3-4-状态寄存器-IWDG-SR"><a href="#3-4-状态寄存器-IWDG-SR" class="headerlink" title="3.4 状态寄存器(IWDG_SR)"></a><font size=3>3.4 状态寄存器(IWDG_SR)</font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513170436820.png" alt="image-20230513170436820" style="zoom:50%;" />
+
+<h2 id="4-超时时间计算"><a href="#4-超时时间计算" class="headerlink" title="4. 超时时间计算"></a><font size=3>4. 超时时间计算</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513170654645.png" alt="image-20230513170654645" style="zoom: 50%;" />
+
+<p>时钟频率LSI&#x3D;40K， 一个看门狗时钟周期就是最短超时时间。最长超时时间&#x3D; (IWDG_RLR寄存器最大值）X 看门狗时钟周期。</p>
+<h2 id="5-HAL库函数"><a href="#5-HAL库函数" class="headerlink" title="5. HAL库函数"></a><font size=3>5. HAL库函数</font></h2><h3 id="5-1-初始化结构体"><a href="#5-1-初始化结构体" class="headerlink" title="5.1 初始化结构体"></a><font size=3>5.1 初始化结构体</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="type">uint32_t</span> Prescaler; <span class="comment">// 预分频器的值</span></span><br><span class="line">  <span class="type">uint32_t</span> Reload;    <span class="comment">// 重装载寄存器的值</span></span><br><span class="line">&#125; IWDG_InitTypeDef;</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-相关函数"><a href="#5-2-相关函数" class="headerlink" title="5.2 相关函数"></a><font size=3>5.2 相关函数</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">HAL_StatusTypeDef     <span class="title function_">HAL_IWDG_Init</span><span class="params">(IWDG_HandleTypeDef *hiwdg)</span>;   <span class="comment">// 初始化独立看门狗，会直接启动看门狗</span></span><br><span class="line">HAL_StatusTypeDef     <span class="title function_">HAL_IWDG_Refresh</span><span class="params">(IWDG_HandleTypeDef *hiwdg)</span>;<span class="comment">// 喂狗</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="6-如何使用独立看门狗？"><a href="#6-如何使用独立看门狗？" class="headerlink" title="6. 如何使用独立看门狗？"></a><font size=3>6. 如何使用独立看门狗？</font></h2><p>独立看门狗一般用来检测和解决由程序引起的故障，比如一个程序正常运行的时间是 50ms，在运行完这个段程序之后紧接着进行喂狗，我们设置独立看门狗的定时溢出时间为 60ms，比我们需要监控的程序 50ms 多一点，如果超过 60ms 还没有喂狗，那就说明我们监控的程序出故障了，跑飞了，那么就会产生系统复位，让程序重新运行。  </p>
+<h1 id="三、窗口看门狗"><a href="#三、窗口看门狗" class="headerlink" title="三、窗口看门狗"></a><font size=3>三、窗口看门狗</font></h1><p>这一部分可以查看[STM32中文参考手册](<a target="_blank" rel="noopener" href="https://www.stmcu.com.cn/Designresource/detail/localization_document">https://www.stmcu.com.cn/Designresource/detail/localization_document</a> &#x2F;710001)的18 窗口看门狗(WWDG)。</p>
+<h2 id="1-与独立看门狗的区别"><a href="#1-与独立看门狗的区别" class="headerlink" title="1. 与独立看门狗的区别"></a><font size=3>1. 与独立看门狗的区别</font></h2><p>我们知道独立看门狗的工作原理就是一个递减计数器不断的往下递减计数，当减到 0 之前如果没有喂狗的话，产生复位。窗口看门狗跟独立看门狗一样，也是一个递减计数器不断的往下递减计数，当减到一个固定值 0X40时还不喂狗的话，产生复位，这个值叫窗口的下限，是固定的值，不能改变。这个是跟独立看门狗类似的地方，不同的地方是窗口看门狗的计数器的值在减到某一个数之前喂狗的话也会产生复位，这个值叫窗口的上限，上限值由用户独立设置。窗口看门狗计数器的值必须在上窗口和下窗口之间才可以喂狗，这就是窗口看门狗中窗口两个字的含义  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513171742678.png" alt="image-20230513171742678" style="zoom:50%;" />
+
+<p>RLR 是重装载寄存器，用来设置独立看门狗的计数器的值。 TR 是窗口看门狗的计数器的值，由用户独立设置， WR 是窗口看门狗的上窗口值，由用户独立设置。  </p>
+<p>对于一般的看门狗，程序可以在它产生复位前的任意时刻刷新看门狗，但这有一个隐患，有可能程序跑乱了又跑回到正常的地方，或跑乱的程序正好执行了刷新看门狗操作，这样的情况下一般的看门狗就检测不出来了；如果使用窗口看门狗，程序员可以根据程序正常执行的时间设置刷新看门狗的一个时间窗口，保证不会提前刷新看门狗也不会滞后刷新看门狗，这样可以检测出程序没有按照正常的路径运行非正常地跳过了某些程序段的情况。</p>
+<h2 id="2-主要特性"><a href="#2-主要特性" class="headerlink" title="2. 主要特性"></a><font size=3>2. 主要特性</font></h2><p>（1）可编程的自由运行递减计数器</p>
+<p>（2）复位条件：当递减计数器的值小于0x40，（若看门狗被启动）则会产生复位。；当递减计数器在窗口外被重新装载，（若看门狗被启动）则产生复位。</p>
+<p>（3）如果启动了看门狗并且允许中断，当递减计数器等于0x40时产生早期唤醒中断(EWI)，它可以被用于重装载计数器以避免WWDG复位.</p>
+<h2 id="3-功能框图"><a href="#3-功能框图" class="headerlink" title="3. 功能框图"></a><font size=3>3. 功能框图</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513172237246.png" alt="image-20230513172237246" style="zoom:50%;" />
+
+<h3 id="3-1-①窗口看门狗时钟"><a href="#3-1-①窗口看门狗时钟" class="headerlink" title="3.1 ①窗口看门狗时钟  "></a><font size=3>3.1 ①窗口看门狗时钟  </font></h3><p>窗口看门狗时钟来自 PCLK1， PCLK1 最大是 36M，由 RCC 时钟控制器开启。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513185255349.png" alt="image-20230513185255349" style="zoom:50%;" />
+
+<h3 id="3-2-②计数器时钟"><a href="#3-2-②计数器时钟" class="headerlink" title="3.2 ②计数器时钟  "></a><font size=3>3.2 ②计数器时钟  </font></h3><p>计数器时钟源来自PCLK1（最高36HMz） ， 经过4096分频  ，再经过WWDG_CFG的Bits[8:7]位WDGTB分频得到 。即窗口看门狗计数器的分频系数由配置寄存器 CFR 的位8:7 WDGTB[1:0] 配置，可以是 [0，1，2，3]，其中 CK 计时器时钟 &#x3D;PCLK1&#x2F;4096，除以 4096 是手册规定的，所以没有为什么。</p>
+<p>所以计数器的时钟 ：<br>$$<br>CNT_CK&#x3D;\frac{PCLK1}{4096 * (2^{WDGTB})}<br>$$<br>这就可以算出计数器减一个数的时间 ：<br>$$<br>T&#x3D;\frac{1}{CNT_CK}&#x3D;\frac{1}{\frac{PCLK1}{4096 * (2^{WDGTB})}}&#x3D;T_{pclk1}<em>4096</em>2^{WDGTB}<br>$$</p>
+<h3 id="3-3-③计数器"><a href="#3-3-③计数器" class="headerlink" title="3.3 ③计数器  "></a><font size=3>3.3 ③计数器  </font></h3><p>窗口看门狗的计数器是一个递减计数器，共有 7 位，其值存在控制寄存器 CR 的位 6:0，即T[6:0]，当 7 个位全部为 1 时是 0X7F，这个是最大值，当递减到 T6位变成 0 时，即从 0X40 变为 0X3F 时候，会产生看门狗复位，重启整个系统。这个值 0X40 是看门狗能够递减到的最小值，所以计数器的值只能是： 0X40~0X7F 之间，实际上真正用来计数的是 T[5:0]。当递减计数器递减到 0X40 的时候，还不会马上产生复位，如果使能了提前唤醒中断： WWDG_CFG 的bit[9]位 EWI 置 1，则产生提前唤醒中断，如果真进入了这个中断的话，就说明程序肯定是出问题了，那么在中断服务程序里面我们就需要做最重要的工作，比如保存重要数据，或者报警等，也可以在中断中向WWDG_CR重新写入新计数器值， 完成喂狗操作。这个中断我们也叫它死前中断。  </p>
+<h3 id="3-4-④窗口值"><a href="#3-4-④窗口值" class="headerlink" title="3.4 ④窗口值  "></a><font size=3>3.4 ④窗口值  </font></h3><p>我们知道窗口看门狗必须在计数器的值在一个范围内才可以喂狗，其中下窗口的值是固定的0X40，上窗口的值可以改变，具体的由配置寄存器 CFR 的位 6:0 W[6:0] 设置。其值必须大于0X40，如果小于或者等于 0X40 就是失去了窗口的价值，而且也不能大于计数器的值，所以必须得小于 0X7F。</p>
+<p>那窗口值具体要设置成多大？这个得根据我们需要监控的程序的运行时间来决定。如果我们要监控的程序段 A 运行的时间为 Ta，当执行完这段程序之后就要进行喂狗，如果在窗口时间内没有喂狗的话，那程序就肯定是出问题了。一般计数器的值 TR 设置成最大 0X7F，窗口值为 WR，计数器减一个数的时间为 T，那么时间： (TR-WR)*T 应该稍微大于 Ta 即可，这样就能做到刚执行完程序段 A 之后喂狗，起到监控的作用，这样也就可以算出 WR 的值是多少。  </p>
+<h2 id="4-相关寄存器"><a href="#4-相关寄存器" class="headerlink" title="4. 相关寄存器"></a><font size=3>4. 相关寄存器</font></h2><h3 id="4-1-控制寄存器-WWDG-CR"><a href="#4-1-控制寄存器-WWDG-CR" class="headerlink" title="4.1 控制寄存器(WWDG_CR)"></a><font size=3>4.1 控制寄存器(WWDG_CR)</font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513191357558.png" alt="image-20230513191357558" style="zoom: 67%;" />
+
+<p>WWDG_CR 只有低八位有效， T[6:0]用来存储看门狗的计数器值，随时更新的，每个窗口看门狗计数周期（4096* 2^WDGTB）减 1。当该计数器的值从 0X40 变为 0X3F 的时候，将产生看门狗复位。WDGA 位则是看门狗的激活位，该位由软件置 1，以启动看门狗，并且一定要注意的是该位一旦设置，就只能在硬件复位后才能清零了。  </p>
+<h3 id="4-2-配置寄存器-WWDG-CFR"><a href="#4-2-配置寄存器-WWDG-CFR" class="headerlink" title="4.2 配置寄存器(WWDG_CFR) "></a><font size=3>4.2 配置寄存器(WWDG_CFR) </font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513191523752.png" alt="image-20230513191523752" style="zoom:67%;" />
+
+<p>该位中的 EWI 是提前唤醒中断，也就是在快要产生复位的前一段时间（T[6:0]&#x3D;0X40） 来提醒我们，需要进行喂狗了，否则将复位！因此，我们一般用该位设置中断，当窗口看门狗的计数器值减到 0X40 的时候，如果该位设置，并开启了中断，则会产生中断，我们可以在中断里面向 WWDG_CR 重新写入计数器的值，来达到喂狗的目的。</p>
+<p>注意这里在进入中断后， 必须在不大于 1 个窗口看门狗计数周期的时间（在 PCLK1 频率为 36M 且 WDGTB 为 0 的条件下，该时间为 113us）内重新写 WWDG_CR，否则，看门狗将产生复位！  </p>
+<h3 id="4-3-状态寄存器-WWDG-SR"><a href="#4-3-状态寄存器-WWDG-SR" class="headerlink" title="4.3 状态寄存器(WWDG_SR)"></a><font size=3>4.3 状态寄存器(WWDG_SR)</font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513191655737.png" alt="image-20230513191655737" style="zoom:67%;" />
+
+<p>该寄存器用来记录当前是否有提前唤醒的标志。该寄存器仅有位 0 有效，其他都是保留位。当计数器值达到 40h 时，此位由硬件置 1。它必须通过软件写 0 来清除。对此位写 1 无效。 即使中断未被使能， 在计数器的值达到 0X40的时候， 此位也会被置 1。  </p>
+<h2 id="5-超时时间计算"><a href="#5-超时时间计算" class="headerlink" title="5. 超时时间计算"></a><font size=3>5. 超时时间计算</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513190841123.png" alt="image-20230513190841123" style="zoom:50%;" />
+
+
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-23-WDG-01-%E7%9C%8B%E9%97%A8%E7%8B%97%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230513190146147.png" alt="image-20230513190146147" style="zoom:67%;" />
+
+<p>这个图来自数据手册，从图我们知道看门狗超时时间： Twwdg &#x3D; Tpclk1 x 4096 x 2^wdgtb x (T[5:0]+ 1) ms，当 PCLK1 &#x3D; 36MHZ 时， WDGTB 取不同的值时有最小和最大的超时时间，那这个最小和最大的超时时间该怎么理解，又是怎么算出来的？</p>
+<p> WDGTB&#x3D;0时，递减计数器有 7 位 T[6:0] ，当位 6 变为 0 的时候就会产生复位，实际上有效的计数位是 T[5:0]，而且 T6 必须先设置为 1。如果 T[5:0]&#x3D;0 时，递减计数器再减一次，就产生复位了，那这减一的时间就等于计数器的周期 &#x3D;1&#x2F;CNT_CK &#x3D; Tpclk1 * 4096 * (2^WDGTB) &#x3D; 1&#x2F;36 * 4096 * 2^0 &#x3D; 113.7us，这就是最短的超时时间。如果 T[5:0] 全部装满为 1，即 63，当他减到 0X40 变成 0X3F 时，所需的时间就是最大的超时时间 &#x3D;113.7*2^5&#x3D;113.7*64&#x3D;7.2768ms。</p>
+<p>同理，当 WDGTB 等于 1&#x2F;2&#x2F;3 时，代入公式即可。</p>
+<h2 id="6-HAL库函数"><a href="#6-HAL库函数" class="headerlink" title="6. HAL库函数"></a><font size=3>6. HAL库函数</font></h2><h3 id="6-1-初始化结构体"><a href="#6-1-初始化结构体" class="headerlink" title="6.1 初始化结构体"></a><font size=3>6.1 初始化结构体</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="type">uint32_t</span> Prescaler; <span class="comment">// 设置预分频器值</span></span><br><span class="line">  <span class="type">uint32_t</span> Window;    <span class="comment">// 设置上窗口值</span></span><br><span class="line">  <span class="type">uint32_t</span> Counter;   <span class="comment">// 设置计数器的值</span></span><br><span class="line">  <span class="type">uint32_t</span> EWIMode;   <span class="comment">// 使能提前唤醒中断</span></span><br><span class="line">&#125; WWDG_InitTypeDef;</span><br></pre></td></tr></table></figure>
+
+<p>（1）Counter是计数器的值，一般我们设置成最大 0X7F;</p>
+<p>（2）Window是上窗口的值，这个我们要根据监控的程序的运行时间来设置，但是值必须在 0X40 和计数器的值之间；</p>
+<p>（3）Prescaler 用来设置预分频的值，取值可以是：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> WWDG_PRESCALER_1 0x00000000u                              <span class="comment">/*!&lt; WWDG counter clock = (PCLK1/4096)/1 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> WWDG_PRESCALER_2 WWDG_CFR_WDGTB_0                         <span class="comment">/*!&lt; WWDG counter clock = (PCLK1/4096)/2 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> WWDG_PRESCALER_4 WWDG_CFR_WDGTB_1                         <span class="comment">/*!&lt; WWDG counter clock = (PCLK1/4096)/4 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> WWDG_PRESCALER_8 (WWDG_CFR_WDGTB_1 | WWDG_CFR_WDGTB_0)    <span class="comment">/*!&lt; WWDG counter clock = (PCLK1/4096)/8 */</span></span></span><br></pre></td></tr></table></figure>
+
+<h3 id="6-2-相关函数"><a href="#6-2-相关函数" class="headerlink" title="6.2 相关函数"></a><font size=3>6.2 相关函数</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">HAL_StatusTypeDef     <span class="title function_">HAL_WWDG_Init</span><span class="params">(WWDG_HandleTypeDef *hwwdg)</span>;    <span class="comment">// 窗口看门狗初始化</span></span><br><span class="line"><span class="type">void</span>                  <span class="title function_">HAL_WWDG_MspInit</span><span class="params">(WWDG_HandleTypeDef *hwwdg)</span>; <span class="comment">// 使能窗口看门狗外设时钟</span></span><br><span class="line">HAL_StatusTypeDef     <span class="title function_">HAL_WWDG_Refresh</span><span class="params">(WWDG_HandleTypeDef *hwwdg)</span>; <span class="comment">// 喂狗，刷新递减计数器的值</span></span><br><span class="line"><span class="type">void</span>                  <span class="title function_">HAL_WWDG_IRQHandler</span><span class="params">(WWDG_HandleTypeDef *hwwdg)</span>;<span class="comment">// 中断处理函数</span></span><br><span class="line"><span class="type">void</span>                  <span class="title function_">HAL_WWDG_EarlyWakeupCallback</span><span class="params">(WWDG_HandleTypeDef *hwwdg)</span>;<span class="comment">// 中断处理函数中的回调函数</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="7-如何使用窗口看门狗？"><a href="#7-如何使用窗口看门狗？" class="headerlink" title="7. 如何使用窗口看门狗？"></a><font size=3>7. 如何使用窗口看门狗？</font></h2><p>独立看门狗一般用来检测和解决由程序引起的故障，比如一个程序正常运行的时间是 50ms，在运行完这个段程序之后紧接着进行喂狗，我们设置独立看门狗的定时溢出时间为 60ms，比我们需要监控的程序 50ms 多一点，如果超过 60ms 还没有喂狗，那就说明我们监控的程序出故障了，跑飞了，那么就会产生系统复位，让程序重新运行。  </p>
+<h1 id="四、IWDG与WWDG"><a href="#四、IWDG与WWDG" class="headerlink" title="四、IWDG与WWDG"></a><font size=3>四、IWDG与WWDG</font></h1><h2 id="1-相同点"><a href="#1-相同点" class="headerlink" title="1. 相同点"></a><font size=3>1. 相同点</font></h2><p>（1）当软件代码死循环在某处时， 导致无法喂狗将复位；</p>
+<p>（2）当软件代码执行超时（ 比如外部一直触发中断） ，导致无法喂狗将复位；</p>
+<p>（3）可通过软件设置喂狗时间；</p>
+<h2 id="2-不同点"><a href="#2-不同点" class="headerlink" title="2. 不同点"></a><font size=3>2. 不同点</font></h2><table>
+<thead>
+<tr>
+<th>独立看门狗</th>
+<th>窗口看门狗</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>由内部低速时钟LSI提供时钟源，无需使能时钟</td>
+<td>由PCLK1提供时钟源，需要先使能时钟</td>
+</tr>
+<tr>
+<td>无中断直接复位</td>
+<td>在超时前可产生中断(需使能) 在中断里保护数据或喂狗</td>
+</tr>
+<tr>
+<td>用于避免程序跑飞或死循环</td>
+<td>用于程序不按预先逻辑执行， 先于预计时间或晚于预计时间，都复位</td>
+</tr>
+<tr>
+<td>12位递减计数器</td>
+<td>7位递减计数器</td>
+</tr>
+<tr>
+<td>计数到0，复位</td>
+<td>计数器在0x7F到窗口值之间喂狗，复位 计数器在0x40以下，复位</td>
+</tr>
+</tbody></table>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/7e7fa731.html">LV16-23-WDG-01-看门狗基础知识</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年06月04日 - 22:07</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/7e7fa731.html" title="LV16-23-WDG-01-看门狗基础知识">https://sumumm.github.io/post/7e7fa731.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV16-STM32%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV16-STM32开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/c86994e1.html" rel="prev" title="LV16-23-WDG-02-看门狗实例">
+                  <i class="fa fa-angle-left"></i> LV16-23-WDG-02-看门狗实例
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/fc1f4d1a.html" rel="next" title="LV16-22-FatFs-02-FatFs文件系统移植">
+                  LV16-22-FatFs-02-FatFs文件系统移植 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

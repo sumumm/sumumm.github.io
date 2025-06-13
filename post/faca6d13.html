@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是内核模块——内核模块的加载的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-02-内核模块-03-内核模块的加载">
+<meta property="og:url" content="https://sumumm.github.io/post/faca6d13.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是内核模块——内核模块的加载的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117163610305.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117164516768.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117165539155.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117171145909.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117171806402.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117171932832.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117172034406.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117172158173.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117172744748.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117174639337.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117174936411.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117175752872.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117175015311.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117180953845.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117181338149.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117182244699.png">
+<meta property="article:published_time" content="2024-11-17T10:33:42.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.048Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117163610305.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/faca6d13.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/faca6d13.html","path":"post/faca6d13.html","title":"LV06-02-内核模块-03-内核模块的加载"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-02-内核模块-03-内核模块的加载 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%8A%A0%E8%BD%BD%E5%91%BD%E4%BB%A4"><span class="nav-text">一、加载命令</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-file%E2%80%94%E2%80%94%E6%9F%A5%E7%9C%8B%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F"><span class="nav-text">1. file——查看文件格式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-dmesg%E2%80%94%E2%80%94%E5%86%85%E6%A0%B8%E6%97%A5%E5%BF%97%E6%9F%A5%E7%9C%8B"><span class="nav-text">2. dmesg——内核日志查看</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%A8%A1%E5%9D%97%E7%9B%B8%E5%85%B3%E7%9A%84%E5%91%BD%E4%BB%A4"><span class="nav-text">3. 模块相关的命令</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-insmod%E2%80%94%E2%80%94%E5%8A%A0%E8%BD%BD%E6%8C%87%E5%AE%9A%E6%A8%A1%E5%9D%97"><span class="nav-text">3.1 insmod——加载指定模块</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-lsmod%E2%80%94%E2%80%94%E6%9F%A5%E7%9C%8B%E5%B7%B2%E7%BB%8F%E5%8A%A0%E8%BD%BD%E7%9A%84%E6%A8%A1%E5%9D%97"><span class="nav-text">3.2 lsmod——查看已经加载的模块</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-rmmod%E2%80%94%E2%80%94%E5%8D%B8%E8%BD%BD%E5%B7%B2%E7%BB%8F%E5%8A%A0%E8%BD%BD%E7%9A%84%E6%A8%A1%E5%9D%97"><span class="nav-text">3.3 rmmod——卸载已经加载的模块</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%8A%A0%E8%BD%BD%E6%B5%8B%E8%AF%95"><span class="nav-text">4. 加载测试</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E8%8E%B7%E5%8F%96%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E6%96%87%E4%BB%B6"><span class="nav-text">4.1 获取内核模块文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E6%8B%B7%E8%B4%9D%E5%88%B0%E6%A0%B9%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-text">4.2 拷贝到根文件系统</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%A8%A1%E5%9D%97%E6%B5%8B%E8%AF%95"><span class="nav-text">4.3 模块测试</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81modprobe"><span class="nav-text">二、modprobe</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%B8%80%E4%B8%AA%E9%94%99%E8%AF%AF%E7%9A%84%E8%A7%A3%E5%86%B3"><span class="nav-text">1. 一个错误的解决</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E5%8E%9F%E5%9B%A0%E5%88%86%E6%9E%90"><span class="nav-text">1.1 原因分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E6%B7%BB%E5%8A%A0depmod%E5%91%BD%E4%BB%A4"><span class="nav-text">1.2 添加depmod命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E9%87%8D%E5%90%AF%E6%B5%8B%E8%AF%95"><span class="nav-text">1.3 重启测试</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%8A%A0%E8%BD%BD%E9%A9%B1%E5%8A%A8"><span class="nav-text">2. 加载驱动</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%91%BD%E4%BB%A4%E8%AF%B4%E6%98%8E"><span class="nav-text">3. 命令说明</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E5%91%BD%E4%BB%A4%E6%A0%BC%E5%BC%8F"><span class="nav-text">3.1 命令格式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-modprobe-l"><span class="nav-text">3.1 modprobe -l</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-modprobe-r"><span class="nav-text">3.2 modprobe -r</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-modprobe-D"><span class="nav-text">3.3 modprobe -D</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E6%90%9C%E7%B4%A2%E7%9B%AE%E5%BD%95"><span class="nav-text">4. 搜索目录</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/faca6d13.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-02-内核模块-03-内核模块的加载 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-02-内核模块-03-内核模块的加载
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-11-17 18:33:42" itemprop="dateCreated datePublished" datetime="2024-11-17T18:33:42+08:00">2024-11-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>19 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是内核模块——内核模块的加载的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="2">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、加载命令"><a href="#一、加载命令" class="headerlink" title="一、加载命令"></a><font size=3>一、加载命令</font></h1><p>前面我们已经拿到了ko文件，现在我们来学习一下怎么加载ko驱动。先来学习几个命令：</p>
+<h2 id="1-file——查看文件格式"><a href="#1-file——查看文件格式" class="headerlink" title="1. file——查看文件格式"></a><font size=3>1. file——查看文件格式</font></h2><p>file命令可用于查看指定的.ko文件可以用于哪种平台，一般使用格式如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file module_name.ko</span><br></pre></td></tr></table></figure>
+
+<p>输出信息中，带x86字样的适用于主机ubuntu linux，带arm字样的适用于开发板linux。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117163610305.png" alt="image-20241117163610305" />
+
+<h2 id="2-dmesg——内核日志查看"><a href="#2-dmesg——内核日志查看" class="headerlink" title="2. dmesg——内核日志查看"></a><font size=3>2. dmesg——内核日志查看</font></h2><p>dmesg命令可用于查看内核的打印的提示信息，主要是在Ubuntu中加载模块的使用后使用，我们的开发板会实时在串口终端界面打提示信息，一般使用格式如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo dmesg -c  # 清除内核已打印的信息</span><br><span class="line">dmseg          # 查看内核的打印信息</span><br></pre></td></tr></table></figure>
+
+<p>【注意】在主机Ubuntu中加载模块的时候需要加上sudo。</p>
+<h2 id="3-模块相关的命令"><a href="#3-模块相关的命令" class="headerlink" title="3. 模块相关的命令"></a><font size=3>3. 模块相关的命令</font></h2><h3 id="3-1-insmod——加载指定模块"><a href="#3-1-insmod——加载指定模块" class="headerlink" title="3.1 insmod——加载指定模块"></a><font size=3>3.1 insmod——加载指定模块</font></h3><p>insmod命令可用于加载.ko文件，一般使用格式如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">insmod module_name.ko</span><br></pre></td></tr></table></figure>
+
+<p>【注意】在主机Ubuntu中加载模块的时候需要加上sudo。</p>
+<h3 id="3-2-lsmod——查看已经加载的模块"><a href="#3-2-lsmod——查看已经加载的模块" class="headerlink" title="3.2 lsmod——查看已经加载的模块"></a><font size=3>3.2 lsmod——查看已经加载的模块</font></h3><p>lsmod命令可用显示已经加载的模块，一般使用格式如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lsmod module_name.ko</span><br></pre></td></tr></table></figure>
+
+<p>【注意】在主机Ubuntu中加载模块的时候不加sudo，也可以正常使用。</p>
+<h3 id="3-3-rmmod——卸载已经加载的模块"><a href="#3-3-rmmod——卸载已经加载的模块" class="headerlink" title="3.3 rmmod——卸载已经加载的模块"></a><font size=3>3.3 rmmod——卸载已经加载的模块</font></h3><p>rmmod命令可用于卸载已经加载的模块，一般使用格式如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rmmod module_name</span><br></pre></td></tr></table></figure>
+
+<p>【注意】在主机Ubuntu中加载模块的时候需要加上sudo。</p>
+<h2 id="4-加载测试"><a href="#4-加载测试" class="headerlink" title="4. 加载测试"></a><font size=3>4. 加载测试</font></h2><h3 id="4-1-获取内核模块文件"><a href="#4-1-获取内核模块文件" class="headerlink" title="4.1 获取内核模块文件"></a><font size=3>4.1 获取内核模块文件</font></h3><p>上一节我们编译了两个内核模块文件，一个是在内核源码中编译的，另一个是在内核源码外编译的，这两个文件可以在这里找：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/02_module_load/module_load_test">02_module_load&#x2F;module_load_test · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国 (gitee.com)</a></p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117164516768.png" alt="image-20241117164516768" />
+
+<h3 id="4-2-拷贝到根文件系统"><a href="#4-2-拷贝到根文件系统" class="headerlink" title="4.2 拷贝到根文件系统"></a><font size=3>4.2 拷贝到根文件系统</font></h3><p>我们前面配置的开发环境是从nfs挂载根文件系统，所以我们直接把这两个内核模块文件拷贝到根文件系统去就行了，linux系统启动后，我们就可以看到。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mkdir ~/4nfs/imx6ull_rootfs/driver_demo</span><br><span class="line">cp -rvf module_load_test ~/4nfs/imx6ull_rootfs/drivers_demo/</span><br></pre></td></tr></table></figure>
+
+<p>我们启动开发板，然后看一下&#x2F;driver_demo目录：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117165539155.png" alt="image-20241117165539155" />
+
+<p>需要注意的事这里并不是所有的移植完的根文件系统都有tree命令，有的话就能用。另外我发现好像加载有些延迟，拷贝完，linux开发板上还没有这些文件，等待一小会就好了。</p>
+<h3 id="4-3-模块测试"><a href="#4-3-模块测试" class="headerlink" title="4.3 模块测试"></a><font size=3>4.3 模块测试</font></h3><p>注意，两个测试模块名字一样，就不要同时加载了，一个测试完卸载后再加载另一个测试。命令都是一样的。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cd /drivers_demo</span><br><span class="line"></span><br><span class="line">insmod hello_world_demo.ko # 加载模块</span><br><span class="line">lsmod                      # 查看已加载模块</span><br><span class="line">rmmod hello_world_demo     # 卸载已加载的模块</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117171145909.png" alt="image-20241117171145909" />
+
+<h1 id="二、modprobe"><a href="#二、modprobe" class="headerlink" title="二、modprobe"></a><font size=3>二、modprobe</font></h1><p>还有一个很强大的命令就是modprobe，使用它，我们可以不进入驱动所在的目录。</p>
+<h2 id="1-一个错误的解决"><a href="#1-一个错误的解决" class="headerlink" title="1. 一个错误的解决"></a><font size=3>1. 一个错误的解决</font></h2><h3 id="1-1-原因分析"><a href="#1-1-原因分析" class="headerlink" title="1.1 原因分析"></a><font size=3>1.1 原因分析</font></h3><p>还记得前边使用buildroot构建根文件系统的时候，有一个报错：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117171806402.png" alt="image-20241117171806402" />
+
+<p>这里的这个目录起始就是为modprobe这个命令准备的，这个目录中将会存放驱动文件，然后可以不进入此目录，就直接使用modprobe命令加载指定的驱动。</p>
+<p>“&#x2F;lib&#x2F;modules”这个目录是通用的，不管用的什么板子、什么内核，这部分是一样的。不一样的是这个目录下的子目录，会有一个以内核版本命名的目录，这个目录才是最终存放驱动的目录，例如“&#x2F;lib&#x2F;modules&#x2F;4.19.71”，这里要根据我们所使用的 Linux 内核版本来设置，比如 ALPHA 开发板现在用的是4.19.71 版本的 Linux 内核，因此就是“&#x2F;lib&#x2F;modules&#x2F;4.19.71”。如果使用的其他版本内核，比如 5.14.31，那么就应该创建“&#x2F;lib&#x2F;modules&#x2F;5.14.31”目录，否则 modprobe 命令无法加载驱动模块。  </p>
+<p>所以我们先自行在根文件系统创建这个目录，这个目录名怎么确定？我们可以看开机打印信息：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117171932832.png" alt="image-20241117171932832" />
+
+<p>或者制作的根文件系统支持uname命令的话也可以使用这个命令来看：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">uname -r</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117172034406.png" alt="image-20241117172034406" />
+
+<p>我们手动创建这个目录</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkdir -p /lib/modules/4.19.71-00007-g51f3cd8ec-dirty</span><br></pre></td></tr></table></figure>
+
+<p>之后就会发现这个报错就会消失，但是又会报另一个错：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117172158173.png" alt="image-20241117172158173" />
+
+<p>可以看出， modprobe 提示无法打开“modules.dep”这个文件，因此驱动挂载失败了。我们不用手动创建 modules.dep 这个文件，直接输入 depmod 命令即可自动生成modules.dep。</p>
+<h3 id="1-2-添加depmod命令"><a href="#1-2-添加depmod命令" class="headerlink" title="1.2 添加depmod命令"></a><font size=3>1.2 添加depmod命令</font></h3><p>有些根文件系统可能没有 depmod 这个命令，如果没有这个命令就只能重新配置busybox了，所以我们可以进入buildroot源码（我用的是这个）中，执行以下命令打开busybox的配置窗口：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd ~/7Linux/buildroot-2023.05.1</span><br><span class="line">sudo make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- busybox-menuconfig</span><br></pre></td></tr></table></figure>
+
+<p>这里要加个sudo，不然有个地方会报没有权限，反正我的是这样的。然后就会打开busybox的配置窗口：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117172744748.png" alt="image-20241117172744748" />
+
+<p>我们按以下配置项路径找一下depmod的配置项：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Linux Module Utilities  ---&gt; </span><br><span class="line">	[*] depmod (27 kb)</span><br></pre></td></tr></table></figure>
+
+<p>勾选这个depmod：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">BusyBox 1.36.1 Configuration</span><br><span class="line">──────────────────────────────────────────────────────────────────────────────</span><br><span class="line"> ┌──────────────────────── Linux Module Utilities ─────────────────────────┐</span><br><span class="line"> │  Arrow keys navigate the menu.  &lt;Enter&gt; selects submenus ---&gt;.          │  </span><br><span class="line"> │  Highlighted letters are hotkeys.  Pressing &lt;Y&gt; includes, &lt;N&gt; excludes, │  </span><br><span class="line"> │  &lt;M&gt; modularizes features.  Press &lt;Esc&gt;&lt;Esc&gt; to exit, &lt;?&gt; for Help, &lt;/&gt; │  </span><br><span class="line"> │  for Search.  Legend: [*] built-in  [ ] excluded  &lt;M&gt; module  &lt; &gt;       │  </span><br><span class="line"> │ ┌─────────────────────────────────────────────────────────────────────┐ │  </span><br><span class="line"> │ │[ ] Simplified modutils                                              │ │  </span><br><span class="line"> │ │[*] depmod (27 kb)                                                   │ │  </span><br><span class="line"> │ │[*] insmod (22 kb)                                                   │ │  </span><br><span class="line"> │ │[*] lsmod (1.9 kb)                                                   │ │  </span><br><span class="line"> │ │[*]   Pretty output                                                  │ │  </span><br><span class="line"> │ │[ ] modinfo (24 kb)                                                  │ │  </span><br><span class="line"> │ │[*] modprobe (28 kb)                                                 │ │  </span><br><span class="line"> │ │[ ]   Blacklist support                                              │ │  </span><br><span class="line"> │ │[*] rmmod (3.3 kb)                                                   │ │  </span><br><span class="line"> │ │--- Options common to multiple modutils                              │ │  </span><br><span class="line"> │ │[*] Accept module options on modprobe command line                   │ │  </span><br><span class="line"> │ │[ ] Support version 2.2/2.4 Linux kernels                            │ │  </span><br><span class="line"> │ │[*] Support tainted module checking with new kernels                 │ │  </span><br><span class="line"> │ │[ ] Try to load module from a mmap&#x27;ed area                           │ │  </span><br><span class="line"> │ │[*] Support module.aliases file                                      │ │  </span><br><span class="line"> │ │[*] Support module.symbols file                                      │ │  </span><br><span class="line"> │ │(/lib/modules) Default directory containing modules                  │ │  </span><br><span class="line"> │ │(modules.dep) Default name of modules.dep                            │ │  </span><br><span class="line"> │ └─────────────────────────────────────────────────────────────────────┘ │  </span><br><span class="line"> ├─────────────────────────────────────────────────────────────────────────┤  </span><br><span class="line"> │                    &lt;Select&gt;    &lt; Exit &gt;    &lt; Help &gt;                     │  </span><br><span class="line"> └─────────────────────────────────────────────────────────────────────────┘  </span><br></pre></td></tr></table></figure>
+
+<p>看最后两个配置项，我们应该是可以在这里自定义这个模块默认存放的目录以及modules.dep的默认文件名，不过这里还是默认好了。最后我们保存退出。然后我们执行以下命令重新编译：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo make # 在图形界面已经配置过编译工具链了</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-3-重启测试"><a href="#1-3-重启测试" class="headerlink" title="1.3 重启测试"></a><font size=3>1.3 重启测试</font></h3><p>最后重启，就会发现还在报，原来是还需要用这个命令自动生成一些文件，我们直接在终端执行depmod，就会生成下图这些文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">depmod</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117174639337.png" alt="image-20241117174639337" />
+
+<p>然后我们再重启，应该就不会有这些报错了：</p>
+<h2 id="2-加载驱动"><a href="#2-加载驱动" class="headerlink" title="2. 加载驱动"></a><font size=3>2. 加载驱动</font></h2><p>我们前边知道可以用insmod命令加载驱动，但是这个命令有一个缺点，就是驱动若是依赖其他驱动的话，就需要先加载其他依赖的驱动，然后这个驱动才能加载成功，这样是有些麻烦的，而且还需要指定驱动路径或者到驱动存放目录下才能加载。我们可以吧驱动放在上面创建的目录下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cp drivers_demo/module_load_test/outside /lib/modules/4.19.71-00007-g51f3cd8ec-dirty/ -r</span><br></pre></td></tr></table></figure>
+
+<p>然后我们直接在根目录执行：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">modprobe hello_world_demo.ko</span><br></pre></td></tr></table></figure>
+
+<p>然后会有以下信息：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117174936411.png" alt="image-20241117174936411" />
+
+<p>从图中可以看出，报错了，第一次并未加载成功，这个时候我们需要执行一次depmod命令重新生成一下那几个文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls /lib/modules/`uname -r` -F</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117175752872.png" alt="image-20241117175752872" />
+
+<p>更新完毕后重新加载就可以了：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117175015311.png" alt="image-20241117175015311" />
+
+<p>重新生成后，就可以成功加载驱动啦。</p>
+<h2 id="3-命令说明"><a href="#3-命令说明" class="headerlink" title="3. 命令说明"></a><font size=3>3. 命令说明</font></h2><p>上面我们已经把问题解决，也体验了这个命令，接下来我们来学习一下这个命令的使用。</p>
+<h3 id="3-1-命令格式"><a href="#3-1-命令格式" class="headerlink" title="3.1 命令格式"></a><font size=3>3.1 命令格式</font></h3><p>我们可以直接在ubuntu下看一下man手册：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">NAME</span><br><span class="line">       modprobe - Add and remove modules from the Linux Kernel</span><br><span class="line"></span><br><span class="line">SYNOPSIS</span><br><span class="line">       modprobe [-v] [-V] [-C config-file] [-n] [-i] [-q] [-b] [modulename] [module parameters...]</span><br><span class="line"></span><br><span class="line">       modprobe [-r] [-v] [-n] [-i] [modulename...]</span><br><span class="line"></span><br><span class="line">       modprobe [-c]</span><br><span class="line"></span><br><span class="line">       modprobe [--dump-modversions] [filename]</span><br></pre></td></tr></table></figure>
+
+<p>modprobe会从linux内核中智能地添加或者移除模块。modprobe需要一个实时更新的 modules.dep 文件，这个文件位于这里：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/lib/modules/`uname -r`/modules.dep</span><br></pre></td></tr></table></figure>
+
+<p>这个文件由 depmod 命令生成。这个文件列出了每个模块还需要依赖哪些其他的模块。 modprobe利用这个文件来自动解决添加和删除模块时候的依赖关系。我们可以看一下bulidroot创建的根文件系统中这个命令的手册：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">BusyBox v1.36.1 (2024-11-02 20:28:53 CST) multi-call binary.</span><br><span class="line"></span><br><span class="line">Usage: modprobe [-alrqvsD] MODULE [SYMBOL=VALUE]...</span><br><span class="line"></span><br><span class="line">        -a      Load multiple MODULEs</span><br><span class="line">        -l      List (MODULE is a pattern)</span><br><span class="line">        -r      Remove MODULE (stacks) or do autoclean</span><br><span class="line">        -q      Quiet</span><br><span class="line">        -v      Verbose</span><br><span class="line">        -s      Log to syslog</span><br><span class="line">        -D      Show dependencies</span><br></pre></td></tr></table></figure>
+
+<p>modprobe 命令在加载驱动模块的时候， 会同时加载该模块依赖的其他模块。 比如 helloworld.ko 依赖 before.ko，使用 insmod 加载的时候， 就必须先加载 before.ko， 然后在加载 helloworld.ko 才可以加载成功。 但是使用 modprobe 加载的时候， 他会自动分析模块的依赖关系， 然后将所有的依赖的模块都加载到内核当中。 比较“聪明” 。</p>
+<p>同样， 在卸载驱动模块的时候， 如果模块存在依赖关系， 如果使用 insmod 命令， 需要手动卸载依赖的内核模块， 但是使用 modprobe 命令可以自动卸载驱动模块所依赖的其他模块。所以， 如果驱动模块是以“modprobe helloworld.ko”命令加载的， 卸载的时候使用“modprobe -r helloworld.ko” 命令卸载。但是使用 modprobe 卸载存在一个问题， 如果所依赖的模块被其他模块所使用， 这时候就不能使用 modprobe 卸载。 所以还是推荐使用 rmmod 命令来卸载。  </p>
+<h3 id="3-1-modprobe-l"><a href="#3-1-modprobe-l" class="headerlink" title="3.1 modprobe -l"></a><font size=3>3.1 modprobe -l</font></h3><p>这个命令可以列出内核中所有已经或者未挂载的所有模块</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">modprobe -l</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117180953845.png" alt="image-20241117180953845" />
+
+<h3 id="3-2-modprobe-r"><a href="#3-2-modprobe-r" class="headerlink" title="3.2 modprobe -r"></a><font size=3>3.2 modprobe -r</font></h3><p>前面我们知道了怎么加载驱动，怎么卸载呢？可以用这个命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">modprobe -r MODULE</span><br></pre></td></tr></table></figure>
+
+<p>移除已加载的模块，和  rmmod  功能类似。注意：模块名是不能带有后缀的，我们通过 <code>modprobe -l</code> 所看到的模块，都是带有 <code>.ko</code> 或 <code>.o</code> 后缀。前面已经说了，当要卸载的模块依赖于别的模块的时候可能就会有问题，所以卸载的时候其实不是很常用这个命令，主要还是用的rmmod。</p>
+<h3 id="3-3-modprobe-D"><a href="#3-3-modprobe-D" class="headerlink" title="3.3 modprobe -D"></a><font size=3>3.3 modprobe -D</font></h3><p>这个命令是显示依赖：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">modprobe -D MODULE</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117181338149.png" alt="image-20241117181338149" />
+
+<h2 id="4-搜索目录"><a href="#4-搜索目录" class="headerlink" title="4. 搜索目录"></a><font size=3>4. 搜索目录</font></h2><p>在Linux中，modprobe命令会在下面的路径搜索可加载的内核模块：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/lib/modules/`uname -r` #（内核模块所在的默认目录）</span><br></pre></td></tr></table></figure>
+
+<p><code>uname -r</code>为当前系统所使用的内核版本。当我们使用modprobe命令加载一个内核模块时，系统首先会在上面的路径中搜索是否存在该模块，若存在，系统会将其加载到内存中。若以上三个路径都没有找到该模块，则系统会返回“找不到该模块”的错误。</p>
+<p>我们可以通过modprobe配置文件来设置搜索路径。Linux中modprobe的配置文件为&#x2F;etc&#x2F;modprobe.conf和&#x2F;etc&#x2F;modprobe.d&#x2F;，其中&#x2F;etc&#x2F;modprobe.conf为全局配置文件，而&#x2F;etc&#x2F;modprobe.d&#x2F;为目录，其中存放的是单独的模块配置文件。</p>
+<p>在打开的modprobe.conf文件中，我们可以设定模块搜索路径，例如：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">install 模块名 路径</span><br></pre></td></tr></table></figure>
+
+<p>其实在前面打开depmod命令的时候，我们看到是可以直接在buildroot中配置目录的：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-03-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%8A%A0%E8%BD%BD/img/image-20241117182244699.png" alt="image-20241117182244699" />
+
+<p>这里我就没做具体尝试了，感觉目前好像也不是很重要，后面有需要再补充吧。</p>
+<blockquote>
+<p>参考资料</p>
+<p><a target="_blank" rel="noopener" href="https://deepinout.com/linux-kernel-api/modprobe/90_the_modprobe_search_path_explained.html">modprobe 搜索路径|极客笔记 (deepinout.com)</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/faca6d13.html">LV06-02-内核模块-03-内核模块的加载</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年11月17日 - 18:33</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/faca6d13.html" title="LV06-02-内核模块-03-内核模块的加载">https://sumumm.github.io/post/faca6d13.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/d8a5cee0.html" rel="prev" title="LV05-01-Linux系统-01-linux系统组件">
+                  <i class="fa fa-angle-left"></i> LV05-01-Linux系统-01-linux系统组件
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/9d7cd0a7.html" rel="next" title="LV06-02-内核模块-02-内核模块的编译">
+                  LV06-02-内核模块-02-内核模块的编译 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是STM32开发——通过FSMC驱动外部SRAM的一些相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV16-24-FSMC-03-读写外部SRAM实例">
+<meta property="og:url" content="https://sumumm.github.io/post/294350a1.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是STM32开发——通过FSMC驱动外部SRAM的一些相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230503175021794.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515064458738.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515065822827.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515224343420.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515123229238.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515123620919.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515124344015.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515124353791.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515215939635.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515221627922.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515222001127.png">
+<meta property="article:published_time" content="2023-06-04T14:07:30.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.013Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV16-STM32开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230503175021794.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/294350a1.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/294350a1.html","path":"post/294350a1.html","title":"LV16-24-FSMC-03-读写外部SRAM实例"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV16-24-FSMC-03-读写外部SRAM实例 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E7%A1%AC%E4%BB%B6%E8%AE%BE%E8%AE%A1"><span class="nav-text">一、硬件设计</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81STM32CubeMX%E9%85%8D%E7%BD%AE"><span class="nav-text">二、STM32CubeMX配置</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-FSMC%E9%85%8D%E7%BD%AE"><span class="nav-text">1. FSMC配置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E6%A8%A1%E5%BC%8F%E9%80%89%E6%8B%A9"><span class="nav-text">1.1 模式选择</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E5%8F%82%E6%95%B0%E9%85%8D%E7%BD%AE"><span class="nav-text">1.2 参数配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E6%97%B6%E9%97%B4%E5%8F%82%E6%95%B0%E9%85%8D%E7%BD%AE"><span class="nav-text">1.3 时间参数配置</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-1-%E8%AF%BB%E6%97%B6%E5%BA%8F"><span class="nav-text">1.3.1 读时序</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-2-%E5%86%99%E6%97%B6%E5%BA%8F"><span class="nav-text">1.3.2 写时序</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-3-%E5%8F%82%E6%95%B0%E7%9A%84%E7%A1%AE%E5%AE%9A"><span class="nav-text">1.3.3 参数的确定</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%97%B6%E9%92%9F%E9%85%8D%E7%BD%AE"><span class="nav-text">2. 时钟配置</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM"><span class="nav-text">三、读写外部SRAM</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-SRAM%E5%9F%BA%E5%9C%B0%E5%9D%80"><span class="nav-text">1. SRAM基地址</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9D%E5%A7%8B%E5%8C%96FSMC"><span class="nav-text">2. 初始化FSMC</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%8C%87%E9%92%88%E8%AF%BB%E5%86%99%E6%95%B0%E6%8D%AE"><span class="nav-text">3. 指针读写数据</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E6%8C%898%E4%BD%8D%E8%AF%BB%E5%86%99%E6%8C%87%E5%AE%9A%E5%9C%B0%E5%9D%80"><span class="nav-text">3.1 按8位读写指定地址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E6%8C%8916%E4%BD%8D%E8%AF%BB%E5%86%99%E6%8C%87%E5%AE%9A%E5%9C%B0%E5%9D%80"><span class="nav-text">3.2 按16位读写指定地址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-8%E4%BD%8D%E6%95%B0%E6%8D%AE%E6%8C%87%E9%92%88%E8%AF%BB%E5%86%99%E6%B5%8B%E8%AF%95"><span class="nav-text">3.3 8位数据指针读写测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-16%E4%BD%8D%E6%95%B0%E6%8D%AE%E6%8C%87%E9%92%88%E8%AF%BB%E5%86%99%E6%B5%8B%E8%AF%95"><span class="nav-text">3.4 16位数据指针读写测试</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%AF%BB%E5%86%99%E6%8C%87%E5%AE%9A%E5%AD%97%E8%8A%82%E6%95%B0%E6%8D%AE"><span class="nav-text">4. 读写指定字节数据</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%90%91SRAM%E5%86%99%E5%85%A5n%E4%B8%AA%E5%AD%97%E8%8A%82%E6%95%B0%E6%8D%AE"><span class="nav-text">4.1 向SRAM写入n个字节数据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E4%BB%8ESRAM%E8%AF%BB%E5%8F%96n%E4%B8%AA%E5%AD%97%E8%8A%82%E6%95%B0%E6%8D%AE"><span class="nav-text">4.2 从SRAM读取n个字节数据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E8%AF%BB%E5%86%99n%E4%B8%AA%E5%AD%97%E8%8A%82%E6%95%B0%E6%8D%AE%E6%B5%8B%E8%AF%95"><span class="nav-text">4.3 读写n个字节数据测试</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-MDK%E9%A2%84%E5%AD%98%E6%95%B0%E6%8D%AE%EF%BC%9F"><span class="nav-text">5. MDK预存数据？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E9%A2%84%E5%AD%98%E6%95%B0%E6%8D%AE%E8%AF%AD%E6%B3%95"><span class="nav-text">5.1 预存数据语法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E9%A2%84%E5%AD%98%E6%95%B0%E6%8D%AE%E6%B5%8B%E8%AF%95%E5%87%BD%E6%95%B0"><span class="nav-text">5.2 预存数据测试函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-%E6%B5%8B%E8%AF%95%E6%95%88%E6%9E%9C"><span class="nav-text">5.3 测试效果</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-Makefile%E5%B7%A5%E7%A8%8B%EF%BC%9F"><span class="nav-text">6. Makefile工程？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-%E9%A2%84%E5%AD%98%E6%95%B0%E6%8D%AE%E6%B5%8B%E8%AF%95"><span class="nav-text">6.1 预存数据测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-%E6%B5%8B%E8%AF%95%E6%95%88%E6%9E%9C"><span class="nav-text">6.2 测试效果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3-%E4%BF%AE%E6%94%B9%E9%93%BE%E6%8E%A5%E6%96%87%E4%BB%B6"><span class="nav-text">6.3 修改链接文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-4-%E6%B5%8B%E8%AF%95%E6%95%B0%E7%BB%84%E5%AE%9A%E4%B9%89"><span class="nav-text">6.4 测试数组定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-5-%E6%B5%8B%E8%AF%95%E6%95%88%E6%9E%9C"><span class="nav-text">6.5 测试效果</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/294350a1.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV16-24-FSMC-03-读写外部SRAM实例 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV16-24-FSMC-03-读写外部SRAM实例
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-06-04 22:07:30" itemprop="dateCreated datePublished" datetime="2023-06-04T22:07:30+08:00">2023-06-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV16-STM32开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>7.3k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>27 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是STM32开发——通过FSMC驱动外部SRAM的一些相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <ul><li>通用</li></ul><table><tr><td align="center">分类  </td><td align="center">网址</td><td align="center">说明</td></tr><tr><td align="center" rowspan="4">官方网站</td><td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td><td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td></tr><tr>                                            <td align="left"><a href="https://www.st.com/content/st_com/zh.html" target="_blank">https://www.st.com/content/st_com/zh.html</a></td><td align="left">ST官方网站，在这里我们可以找到STM32的相关文档</td></tr><tr>                                            <td align="left"><a href="https://www.stmcu.com.cn/" target="_blank">https://www.stmcu.com.cn/</a></td><td align="left">意法半导体ST中文官方网站，在这里我们可以找到STM32的相关中文参考文档</td></tr><tr>                                            <td align="left"><a href="http://elm-chan.org/fsw/ff/00index_e.html" target="_blank">http://elm-chan.org/fsw/ff/00index_e.html</a></td><td align="left">FatFs文件系统官网</td></tr><tr><td align="center" rowspan="3">教程书籍</td><td align="left"><a href="STM32开发相关资料/01ARM参考资料/ARM Cortex-M3权威指南(中文).pdf" target="_blank">《ARM Cortex-M3权威指南》</a></td><td alirn="left" rowspan="3">ARM公司专家Joseph Yiu（姚文祥）的力作，中文翻译是NXP的宋岩</td></tr><tr>                                            <td align="left"><a href="STM32开发相关资料/01ARM参考资料/ARM Cortex-M0权威指南(中文).pdf" target="_blank">《ARM Cortex-M0权威指南》</a></td></tr><tr>                                            <td align="left"><a href="" target="_blank">《ARM Cortex-M3与Cortex-M4权威指南》</a></td></tr><tr><td align="center" rowspan="4">开发论坛</td><td align="left"><a href="http://47.111.11.73/forum.php" target="_blank">http://47.111.11.73/forum.php</a></td><td align="left">开源电子网，正点原子的资料下载及问题讨论论坛</td></tr><tr>                                            <td align="left"><a href="https://www.firebbs.cn/forum.php" target="_blank">https://www.firebbs.cn/forum.php</a></td><td align="left">国内Kinetis开发板-野火/秉火（刘火良）主持的论坛，现也做STM32和i.MX RT</td></tr><tr>                                            <td align="left"><a href="https://www.amobbs.com/index.php" target="_blank">https://www.amobbs.com/index.php</a></td><td align="left">阿莫（莫进明）主持的论坛，号称国内最早最火的电子论坛，以交流Atmel AVR系列单片机起家，现已拓展到嵌入式全平台，其STM32系列帖子有70W+。</td></tr><tr>                                            <td align="left"><a href="http://download.100ask.net/index.html" target="_blank">http://download.100ask.net/index.html</a></td><td align="left">韦东山嵌入式资料中心，有些STM32和linux的相关资料也可以来这里找。</td></tr><tr><td align="center" rowspan="3">博客参考</td><td align="left"><a href="http://www.openedv.com/" target="_blank">http://www.openedv.com/</a></td><td align="left">开源网-原子哥个人博客</td></tr><tr>                                            <td align="left"><a href="http://blog.chinaaet.com/jihceng0622" target="_blank">http://blog.chinaaet.com/jihceng0622</a></td><td align="left">博主是原Freescale现NXP的现场应用工程师</td></tr><tr>                                            <td align="left"><a href="https://community.arm.com/arm-community-blogs/b/architectures-and-processors-blog/posts/cortex-m-resources" target="_blank">cortex-m-resources</a></td><td align="left">这其实并不算是一个博客，这是ARM公司专家Joseph Yiu收集整理的所有对开发者有用的官方Cortex-M资料链接（也包含极少数外部资源链接）</td></tr></table><ul><li>STM32</li></ul><table>    <tr><td align="center" rowspan="2">STM32</td><td align="left"><a href="https://doc.embedfire.com/mcu/stm32/f103/hal_general/zh/latest/index.html" target="_blank">STM32 HAL库开发实战指南——基于F103系列开发板</a></td><td align="left">野火STM32开发教程在线文档</td></tr><tr>                                            <td align="left"><a href="https://doc.embedfire.com/mcu/stm32/f103badao/std/zh/latest/index.html" target="_blank">STM32库开发实战指南——基于野火霸道开发板</a></td><td align="left">野火STM32开发教程在线文档</td></tr></table><ul><li>SD卡</li></ul><table>    <tr><td align="left"><a href="https://www.sdcard.org/" target="_blank">SD Association</a></td><td align="left">提供了SD存储卡和SDIO卡系统规范</td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr><td align="left"><a href="https://www.st.com/resource/en/datasheet/stm32f103ze.pdf" target="_blank">STM32F103xx英文数据手册</a></td><td align="left">STM32F103xC/D/E系列的英文数据手册</td></tr>    <tr><td align="left"><a href="https://www.stmcu.com.cn/Designresource/detail/localization_document%20/709978" target="_blank">STM32F103xx中文数据手册</a></td><td align="left">STM32F103xC/D/E系列的中文数据手册</td></tr>    <tr><td align="left"><a href="https://www.st.com/resource/en/reference_manual/rm0008-stm32f101xx-stm32f102xx-stm32f103xx-stm32f105xx-and-stm32f107xx-advanced-armbased-32bit-mcus-stmicroelectronics.pdf" target="_blank">STM32F10xxx英文参考手册（RM0008）</a></td><td align="left">STM32F10xxx系列的英文参考手册</td></tr>    <tr><td align="left"><a href="https://www.stmcu.com.cn/Designresource/detail/localization_document%20/710001" target="_blank">STM32F10xxx中文参考手册（RM0008）</a></td><td align="left">STM32F10xxx系列的中文参考手册</td></tr>    <tr><td align="left"><a href="https://developer.arm.com/documentation/100165/0201/?lang=en" target="_blank">Arm Cortex-M3 处理器技术参考手册-英文版</a></td><td align="left">Cortex-M3技术参考手册-英文版</td></tr>    <tr><td align="left"><a href="https://www.st.com/resource/en/programming_manual/pm0056-stm32f10xxx20xxx21xxxl1xxxx-cortexm3-programming-manual-stmicroelectronics.pdf" target="_blank">STM32F10xxx Cortex-M3编程手册-英文版(PM0056)</a></td><td align="left">STM32F10xxx/20xxx/21xxx/L1xxxx系列Cortex-M3编程手册-英文版</td></tr>    <tr><td align="left"><a href="https://www.sdcard.org/downloads/pls/" target="_blank">SD卡相关资料——最新版本</a></td><td align="left">有关SD卡的一些资料可以从这里下载</td></tr>    <tr><td align="left"><a href="https://www.sdcard.org/downloads/pls/archives/" target="_blank">SD卡相关资料——历史版本</a></td><td align="left">有关SD卡的一些历史版本资料可以从这里下载，比如后边看的SD卡2.0协议</td></tr>    <tr><td align="left"><a href="./" target="_blank">SD 2.0 协议标准完整版</a></td><td align="left">这是一篇关于SD卡2.0协议的中文文档，还是比较有参考价值的，可以一看</td></tr></table>
+              </div>
+            </details>
+
+<h2 id="一、硬件设计"><a href="#一、硬件设计" class="headerlink" title="一、硬件设计"></a><font size=3>一、硬件设计</font></h2><p>我使用的是正点原子战舰V3的板子，硬件连接如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230503175021794.png" alt="image-20230503175021794" style="zoom:50%;" />
+
+<h1 id="二、STM32CubeMX配置"><a href="#二、STM32CubeMX配置" class="headerlink" title="二、STM32CubeMX配置"></a><font size=3>二、STM32CubeMX配置</font></h1><p>这里只关心FSMC的配置，其他的可以看前边的笔记。</p>
+<h2 id="1-FSMC配置"><a href="#1-FSMC配置" class="headerlink" title="1. FSMC配置"></a><font size=3>1. FSMC配置</font></h2><h3 id="1-1-模式选择"><a href="#1-1-模式选择" class="headerlink" title="1.1 模式选择"></a><font size=3>1.1 模式选择</font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515064458738.png" alt="image-20230515064458738" style="zoom:50%;" />
+
+<p>①、选择FSMC外设；</p>
+<p>②、Bank1的四个区域，刚开始没看懂，后来发现就是这里有4个可选的，每一个应该是对应Bank1的一个区域，每个区域可以选择自己的NE引脚，但是这四个是不能选择相同的NE线，这应该就是为了让我们方便配置多个设备。所以对于上边的SRAM接线，我们只要选择了NE3线，在Mode选项卡中使用NOR Flash&#x2F;PSRAM&#x2F;SRAM&#x2F;ROM&#x2F;LCD x这四个中哪一个都没有问题，主要是NE线要选对。</p>
+<blockquote>
+<p>FSMC_NE 是用于控制存储器芯片的片选控制信号线，STM32 具有 FSMC_NE1&#x2F;2&#x2F;3&#x2F;4 号引脚，不同的引脚对应 STM32 内部不同的地址区域。例如，当 STM32 访问 0x68000000-0x6BFFFFFF 地址空间时，FSMC_NE3 引脚会自动设置为低电平，由于它一般连接到外部存储器的片选引脚且低电平有效，所以外部存储器的片选被使能，而访问 0x60000000-0x63FFFFFF 地址时，FSMC_NE1 会输出低电平。当使用不同的 FSMC_NE 引脚连接外部存储器时，STM32 访问外部存储的地址不一样，从而达到控制多个外部存储器芯片的目的。</p>
+</blockquote>
+<p>③、这里应该就是Bank2区域，我们没有用到；</p>
+<p>④、这里应该是Bank3区域，我们也没有用到；</p>
+<p>⑤、这里是Bank4区域，我们没有用到。</p>
+<p>上边的Bank1我们选择使用 NOR Flash&#x2F;PSRAM&#x2F;SRAM&#x2F;ROM&#x2F;LCD 1，并使用NE3线来驱动我们的SRAM，这样使用的就是Bank1的第3区域了。</p>
+<h3 id="1-2-参数配置"><a href="#1-2-参数配置" class="headerlink" title="1.2 参数配置"></a><font size=3>1.2 参数配置</font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515065822827.png" alt="image-20230515065822827" style="zoom:50%;" />
+
+<p>①、片选位，我们选择NE3，这是硬件电路决定的；</p>
+<p>②、内存类型，这里我们使用的SRAM，就选择SRAM就可以啦；</p>
+<p>③、地址位数，我们的SRAM有A[18:0]共19根线，虽说18根就能寻完1M空间，但是硬件电路接了，我们这里就配置成19位，也更符合逻辑，我试过配置成18也是没问题的。</p>
+<p>④、数据位数，可选8位或者16位，我们使用的SRAM有I&#x2F;O[15:0]共16位，所以这里选择16位即可。</p>
+<p>⑤、是否使能同步模式，我们使用异步模式来驱动FSMC，这里禁止掉。</p>
+<p>⑥、字节位使能，在网上查了一下，是什么高八位允许，我们上边选的16位数据的话，这里就需要勾选上。</p>
+<p>⑦、Bank，这里不需要选，这是上面我们配置后显示的，可以看一下我们使用的区域是否正确。</p>
+<p>⑧、写保护，我们要写数据到SRAM的话，这里需要设置为Enable。</p>
+<p>⑨、扩展模式，我们驱动的SRAM可以使用FSMC读写相同的时序，这里我们不需要扩展模式，默认关闭即可。注意这里我们要是使能了扩展模式，就可以单独去配置读写时序参数，在配置界面也会多出一些参数配置选项，如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515224343420.png" alt="image-20230515224343420" style="zoom:33%;" />
+
+<p>⑩、地址建立时间，看1.3时间参数配置一小节。 </p>
+<p>⑪、数据建立时间，看1.3时间参数配置一小节。 </p>
+<p>⑫、总线转化时间，这个其实我们并不需要太怎么关注，我看网上的例程大多数都直接设置为0就可以了。</p>
+<h3 id="1-3-时间参数配置"><a href="#1-3-时间参数配置" class="headerlink" title="1.3 时间参数配置"></a><font size=3>1.3 时间参数配置</font></h3><p>上边我们需要配置地址建立时间，数据建立时间和总线转化时间，总线转化时间不用管，主要是地址建立时间和数据建立时间，我们下边来看一下这两个参数如何确定。我们配置时间参数的时候，<strong>要满足条件的情况下尽可能短</strong>。我们先计算一下HCLK是多长时间：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">HCLK = <span class="number">1</span>/<span class="number">72</span>M (s) = <span class="number">1</span>/(<span class="number">72</span>*<span class="number">1000</span>*<span class="number">1000</span>) S</span><br><span class="line">                 = <span class="number">1</span>/(<span class="number">72</span>*<span class="number">1000</span>*<span class="number">1000</span>) * <span class="number">1000</span> ms</span><br><span class="line">                 = <span class="number">1</span>/(<span class="number">72</span>*<span class="number">1000</span>*<span class="number">1000</span>) * <span class="number">1000</span> * <span class="number">1000</span> us</span><br><span class="line">                 = <span class="number">1</span>/(<span class="number">72</span>*<span class="number">1000</span>*<span class="number">1000</span>) * <span class="number">1000</span> * <span class="number">1000</span> * <span class="number">1000</span> ns</span><br><span class="line">                 = <span class="number">1000</span>/<span class="number">72</span> ns</span><br><span class="line">                 = <span class="number">13.89</span> ns</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-3-1-读时序"><a href="#1-3-1-读时序" class="headerlink" title="1.3.1 读时序"></a><font size=3>1.3.1 读时序</font></h4><p>FSMC模式A和SRAM时序图对应如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515123229238.png" alt="image-20230515123229238" style="zoom:50%;" />
+
+<p>SRAM读时序各部分时间要求如下图（我们使用的是55ns的）：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515123620919.png" alt="image-20230515123620919" style="zoom:50%;" />
+
+<p>①处表示整个读的过程：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(ADDSET+<span class="number">1</span>)*HCLK + (DATAST+<span class="number">1</span>)*HCLK + <span class="number">2</span>*HCLK ≥ tRC(<span class="number">55</span>ns)</span><br></pre></td></tr></table></figure>
+
+<p>②处表示OE#使能信号拉低多久后DOUT上出现有效数据：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(DATAST+<span class="number">1</span>)*HCLK ≥ tDOE(<span class="number">25</span>ns，最长在<span class="number">25</span>ns后会给一个有效数据)</span><br></pre></td></tr></table></figure>
+
+<p>③处表示地址建立时间，就是地址建立之后多久使能信号OE#被拉低：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(ADDSET+<span class="number">1</span>)*HCLK  ≥ <span class="number">0</span>ns</span><br></pre></td></tr></table></figure>
+
+<p> 这个对应的是SRAM的从地址给出之后到OE#拉低的时间，SRAM中没有给出具体时间，我们可以看一个比它长的时间，比如tAA，手册上写tAA控制在55ns以内即可，没看到它有最小值，所以这里我们可以配置为0ns</p>
+<p>所以对于读时序，我们可以确定如下参数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">DATAST=<span class="number">1</span> ===&gt; (DATAST+<span class="number">1</span>)*HCLK=<span class="number">27.6</span>ns ≥ <span class="number">25</span>ns(测试过这样配置成<span class="number">1</span>的话，是无法正常读的)</span><br><span class="line">ADDSET=<span class="number">0</span> ===&gt; (ADDSET+<span class="number">1</span>)*HCLK=<span class="number">13.8</span>ns ≥ <span class="number">0</span>ns</span><br><span class="line">(ADDSET+<span class="number">1</span>)*HCLK + (DATAST+<span class="number">1</span>)*HCLK + <span class="number">2</span>*HCLK = <span class="number">69</span>ns ≥ <span class="number">55</span>ns</span><br><span class="line">    </span><br><span class="line">DATAST=<span class="number">2</span> ===&gt; (DATAST+<span class="number">1</span>)*HCLK=<span class="number">41.4</span>ns ≥ <span class="number">25</span>ns</span><br><span class="line">ADDSET=<span class="number">0</span> ===&gt; (ADDSET+<span class="number">1</span>)*HCLK=<span class="number">13.8</span>ns ≥ <span class="number">0</span>ns</span><br><span class="line">(ADDSET+<span class="number">1</span>)*HCLK + (DATAST+<span class="number">1</span>)*HCLK + <span class="number">2</span>*HCLK = <span class="number">82.8</span>ns ≥ <span class="number">55</span>ns</span><br><span class="line">    </span><br><span class="line">DATAST=<span class="number">3</span> ===&gt; (DATAST+<span class="number">1</span>)*HCLK=<span class="number">55.2</span>ns ≥ <span class="number">25</span>ns</span><br><span class="line">ADDSET=<span class="number">0</span> ===&gt; (ADDSET+<span class="number">1</span>)*HCLK=<span class="number">13.8</span>ns ≥ <span class="number">0</span>ns</span><br><span class="line">(ADDSET+<span class="number">1</span>)*HCLK + (DATAST+<span class="number">1</span>)*HCLK + <span class="number">2</span>*HCLK = <span class="number">96.6</span>ns ≥ <span class="number">55</span>ns</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-3-2-写时序"><a href="#1-3-2-写时序" class="headerlink" title="1.3.2 写时序"></a><font size=3>1.3.2 写时序</font></h4><p>FSMC模式A和SRAM时序图对应如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515124344015.png" alt="image-20230515124344015" style="zoom:80%;" />
+
+<p>SRAM写时序各部分时间要求如下图（我们使用的是55ns的）：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515124353791.png" alt="image-20230515124353791" style="zoom:50%;" />
+
+<p>①处表示整个写入的过程：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(ADDSET+<span class="number">1</span>)*HCLK + (DATAST+<span class="number">1</span>)*HCLK ≥ tWC(<span class="number">55</span>ns)</span><br></pre></td></tr></table></figure>
+
+<p>②处表示WE#使能信号拉低持续的时间，在这个时间内SRAM才会将数据写到存储矩阵中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(DATAST+<span class="number">1</span>)*HCLK ≥ tPWE(<span class="number">40</span>ns) </span><br></pre></td></tr></table></figure>
+
+<p>这样才能保证SRAM写入的时候DIN上的数据依然是有效的。</p>
+<p>③处表示地址建立时间，就是地址建立之后多久使能信号WE#被拉低：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(ADDSET+<span class="number">1</span>)*HCLK ≥ tSA(<span class="number">0</span>ns)</span><br></pre></td></tr></table></figure>
+
+<p> 这个对应的是SRAM的从地址给出之后到WE#拉低的时间，但是SRAM的时序图中那一小块没看明白，不过问题不大。</p>
+<p>所以对于写时序，我们可以确定如下参数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">DATAST=<span class="number">1</span> ===&gt; (DATAST+<span class="number">1</span>)*HCLK=<span class="number">27.6</span>ns 无法满足≥<span class="number">40</span>ns的条件</span><br><span class="line">    </span><br><span class="line">DATAST=<span class="number">2</span> ===&gt; (DATAST+<span class="number">1</span>)*HCLK=<span class="number">41.4</span>ns ≥<span class="number">40</span>ns</span><br><span class="line">ADDSET=<span class="number">0</span> ===&gt; (ADDSET+<span class="number">1</span>)*HCLK=<span class="number">13.8</span>ns ≥ <span class="number">0</span>ns</span><br><span class="line">(ADDSET+<span class="number">1</span>)*HCLK + (DATAST+<span class="number">1</span>)*HCLK= <span class="number">69</span>ns</span><br><span class="line">    </span><br><span class="line">DATAST=<span class="number">3</span> ===&gt; (DATAST+<span class="number">1</span>)*HCLK=<span class="number">55.2</span>ns ≥<span class="number">40</span>ns</span><br><span class="line">ADDSET=<span class="number">0</span> ===&gt; (ADDSET+<span class="number">1</span>)*HCLK=<span class="number">13.8</span>ns ≥ <span class="number">0</span>ns</span><br><span class="line">(ADDSET+<span class="number">1</span>)*HCLK + (DATAST+<span class="number">1</span>)*HCLK= <span class="number">69</span>ns</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-3-3-参数的确定"><a href="#1-3-3-参数的确定" class="headerlink" title="1.3.3 参数的确定"></a><font size=3>1.3.3 参数的确定</font></h4><p>我们经过上边的分析，得到如下参数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">读时序：</span><br><span class="line">DATAST=<span class="number">2</span> ===&gt; (DATAST+<span class="number">1</span>)*HCLK=<span class="number">41.4</span>ns ≥ <span class="number">25</span>ns</span><br><span class="line">ADDSET=<span class="number">0</span> ===&gt; (ADDSET+<span class="number">1</span>)*HCLK=<span class="number">13.8</span>ns ≥ <span class="number">0</span>ns</span><br><span class="line">(ADDSET+<span class="number">1</span>)*HCLK + (DATAST+<span class="number">1</span>)*HCLK + <span class="number">2</span>*HCLK = <span class="number">82.8</span>ns ≥ <span class="number">55</span>ns</span><br><span class="line">    </span><br><span class="line">写时序：</span><br><span class="line">DATAST=<span class="number">2</span> ===&gt; (DATAST+<span class="number">1</span>)*HCLK=<span class="number">41.4</span>ns ≥<span class="number">40</span>ns</span><br><span class="line">ADDSET=<span class="number">0</span> ===&gt; (ADDSET+<span class="number">1</span>)*HCLK=<span class="number">13.8</span>ns ≥ <span class="number">0</span>ns</span><br><span class="line">(ADDSET+<span class="number">1</span>)*HCLK + (DATAST+<span class="number">1</span>)*HCLK + <span class="number">2</span>*HCLK = <span class="number">69</span>ns   </span><br></pre></td></tr></table></figure>
+
+<p>我们发现，读写时序的参数是一样的，这样我们就可以不使用扩展模式，读写时序共用一套寄存器即可。</p>
+<h2 id="2-时钟配置"><a href="#2-时钟配置" class="headerlink" title="2. 时钟配置"></a><font size=3>2. 时钟配置</font></h2><p>我们来看一下时钟的配置情况：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515215939635.png" alt="image-20230515215939635" style="zoom: 50%;" />
+
+<p>可以看到我们的时钟里边HCLK为72MHz，这样一个时钟周期就是13.8ns。</p>
+<h1 id="三、读写外部SRAM"><a href="#三、读写外部SRAM" class="headerlink" title="三、读写外部SRAM"></a><font size=3>三、读写外部SRAM</font></h1><h2 id="1-SRAM基地址"><a href="#1-SRAM基地址" class="headerlink" title="1. SRAM基地址"></a><font size=3>1. SRAM基地址</font></h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 使用NOR/SRAM的 Bank1.sector3,地址位HADDR[27,26]=10 </span></span><br><span class="line"><span class="comment">/  对IS61LV25616/IS62WV25616,地址线范围为A0~A17 </span></span><br><span class="line"><span class="comment">/  对IS61LV51216/IS62WV51216,地址线范围为A0~A18 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> Bank1_SRAM3_ADDR    ((uint32_t)(0x68000000))			</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> IS62WV51216_SIZE     0x100000   <span class="comment">// 512*16/2bits = 0x100000, 1M字节</span></span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="2-初始化FSMC"><a href="#2-初始化FSMC" class="headerlink" title="2. 初始化FSMC"></a><font size=3>2. 初始化FSMC</font></h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">SRAM_HandleTypeDef hsram1;</span><br><span class="line"><span class="comment">/* FSMC initialization function */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">MX_FSMC_Init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">  FSMC_NORSRAM_TimingTypeDef Timing = &#123;<span class="number">0</span>&#125;;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Perform the SRAM1 memory initialization sequence */</span></span><br><span class="line">  hsram1.Instance = FSMC_NORSRAM_DEVICE;           <span class="comment">// 实例类型:NOR/SRAM 设备</span></span><br><span class="line">  hsram1.Extended = FSMC_NORSRAM_EXTENDED_DEVICE;</span><br><span class="line">  <span class="comment">/* hsram1.Init */</span></span><br><span class="line">  hsram1.Init.NSBank = FSMC_NORSRAM_BANK3;         <span class="comment">// 使用 NE3,对应 BANK1(NORSRAM)的区域 3</span></span><br><span class="line">  hsram1.Init.DataAddressMux = FSMC_DATA_ADDRESS_MUX_DISABLE;  <span class="comment">// 设置地址总线与数据总线是否复用，仅用于 NOR</span></span><br><span class="line">  hsram1.Init.MemoryType = FSMC_MEMORY_TYPE_SRAM;              <span class="comment">// 存储器类型:SRAM</span></span><br><span class="line">  hsram1.Init.MemoryDataWidth = FSMC_NORSRAM_MEM_BUS_WIDTH_16; <span class="comment">// 选择 16 位数据宽度(所接 SRAM 为 16 位数据宽度)</span></span><br><span class="line">  hsram1.Init.BurstAccessMode = FSMC_BURST_ACCESS_MODE_DISABLE;<span class="comment">// 是否使能突发访问,仅用于同步类型的存储器,此处未用到</span></span><br><span class="line">  hsram1.Init.WaitSignalPolarity = FSMC_WAIT_SIGNAL_POLARITY_LOW;<span class="comment">// 等待信号的有效极性,仅用于同步类型的存储器,此处未用到</span></span><br><span class="line">  hsram1.Init.WrapMode = FSMC_WRAP_MODE_DISABLE;             <span class="comment">// 设置是否支持把非对齐的突发操作，仅用于同步类型的存储器</span></span><br><span class="line">  hsram1.Init.WaitSignalActive = FSMC_WAIT_TIMING_BEFORE_WS; <span class="comment">// 存储器是在等待周期之前的一个时钟周期还是等待周期期间使能 NWAIT,仅用于同步类型的存储器,此处未用到</span></span><br><span class="line">  hsram1.Init.WriteOperation = FSMC_WRITE_OPERATION_ENABLE;  <span class="comment">// 存储器写使能</span></span><br><span class="line">  hsram1.Init.WaitSignal = FSMC_WAIT_SIGNAL_DISABLE;         <span class="comment">// 等待使能位,适用于突发模式访问,此处未用到</span></span><br><span class="line">  hsram1.Init.ExtendedMode = FSMC_EXTENDED_MODE_DISABLE;     <span class="comment">// 不使用扩展模式，读写使用相同的时序</span></span><br><span class="line">  hsram1.Init.AsynchronousWait = FSMC_ASYNCHRONOUS_WAIT_DISABLE; <span class="comment">// 是否使能异步传输模式下的等待信号,此处未用到</span></span><br><span class="line">  hsram1.Init.WriteBurst = FSMC_WRITE_BURST_DISABLE;         <span class="comment">// 禁止突发写,适用于突发模式访问,此处未用到</span></span><br><span class="line">  <span class="comment">/* Timing */</span></span><br><span class="line">  Timing.AddressSetupTime = <span class="number">0</span>;         <span class="comment">// 地址建立时间 ADDSET 范围:0~15 (模式 A 需要设置)</span></span><br><span class="line">  Timing.AddressHoldTime = <span class="number">15</span>;         <span class="comment">// 地址保持时间 ADDHLD 范围:1~15，这里其实没有用到，这是默认值</span></span><br><span class="line">  Timing.DataSetupTime = <span class="number">2</span>;            <span class="comment">// 数据建立时间 DATAST 范围:1~255 (模式 A 需要设置)</span></span><br><span class="line">  Timing.BusTurnAroundDuration = <span class="number">0</span>;    <span class="comment">// 总线恢复时间 BUSTURN 范围:0~15，这里其实没有用到</span></span><br><span class="line">  Timing.CLKDivision = <span class="number">16</span>;             <span class="comment">// 时钟分频因子 CLKDIV 范围:2~16，仅用于同步类型的存储器，这里其实没有用到</span></span><br><span class="line">  Timing.DataLatency = <span class="number">17</span>;             <span class="comment">// 数据产生时间 ACCMOD 范围:2~17，仅用于 NOR，这里其实没有用到</span></span><br><span class="line">  Timing.AccessMode = FSMC_ACCESS_MODE_A; <span class="comment">// 模式 A</span></span><br><span class="line">  <span class="comment">/* ExtTiming */</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (HAL_SRAM_Init(&amp;hsram1, &amp;Timing, <span class="literal">NULL</span>) != HAL_OK)</span><br><span class="line">  &#123;</span><br><span class="line">    Error_Handler( );</span><br><span class="line">  &#125;</span><br><span class="line">  __HAL_AFIO_FSMCNADV_DISCONNECTED();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里需要注意的是当我们启用扩展模式的时候，这样才能使用前面设置的模式A，否则其实我们使用的是模式1。</p>
+<p>（1）NSBank ：设置存储区域 FSMC_Bank，FSMC_Bank 成 员 设 置 FSMC 的 SRAM存储区域映射选择为FSMC_Bank1_NORSRAM3，这是由于我们的 SRAM 硬件连接到 FSMC_NE3 和NOR&#x2F;PSRAM 相关引脚，所以对应到存储区域 Bank1 SRAM3，对应的基地址为0x68000000；</p>
+<p>（2）MemoryType ：由于我们控制的是 SRAM 类型存储器，所以 FSMC_MemoryType 成员要选择相应的FSMC_MEMORY_TYPE_SRAM；  </p>
+<p>（3）MemoryDataWidth ：根据硬件的数据线连接，数据线宽度被配置为 16 位宽 FSMC_NORSRAM_MEM_BUS_WIDTH_16；  </p>
+<p>（4）WriteOperation ：WriteOperation 用于设置写使能，只有使能了才能正常使用 FSMC 向外部存储器写入数据；  </p>
+<p>（5）ExtendedMode ：在 FSMC_ExtendedMode 成员中可以配置是否使用扩展模式，当设置扩展模式时，我们可以使用FSMC_NORSRAM_TimingTypeDef定义两个结构体变量，分别配置读写时序，两种配置互相独立，可以赋值为不同的读写时序结构体。在本实例中不使用扩展模式，所以就只定义了一个时序结构体变量；  </p>
+<h2 id="3-指针读写数据"><a href="#3-指针读写数据" class="headerlink" title="3. 指针读写数据"></a><font size=3>3. 指针读写数据</font></h2><p>完成初始化 SRAM 后，我们就可以利用它存储数据了，由于 SRAM 的存储空间是被映射到内核的寻址区域的，我们可以通过映射的地址直接访问 SRAM，访问这些地址时， FSMC 外设自动读写 SRAM，程序上无需额外操作。  </p>
+<h3 id="3-1-按8位读写指定地址"><a href="#3-1-按8位读写指定地址" class="headerlink" title="3.1 按8位读写指定地址"></a><font size=3>3.1 按8位读写指定地址</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">uint8_t</span> ubWritedata_8b = <span class="number">0</span>, ubReaddata_8b = <span class="number">0</span>; </span><br><span class="line">*(<span class="keyword">volatile</span> <span class="type">uint8_t</span>*) (Bank1_SRAM3_ADDR + offset) = (<span class="type">uint8_t</span>)(ubWritedata_8b); <span class="comment">// 写入数据</span></span><br><span class="line">ubReaddata_8b = *(<span class="keyword">volatile</span> <span class="type">uint8_t</span>*)(Bank1_SRAM3_ADDR + offset);              <span class="comment">// 读取数据</span></span><br></pre></td></tr></table></figure>
+
+<p>（1）Bank1_SRAM3_ADDR ：SRAM映射到内核后的基地址。</p>
+<p>（2）offset ：相对于基地址的偏移，我们使用的是 1M字节的SRAM，所以范围为0~0x100000（1MB）。</p>
+<p>（3）ubWritedata_8b ： 要写入的8位数据。</p>
+<p>（4）ubReaddata_8b ： 读取的8位数据存放在这里。</p>
+<h3 id="3-2-按16位读写指定地址"><a href="#3-2-按16位读写指定地址" class="headerlink" title="3.2 按16位读写指定地址"></a><font size=3>3.2 按16位读写指定地址</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">uint16_t</span> uhWritedata_16b = <span class="number">0</span>, uhReaddata_16b = <span class="number">0</span>; </span><br><span class="line">*(<span class="keyword">volatile</span> <span class="type">uint16_t</span>*) (Bank1_SRAM3_ADDR + offset) = (<span class="type">uint16_t</span>)(uhWritedata_16b); <span class="comment">// 写入数据</span></span><br><span class="line">uhReaddata_16b = *(<span class="keyword">volatile</span> <span class="type">uint16_t</span>*)(Bank1_SRAM3_ADDR + offset);               <span class="comment">// 读取数据</span></span><br></pre></td></tr></table></figure>
+
+<p>（1）Bank1_SRAM3_ADDR ：SRAM映射到内核后的基地址。</p>
+<p>（2）offset ：相对于基地址的偏移，我们使用的是 1M字节的SRAM，所以范围为0~0x80000（512KB）。</p>
+<p>（3）ubWritedata_16b ： 要写入的16位数据。</p>
+<p>（4）ubReaddata_16b ： 读取的16位数据存放在这里。</p>
+<h3 id="3-3-8位数据指针读写测试"><a href="#3-3-8位数据指针读写测试" class="headerlink" title="3.3 8位数据指针读写测试"></a><font size=3>3.3 8位数据指针读写测试</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">rw_8bit_test</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">uint32_t</span> i = <span class="number">0</span>;</span><br><span class="line">    <span class="type">uint8_t</span> ubWritedata_8b = <span class="number">0</span>, ubReaddata_8b = <span class="number">0</span>;  </span><br><span class="line">    <span class="comment">/* 向整个SRAM写入数据  8位 */</span></span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; IS62WV51216_SIZE; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        *(<span class="keyword">volatile</span> <span class="type">uint8_t</span>*) (Bank1_SRAM3_ADDR + i) = (<span class="type">uint8_t</span>)(ubWritedata_8b + i);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 读取 SRAM 数据并检测*/</span></span><br><span class="line">    <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; IS62WV51216_SIZE; i++ )</span><br><span class="line">    &#123;</span><br><span class="line">        ubReaddata_8b = *(<span class="keyword">volatile</span> <span class="type">uint8_t</span>*)(Bank1_SRAM3_ADDR + i);  <span class="comment">//从该地址读出数据</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>(ubReaddata_8b != (<span class="type">uint8_t</span>)(ubWritedata_8b + i))      <span class="comment">//检测数据，若不相等，跳出函数,返回检测失败结果。</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;8位数据读写错误!!!\r\n&quot;</span>);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;8位数据读写测试成功!!!\r\n&quot;</span>);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-4-16位数据指针读写测试"><a href="#3-4-16位数据指针读写测试" class="headerlink" title="3.4 16位数据指针读写测试"></a><font size=3>3.4 16位数据指针读写测试</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">rw_16bit_test</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">uint32_t</span> i = <span class="number">0</span>;</span><br><span class="line">    <span class="type">uint16_t</span> ubWritedata_16b = <span class="number">0</span>, ubReaddata_16b = <span class="number">0</span>;  </span><br><span class="line">    <span class="comment">/* 向整个SRAM写入数据  8位 */</span></span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; IS62WV51216_SIZE/<span class="number">2</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        *(<span class="keyword">volatile</span> <span class="type">uint16_t</span>*) (Bank1_SRAM3_ADDR + i*<span class="number">2</span>) = (<span class="type">uint16_t</span>)(ubWritedata_16b + i);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 读取 SRAM 数据并检测*/</span></span><br><span class="line">    <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; IS62WV51216_SIZE/<span class="number">2</span>; i++ )</span><br><span class="line">    &#123;</span><br><span class="line">        ubReaddata_16b = *(<span class="keyword">volatile</span> <span class="type">uint16_t</span>*)(Bank1_SRAM3_ADDR + i*<span class="number">2</span>);  <span class="comment">//从该地址读出数据</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>(ubReaddata_16b != (<span class="type">uint16_t</span>)(ubWritedata_16b + i))      <span class="comment">//检测数据，若不相等，跳出函数,返回检测失败结果。</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;16位数据读写错误!!!\r\n&quot;</span>);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;16位数据读写测试成功!!!\r\n&quot;</span>);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-读写指定字节数据"><a href="#4-读写指定字节数据" class="headerlink" title="4. 读写指定字节数据"></a><font size=3>4. 读写指定字节数据</font></h2><h3 id="4-1-向SRAM写入n个字节数据"><a href="#4-1-向SRAM写入n个字节数据" class="headerlink" title="4.1 向SRAM写入n个字节数据"></a><font size=3>4.1 向SRAM写入n个字节数据</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">FSMC_SRAM_WriteBuffer</span><span class="params">(<span class="type">uint8_t</span> *pBuffer,<span class="type">uint32_t</span> WriteAddr,<span class="type">uint32_t</span> n)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">for</span>(;n!=<span class="number">0</span>;n--)</span><br><span class="line">	&#123;</span><br><span class="line">		*(<span class="keyword">volatile</span> <span class="type">uint8_t</span>*)(Bank1_SRAM3_ADDR+WriteAddr)=*pBuffer;</span><br><span class="line">		WriteAddr++;</span><br><span class="line">		pBuffer++;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>在指定地址（WriteAddr+Bank1_SRAM3_ADDR）开始，连续写入n个字节。</p>
+<p><strong>【参数说明】</strong></p>
+<ul>
+<li>pBuffer ：字节指针</li>
+<li>WriteAddr ：要写入的地址</li>
+<li>n ：要写入的字节数</li>
+</ul>
+<h3 id="4-2-从SRAM读取n个字节数据"><a href="#4-2-从SRAM读取n个字节数据" class="headerlink" title="4.2 从SRAM读取n个字节数据"></a><font size=3>4.2 从SRAM读取n个字节数据</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">FSMC_SRAM_ReadBuffer</span><span class="params">(<span class="type">uint8_t</span> *pBuffer,<span class="type">uint32_t</span> ReadAddr,<span class="type">uint32_t</span> n)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">for</span>(;n!=<span class="number">0</span>;n--)</span><br><span class="line">	&#123;</span><br><span class="line">		*pBuffer++=*(<span class="keyword">volatile</span> <span class="type">uint8_t</span>*)(Bank1_SRAM3_ADDR+ReadAddr);</span><br><span class="line">		ReadAddr++;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>在指定地址（WriteAddr+Bank1_SRAM3_ADDR）开始，连续读取n个字节。</p>
+<p><strong>【参数说明】</strong></p>
+<ul>
+<li>pBuffer ：字节指针</li>
+<li>WriteAddr ：要读的起始地址</li>
+<li>n ：要读取的字节数</li>
+</ul>
+<h3 id="4-3-读写n个字节数据测试"><a href="#4-3-读写n个字节数据测试" class="headerlink" title="4.3 读写n个字节数据测试"></a><font size=3>4.3 读写n个字节数据测试</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">rw_nByte_test</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">uint32_t</span> i = <span class="number">0</span>;</span><br><span class="line">    <span class="type">uint8_t</span> temp[<span class="number">32</span>] = <span class="string">&quot;This is my sram test!!!&quot;</span>;</span><br><span class="line">    <span class="type">uint8_t</span> read[<span class="number">32</span>] = &#123;<span class="number">0</span>&#125;;</span><br><span class="line"></span><br><span class="line">    FSMC_SRAM_WriteBuffer(temp, <span class="number">0</span>, <span class="keyword">sizeof</span>(temp));</span><br><span class="line">    <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; <span class="number">32</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span>(i % <span class="number">2</span> == <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;\r\n0x%p:&quot;</span>, (<span class="type">uint8_t</span>*)(Bank1_SRAM3_ADDR + i));</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;%c &quot;</span>, *(<span class="keyword">volatile</span> <span class="type">uint8_t</span>*)(Bank1_SRAM3_ADDR + i)); <span class="comment">//显示测试数据</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;\r\n\r\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">    FSMC_SRAM_ReadBuffer(read, <span class="number">0</span>, <span class="keyword">sizeof</span>(read));</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;read data:%s\r\n&quot;</span>, read);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="5-MDK预存数据？"><a href="#5-MDK预存数据？" class="headerlink" title="5. MDK预存数据？"></a><font size=3>5. MDK预存数据？</font></h2><p>注意这一部分的测试代码是在MDK工程中进行的。后边会说为什么一起这样区分。</p>
+<h3 id="5-1-预存数据语法"><a href="#5-1-预存数据语法" class="headerlink" title="5.1 预存数据语法"></a><font size=3>5.1 预存数据语法</font></h3><p>在C语言中，有一个 __attribute__，通过它，我们可以直接定义数据到指定的地址去：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">uint8_t</span> testRram[<span class="number">500</span>] __attribute__((at(<span class="number">0X68000000</span>)));<span class="comment">// 测试用数组</span></span><br></pre></td></tr></table></figure>
+
+<p>testsram将会被定义到0X68000000为起始地址的空间中去。要注意使用这种方法定义变量时，必须在函数外把它定义成全局变量，才可以存储到指定地址上。</p>
+<h3 id="5-2-预存数据测试函数"><a href="#5-2-预存数据测试函数" class="headerlink" title="5.2 预存数据测试函数"></a><font size=3>5.2 预存数据测试函数</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">SRAM_Test</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">uint32_t</span> i = <span class="number">0</span>;</span><br><span class="line">    <span class="type">uint8_t</span> temp[<span class="number">32</span>] = <span class="string">&quot;This is my sram!!!&quot;</span>;</span><br><span class="line">    <span class="type">uint8_t</span> read[<span class="number">32</span>] = &#123;<span class="number">0</span>&#125;;</span><br><span class="line">    <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        testsram[i] = i; <span class="comment">//预存测试数据</span></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;0x%p testsram[%d]:%d\r\n&quot;</span>, &amp;testsram[i], i, testsram[i]); <span class="comment">//显示测试数据</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;\r\n\r\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span>(i % <span class="number">2</span> == <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;\r\n0x%p:&quot;</span>, (<span class="type">uint8_t</span>*)(Bank1_SRAM3_ADDR + i));</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;%d &quot;</span>, *(<span class="keyword">volatile</span> <span class="type">uint8_t</span>*)(Bank1_SRAM3_ADDR + i)); <span class="comment">//显示测试数据</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;\r\n\r\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">    FSMC_SRAM_WriteBuffer(temp, <span class="number">0</span>, <span class="keyword">sizeof</span>(temp));</span><br><span class="line">    <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span>(i % <span class="number">2</span> == <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;\r\n0x%p:&quot;</span>, (<span class="type">uint8_t</span>*)(Bank1_SRAM3_ADDR + i));</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;%c &quot;</span>, *(<span class="keyword">volatile</span> <span class="type">uint8_t</span>*)(Bank1_SRAM3_ADDR + i)); <span class="comment">//显示测试数据</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;\r\n\r\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">    FSMC_SRAM_ReadBuffer(read, <span class="number">0</span>, <span class="keyword">sizeof</span>(read));</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;read:%s\r\n&quot;</span>, read);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-3-测试效果"><a href="#5-3-测试效果" class="headerlink" title="5.3 测试效果"></a><font size=3>5.3 测试效果</font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515221627922.png" alt="image-20230515221627922" style="zoom:50%;" />
+
+<p>有没有发现，最后读取出来的字符串数据是有问题的，按理来说应该是输出 This is my sram!!! 才对，可以最终输出数据有问题，我们会发现SRAM的每个地址的数据也和预想的不一样。此时我们就要考虑数据建立时间问题了，我们往上加1（将DATAST配置为3），然后重新编译下载，会发现数据正常了：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-24-FSMC-03-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SRAM%E5%AE%9E%E4%BE%8B/img/image-20230515222001127.png" alt="image-20230515222001127" style="zoom:50%;" />
+
+<p>由此可知，我们计算出来的时间与临界值太过于接近，可能也会有问题，有问题的时候我们可以增加一些时间，然后再测试。</p>
+<h2 id="6-Makefile工程？"><a href="#6-Makefile工程？" class="headerlink" title="6. Makefile工程？"></a><font size=3>6. Makefile工程？</font></h2><p>我后来使用VScode+STM32CubeMX生成的Makefile文件来开发，所以这里遇到了一个坑。</p>
+<h3 id="6-1-预存数据测试"><a href="#6-1-预存数据测试" class="headerlink" title="6.1 预存数据测试"></a><font size=3>6.1 预存数据测试</font></h3><p>我们先按上边的方式预存数据到0X68000000地址，测一下效果，我们对测试函数进行一下精简：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">uint8_t</span> testSram[<span class="number">500</span>] __attribute__((at(<span class="number">0X68000000</span>)));<span class="comment">// 测试用数组</span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">SRAM_Test</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">uint32_t</span> i = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        testSram[i] = i; <span class="comment">//预存测试数据</span></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;%p testSram[%ld]:%d\r\n&quot;</span>, &amp;testSram[i], i, testSram[i]); <span class="comment">// 显示测试数据</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;\r\n\r\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span>(i % <span class="number">2</span> == <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;\r\n%p:&quot;</span>, (<span class="type">uint8_t</span>*)(Bank1_SRAM3_ADDR + i));</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;%d &quot;</span>, *(<span class="keyword">volatile</span> <span class="type">uint8_t</span>*)(Bank1_SRAM3_ADDR + i)); <span class="comment">//显示测试数据</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;\r\n\r\n&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后我们进行编译，这个时候我们发现，报警告啦：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">warning: &#x27;at&#x27; attribute directive ignored [-Wattributes]</span><br><span class="line">  137 | uint8_t testSram[500] __attribute__((at(0X68000000)));</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-2-测试效果"><a href="#6-2-测试效果" class="headerlink" title="6.2 测试效果"></a><font size=3>6.2 测试效果</font></h3><p>我们会看到有如下打印：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">This is my stm32f103zet6 test!</span><br><span class="line">0x20000084 testSram[0]:0</span><br><span class="line">0x20000085 testSram[1]:1</span><br><span class="line">0x20000086 testSram[2]:2</span><br><span class="line">0x20000087 testSram[3]:3</span><br><span class="line">0x20000088 testSram[4]:4</span><br><span class="line">0x20000089 testSram[5]:5</span><br><span class="line">0x2000008a testSram[6]:6</span><br><span class="line">0x2000008b testSram[7]:7</span><br><span class="line">0x2000008c testSram[8]:8</span><br><span class="line">0x2000008d testSram[9]:9</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">0x68000000:84 104 </span><br><span class="line">0x68000002:105 115 </span><br><span class="line">0x68000004:32 105 </span><br><span class="line">0x68000006:115 32 </span><br><span class="line">0x68000008:109 121 </span><br></pre></td></tr></table></figure>
+
+<p>咦？我们不是定义到0x68000000去了吗？为什么跑到0x20000084去了？这就是为什么上边要区分MDK工程和Makefile工程的原因啦。问题就出在上边的警告，arm-gcc中不支持at直接指定变量位置的写法，所以会警告，但是具体MDK为什么支持，倒是不是很清楚，可能是它会自动去修改链接脚本文件吧，我们这里看一下要是使用Makefile的话，如何定义变量到外部SRAM中去。</p>
+<h3 id="6-3-修改链接文件"><a href="#6-3-修改链接文件" class="headerlink" title="6.3 修改链接文件"></a><font size=3>6.3 修改链接文件</font></h3><p>arm-gcc同样支持指定变量地址，只不过语法是下面这样的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">__attribute__ ((section (&quot;SECTIONNAME&quot;)))</span><br></pre></td></tr></table></figure>
+
+<p>换句话说，在链接文件中划分一个新的段，将这个变量放到这个段内就可以解决了。与scatter文件（MDK使用的链接文件格式）不同，由cubemx生成的Makefile工程使用的是ld文件，我们修改如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">/* Specify the memory areas */</span><br><span class="line">MEMORY</span><br><span class="line">&#123;</span><br><span class="line">RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 64K</span><br><span class="line">FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 512K</span><br><span class="line">SRAM (rx)      : ORIGIN = 0x68000000, LENGTH = 1024K</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">/* Define output sections */</span><br><span class="line">SECTIONS</span><br><span class="line">&#123;</span><br><span class="line">   /* 中间部分省略...... */</span><br><span class="line">  ._user_heap_stack :</span><br><span class="line">  &#123;</span><br><span class="line">    . = ALIGN(8);</span><br><span class="line">    PROVIDE ( end = . );</span><br><span class="line">    PROVIDE ( _end = . );</span><br><span class="line">    . = . + _Min_Heap_Size;</span><br><span class="line">    . = . + _Min_Stack_Size;</span><br><span class="line">    . = ALIGN(8);</span><br><span class="line">  &#125; &gt;RAM</span><br><span class="line"></span><br><span class="line">  .sram :</span><br><span class="line">  &#123;</span><br><span class="line">    . = ALIGN(4);</span><br><span class="line">    __SRAM_SYMBOLS = .;       /* create a global symbol at ccmram start */</span><br><span class="line">    *(.sram)</span><br><span class="line">    *(.sram*)</span><br><span class="line">    </span><br><span class="line">    . = ALIGN(4);</span><br><span class="line">    __SRAM_SYMBOLS = .;       /* create a global symbol at ccmram end */</span><br><span class="line">  &#125; &gt;SRAM AT&gt; FLASH</span><br><span class="line">  /* 中间部分省略...... */</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>结尾的 &gt;SRAM指上面花括号内的内容都放在第二部分中定义的SRAM空间中。如果没有 AT&gt; FLASH ，那么编译bin文件时地址是连续的。</li>
+</ul>
+<h3 id="6-4-测试数组定义"><a href="#6-4-测试数组定义" class="headerlink" title="6.4 测试数组定义"></a><font size=3>6.4 测试数组定义</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">uint8_t</span> testSram[<span class="number">500</span>] __attribute__((section(<span class="string">&quot;.sram&quot;</span>)));<span class="comment">// 测试用数组</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="6-5-测试效果"><a href="#6-5-测试效果" class="headerlink" title="6.5 测试效果"></a><font size=3>6.5 测试效果</font></h3><p>这一次我们重新编译，下载，执行结果如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">This is my stm32f103zet6 test!</span><br><span class="line"><span class="number">0x68000000</span> testSram[<span class="number">0</span>]:<span class="number">0</span></span><br><span class="line"><span class="number">0x68000001</span> testSram[<span class="number">1</span>]:<span class="number">1</span></span><br><span class="line"><span class="number">0x68000002</span> testSram[<span class="number">2</span>]:<span class="number">2</span></span><br><span class="line"><span class="number">0x68000003</span> testSram[<span class="number">3</span>]:<span class="number">3</span></span><br><span class="line"><span class="number">0x68000004</span> testSram[<span class="number">4</span>]:<span class="number">4</span></span><br><span class="line"><span class="number">0x68000005</span> testSram[<span class="number">5</span>]:<span class="number">5</span></span><br><span class="line"><span class="number">0x68000006</span> testSram[<span class="number">6</span>]:<span class="number">6</span></span><br><span class="line"><span class="number">0x68000007</span> testSram[<span class="number">7</span>]:<span class="number">7</span></span><br><span class="line"><span class="number">0x68000008</span> testSram[<span class="number">8</span>]:<span class="number">8</span></span><br><span class="line"><span class="number">0x68000009</span> testSram[<span class="number">9</span>]:<span class="number">9</span></span><br><span class="line"> </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="number">0x68000000</span>:<span class="number">0</span> <span class="number">1</span> </span><br><span class="line"><span class="number">0x68000002</span>:<span class="number">2</span> <span class="number">3</span> </span><br><span class="line"><span class="number">0x68000004</span>:<span class="number">4</span> <span class="number">5</span> </span><br><span class="line"><span class="number">0x68000006</span>:<span class="number">6</span> <span class="number">7</span> </span><br><span class="line"><span class="number">0x68000008</span>:<span class="number">8</span> <span class="number">9</span> </span><br></pre></td></tr></table></figure>
+
+<p>可以看到，这样我们就将全局数组定义到了0x68000000起始的位置去。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/294350a1.html">LV16-24-FSMC-03-读写外部SRAM实例</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年06月04日 - 22:07</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/294350a1.html" title="LV16-24-FSMC-03-读写外部SRAM实例">https://sumumm.github.io/post/294350a1.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV16-STM32%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV16-STM32开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/6ec024b2.html" rel="prev" title="LV16-25-OLED-01-OLED基础知识">
+                  <i class="fa fa-angle-left"></i> LV16-25-OLED-01-OLED基础知识
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/8240821d.html" rel="next" title="LV16-24-FSMC-02-FSMC基础">
+                  LV16-24-FSMC-02-FSMC基础 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

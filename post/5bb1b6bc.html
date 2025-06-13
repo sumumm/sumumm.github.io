@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是攻克视频技术课程视频编码——变换量化：如何减少视觉冗余？的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV03-视频编码-05-变换量化">
+<meta property="og:url" content="https://sumumm.github.io/post/5bb1b6bc.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是攻克视频技术课程视频编码——变换量化：如何减少视觉冗余？的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/064a2356cc7bbf4c1c43d2856e186f78.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/b767c40657b6758aff71fb148ce4da34.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/d310a208e95a8d439bb806c6aa10ddbd.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/001a5f7eb9e9a08960c1cc3b8841f8c4.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/593a45c8e6a4dc69a1038efb7fb6bc5b.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/94ec636ddc0fa111a51f7149bc7cc43b.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/7266275ea219bb6dba2e2866bdbeddeb.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/e50bf2884c1fc7ec4a753d61f4b8eac0.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/37ca4e953244ea275e95f5eb03320b6c.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/7f020c6yy18d49a13fda06937888cd5a.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/4360178571e94yy6d1c916f02282a6ea.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/bb8783ca8e1b1bd7177459a344fb410c.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/5e72913dfa211e19a205c39553db3d43.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/ff71a57bb82d76493c2bc992107d307f.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/8ff14e94f06766df6cdba1706780c019.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/fe4b65c6e4ba73a15ceacda63651ecec.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/3b00268b7f298846b60795b534908ff1.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/a37cdd4f5cb2492e658680f950be2b1e.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/cdc4482b0689e8ef6142657a0da3c67d.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/e10613350835c3ebb14e001461e7eae6.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/c7e61f929cdde6d8624ae0be270126cd.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/61c58d94ac755c2c71e8538d772d2b16.jpg">
+<meta property="article:published_time" content="2024-01-30T23:44:39.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.065Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="极客时间-攻克视频技术">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/064a2356cc7bbf4c1c43d2856e186f78.jpg">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/5bb1b6bc.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/5bb1b6bc.html","path":"post/5bb1b6bc.html","title":"LV03-视频编码-05-变换量化"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV03-视频编码-05-变换量化 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%B8%B8%E8%A7%84%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81%E4%B8%AD%E7%9A%84-DCT-%E5%8F%98%E6%8D%A2%E5%92%8C%E9%87%8F%E5%8C%96"><span class="nav-text">一、常规视频编码中的 DCT 变换和量化</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-DCT-%E5%8F%98%E6%8D%A2"><span class="nav-text">1. DCT 变换</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-Hadamard-%E5%8F%98%E6%8D%A2"><span class="nav-text">2. Hadamard 变换</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E9%87%8F%E5%8C%96"><span class="nav-text">3. 量化</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81H264-%E4%B8%AD%E7%9A%84-DCT-%E5%8F%98%E6%8D%A2%E5%92%8C%E9%87%8F%E5%8C%96"><span class="nav-text">二、H264 中的 DCT 变换和量化</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-H264-%E7%9A%84%E6%95%B4%E6%95%B0%E5%8F%98%E6%8D%A2%E5%92%8C%E9%87%8F%E5%8C%96"><span class="nav-text">1. H264 的整数变换和量化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-H264-%E5%90%84%E6%A8%A1%E5%BC%8F%E5%9D%97%E7%9A%84-DCT-%E5%8F%98%E6%8D%A2%E5%92%8C%E9%87%8F%E5%8C%96%E8%BF%87%E7%A8%8B"><span class="nav-text">2. H264 各模式块的 DCT 变换和量化过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E4%BA%AE%E5%BA%A6-16x16-%E5%B8%A7%E5%86%85%E9%A2%84%E6%B5%8B%E5%9D%97"><span class="nav-text">2.1 亮度 16x16 帧内预测块</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%85%B6%E5%AE%83%E6%A8%A1%E5%BC%8F%E4%BA%AE%E5%BA%A6%E5%9D%97"><span class="nav-text">2.2 其它模式亮度块</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E8%89%B2%E5%BA%A6%E5%9D%97"><span class="nav-text">2.3 色度块</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E5%B0%8F%E7%BB%93"><span class="nav-text">三、小结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/5bb1b6bc.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV03-视频编码-05-变换量化 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV03-视频编码-05-变换量化
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-01-31 07:44:39" itemprop="dateCreated datePublished" datetime="2024-01-31T07:44:39+08:00">2024-01-31</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/" itemprop="url" rel="index"><span itemprop="name">04音视频</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">极客时间-攻克视频技术</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>22 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是攻克视频技术课程视频编码——变换量化：如何减少视觉冗余？的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">---</td>        <td align="left">--- <a href="" target="_blank">  <i class="fa fa-external-link-alt"></i></a></td>      </tr></table>
+              </div>
+            </details>
+
+<p>在前面几节课里面我们对视频编码的原理、帧内编码和帧间编码都做了详细的介绍。我们知道，通过帧内编码可以去除空间冗余，通过帧间编码可以去除时间冗余，而为了分离图像块的高频和低频信息从而去除视觉冗余，我们需要做 DCT 变换和量化。</p>
+<p>为了让你更透彻地了解视频编码中的 DCT 变换和量化的原理，在这节课里面，我们会对 DCT 变换和量化的过程做一个深入的探讨。通过下图你可以很清楚地看到视频编码的过程，并且能够更直观地感受 DCT 变换和量化在整个视频编码过程中的重要性。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/064a2356cc7bbf4c1c43d2856e186f78.jpg" alt="img" style="zoom:50%;" />
+
+<p>由于 DCT 变换和量化过程是一个跟数学比较相关的过程，且大多数是数学计算。因此今天的课程中数学公式和计算过程相对会多一些。但是总体来说难度不是很大。</p>
+<p>下面我们就先来讨论一下常规的视频编码中的 DCT 变换和量化，看看它是怎么去除一部分高频信息来达到去除视觉冗余的。并且，由于 H264 中用到的 DCT 变换和量化跟常规的 DCT 变换和量化有一些区别，其主要在于 H264 使用整数变换代替常规的 DCT 变换，并将 DCT 变换中的一部分计算整合到量化中，从而减少浮点运算漂移问题。因此，我们还会对 H264 中的 DCT 变换和量化做一下介绍，最后对比一下 H264 中的变换和量化与常规的变换和量化的区别。</p>
+<h1 id="一、常规视频编码中的-DCT-变换和量化"><a href="#一、常规视频编码中的-DCT-变换和量化" class="headerlink" title="一、常规视频编码中的 DCT 变换和量化"></a><font size=3>一、常规视频编码中的 DCT 变换和量化</font></h1><p>通过前面的学习，我们知道 DCT 变换和量化的目的是去除视觉冗余。接下来让我们看一下常规视频编码中 DCT 变换和量化是如何实现这一目的的。</p>
+<h2 id="1-DCT-变换"><a href="#1-DCT-变换" class="headerlink" title="1. DCT 变换"></a><font size=3>1. DCT 变换</font></h2><p><strong>DCT 变换，就是离散余弦变换。它能够将空域的信号（对于图像来说，空域就是你平时看到的图像）转换到频域（对于图像来说，就是将图像做完 DCT 变换之后的数据）上表示，并能够比较好的去除相关性。</strong>其主要用于视频压缩领域。现在常用的视频压缩算法中基本上都有 DCT 变换。</p>
+<p>在视频编码原理那节课中我们也讲过，图片经过 DCT 变换之后，低频信息集中在左上角，而高频信息则分散在其它的位置。通常情况下，图片的高频信息多但是幅值比较小。高频信息主要描述图片的边缘信息。</p>
+<p>由于人眼的视觉敏感度是有限的，有的时候我们去除了一部分高频信息之后，人眼看上去感觉区别并不大。因此，我们可以先将图片 DCT 变换到频域，然后再去除一些高频信息。这样我们就可以减少信息量，从而达到压缩的目的。</p>
+<p><strong>DCT 变换本身是无损的，同时也是可逆的。</strong>我们可以通过 DCT 变换将图片从空域转换到频域，也可以通过 DCT 反变换将图片从频域转回到空域。下面我们来看一下 DCT 变换的公式。</p>
+<p>一维 DCT 变换公式如下，其中 f(i) 是指第 i 个样点的信号值，N 代表信号样点的总个数。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/b767c40657b6758aff71fb148ce4da34.jpg" alt="img" style="zoom:50%;" />
+
+<p>二维 DCT 变换公式如下，其中 f(i, j) 是指第 (i, j) 位置的样点的信号值，N 代表信号样点的总个数。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/d310a208e95a8d439bb806c6aa10ddbd.jpg" alt="img" style="zoom:50%;" />
+
+<p>一般在编码标准中图像是进行二维 DCT 变换的，因为图像是个二维信号。但是实际上在代码里面我们经常将二维 DCT 变换转换成两个一维 DCT 变换来进行。</p>
+<p>在视频压缩中，DCT 变换是在帧内预测和帧间预测之后进行的。也就是说，DCT 变换其实是对残差块做的。我们在编码时会将图像划分成一个个宏块，而宏块又可以划分成一个个子块。那 DCT 变换是在宏块上进行还是在子块上进行呢？</p>
+<p>其实，<strong>通常情况下 DCT 变换是在 4x4 的子块上进行的</strong>（也可以在 8x8 子块上进行，但是只有在扩展 profile 才支持，由于原理是一样的，因此这里不再展开讨论），即便预测时并没有对宏块再做划分。也就是说，不管宏块有没有被划分到 4x4 的子块，我们在做 DCT 变换时，都是在一个个 4x4 块上进行的。如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/001a5f7eb9e9a08960c1cc3b8841f8c4.jpg" alt="img" style="zoom:50%;" />
+
+<p>好了，如果我们将上面的 DCT 变换公式用在 4x4 的变换块上，则 4x4 的 DCT 变换就可以通过下面的 4x4 的矩阵乘法来表示了。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/593a45c8e6a4dc69a1038efb7fb6bc5b.jpg" alt="img" style="zoom:50%;" />
+
+<p>为了让你更好地理解 DCT 变换，我们通过下面的例子来看一下 4x4 的残差块的 DCT 变换结果。我们称左上角的系数为 DC 系数，而其它系数为 AC 系数。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/94ec636ddc0fa111a51f7149bc7cc43b.jpg" alt="img" style="zoom:50%;" />
+
+<p>对这个 4x4 的残差块运用公式，可得：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/7266275ea219bb6dba2e2866bdbeddeb.jpg" alt="img" style="zoom:50%;" />
+
+<p>我们可以得到下面的图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/e50bf2884c1fc7ec4a753d61f4b8eac0.jpg" alt="img" style="zoom:50%;" />
+
+
+
+<p>从上面 DCT 变换的公式和矩阵表示方式中，我们可以看到，DCT 变换的计算过程中涉及到了 cos 函数。那也就是说计算的过程中一定涉及到了浮点运算。而浮点运算计算速度比较慢。那有没有什么运算可以将图像块比较快速的转换到频域呢？答案肯定是有的。前面我们其实已经讲到过，那就是 Hadamard 变换，也叫<strong>哈达玛变换</strong>。</p>
+<h2 id="2-Hadamard-变换"><a href="#2-Hadamard-变换" class="headerlink" title="2. Hadamard 变换"></a><font size=3>2. Hadamard 变换</font></h2><p>在视频编码过程中，Hadamard 变换也经常会用到。前面我们在帧内预测的率失真优化的模式选择里就讲到过，Hadamard 变换可以代替 DCT 变换将残差块快速转换到频域，以便用来估计一下当前块编码之后的大小。</p>
+<p>其实在 H264 的亮度 16x16 帧内预测块和色度 8x8 预测块中也会使用到 Hadamard 变换。稍后我们会在 H264 中的 DCT 变换和量化部分对它进行简单介绍。下面我们先来看一下 Hadamard 变换的矩阵表示形式。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/37ca4e953244ea275e95f5eb03320b6c.jpg" alt="img" style="zoom:50%;" />
+
+<p>你是不是可以看到，Hadamard 变换是没有浮点运算的？因此其计算速度很快，并且也能够将图像块从空域变换到频域。因此，我们<strong>可以用它一定程度上粗略的代替 DCT 变换，从而用来简化运算。</strong></p>
+<p>好了，现在我们知道了如何通过 DCT 变换和 Hadamard 变换将残差块从空域转换到频域。接下来我们看看在常规视频编码中量化是如何做到通过去除一部分高频信息来最终达到去除视觉冗余的。</p>
+<h2 id="3-量化"><a href="#3-量化" class="headerlink" title="3. 量化"></a><font size=3>3. 量化</font></h2><p>前面我们讲了，我们将图像块变换到频域之后，AC 系数比较多，但是一般幅值比较小。并且，我们可以去除一些 AC 系数，达到压缩图像的目的，同时人眼看起来差距不大。<strong>这个去除 AC 系数的操作是什么呢</strong>？很明显就是量化了。</p>
+<p>其实<strong>量化的操作并不是针对 AC 系数去做的，DC 系数也同样会做量化</strong>，只是通常情况下，DC 系数比较大，从而量化后变换为 0 的概率比 AC 系数要小。量化操作其实非常简单，就是除法操作。计算公式如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/7f020c6yy18d49a13fda06937888cd5a.jpg" alt="img" style="zoom:50%;" />
+
+<p>在量化过程中，最重要的就是 QStep（用户一般接触到的是 QP，两者可以查表转换）。其中，在 H264 中 QP 和 QStep 之间的转换表格如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/4360178571e94yy6d1c916f02282a6ea.jpg" alt="img" style="zoom:50%;" />
+
+<p>通常 QStep 值越大，DC 系数和 AC 系数被量化成 0 的概率也就越大，从而压缩程度就越大，但是丢失的信息也就越多。这个值太大了会造成视频出现一个个块状的效应，且严重的时候看起来像马赛克一样；这个值比较小的话，压缩程度也会比较小，从而图像失真就会比较小，但是压缩之后的码流大小就会比较大。</p>
+<p>我们通过一个例子来看一下量化的结果。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/bb8783ca8e1b1bd7177459a344fb410c.jpg" alt="img" style="zoom:50%;" />
+
+<p>这就是常规的变换和量化的计算过程。实际上 H264 里面的变换和量化是这样的吗？原理上是的，但是实际计算过程变了。因为 DCT 变换过程中涉及到浮点运算，在不同机器上解码会因为精度问题产生漂移导致误差。同样，量化过程有除法运算，大多数时候其结果还是浮点型的数字，在不同机器上解码也会有误差。</p>
+<h1 id="二、H264-中的-DCT-变换和量化"><a href="#二、H264-中的-DCT-变换和量化" class="headerlink" title="二、H264 中的 DCT 变换和量化"></a><font size=3>二、H264 中的 DCT 变换和量化</font></h1><p><strong>H264 为了减少这种浮点型运算漂移带来的误差，将 DCT 变换改成了整数变换，DCT 变换中的浮点运算和量化过程合并，这样就只有一次浮点运算过程</strong>，以此来减少不同机器上浮点运算产生的误差。下面我们来看看 H264 中的变换和量化。</p>
+<h2 id="1-H264-的整数变换和量化"><a href="#1-H264-的整数变换和量化" class="headerlink" title="1. H264 的整数变换和量化"></a><font size=3>1. H264 的整数变换和量化</font></h2><p>我们知道常规的 DCT 变换的矩阵计算方式如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/5e72913dfa211e19a205c39553db3d43.jpg" alt="img" style="zoom:50%;" />
+
+<p>而在 H264 中，我们通过下面的推导过程，将 DCT 变换一步步修改为整数变换。最后 H264 中的 DCT 变换就变成了整数变换。其矩阵的计算方式如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/ff71a57bb82d76493c2bc992107d307f.jpg" alt="img" style="zoom:50%;" />
+
+<p>们将点乘左边的部分取出来，就是 H264 中的整数变换了。公式如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/8ff14e94f06766df6cdba1706780c019.jpg" alt="img" style="zoom:50%;" />
+
+<p>我们同样使用上面 DCT 变换的例子来做一下整数变换。其结果如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/fe4b65c6e4ba73a15ceacda63651ecec.jpg" alt="img" style="zoom:50%;" />
+
+
+
+<p>在前面整数变换里，DCT 变换中的点乘部分被拿出来了，这一部分的计算被合并到了 H264 的量化过程中。因此 H264 的量化过程如下所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/3b00268b7f298846b60795b534908ff1.jpg" alt="img" style="zoom:50%;" />
+
+
+
+<p>其中，MF 我们一般都是通过表格查询得到。表格如下。其中，对于 QP 大于 5 的情况，使用 QP &#x3D; QP % 6 进行查询。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/a37cdd4f5cb2492e658680f950be2b1e.jpg" alt="img" style="zoom:50%;" />
+
+<p>同样，上面整数变换之后，我们用 H264 的量化公式对其进行量化后得到的结果如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/cdc4482b0689e8ef6142657a0da3c67d.jpg" alt="img" style="zoom:50%;" />
+
+<p>我们可以看到虽然 H264 的 DCT 变换和量化过程跟常规的 DCT 变换和量化不一样，但是最后量化的结果其实还是一样的。这也是符合预期的。毕竟它们的“目的地”还是一样的，只是“走的路”稍微有些不同而已。</p>
+<p>好了，这就是 H264 中的 DCT 变换和量化的基本原理。接下来我们来看看 H264 各模式块的 DCT 变换和量化过程具体是怎么样的。</p>
+<h2 id="2-H264-各模式块的-DCT-变换和量化过程"><a href="#2-H264-各模式块的-DCT-变换和量化过程" class="headerlink" title="2. H264 各模式块的 DCT 变换和量化过程"></a><font size=3>2. H264 各模式块的 DCT 变换和量化过程</font></h2><h3 id="2-1-亮度-16x16-帧内预测块"><a href="#2-1-亮度-16x16-帧内预测块" class="headerlink" title="2.1 亮度 16x16 帧内预测块"></a><font size=3>2.1 亮度 16x16 帧内预测块</font></h3><p>亮度 16x16 块，首先被划分成 16 个 4x4 的小块做整数变换。变换之后将 16 个 4x4 小块的 DC 系数都拿出来，组成一个 4x4 的 DC 块，再对这个 4x4 的 DC 块进行 Hadamard 变换。然后，再总体进行量化操作。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/e10613350835c3ebb14e001461e7eae6.jpg" alt="img" style="zoom:50%;" />
+
+<h3 id="2-2-其它模式亮度块"><a href="#2-2-其它模式亮度块" class="headerlink" title="2.2 其它模式亮度块"></a><font size=3>2.2 其它模式亮度块</font></h3><p>对于除亮度 16x16 帧内预测块之外的其它亮度块，都是直接划分成 4x4 的块进行整数变换，之后再进行量化操作就可以了。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/c7e61f929cdde6d8624ae0be270126cd.jpg" alt="img" style="zoom:50%;" />
+
+<h3 id="2-3-色度块"><a href="#2-3-色度块" class="headerlink" title="2.3 色度块"></a><font size=3>2.3 色度块</font></h3><p>对于 YUV420 图像，色度块大小是 8x8。我们先将 8x8 色度块划分成 4 个 4x4 的小块做整数变换。变换之后将 4 个小块的 DC 系数拿出来，组成一个 2x2 的 DC 块，再对这个 2x2 的 DC 块进行 Hadamard 变换。最后总体进行量化操作。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-05-%E5%8F%98%E6%8D%A2%E9%87%8F%E5%8C%96/img/61c58d94ac755c2c71e8538d772d2b16.jpg" alt="img" style="zoom:50%;" />
+
+<h1 id="三、小结"><a href="#三、小结" class="headerlink" title="三、小结"></a><font size=3>三、小结</font></h1><p>我们今天一开始主要讲解了 DCT 变换的基本原理。DCT 变换主要是将图像从空域转换到频域，并将图像的高频和低频信息分离开来。虽然高频信息数据多，但是幅值比较小。这样高频信息在量化的过程中能够比较容易被减少。这样可以比较有效地减少图像的视觉冗余，从而达到压缩的目的。</p>
+<p>接着，我们简单地介绍了一下量化的原理。量化其实就是一个除法操作。通过除法操作就可以将幅值变小，而高频信息幅值比较小，就比较容易被量化成 0，这样就能够达到压缩的目的。</p>
+<p>在讲变换的原理的时候，我们还讲到了一个前面提到了好几次的 Hadamard 变换。Hadamard 变换在 H264 的 16x16 帧内亮度块和 8x8 色度块中会被用到。但是 Hadamard 在率失真优化做模式选择的时候使用的更多。基本上各种视频编码都或多或少会用到它来做率失真优化。</p>
+<p>在 H264 标准中，我们不会直接使用标准的 DCT 变换和量化。为了减少多次浮点型运算在解码端产生漂移的问题，H264 使用整数变换代替 DCT 变换。DCT 变换中的浮点运算部分跟量化过程进行合并，将两次浮点型运算变成一次，从而减少误差。</p>
+<p>在最后，我们简单介绍了 H264 标准中不同模式亮度块和色度块的 DCT 变换和量化的过程。其中需要注意的就是亮度 16x16 帧内预测块和色度 8x8 的 DC 系数会单独拿出来组成一个新的 DC 块，我们会先对这个 DC 块进行 Hadamard 变换之后再做量化操作。</p>
+<blockquote>
+<p>思考题：为什么我们在率失真优化的过程中会用 Hadamard 变换之后的块做大小预估？</p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/5bb1b6bc.html">LV03-视频编码-05-变换量化</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年01月31日 - 07:44</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/5bb1b6bc.html" title="LV03-视频编码-05-变换量化">https://sumumm.github.io/post/5bb1b6bc.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/" rel="tag"><i class="fa fa-tag"></i> 极客时间-攻克视频技术</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/a2e73b6c.html" rel="prev" title="LV04-视频传输和网络对抗-01-RTP与RTCP">
+                  <i class="fa fa-angle-left"></i> LV04-视频传输和网络对抗-01-RTP与RTCP
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/d93fe369.html" rel="next" title="LV03-视频编码-04-帧间预测">
+                  LV03-视频编码-04-帧间预测 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

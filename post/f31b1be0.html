@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是网络编程——网络IO模型的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-03-网络编程-06-网络IO模型">
+<meta property="og:url" content="https://sumumm.github.io/post/f31b1be0.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是网络编程——网络IO模型的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-06-%E7%BD%91%E7%BB%9CIO%E6%A8%A1%E5%9E%8B/img/image-20220630160305540.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-06-%E7%BD%91%E7%BB%9CIO%E6%A8%A1%E5%9E%8B/img/image-20220630165320699.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-06-%E7%BD%91%E7%BB%9CIO%E6%A8%A1%E5%9E%8B/img/image-20220701063024372.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-06-%E7%BD%91%E7%BB%9CIO%E6%A8%A1%E5%9E%8B/img/image-20220701074211434.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-06-%E7%BD%91%E7%BB%9CIO%E6%A8%A1%E5%9E%8B/img/image-20220701083251722.png">
+<meta property="article:published_time" content="2024-10-27T03:49:47.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:56.999Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-网络编程">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-06-%E7%BD%91%E7%BB%9CIO%E6%A8%A1%E5%9E%8B/img/image-20220630160305540.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/f31b1be0.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/f31b1be0.html","path":"post/f31b1be0.html","title":"LV06-03-网络编程-06-网络IO模型"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-03-网络编程-06-网络IO模型 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E7%BD%91%E7%BB%9CI-O%E6%A6%82%E8%BF%B0"><span class="nav-text">一、网络I&#x2F;O概述</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BA%94%E7%A7%8DI-O%E6%A8%A1%E5%9E%8B"><span class="nav-text">1. 五种I&#x2F;O模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%90%8C%E6%AD%A5%E5%92%8C%E5%BC%82%E6%AD%A5"><span class="nav-text">2. 同步和异步</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E9%98%BB%E5%A1%9EI-O"><span class="nav-text">二、阻塞I&#x2F;O</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%9C%BA%E6%99%AF%E6%8F%8F%E8%BF%B0"><span class="nav-text">1. 场景描述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="nav-text">2. 基本概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B"><span class="nav-text">3. 网络模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%BC%98%E7%BC%BA%E7%82%B9"><span class="nav-text">4. 优缺点</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E9%9D%9E%E9%98%BB%E5%A1%9EI-O"><span class="nav-text">三、非阻塞I&#x2F;O</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%9C%BA%E6%99%AF%E6%8F%8F%E8%BF%B0-1"><span class="nav-text">1. 场景描述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5-1"><span class="nav-text">2. 基本概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B-1"><span class="nav-text">3. 网络模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%BC%98%E7%BC%BA%E7%82%B9-1"><span class="nav-text">4. 优缺点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E8%AE%BE%E7%BD%AE%E9%9D%9E%E9%98%BB%E5%A1%9E%E6%A8%A1%E5%BC%8F"><span class="nav-text">5. 设置非阻塞模式</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8I-O"><span class="nav-text">四、多路复用I&#x2F;O</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%9C%BA%E6%99%AF%E6%8F%8F%E8%BF%B0-2"><span class="nav-text">1. 场景描述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BB%80%E4%B9%88%E6%98%AFI-O%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8"><span class="nav-text">2. 什么是I&#x2F;O多路复用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BD%BF%E7%94%A8I-O%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8"><span class="nav-text">3. 为什么使用I&#x2F;O多路复用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B"><span class="nav-text">4. 网络模型</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E4%BF%A1%E5%8F%B7%E9%A9%B1%E5%8A%A8I-o"><span class="nav-text">五、信号驱动I&#x2F;o</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="nav-text">1. 基本概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B"><span class="nav-text">2. 网络模型</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%85%AD%E3%80%81%E5%BC%82%E6%AD%A5I-o"><span class="nav-text">六、异步I&#x2F;o</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5-1"><span class="nav-text">1. 基本概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B-1"><span class="nav-text">2. 网络模型</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/f31b1be0.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-03-网络编程-06-网络IO模型 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-03-网络编程-06-网络IO模型
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-10-27 11:49:47" itemprop="dateCreated datePublished" datetime="2024-10-27T11:49:47+08:00">2024-10-27</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">LV06-网络编程</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5.7k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>21 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是网络编程——网络IO模型的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-06-%E7%BD%91%E7%BB%9CIO%E6%A8%A1%E5%9E%8B/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="center">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">---</td>        <td align="left">--- <a href="" target="_blank">  <i class="fa fa-external-link-alt"></i></a></td>      </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、网络I-O概述"><a href="#一、网络I-O概述" class="headerlink" title="一、网络I/O概述"></a><font size=3>一、网络<code>I/O</code>概述</font></h1><h2 id="1-五种I-O模型"><a href="#1-五种I-O模型" class="headerlink" title="1. 五种I/O模型"></a><font size=3>1. 五种<code>I/O</code>模型</font></h2><p>我们日常说的的网络通信本质上其实就是网络<code>I/O</code>，通过网络<code>I/O</code>，我们可以和远程设备进行通信（数据交换）。由于网络<code>I/O</code>和正常的磁盘<code>I/O</code>在性能和访问方式上有较大的差异，所以针对磁盘<code>I/O</code>的读写方法也就无法适用于网络<code>I/O</code>上，大部分操作系统针对网络<code>I/O</code>抽象除了一套特殊的接口—— <strong>网络Socket接口</strong> ，用于对网络<code>I/O</code>进行操作。</p>
+<p>在<code>Linux</code>当中一切皆文件，为了统一概念，<code>socket</code>在<code>Linux</code>当中也是通过文件描述符来进行描述的，只不过这个文件描述符描述的<strong>不是本地文件，而是远程设备对应的文件</strong>。由于网络通信存在不可预知的问题，所以诞生了很多网络<code>I/O</code>模型，这些I&#x2F;O模型本质上是一种客户端（或者说是服务消费者）对网络<code>I/O</code>请求的处理方式。简单来说，网络<code>I/O</code>本质是 <code>socket</code> 的读写，<code>socket</code> 在 <code>Linux</code> 系统被抽象为流，<code>IO</code> 可以理解为对流的操作。</p>
+<p>对于一次 <code>IO</code> 访问 (以<code>read</code>举例)，数据会先被拷贝到操作系统内核的缓冲区中，然后才会从操作系统内核的缓冲区拷贝到应用程序的地址空间。所以说，当一个 <code>read</code> 操作发生时，它会经历两个阶段：</p>
+<ul>
+<li>第一阶段：等待数据准备 (<code>Waiting for the data to be ready</code>)。</li>
+<li>第二阶段：将数据从内核拷贝到进程中 (<code>Copying the data from the kernel to the process</code>)。</li>
+</ul>
+<p>对于 <code>socket</code> 流而言，</p>
+<ul>
+<li>第一步：通常涉及等待网络上的数据分组到达，然后被复制到内核的某个缓冲区。</li>
+<li>第二步：把数据从内核缓冲区复制到应用进程缓冲区。</li>
+</ul>
+<p>在<code>Linux/UNIX</code>中主要有以下五种<code>I/O</code>模型：</p>
+<table>
+    <tr><td align="center" width=150px>阻塞I/O</td><td align="left">bloking IO，我们最常用的一种I/O模型</td></tr>
+    <tr><td align="center" width=150px>非阻塞I/O</td><td align="left">non-blocking IO，可防止进程阻塞在I/O操作上，需要轮询</td></tr>
+    <tr><td align="center" width=150px>多路复用I/O</td><td align="left">multiplexing IO，允许同时对多个I/O进行控制</td></tr>
+    <tr><td align="center" width=150px>信号驱动I/O</td><td align="left">signal-driven IO，一种异步通信模型</td></tr>
+    <tr><td align="center" width=150px>异步I/O</td><td align="left">asynchronous IO，一种异步通信模型</td></tr>
+</table>
+
+<p>其实在这五种<code>I/O</code>中，信号驱动<code>I/O</code>用的不是很多，我们见的多数只有四种<code>I/O</code>。</p>
+<h2 id="2-同步和异步"><a href="#2-同步和异步" class="headerlink" title="2. 同步和异步"></a><font size=3>2. 同步和异步</font></h2><ul>
+<li>同步</li>
+</ul>
+<p>所谓同步，就是发出一个功能调用时，<strong>在没有得到结果之前，该调用就不返回或继续执行后续操作</strong>。 简单来说，同步就是必须一件一件事做，等前一件做完了才能做下一件事。</p>
+<ul>
+<li>异步</li>
+</ul>
+<p>当一个异步过程调用发出后，调用者<strong>在没有得到结果之前，就可以继续执行后续操作</strong>。当这个调用完成后，一般通过状态、通知和回调来通知调用者。对于异步调用，调用的返回并不受调用者控制。</p>
+<h1 id="二、阻塞I-O"><a href="#二、阻塞I-O" class="headerlink" title="二、阻塞I/O"></a><font size=3>二、阻塞<code>I/O</code></font></h1><h2 id="1-场景描述"><a href="#1-场景描述" class="headerlink" title="1. 场景描述"></a><font size=3>1. 场景描述</font></h2><p>就像是这样，比如说我们现在要到医院做一个检查，需要拍一个片子，我们拍完之后，拍片子的医生一般就会告诉我们多久后可以来拿结果，但是实际上有很多人都拍了这个片子，医生给的依然是一个大概的时间，其实我们相当于还是不知道什么时候出结果，于是，我们只好坐在拍片子的地方等，直到结果出来，然后才能去找医生询问片子的结果，但是等待的这段时间我们一直都没有离开，这就是一种阻塞。</p>
+<h2 id="2-基本概念"><a href="#2-基本概念" class="headerlink" title="2. 基本概念"></a><font size=3>2. 基本概念</font></h2><p>阻塞式<code>I/O</code>顾名思义就是对文件的<code>I/O</code>操作（读写操作）是阻塞式的，这是最普遍使用的一种<code>I/O</code>模式，大部分程序使用的都是阻塞模式的<code>I/O</code>。</p>
+<p>在默认的情况下，<code>socket</code>套接字建立后处于的模式其实就是阻塞<code>I/O</code>模式，我们之前网络编程中学习的很多函数在调用的过程中都会发生阻塞：</p>
+<ul>
+<li><p>读操作：<code>read()</code>、<code>recv()</code>、<code>recvfrom()</code></p>
+</li>
+<li><p>写操作：<code>write()</code>、<code>send()</code></p>
+</li>
+<li><p>其他操作：<code>accept()</code>、<code>connect()</code></p>
+</li>
+</ul>
+<h2 id="3-网络模型"><a href="#3-网络模型" class="headerlink" title="3. 网络模型"></a><font size=3>3. 网络模型</font></h2><p>我们以<code>read()</code>为例，在这个种<code>I/O</code> 模型中，用户空间的进程执行一个系统调用 <code>read()</code>，从套接字上读取数据，当套接字的接收缓冲区中还没有数据可读，函数<code>read()</code>将发生阻塞。然后它会一直阻塞下去，等待套接字的接收缓冲区中有数据可读。经过一段时间后，缓冲区内接收到数据，于是内核便去唤醒该进程，通过<code>read()</code>访问这些数据。如果在进程阻塞过程中，对方发生故障，那么这个进程将永远阻塞下去。</p>
+<p>在这种模型中，从等待数据到处理数据的两个阶段，整个进程都被阻塞。不能处理别的网络 <code>IO</code>。调用进程处于一种不再消费 <code>CPU</code> 而只是简单等待响应的状态，因此从处理的角度来看，这是非常有效的。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-06-%E7%BD%91%E7%BB%9CIO%E6%A8%A1%E5%9E%8B/img/image-20220630160305540.png" alt="image-20220630160305540" style="zoom:50%;" />
+
+<p>写操作时发生阻塞的情况要比读操作少，<strong>主要发生在要写入的缓冲区的大小小于要写入的数据量的情况下</strong>，这时，写操作不进行任何拷贝工作，将发生阻塞。一旦发送缓冲区内有足够的空间，内核将唤醒进程，将数据从用户缓冲区中拷贝到相应的发送数据缓冲区。</p>
+<p>【注意】<code>UDP</code>不用等待确认，没有实际的发送缓冲区，所以<code>UDP</code>协议中不存在发送缓冲区满的情况，在<code>UDP</code>套接字上执行的写操作永远都不会阻塞。</p>
+<h2 id="4-优缺点"><a href="#4-优缺点" class="headerlink" title="4. 优缺点"></a><font size=3>4. 优缺点</font></h2><ul>
+<li>优点</li>
+</ul>
+<p>开发简单，在阻塞等待期间，用户进程挂起，在挂起期间不会占用 <code>CPU</code> 资源，能够提升<code>CPU</code>的处理效率。</p>
+<ul>
+<li>缺点</li>
+</ul>
+<p>一个进程维护一个 <code>I/O</code> ，不适合高并发，因为一个请求<code>I/O</code>会阻塞进程（线程），所以，需要为每个请求分配一个处理进程（线程）以及时响应，系统开销大。</p>
+<h1 id="三、非阻塞I-O"><a href="#三、非阻塞I-O" class="headerlink" title="三、非阻塞I/O"></a><font size=3>三、非阻塞<code>I/O</code></font></h1><h2 id="1-场景描述-1"><a href="#1-场景描述-1" class="headerlink" title="1. 场景描述"></a><font size=3>1. 场景描述</font></h2><p>还是上边的例子，等结果的这段时间我们就必须一直在这里等着什么也不干嘛？显然可以不用，我们在这个时候可以去旁边的超时转一转或者医院的其他地方转一转，但是我们又急着找医生，想要快点拿到片子，于是我们转一会就去拍片子的地方问一下结果出来没有，来来回回好多次，还不一定等得到结果。这就是非阻塞啦，就是要轮训，不断的问有没有准备好。</p>
+<h2 id="2-基本概念-1"><a href="#2-基本概念-1" class="headerlink" title="2. 基本概念"></a><font size=3>2. 基本概念</font></h2><p>非阻塞式<code>I/O</code>就是对文件的<code>I/O</code>操作（读写操作）是非阻塞式的。当我们将一个套接字设置为非阻塞模式，就相当于告诉了系统内核：当我请求的<code>I/O</code> 操作不能够马上完成时，你想让我的进程进行休眠等待的时候，不可以这么做，需要马上返回一个错误（<code>EAGAIN</code> 或<code>EWOULDBLOCK</code>）给我。</p>
+<p>在一个用户进程中使用了非阻塞模式的套接字，一般来说它需要使用一个循环来不停地测试是否一个文件描述符有数据可读（称做<code>polling</code>）。不停的<code>polling</code> 内核来检查是否<code>I/O</code>操作已经就绪，这将会是一个极浪费<code>CPU</code> 资源的操作。</p>
+<h2 id="3-网络模型-1"><a href="#3-网络模型-1" class="headerlink" title="3. 网络模型"></a><font size=3>3. 网络模型</font></h2><p>我们以<code>recv()</code>函数为例，因为这个函数可以设置为非阻塞模式。在这个种<code>I/O</code> 模型中，用户空间的进程执行一个系统调用 <code>recv()</code>，从套接字上读取数据，当套接字的接收缓冲区中还没有数据可读，函数<code>recv()</code>将返回一个<code>error</code>。进程在返回之后，可以干点别的事情，然后再发起 <code>recv()</code> 系统调用。然后重复上面的过程，循环往复的进行 <code>recv()</code>系统调用。这个过程通常被称之为<strong>轮询</strong>。轮询检查内核数据，直到数据准备好，再拷贝数据到进程，进行数据处理。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-06-%E7%BD%91%E7%BB%9CIO%E6%A8%A1%E5%9E%8B/img/image-20220630165320699.png" alt="image-20220630165320699" style="zoom:50%;" />
+
+<p>【注意】拷贝数据整个过程，进程仍然是属于阻塞的状态。</p>
+<h2 id="4-优缺点-1"><a href="#4-优缺点-1" class="headerlink" title="4. 优缺点"></a><font size=3>4. 优缺点</font></h2><ul>
+<li>优点</li>
+</ul>
+<p>每次发起 <code>I/O</code> 调用，在内核等待数据的过程中可以立即返回，用户线程不会阻塞，实时性好。</p>
+<ul>
+<li>缺点</li>
+</ul>
+<p>不断轮询内核是否有数据，占用大量 <code>CPU</code> 资源，效率不高。</p>
+<h2 id="5-设置非阻塞模式"><a href="#5-设置非阻塞模式" class="headerlink" title="5. 设置非阻塞模式"></a><font size=3>5. 设置非阻塞模式</font></h2><p>当我们一开始建立一个套接字描述符的时候，系统内核将其设置为阻塞<code>I/O</code>模式，那么如何将其修改为非阻塞呢？我们可以通过<code>fcntl()</code>函数或者<code>ioctl()</code>函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* fcntl的使用 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">fcntl</span><span class="params">(<span class="type">int</span> fd, <span class="type">int</span> cmd, <span class="type">long</span> arg)</span>;</span><br><span class="line"><span class="type">int</span> flag；</span><br><span class="line">flag = fcntl(sockfd, F_GETFL, <span class="number">0</span>);</span><br><span class="line">flag |= O_NONBLOCK;</span><br><span class="line">fcntl(sockfd, F_SETFL, flag);</span><br><span class="line"><span class="comment">/* ioctl的使用 */</span></span><br><span class="line"><span class="type">int</span> b_on =<span class="number">1</span>;</span><br><span class="line">ioctl(sock_fd, FIONBIO, &amp;b_on)</span><br></pre></td></tr></table></figure>
+
+<p>到目前为止，其实我还没有用过这两个函数，所以这里先简单提一下，以后用到了再详细说明。</p>
+<h1 id="四、多路复用I-O"><a href="#四、多路复用I-O" class="headerlink" title="四、多路复用I/O"></a><font size=3>四、多路复用<code>I/O</code></font></h1><p>这部分其实也是本篇笔记的重点，也是学习的重点。</p>
+<h2 id="1-场景描述-2"><a href="#1-场景描述-2" class="headerlink" title="1. 场景描述"></a><font size=3>1. 场景描述</font></h2><p>还是上边的例子，现在的医院其实大多数进行检查的地方都会有一个自助打印机，如果说检查结果出来了，上边就会显示，我们直接自己打印就可以了，就不需要去问拍片子的人结果有没有出来了，这其实就算是一个<code>I/O</code>多路复用的实例。</p>
+<h2 id="2-什么是I-O多路复用"><a href="#2-什么是I-O多路复用" class="headerlink" title="2. 什么是I/O多路复用"></a><font size=3>2. 什么是<code>I/O</code>多路复用</font></h2><p><code>I/O</code>多路复用（<code>IO multiplexing</code>），它会通过一种机制，可以监视多个文件描述符，一旦某个文件描述符（也就是某个文件）可以执行<code>I/O</code>操作时，能够通知应用程序进行相应的读写操作。<code>I/O</code>多路复用技术是为了解决：在并发式<code>I/O</code>场景中进程或线程阻塞到某个<code>I/O</code>系统调用而出现的技术，使进程不阻塞于某个特定的<code>I/O</code>系统调用。</p>
+<p><code>I/O</code>多路复用存在一个非常明显的特征：外部阻塞式，内部监视多路<code>I/O</code>。</p>
+<h2 id="3-为什么使用I-O多路复用"><a href="#3-为什么使用I-O多路复用" class="headerlink" title="3. 为什么使用I/O多路复用"></a><font size=3>3. 为什么使用<code>I/O</code>多路复用</font></h2><p>前边我们学习了<code>TCP</code>的多线程服务器和多进程服务器，不管是哪一种，若是新到来一个<code>TCP</code>连接，就需要分配一个进程或者线程，那么随着连接的客户端不断增加，服务器需要维护的进程或者线程数量也是不断增加，这样持续下去，操作系统无论如何是扛不住的。</p>
+<p>既然为每个请求分配一个进程或者线程的方式不合适，那有没有可能只使用一个进程来维护多个 <code>socket</code> 呢？答案是有的，那就是使用<strong>I&#x2F;O多路复用</strong>技术。</p>
+<p>一个进程虽然任一时刻只能 一个请求，但是如果处理每个请求的事件时，耗时控制在 <code>1</code> 毫秒以内，这样 <code>1</code> 秒内就可以处理上千个请求，把时间拉长来看，多个请求复用了一个进程，这就是多路复用，这种思想很类似一个 <code>CPU</code> 并发多个进程，所以也叫做<strong>时分多路复用</strong>。</p>
+<p><code>I/O</code>多路复用的基本思想是：</p>
+<ul>
+<li>先构造一张有关描述符的表，然后调用一个函数。当这些文件描述符中的一个或多个已准备好进行<code>I/O</code>时函数才返回。</li>
+<li>函数返回时告诉进程那个描述符已就绪，可以进行<code>I/O</code>操作。</li>
+</ul>
+<p>这样其实就很大程度上减轻了操作系统维护大量进程和线程的压力。</p>
+<h2 id="4-网络模型"><a href="#4-网络模型" class="headerlink" title="4. 网络模型"></a><font size=3>4. 网络模型</font></h2><p><code>I/O</code> 多路复用模型会用到 <code>select()</code>、<code>poll()</code>、<code>epoll()</code> 函数，这几个函数也会使进程阻塞，其中<code>select</code> 调用是内核级别的。</p>
+<ul>
+<li><code>select </code>轮询相对非阻塞的轮询的区别在于：<code>select</code> 可以对多个 <code>socket</code> 端口进行监听，当其中任何一个 <code>socket</code> 的数据准好了，就能返回进行可读，然后进程再进行<code> recv()</code> 系统调用，将数据由内核拷贝到用户进程，当然这个过程是阻塞的。</li>
+<li><code>select</code> 相对阻塞<code>I/O</code>不同在于：此时的 <code>select</code> 不是等到 <code>socket</code> 数据全部到达再处理，而是有了一部分数据就会调用用户进程来处理。如何知道有一部分数据到达了呢？监视的事情就交给了内核，内核负责数据到达的处理，也可以理解为”非阻塞”吧。</li>
+</ul>
+<p>具体流程，如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-06-%E7%BD%91%E7%BB%9CIO%E6%A8%A1%E5%9E%8B/img/image-20220701063024372.png" alt="image-20220701063024372" style="zoom:50%;" />
+
+<details class="folding-tag" blue><summary> 点击查看流程描述 </summary>
+              <div class='content'>
+              <p><code>I/O</code>多路复用就是我们说的 <code>select</code>，<code>poll</code>，<code>epoll</code>，有些地方也称这种 <code>I/O</code> 方式为 <code>event driven IO</code>。<code>select/epoll</code> 的好处就在于单个进程就可以同时处理多个网络连接的<code>I/O</code>。它的基本原理就是 <code>select</code>，<code>poll</code>，<code>epoll</code> 这些函数会不断的轮询所负责的所有 <code>socket</code>套接字，当某个 <code>socket</code>套接字有数据到达了，就通知用户进程。</p><p><strong>当用户进程调用了 select()，那么整个进程会被阻塞</strong> ，而同时，内核会监视所有 <code>select</code> 负责的 <code>socket</code>套接字，当任何一个 <code>socket</code>套接字 中的数据准备好了，<code>select()</code> 就会返回。这个时候用户进程再调用 <code>read()</code>或者一些其他读取数据的操作，将数据从内核拷贝到用户进程。</p>
+              </div>
+            </details>
+
+<p>多路复用的特点是通过一种机制一个进程能同时等待 <code>I/O</code> 文件描述符，内核监视这些文件描述符 (其实就是套接字描述符)，其中的任意一个进入读就绪状态，<code>select</code>， <code>poll</code>，<code>epoll</code> 函数就可以返回。这三个函数又对应着三种监视的方式。</p>
+<p>与阻塞<code>I/O</code>相比。这里需要使用两个<code> system call</code> (系统调用，也就是<code>select()</code> 和 <code>recv()</code>函数)，而阻塞<code>I/O</code>只调用了一个 <code>system call</code>。但是，用 <code>select</code> 的优势在于它可以同时处理多个 客户端的连接。</p>
+<p>所以，如果处理的连接数不是很高的话，使用 <code>select/epoll</code> 的服务器不一定比使用多进程（线程）的服务器性能更好，可能延迟还更大。<code>select/epoll</code> 的优势并不是对于单个连接能处理得更快，而是在于<strong>能处理更多的连接</strong>。</p>
+<p>在<code>I/O</code>多路复用模型中，实际中，对于每一个 <code>socket</code>，一般都设置成为 <code>non-blocking</code>（非阻塞），但是，如上图所示，整个用户的进程其实是一直被阻塞的。只不过进程是被 <code>select()</code>这个函数阻塞，而不是被<code>socket IO</code> 给阻塞了。所以<code>I/O</code>多路复用是阻塞在 <code>select</code>，<code>epoll</code> 这样的系统调用之上，而没有阻塞在真正的 <code>I/O</code> 系统调用如 <code>recv()</code> 之上。</p>
+<p>了解了前面三种 <code>I/O</code> 模式，在用户进程进行系统调用的时候，它们在等待数据到来的时候，处理的方式不一样，直接等待，轮询，<code>select/poll</code> 轮询，两个阶段过程：</p>
+<ul>
+<li>第一个阶段有的阻塞，有的不阻塞，有的可以阻塞又可以不阻塞。</li>
+<li>第二个阶段都是阻塞的。</li>
+</ul>
+<p>从整个 <code>I/O</code> 过程来看，他们都是顺序执行的，因此可以归为同步模型(<code>synchronous</code>)。都是进程主动等待且向内核检查状态。</p>
+<p>高并发的程序一般使用同步非阻塞方式，而非多线程加同步阻塞方式。并发数是指同时进行的任务数 (如同时服务的 <code>HTTP</code> 请求)，而并行数是可以同时工作的物理资源数量 (如 <code>CPU</code> 核数)。通过合理调度任务的不同阶段，并发数可以远远大于并行数，这就是区区几个 <code>CPU</code> 可以支持上万个用户并发请求的奥秘。在这种高并发的情况下，为每个任务 (用户请求)创建一个进程或线程的开销非常大。而同步非阻塞方式可以把多个 <code>I/O</code> 请求丢到后台去，这就可以在一个进程里服务大量的并发 <code>I/O</code> 请求。</p>
+<blockquote>
+<p>IO 多路复用是同步阻塞模型还是异步阻塞模型?</p>
+</blockquote>
+<p>同步是需要主动等待消息通知，而异步则是被动接收消息通知，通过回调、通知、状态等方式来被动获取消息。<code>I/O</code> 多路复用在阻塞到 <code>select()</code> 阶段时，用户进程是主动等待并调用 <code>select()</code> 函数获取数据就绪状态消息，并且其进程状态为阻塞。所以，把 <code>I/O</code> 多路复用归为同步阻塞模式。</p>
+<h1 id="五、信号驱动I-o"><a href="#五、信号驱动I-o" class="headerlink" title="五、信号驱动I/o"></a><font size=3>五、信号驱动<code>I/o</code></font></h1><h2 id="1-基本概念"><a href="#1-基本概念" class="headerlink" title="1. 基本概念"></a><font size=3>1. 基本概念</font></h2><p>我们允许 <code>socket</code> 进行信号驱动 <code>I/O</code>，并注册一个信号处理函数，进程继续运行并不阻塞。当数据准备好时，进程会收到一个 <code>SIGIO</code> 信号，可以在信号处理函数中调用 <code>I/O</code> 操作函数处理数据。</p>
+<h2 id="2-网络模型"><a href="#2-网络模型" class="headerlink" title="2. 网络模型"></a><font size=3>2. 网络模型</font></h2><p>具体过程如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-06-%E7%BD%91%E7%BB%9CIO%E6%A8%A1%E5%9E%8B/img/image-20220701074211434.png" alt="image-20220701074211434" style="zoom:50%;" />
+
+<p>当进程发起一个<code>I/O</code>操作，会向内核注册一个信号处理函数，然后进程返回不阻塞；当内核数据就绪时会发送一个信号给进程，进程便在信号处理函数中调用<code>I/O</code>读取数据。</p>
+<h1 id="六、异步I-o"><a href="#六、异步I-o" class="headerlink" title="六、异步I/o"></a><font size=3>六、异步<code>I/o</code></font></h1><h2 id="1-基本概念-1"><a href="#1-基本概念-1" class="headerlink" title="1. 基本概念"></a><font size=3>1. 基本概念</font></h2><p>相对于同步 <code>I/O</code>，异步 <code>I/O</code> 不是顺序执行。用户进程进行 <code>aio_read() </code>系统调用之后，无论内核数据是否准备好，都会直接返回给用户进程，然后用户态进程可以去做别的事情。等到 <code>socket</code> 数据准备好了，内核直接复制数据给进程，然后从内核向进程发送通知。异步<code>I/O</code> 两个阶段，进程都是非阻塞的。</p>
+<h2 id="2-网络模型-1"><a href="#2-网络模型-1" class="headerlink" title="2. 网络模型"></a><font size=3>2. 网络模型</font></h2><p>Linux 提供了 <code>AIO</code> 库函数实现异步，但是用的很少。目前有很多开源的异步 <code>I/O</code> 库，例如 <code>libevent</code>、<code>libev</code>、<code>libuv</code>。异步过程如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-06-%E7%BD%91%E7%BB%9CIO%E6%A8%A1%E5%9E%8B/img/image-20220701083251722.png" alt="image-20220701083251722" style="zoom:50%;" />
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/f31b1be0.html">LV06-03-网络编程-06-网络IO模型</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年10月27日 - 11:49</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/f31b1be0.html" title="LV06-03-网络编程-06-网络IO模型">https://sumumm.github.io/post/f31b1be0.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" rel="tag"><i class="fa fa-tag"></i> LV06-网络编程</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/a85de2e8.html" rel="prev" title="LV06-03-网络编程-07-多路复用IO-01-select">
+                  <i class="fa fa-angle-left"></i> LV06-03-网络编程-07-多路复用IO-01-select
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/a7d754c4.html" rel="next" title="LV06-03-网络编程-05-UDP协议编程">
+                  LV06-03-网络编程-05-UDP协议编程 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

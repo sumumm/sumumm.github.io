@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="了解下I2C协议。若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV08-01-I2C子系统-01-I2C协议">
+<meta property="og:url" content="https://sumumm.github.io/post/fce0a478.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="了解下I2C协议。若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/005_i2c_hardware_connect.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/006_teacher_and_student.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/009_i2c_signal.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/i2c002.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/i2c003.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/i2c004.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/007_i2c_write.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/008_i2c_read.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/i2c005.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/i2c006.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/i2c007.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/i2c008.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/010_i2c_signal_internal.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/011_true_value_table.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/017_i2c_and_smbus.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/018_repeated_start.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/019_smbus_quick_command.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/020_smbus_receive_byte.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/021_smbus_send_byte.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/022_smbus_read_byte.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/023_smbus_read_word.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/024_smbus_write_byte.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/025_smbus_write_word.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/026_smbus_block_read.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/027_smbus_block_write.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/033_i2c_block_read.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/034_i2c_block_write.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/028_smbus_block_write_block_read_process_call.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/029_smbus_pec_example.png">
+<meta property="article:published_time" content="2025-04-07T23:37:58.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.057Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV08-I2C子系统">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/005_i2c_hardware_connect.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/fce0a478.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/fce0a478.html","path":"post/fce0a478.html","title":"LV08-01-I2C子系统-01-I2C协议"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV08-01-I2C子系统-01-I2C协议 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81I2C%E5%8D%8F%E8%AE%AE"><span class="nav-text">一、I2C协议</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%A1%AC%E4%BB%B6%E8%BF%9E%E6%8E%A5"><span class="nav-text">1. 硬件连接</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%80%8E%E4%B9%88%E4%BC%A0%E8%BE%93%E6%95%B0%E6%8D%AE%EF%BC%9F"><span class="nav-text">2. 怎么传输数据？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%8F%91%E7%90%83%E7%9A%84%E4%BE%8B%E5%AD%90"><span class="nav-text">2.1 发球的例子</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-I2C%E7%9A%84%E4%BF%A1%E5%8F%B7"><span class="nav-text">2.2 I2C的信号</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-%E8%B5%B7%E5%A7%8B%E4%BF%A1%E5%8F%B7%E4%B8%8E%E7%BB%93%E6%9D%9F%E4%BF%A1%E5%8F%B7"><span class="nav-text">2.2.1 起始信号与结束信号</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-%E6%95%B0%E6%8D%AE%E6%A0%BC%E5%BC%8F%E4%B8%8E%E5%BA%94%E7%AD%94%E4%BF%A1%E5%8F%B7-ACK-NACK"><span class="nav-text">2.2.2 数据格式与应答信号(ACK&#x2F;NACK)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-3-%E4%B8%BB%E6%9C%BA%E4%B8%8E%E4%BB%8E%E6%9C%BA%E9%80%9A%E4%BF%A1"><span class="nav-text">2.2.3 主机与从机通信</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-I2C%E4%BC%A0%E8%BE%93%E6%95%B0%E6%8D%AE%E7%9A%84%E6%A0%BC%E5%BC%8F"><span class="nav-text">3. I2C传输数据的格式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E5%86%99%E6%93%8D%E4%BD%9C"><span class="nav-text">3.1 写操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E8%AF%BB%E6%93%8D%E4%BD%9C"><span class="nav-text">3.2 读操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E8%AF%BB%E5%86%99%E5%AE%9E%E4%BE%8B"><span class="nav-text">3.3 读写实例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E5%8D%8F%E8%AE%AE%E7%BB%86%E8%8A%82"><span class="nav-text">3.3 协议细节</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81SMBus%E5%8D%8F%E8%AE%AE"><span class="nav-text">二、SMBus协议</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-SMBus%E6%98%AFI2C%E5%8D%8F%E8%AE%AE%E7%9A%84%E4%B8%80%E4%B8%AA%E5%AD%90%E9%9B%86"><span class="nav-text">1. SMBus是I2C协议的一个子集</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-SMBus%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">1.1 SMBus是什么？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E6%9C%89%E5%93%AA%E4%BA%9B%E6%9B%B4%E4%B8%A5%E6%A0%BC%E7%9A%84%E8%A6%81%E6%B1%82%EF%BC%9F"><span class="nav-text">1.2 有哪些更严格的要求？</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-SMBus%E5%8D%8F%E8%AE%AE%E5%88%86%E6%9E%90"><span class="nav-text">2. SMBus协议分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-symbols-%E7%AC%A6%E5%8F%B7"><span class="nav-text">2.1 symbols(符号)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-SMBus-Quick-Command"><span class="nav-text">2.2 SMBus Quick Command</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E6%8E%A5%E6%94%B6-%E5%8F%91%E9%80%81%E4%B8%80%E4%B8%AA%E5%AD%97%E8%8A%82%E2%80%94%E2%80%94%E4%B8%8D%E5%8F%91Command-Code"><span class="nav-text">2.3 接收&#x2F;发送一个字节——不发Command Code</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1-SMBus-Receive-Byte"><span class="nav-text">2.3.1 SMBus Receive Byte</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2-SMBus-Send-Byte"><span class="nav-text">2.3.2 SMBus Send Byte</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E6%8E%A5%E6%94%B6-%E5%8F%91%E9%80%81%E4%B8%80%E4%B8%AA%E5%AD%97%E8%8A%82%E2%80%94%E2%80%94%E5%8F%91%E9%80%81Command-Code"><span class="nav-text">2.4 接收&#x2F;发送一个字节——发送Command Code</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-1-SMBus-Read-Byte"><span class="nav-text">2.4.1 SMBus Read Byte</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-2-SMBus-Read-Word"><span class="nav-text">2.4.2 SMBus Read Word</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-3-SMBus-Write-Byte"><span class="nav-text">2.4.3 SMBus Write Byte</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-4-SMBus-Write-Word"><span class="nav-text">2.4.4 SMBus Write Word</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-5-SMBus-Block-Read"><span class="nav-text">2.4.5 SMBus Block Read</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-6-SMBus-Block-Write"><span class="nav-text">2.4.6 SMBus Block Write</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-7-I2C-Block-Read"><span class="nav-text">2.4.7 I2C Block Read</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-8-I2C-Block-Write"><span class="nav-text">2.4.8 I2C Block Write</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-SMBus-Block-Write-Block-Read-Process-Call"><span class="nav-text">2.5 SMBus Block Write - Block Read Process Call</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6-Packet-Error-Checking-PEC"><span class="nav-text">2.6 Packet Error Checking (PEC)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-SMBus%E5%92%8CI2C%E7%9A%84%E5%BB%BA%E8%AE%AE"><span class="nav-text">3. SMBus和I2C的建议</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/fce0a478.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV08-01-I2C子系统-01-I2C协议 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV08-01-I2C子系统-01-I2C协议
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-04-08 07:37:58" itemprop="dateCreated datePublished" datetime="2025-04-08T07:37:58+08:00">2025-04-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/" itemprop="url" rel="index"><span itemprop="name">LV08-I2C子系统</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>7.4k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>27 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>了解下I2C协议。若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="3">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4" target="_blank">kernel/git/stable/linux.git - Linux kernel stable tree</a></td>        <td align="left">linux kernel源码(官网,tag 4.19.71)</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、I2C协议"><a href="#一、I2C协议" class="headerlink" title="一、I2C协议"></a><font size=3>一、I2C协议</font></h1><p>可以参考这个文档：<a target="_blank" rel="noopener" href="https://www.nxp.com/docs/en/user-guide/UM10204.pdf">I2C-bus specification and user manual</a></p>
+<h2 id="1-硬件连接"><a href="#1-硬件连接" class="headerlink" title="1. 硬件连接"></a><font size=3>1. 硬件连接</font></h2><p>I2C在硬件上的接法如下所示，主控芯片引出两条线SCL，SDA线，在一条I2C总线上可以接很多I2C设备，我们还会放一个上拉电阻（放一个上拉电阻的原因以后我们再说）。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/005_i2c_hardware_connect.png" alt="image-20210220144722044" style="zoom: 67%;" />
+
+<p>i2c支持一主多从，各设备地址独立，标准模式传输速率为100kbit&#x2F;s，快速模式为400kbit&#x2F;s。总线通过上拉电阻接到电源。当 I2C 设备空闲时，会输出高阻态，而当所有设备都空 闲，都输出高阻态时，由上拉电阻把总线拉成高电平。2C物理总线使用两条总线线路，SCL和SDA。</p>
+<ul>
+<li>SCL： 时钟线，数据收发同步</li>
+<li>SDA： 数据线，传输具体数据</li>
+</ul>
+<h2 id="2-怎么传输数据？"><a href="#2-怎么传输数据？" class="headerlink" title="2. 怎么传输数据？"></a><font size=3>2. 怎么传输数据？</font></h2><h3 id="2-1-发球的例子"><a href="#2-1-发球的例子" class="headerlink" title="2.1 发球的例子"></a><font size=3>2.1 发球的例子</font></h3><p>怎么通过I2C传输数据？我们需要把数据从主设备发送到从设备上去，也需要把数据从从设备传送到主设备上去，数据涉及到双向传输。举个例子，现在我们上体育课，我们的体育老师可以把球发给学生，也可以把球从学生中接过来。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/006_teacher_and_student.png" alt="image-20210220145618978" style="zoom:50%;" />
+
+
+
+<ul>
+<li>发球：体育老师 &rarr; 学生</li>
+</ul>
+<p>（1）老师：开始了(start)</p>
+<p>（2）老师：A！我要发球给你！(地址&#x2F;方向)</p>
+<p>（3）学生A：到！(回应)</p>
+<p>（4）老师把球发出去（传输）</p>
+<p>（5）A收到球之后，应该告诉老师一声（回应）</p>
+<p>（6）老师：结束（停止）</p>
+<ul>
+<li>接球：学生 &rarr; 体育老师</li>
+</ul>
+<p>（1）老师：开始了(start)</p>
+<p>（2）老师：B！把球发给我！(地址&#x2F;方向)</p>
+<p>（3）学生B：到！</p>
+<p>（4）B把球发给老师（传输）</p>
+<p>（5）老师收到球之后，给B说一声，表示收到球了（回应）</p>
+<p>（6）老师：结束（停止）</p>
+<h3 id="2-2-I2C的信号"><a href="#2-2-I2C的信号" class="headerlink" title="2.2 I2C的信号"></a><font size=3>2.2 I2C的信号</font></h3><p>我们就使用上面这个简单的例子，来了解一下IIC的传输协议：</p>
+<ul>
+<li>老师说开始了，表示开始信号(start)</li>
+<li>老师提醒某个学生要发球，表示发送地址和方向(address&#x2F;read&#x2F;write)</li>
+<li>老师发球&#x2F;接球，表示数据的传输</li>
+<li>收到球要回应：回应信号(ACK)</li>
+<li>老师说结束，表示IIC传输结束(P)</li>
+</ul>
+<p>下面我们回到I2C中，I2C协议中数据传输的单位是字节，也就是8位。但是要用到9个时钟：前面8个时钟用来传输8数据，第9个时钟用来传输回应信号。传输时，先传输最高位(MSB)。I2C协议信号应该是在每个I2C器件的芯片手册中都有，我们找一个看一下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/009_i2c_signal.png" alt="image-20210220151524099"  />
+
+<h4 id="2-2-1-起始信号与结束信号"><a href="#2-2-1-起始信号与结束信号" class="headerlink" title="2.2.1 起始信号与结束信号"></a><font size=3>2.2.1 起始信号与结束信号</font></h4><ul>
+<li>开始信号（S）：SCL为高电平时，SDA山高电平向低电平跳变，开始传送数据。</li>
+<li>结束信号（P）：SCL为高电平时，SDA由低电平向高电平跳变，结束传送数据。</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/i2c002.png" alt="3|"  />
+
+<p>当SCL线为高电平时，SDA线由高到低的下降沿，为传输开始标志(S)。直到主设备发出结束信号(P)， 否则总线状态一直为忙。结束标志(P)为，当SCL线为高电平时，SDA线由低到高的上升沿。</p>
+<h4 id="2-2-2-数据格式与应答信号-ACK-NACK"><a href="#2-2-2-数据格式与应答信号-ACK-NACK" class="headerlink" title="2.2.2 数据格式与应答信号(ACK&#x2F;NACK)"></a><font size=3>2.2.2 数据格式与应答信号(ACK&#x2F;NACK)</font></h4><ul>
+<li>应答信号(ACK)：接收器在接收到8位数据后，在第9个时钟周期，拉低SDA</li>
+<li>SDA上传输的数据必须在SCL为高电平期间保持稳定，SDA上的数据只能在SCL为低电平期间变化</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/i2c003.png" alt="3|" style="zoom:80%;" />
+
+<p>i2c的数据字节定义为8-bits长度，对每次传送的总字节数量没有限制,但对每一次传输必须伴有一个应答(ACK)信号， 其时钟由主设备提供，而真正的应答信号由从设备发出，在时钟为高时，通过拉低并保持SDA的值来实现。如果从设备忙， 它可以使 SCL保持在低电平，这会强制使主设备进入等待状态。当从设备空闲后，并且释放时钟线，原来的数据传输才会继续。3</p>
+<h4 id="2-2-3-主机与从机通信"><a href="#2-2-3-主机与从机通信" class="headerlink" title="2.2.3 主机与从机通信"></a><font size=3>2.2.3 主机与从机通信</font></h4><p>完整的通信过程时序大概如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/i2c004.png" alt="3|" style="zoom: 80%;" />
+
+<p>开始标志(S)发出后，主设备会传送一个7位的Slave地址，并且后面跟着一个第8位，称为Read&#x2F;Write位。 R&#x2F;W位表示主设备是在接受从设备的数据还是在向其写数据。然后，主设备释放SDA线，等待从设备的应答信号(ACK)。 每个字节的传输都要跟随有一个应答位。应答产生时，从设备将SDA线拉低并且在SCL为高电平时保持低。 数据传输总是以停止标志（P）结束，然后释放通信线路。 然而，主设备也可以产生重复的开始信号去操作另一台从设备， 而不发出结束标志。综上可知，所有的SDA信号变化都要在SCL时钟为低电平时进行，除了开始和结束标志</p>
+<h2 id="3-I2C传输数据的格式"><a href="#3-I2C传输数据的格式" class="headerlink" title="3. I2C传输数据的格式"></a><font size=3>3. I2C传输数据的格式</font></h2><h3 id="3-1-写操作"><a href="#3-1-写操作" class="headerlink" title="3.1 写操作"></a><font size=3>3.1 写操作</font></h3><p>流程如下：</p>
+<ul>
+<li>主芯片要发出一个start信号</li>
+<li>然后发出一个设备地址(用来确定是往哪一个芯片写数据)，方向(读&#x2F;写，0表示写，1表示读)</li>
+<li>从设备回应(用来确定这个设备是否存在)，然后就可以传输数据</li>
+<li>主设备发送一个字节数据给从设备，并等待回应</li>
+<li>每传输一字节数据，接收方要有一个回应信号（确定数据是否接受完成)，然后再传输下一个数据。</li>
+<li>数据发送完之后，主芯片就会发送一个停止信号。</li>
+</ul>
+<p>下图中白色背景表示”主&rarr;从”，灰色背景表示”从&rarr;主”</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/007_i2c_write.png" alt="image-20210220150757825" style="zoom: 60%;" />
+
+<h3 id="3-2-读操作"><a href="#3-2-读操作" class="headerlink" title="3.2 读操作"></a><font size=3>3.2 读操作</font></h3><p>流程如下：</p>
+<ul>
+<li><p>主芯片要发出一个start信号</p>
+</li>
+<li><p>然后发出一个设备地址(用来确定是往哪一个芯片写数据)，方向(读&#x2F;写，0表示写，1表示读)</p>
+</li>
+<li><p>从设备回应(用来确定这个设备是否存在)，然后就可以传输数据</p>
+</li>
+<li><p>从设备发送一个字节数据给主设备，并等待回应</p>
+</li>
+<li><p>每传输一字节数据，接收方要有一个回应信号（确定数据是否接受完成)，然后再传输下一个数据。</p>
+</li>
+<li><p>数据发送完之后，主芯片就会发送一个停止信号。</p>
+</li>
+</ul>
+<p>下图中白色背景表示”主&rarr;从”，灰色背景表示”从&rarr;主”</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/008_i2c_read.png" alt="image-20210220150954993" style="zoom:60%;" />
+
+<h3 id="3-3-读写实例"><a href="#3-3-读写实例" class="headerlink" title="3.3 读写实例"></a><font size=3>3.3 读写实例</font></h3><p>我们来看一下i2c对mpu6050进行数据读写的流程。</p>
+<ul>
+<li>单字节写入</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/i2c005.png" alt="3|"  />
+
+<ul>
+<li>连续字节写入</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/i2c006.png" alt="3|" style="zoom:82%;" />
+
+<p>对MPU6050进行写操作时，主设备发出开始标志(S)和写地址(地址位加一个R&#x2F;W位，0为写)。 MPU6050产生应答信号。然后主设备开始传送寄存器地址(RA)，接到应答后，开始传送寄存器数据， 然后仍然要有应答信号，连续写入多字节时依次类推。</p>
+<ul>
+<li>单字节读出</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/i2c007.png" alt="3|" style="zoom:82%;" />
+
+<ul>
+<li>连续字节读出</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/i2c008.png" alt="3|" style="zoom:82%;" />
+
+<p>对MPU6050进行读操作时，主设备发出开始标志(S)和读地址(地址位加一个R&#x2F;W位，1为读)。 等待MPU6050产生应答信号。然后发送寄存器地址，告诉MPU6050读哪一个寄存器。 紧接着，收到应答信号后，主设备再发一个开始信号，然后发送从设备读地址。 MPU6050产生应答信号并开始发送寄存器数据。通信以主设备产生的拒绝应答信号(NACK)和结束标志(P)结束。</p>
+<h3 id="3-3-协议细节"><a href="#3-3-协议细节" class="headerlink" title="3.3 协议细节"></a><font size=3>3.3 协议细节</font></h3><ul>
+<li>如何在SDA上实现双向传输？</li>
+</ul>
+<p>主芯片通过一根SDA线既可以把数据发给从设备，也可以从SDA上读取数据，连接SDA线的引脚里面必然有两个引脚（发送引脚&#x2F;接受引脚）。</p>
+<ul>
+<li>主、从设备都可以通过SDA发送数据，肯定不能同时发送数据，怎么错开时间？</li>
+</ul>
+<p>在9个时钟里，前8个时钟由主设备发送数据的话，第9个时钟就由从设备发送数据；前8个时钟由从设备发送数据的话，第9个时钟就由主设备发送数据。</p>
+<ul>
+<li>双方设备中，某个设备发送数据时，另一方怎样才能不影响SDA上的数据？（为什么SDA上要有上拉电阻？）</li>
+</ul>
+<p>设备的SDA中有一个三极管，使用开极&#x2F;开漏电路(三极管是开极，CMOS管是开漏，作用一样)，如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/010_i2c_signal_internal.png" alt="image-20210220152057547" style="zoom: 50%;" />
+
+<p>真值表如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/011_true_value_table.png" alt="image-20210220152134970" style="zoom:50%;" />
+
+
+
+<p>从真值表和电路图我们可以知道：</p>
+<p>（1）当某一个芯片不想影响SDA线时，那就不驱动这个三极管</p>
+<p>（2）想让SDA输出高电平，双方都不驱动三极管(SDA通过上拉电阻变为高电平)</p>
+<p>（3）想让SDA输出低电平，就驱动三极管</p>
+<p>可以看个例子，了解下数据是怎么传的（实现双向传输）。主设备发送（8bit）给从设备</p>
+<p>前8个clk：从设备不要影响SDA，从设备不驱动三极管。主设备决定数据，主设备要发送1时不驱动三极管，要发送0时驱动三极管</p>
+<p>第9个clk：由从设备决定数据，主设备不驱动三极管。从设备决定数据，要发出回应信号的话，就驱动三极管让SDA变为0。从这里也可以知道ACK信号是低电平。</p>
+<p>从上面的这个例子，就可以知道怎样在一条线上实现双向传输，这就是SDA上要使用<strong>上拉电阻的原因</strong>。</p>
+<ul>
+<li>为何SCL也要使用上拉电阻？</li>
+</ul>
+<p>在第9个时钟之后，如果有某一方需要更多的时间来处理数据，它可以一直驱动三极管把SCL拉低。当SCL为低电平时候，大家都不应该使用I2C总线，只有当SCL从低电平变为高电平的时候，IIC总线才能被使用。当它就绪后，就可以不再驱动三极管，这是上拉电阻把SCL变为高电平，其他设备就可以继续使用I2C总线了。</p>
+<ul>
+<li>对于IIC协议它只能规定怎么传输数据，数据是什么含义由从设备决定。</li>
+</ul>
+<h1 id="二、SMBus协议"><a href="#二、SMBus协议" class="headerlink" title="二、SMBus协议"></a><font size=3>二、SMBus协议</font></h1><p>参考资料：</p>
+<ul>
+<li><p>Linux内核文档：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/Documentation/i2c/smbus-protocol">smbus-protocol - Documentation&#x2F;i2c&#x2F;smbus-protocol</a></p>
+</li>
+<li><p>SMBus协议：<a target="_blank" rel="noopener" href="http://www.smbus.org/specs/">http://www.smbus.org/specs/</a></p>
+</li>
+<li><p>文档：System Management Bus (SMBus) Specification</p>
+</li>
+<li><p>I2CTools: <a target="_blank" rel="noopener" href="https://archive.kernel.org/oldwiki/i2c.wiki.kernel.org/index.php/I2C_Tools.html">I2C Tools - Linux i2c Wiki</a></p>
+</li>
+</ul>
+<h2 id="1-SMBus是I2C协议的一个子集"><a href="#1-SMBus是I2C协议的一个子集" class="headerlink" title="1. SMBus是I2C协议的一个子集"></a><font size=3>1. SMBus是I2C协议的一个子集</font></h2><h3 id="1-1-SMBus是什么？"><a href="#1-1-SMBus是什么？" class="headerlink" title="1.1 SMBus是什么？"></a><font size=3>1.1 SMBus是什么？</font></h3><p>SMBus: System Management Bus，系统管理总线。SMBus最初的目的是为智能电池、充电电池、其他微控制器之间的通信链路而定义的。也被用来连接各种设备，包括电源相关设备，系统传感器，EEPROM通讯设备等等。</p>
+<p>SMBus 为系统和电源管理这样的任务提供了一条控制总线，使用 SMBus 的系统，设备之间发送和接收消息都是通过 SMBus，而不是使用单独的控制线，这样可以节省设备的管脚数。</p>
+<p>SMBus是基于I2C协议的，SMBus要求更严格，SMBus是I2C协议的子集。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/017_i2c_and_smbus.png" alt="image-20210224093827621" style="zoom: 50%;" />
+
+<h3 id="1-2-有哪些更严格的要求？"><a href="#1-2-有哪些更严格的要求？" class="headerlink" title="1.2 有哪些更严格的要求？"></a><font size=3>1.2 有哪些更严格的要求？</font></h3><p>SMBus有哪些更严格的要求？跟一般的I2C协议有哪些差别？</p>
+<ul>
+<li>VDD的极限值不一样</li>
+</ul>
+<p>I2C协议：范围很广，甚至讨论了高达12V的情况。</p>
+<p>SMBus：1.8V~5V。</p>
+<ul>
+<li>最小时钟频率、最大的<code>Clock Stretching </code></li>
+</ul>
+<p>Clock Stretching就是某个设备需要更多时间进行内部的处理时，它可以把SCL拉低占住I2C总线。</p>
+<p>I2C协议：时钟频率最小值无限制，Clock Stretching时长也没有限制。</p>
+<p>SMBus：时钟频率最小值是10KHz，Clock Stretching的最大时间值也有限制</p>
+<ul>
+<li>地址回应(Address Acknowledge)（一个I2C设备接收到它的设备地址后，是否必须发出回应信号？）</li>
+</ul>
+<p>I2C协议：没有强制要求必须发出回应信号</p>
+<p>SMBus：强制要求必须发出回应信号，这样对方才知道该设备的状态：busy，failed，或是被移除了</p>
+<ul>
+<li>SMBus协议明确了数据的传输格式</li>
+</ul>
+<p>I2C协议：它只定义了怎么传输数据，但是并没有定义数据的格式，这完全由设备来定义</p>
+<p>SMBus：定义了几种数据格式(后面分析)</p>
+<ul>
+<li>REPEATED START Condition(重复发出S信号)</li>
+</ul>
+<p>比如读EEPROM时，涉及2个操作：把存储地址发给设备和读数据。在写、读之间，可以不发出P信号，而是直接发出S信号：这个S信号就是<code>REPEATED START</code>，如下图所示</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/018_repeated_start.png" alt="image-20210224100056055" style="zoom: 80%;" />
+
+<ul>
+<li>SMBus Low Power Version ：SMBus也有低功耗的版本。</li>
+</ul>
+<h2 id="2-SMBus协议分析"><a href="#2-SMBus协议分析" class="headerlink" title="2. SMBus协议分析"></a><font size=3>2. SMBus协议分析</font></h2><p>对于I2C协议，它只定义了怎么传输数据，但是并没有定义数据的格式，这完全由设备来定义。对于SMBus协议，它定义了几种数据格式。需要注意：</p>
+<ul>
+<li>下面文档中的<code>Functionality flag</code>是Linux的某个I2C控制器驱动所支持的功能。</li>
+<li>比如<code>Functionality flag: I2C_FUNC_SMBUS_QUICK</code>，表示需要I2C控制器支持<code>SMBus Quick Command</code></li>
+</ul>
+<h3 id="2-1-symbols-符号"><a href="#2-1-symbols-符号" class="headerlink" title="2.1 symbols(符号)"></a><font size=3>2.1 symbols(符号)</font></h3><figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">S     (1 bit) : Start bit(开始位)</span><br><span class="line">Sr    (1 bit) : 重复的开始位</span><br><span class="line">P     (1 bit) : Stop bit(停止位)</span><br><span class="line">R/W#  (1 bit) : Read/Write bit. Rd equals 1, Wr equals 0.(读写位)</span><br><span class="line">A, N  (1 bit) : Accept and reverse accept bit.(回应位)</span><br><span class="line">Address(7 bits): I2C 7 bit address. Note that this can be expanded as usual to</span><br><span class="line">                get a 10 bit I2C address.</span><br><span class="line">                (地址位，7位地址)</span><br><span class="line">Command Code  (8 bits): Command byte, a data byte which often selects a register on</span><br><span class="line">                the device.</span><br><span class="line">                (命令字节，一般用来选择芯片内部的寄存器)</span><br><span class="line">Data Byte (8 bits): A plain data byte. Sometimes, I write DataLow, DataHigh</span><br><span class="line">                for 16 bit data.</span><br><span class="line">                (数据字节，8位；如果是16位数据的话，用2个字节来表示：DataLow、DataHigh)</span><br><span class="line">Count (8 bits): A data byte containing the length of a block operation.</span><br><span class="line">				(在block操作总，表示数据长度)</span><br><span class="line">[..]:           Data sent by I2C device, as opposed to data sent by the host</span><br><span class="line">                adapter.</span><br><span class="line">                (中括号表示I2C设备发送的数据，没有中括号表示host adapter发送的数据)</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-SMBus-Quick-Command"><a href="#2-2-SMBus-Quick-Command" class="headerlink" title="2.2 SMBus Quick Command"></a><font size=3>2.2 SMBus Quick Command</font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/019_smbus_quick_command.png" alt="image-20210224105224903" style="zoom:67%;" />
+
+<p>只是用来发送一位数据：R&#x2F;W#本意是用来表示读或写，但是在SMBus里可以用来表示其他含义。比如某些开关设备，可以根据这一位来决定是打开还是关闭。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Functionality flag: I2C_FUNC_SMBUS_QUICK</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-接收-发送一个字节——不发Command-Code"><a href="#2-3-接收-发送一个字节——不发Command-Code" class="headerlink" title="2.3 接收&#x2F;发送一个字节——不发Command Code"></a><font size=3>2.3 接收&#x2F;发送一个字节——不发Command Code</font></h3><h4 id="2-3-1-SMBus-Receive-Byte"><a href="#2-3-1-SMBus-Receive-Byte" class="headerlink" title="2.3.1 SMBus Receive Byte"></a><font size=3>2.3.1 SMBus Receive Byte</font></h4><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/020_smbus_receive_byte.png" alt="image-20210224113511225" style="zoom: 67%;" />
+
+<p>读取一个字节，可以看I2C-tools中的函数 <a target="_blank" rel="noopener" href="https://github.com/oudream/i2c-tools/blob/master/lib/smbus.c#L53">i2c_smbus_read_byte()</a>。Host adapter接收到一个字节后不需要发出回应信号(上图中N表示不回应)。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Functionality flag: I2C_FUNC_SMBUS_READ_BYTE</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-3-2-SMBus-Send-Byte"><a href="#2-3-2-SMBus-Send-Byte" class="headerlink" title="2.3.2 SMBus Send Byte"></a><font size=3>2.3.2 SMBus Send Byte</font></h4><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/021_smbus_send_byte.png" alt="image-20210224110638143" style="zoom:67%;" />
+
+<p>发送一个字节，可以看I2C-tools中的函数 <a target="_blank" rel="noopener" href="https://github.com/oudream/i2c-tools/blob/master/lib/smbus.c#L65">i2c_smbus_write_byte()</a>。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Functionality flag: I2C_FUNC_SMBUS_WRITE_BYTE</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-4-接收-发送一个字节——发送Command-Code"><a href="#2-4-接收-发送一个字节——发送Command-Code" class="headerlink" title="2.4 接收&#x2F;发送一个字节——发送Command Code"></a><font size=3>2.4 接收&#x2F;发送一个字节——发送Command Code</font></h3><h4 id="2-4-1-SMBus-Read-Byte"><a href="#2-4-1-SMBus-Read-Byte" class="headerlink" title="2.4.1 SMBus Read Byte"></a><font size=3>2.4.1 SMBus Read Byte</font></h4><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/022_smbus_read_byte.png" alt="image-20210224110812872" style="zoom:67%;" />
+
+<p>可以看I2C-tools中的函数：<a target="_blank" rel="noopener" href="https://github.com/oudream/i2c-tools/blob/master/lib/smbus.c#L71">i2c_smbus_read_byte_data()</a>。先发出<code>Command Code</code>(它一般表示芯片内部的寄存器地址)，再读取一个字节的数据。上面介绍的<code>SMBus Receive Byte</code>是不发送Comand，直接读取数据。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Functionality flag: I2C_FUNC_SMBUS_READ_BYTE_DATA</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-4-2-SMBus-Read-Word"><a href="#2-4-2-SMBus-Read-Word" class="headerlink" title="2.4.2 SMBus Read Word"></a><font size=3>2.4.2 SMBus Read Word</font></h4><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/023_smbus_read_word.png" alt="image-20210224111404096" style="zoom:67%;" />
+
+<p>可以看I2C-tools中的函数：<a target="_blank" rel="noopener" href="https://github.com/oudream/i2c-tools/blob/master/lib/smbus.c#L92">i2c_smbus_read_word_data()</a>。先发出<code>Command Code</code>(它一般表示芯片内部的寄存器地址)，再读取2个字节的数据。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Functionality flag: I2C_FUNC_SMBUS_READ_WORD_DATA</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-4-3-SMBus-Write-Byte"><a href="#2-4-3-SMBus-Write-Byte" class="headerlink" title="2.4.3 SMBus Write Byte"></a><font size=3>2.4.3 SMBus Write Byte</font></h4><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/024_smbus_write_byte.png" alt="image-20210224111542576" style="zoom:67%;" />
+
+<p>I2C-tools中的函数：<a target="_blank" rel="noopener" href="https://github.com/oudream/i2c-tools/blob/master/lib/smbus.c#L84">i2c_smbus_write_byte_data()</a>。先发出<code>Command Code</code>(它一般表示芯片内部的寄存器地址)，再发出1个字节的数据。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Functionality flag: I2C_FUNC_SMBUS_WRITE_BYTE_DATA</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-4-4-SMBus-Write-Word"><a href="#2-4-4-SMBus-Write-Word" class="headerlink" title="2.4.4 SMBus Write Word"></a><font size=3>2.4.4 SMBus Write Word</font></h4><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/025_smbus_write_word.png" alt="image-20210224111840257" style="zoom:67%;" />
+
+<p>I2C-tools中的函数：<a target="_blank" rel="noopener" href="https://github.com/oudream/i2c-tools/blob/master/lib/smbus.c#L105">i2c_smbus_write_word_data()</a>。先发出<code>Command Code</code>(它一般表示芯片内部的寄存器地址)，再发出1个字节的数据。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Functionality flag: I2C_FUNC_SMBUS_WRITE_WORD_DATA</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-4-5-SMBus-Block-Read"><a href="#2-4-5-SMBus-Block-Read" class="headerlink" title="2.4.5 SMBus Block Read"></a><font size=3>2.4.5 SMBus Block Read</font></h4><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/026_smbus_block_read.png" alt="image-20210224112524185" style="zoom:67%;" />
+
+<p>I2C-tools中的函数：<a target="_blank" rel="noopener" href="https://github.com/oudream/i2c-tools/blob/master/lib/smbus.c#L125">i2c_smbus_read_block_data()</a>。先发出<code>Command Code</code>(它一般表示芯片内部的寄存器地址)，再发起读操作：先读到一个字节(Block Count)，表示后续要读的字节数，然后读取全部数据。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Functionality flag: I2C_FUNC_SMBUS_READ_BLOCK_DATA</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-4-6-SMBus-Block-Write"><a href="#2-4-6-SMBus-Block-Write" class="headerlink" title="2.4.6 SMBus Block Write"></a><font size=3>2.4.6 SMBus Block Write</font></h4><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/027_smbus_block_write.png" alt="image-20210224112629201" style="zoom:67%;" />
+
+<p>I2C-tools中的函数：<a target="_blank" rel="noopener" href="https://github.com/oudream/i2c-tools/blob/master/lib/smbus.c#L140">i2c_smbus_write_block_data()</a>。先发出<code>Command Code</code>(它一般表示芯片内部的寄存器地址)，再发出1个字节的<code>Byte Conut</code>(表示后续要发出的数据字节数)，最后发出全部数据。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Functionality flag: I2C_FUNC_SMBUS_WRITE_BLOCK_DATA</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-4-7-I2C-Block-Read"><a href="#2-4-7-I2C-Block-Read" class="headerlink" title="2.4.7 I2C Block Read"></a><font size=3>2.4.7 I2C Block Read</font></h4><p>在一般的I2C协议中，也可以连续读出多个字节。它跟<code>SMBus Block Read</code>的差别在于设备发出的第1个数据不是长度N，如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/033_i2c_block_read.png" alt="image-20210225094024082" style="zoom: 80%;" />
+
+<p>I2C-tools中的函数：<a target="_blank" rel="noopener" href="https://github.com/oudream/i2c-tools/blob/master/lib/smbus.c#L158">i2c_smbus_read_i2c_block_data()</a>。先发出<code>Command Code</code>(它一般表示芯片内部的寄存器地址)，再发出1个字节的<code>Byte Conut</code>(表示后续要发出的数据字节数)，最后发出全部数据。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Functionality flag: I2C_FUNC_SMBUS_READ_I2C_BLOCK</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-4-8-I2C-Block-Write"><a href="#2-4-8-I2C-Block-Write" class="headerlink" title="2.4.8 I2C Block Write"></a><font size=3>2.4.8 I2C Block Write</font></h4><p>在一般的I2C协议中，也可以连续发出多个字节。它跟<code>SMBus Block Write</code>的差别在于发出的第1个数据不是长度N，如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/034_i2c_block_write.png" alt="image-20210225094359443" style="zoom: 80%;" />
+
+<p>I2C-tools中的函数：<a target="_blank" rel="noopener" href="https://github.com/oudream/i2c-tools/blob/master/lib/smbus.c#L179">i2c_smbus_write_i2c_block_data()</a>。先发出<code>Command Code</code>(它一般表示芯片内部的寄存器地址)，再发出1个字节的<code>Byte Conut</code>(表示后续要发出的数据字节数)，最后发出全部数据。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Functionality flag: I2C_FUNC_SMBUS_WRITE_I2C_BLOCK</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-5-SMBus-Block-Write-Block-Read-Process-Call"><a href="#2-5-SMBus-Block-Write-Block-Read-Process-Call" class="headerlink" title="2.5 SMBus Block Write - Block Read Process Call"></a><font size=3>2.5 SMBus Block Write - Block Read Process Call</font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/028_smbus_block_write_block_read_process_call.png" alt="image-20210224112940865" style="zoom:67%;" />
+
+<p>先写一块数据，再读一块数据。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Functionality flag: I2C_FUNC_SMBUS_BLOCK_PROC_CALL</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-6-Packet-Error-Checking-PEC"><a href="#2-6-Packet-Error-Checking-PEC" class="headerlink" title="2.6 Packet Error Checking (PEC)"></a><font size=3>2.6 Packet Error Checking (PEC)</font></h3><p>PEC是一种错误校验码，如果使用PEC，那么在P信号之前，数据发送方要发送一个字节的PEC码(它是CRC-8码)。</p>
+<p>以<code>SMBus Send Byte</code>为例，下图中，一个未使用PEC，另一个使用PEC：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/LV08-01-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F-01-I2C%E5%8D%8F%E8%AE%AE/img/029_smbus_pec_example.png" alt="image-20210224113416249" style="zoom:67%;" />
+
+
+
+<h2 id="3-SMBus和I2C的建议"><a href="#3-SMBus和I2C的建议" class="headerlink" title="3. SMBus和I2C的建议"></a><font size=3>3. SMBus和I2C的建议</font></h2><p>因为很多设备都实现了SMBus，而不是更宽泛的I2C协议，所以优先使用SMBus。即使I2C控制器没有实现SMBus，软件方面也是可以使用I2C协议来模拟SMBus。所以：Linux建议优先使用SMBus。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/fce0a478.html">LV08-01-I2C子系统-01-I2C协议</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2025年04月08日 - 07:37</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/fce0a478.html" title="LV08-01-I2C子系统-01-I2C协议">https://sumumm.github.io/post/fce0a478.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV08-I2C%E5%AD%90%E7%B3%BB%E7%BB%9F/" rel="tag"><i class="fa fa-tag"></i> LV08-I2C子系统</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/e2cf4441.html" rel="prev" title="LV08-01-I2C子系统-02-I2CTools">
+                  <i class="fa fa-angle-left"></i> LV08-01-I2C子系统-02-I2CTools
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/f0ec804f.html" rel="next" title="LV06-13-中断-02-中断的申请流程">
+                  LV06-13-中断-02-中断的申请流程 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

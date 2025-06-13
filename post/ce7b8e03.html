@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是内核模块——内核模块参数传递的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-02-内核模块-07-内核模块参数传递">
+<meta property="og:url" content="https://sumumm.github.io/post/ce7b8e03.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是内核模块——内核模块参数传递的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-07-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E5%8F%82%E6%95%B0%E4%BC%A0%E9%80%92/img/image-20241124214858760.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-07-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E5%8F%82%E6%95%B0%E4%BC%A0%E9%80%92/img/image-20241124213250840.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-07-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E5%8F%82%E6%95%B0%E4%BC%A0%E9%80%92/img/image-20241124215301520.png">
+<meta property="article:published_time" content="2024-11-25T16:02:11.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.048Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-07-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E5%8F%82%E6%95%B0%E4%BC%A0%E9%80%92/img/image-20241124214858760.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/ce7b8e03.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/ce7b8e03.html","path":"post/ce7b8e03.html","title":"LV06-02-内核模块-07-内核模块参数传递"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-02-内核模块-07-内核模块参数传递 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%80%8E%E4%B9%88%E4%BC%A0%E9%80%92%E5%8F%82%E6%95%B0%EF%BC%9F"><span class="nav-text">一、怎么传递参数？</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-module-param"><span class="nav-text">1. module_param</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-module-param-array"><span class="nav-text">2. module_param_array</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-module-param-string"><span class="nav-text">3. module_param_string  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%A4%B4%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB"><span class="nav-text">4. 头文件包含</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-sys-module-%E6%A8%A1%E5%9D%97%E5%90%8D-parameters"><span class="nav-text">5. &#x2F;sys&#x2F;module&#x2F;模块名&#x2F;parameters</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%8F%82%E6%95%B0%E4%BC%A0%E9%80%92%E5%AE%9E%E4%BE%8B"><span class="nav-text">二、参数传递实例</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BB%A3%E7%A0%81%E5%AE%9E%E4%BE%8B"><span class="nav-text">1. 代码实例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%BC%80%E5%8F%91%E6%9D%BF%E6%B5%8B%E8%AF%95"><span class="nav-text">2. 开发板测试</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E4%B8%8D%E4%BC%A0%E5%8F%82%E6%95%B0"><span class="nav-text">2.1 不传参数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E4%BC%A0%E9%80%92%E5%8F%82%E6%95%B0"><span class="nav-text">2.2 传递参数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-sys-module-%E6%A8%A1%E5%9D%97%E5%90%8D-parameters"><span class="nav-text">2.3 &#x2F;sys&#x2F;module&#x2F;模块名&#x2F;parameters</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/ce7b8e03.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-02-内核模块-07-内核模块参数传递 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-02-内核模块-07-内核模块参数传递
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-11-26 00:02:11" itemprop="dateCreated datePublished" datetime="2024-11-26T00:02:11+08:00">2024-11-26</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.9k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>14 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是内核模块——内核模块参数传递的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-07-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E5%8F%82%E6%95%B0%E4%BC%A0%E9%80%92/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="2">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<p>我们编写C语言函数的时候，函数的传入参数，根据传入参数的不同我们可以实现不同的功能，就连执行main函数的时候也可以传输参数。</p>
+<p>内核模块作为一个可拓展的动态模块，为Linux内核提供了灵活性，但是有时我们需要根据不同的应用场景给内核传递不同的参数， 例如在程序中开启调试模式、设置详细输出模式以及制定与具体模块相关的选项，都可以通过参数的形式来改变模块的行为。</p>
+<h1 id="一、怎么传递参数？"><a href="#一、怎么传递参数？" class="headerlink" title="一、怎么传递参数？"></a><font size=3>一、怎么传递参数？</font></h1><p>Linux 内核提供了以下几个宏来实现不同类型参数的传递：</p>
+<ul>
+<li>基本类型：module_param(name, type, perm)</li>
+<li>数组参数：module_param_array(name, type, nump, perm)</li>
+<li>字符串参数：module_param_string(name, string, len, perm)</li>
+</ul>
+<h2 id="1-module-param"><a href="#1-module-param" class="headerlink" title="1. module_param"></a><font size=3>1. module_param</font></h2><p>这个宏定义在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/moduleparam.h#L128">moduleparam.h - include&#x2F;linux&#x2F;moduleparam.h - <em>module_param</em></a> ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * module_param - typesafe helper for a module/cmdline parameter</span></span><br><span class="line"><span class="comment"> * @value: the variable to alter, and exposed parameter name.</span></span><br><span class="line"><span class="comment"> * @type: the type of the parameter</span></span><br><span class="line"><span class="comment"> * @perm: visibility in sysfs.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * @value becomes the module parameter, or (prefixed by KBUILD_MODNAME and a</span></span><br><span class="line"><span class="comment"> * &quot;.&quot;) the kernel commandline parameter.  Note that - is changed to _, so</span></span><br><span class="line"><span class="comment"> * the user can use &quot;foo-bar=1&quot; even for variable &quot;foo_bar&quot;.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * @perm is 0 if the the variable is not to appear in sysfs, or 0444</span></span><br><span class="line"><span class="comment"> * for world-readable, 0644 for root-writable, etc.  Note that if it</span></span><br><span class="line"><span class="comment"> * is writable, you may need to use kernel_param_lock() around</span></span><br><span class="line"><span class="comment"> * accesses (esp. charp, which can be kfreed when it changes).</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * The @type is simply pasted to refer to a param_ops_##type and a</span></span><br><span class="line"><span class="comment"> * param_check_##type: for convenience many standard types are provided but</span></span><br><span class="line"><span class="comment"> * you can create your own by defining those variables.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Standard types are:</span></span><br><span class="line"><span class="comment"> *	byte, short, ushort, int, uint, long, ulong</span></span><br><span class="line"><span class="comment"> *	charp: a character pointer</span></span><br><span class="line"><span class="comment"> *	bool: a bool, values 0/1, y/n, Y/N.</span></span><br><span class="line"><span class="comment"> *	invbool: the above, only sense-reversed (N = true).</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> module_param(name, type, perm)				\</span></span><br><span class="line"><span class="meta">	module_param_named(name, name, type, perm)</span></span><br></pre></td></tr></table></figure>
+
+<p>以上代码中的module_param函数需要传入三个参数：</p>
+<ul>
+<li><p>name： 我们定义的变量名；</p>
+</li>
+<li><p>type： 参数的类型，目前内核支持的参数类型有byte，short，ushort，int，uint，long，ulong，charp，bool，invbool。其中short表示短整型。ushort 表示无符号短整型 。int表示整型 。uint表示无符号整型。long表示长整型。ulong表示无符号长整型。charp表示的是字符指针。bool是布尔类型，其值只能为0或者是1。invbool是反布尔类型，其值也是只能取0或者是1，但是true值表示0，false表示1。变量是char类型时，传参只能是byte，char * 时只能是charp。</p>
+</li>
+<li><p>perm： 表示的是该文件的权限，具体参数值见下表。</p>
+</li>
+</ul>
+<table>
+    <tr>
+        <th>用户组</th>
+        <th>标志位</th>
+        <th>解释</th>
+    </tr>
+    <tr>
+        <td rowspan="2">当前用户</td>
+        <td>S_IRUSR</td>
+        <td>用户拥有读权限</td>
+    </tr>
+    <tr>
+        <td>S_IWUSR</td>
+        <td>用户拥有写权限</td>
+    </tr>
+    <tr>
+        <td rowspan="2">当前用户组</td>
+        <td>S_IRGRP</td>
+        <td>当前用户组的其他用户拥有读权限</td>
+    </tr>
+    <tr>
+        <td>S_IWUSR</td>
+        <td>当前用户组的其他用户拥有写权限</td>
+    </tr>
+    <tr>
+        <td rowspan="2">其他用户</td>
+        <td>S_IROTH</td>
+        <td>其他用户拥有读权限</td>
+    </tr>
+    <tr>
+        <td>S_IWOTH</td>
+        <td>其他用户拥有写权限</td>
+    </tr>
+</table>
+
+<p>上述文件权限唯独没有关于可执行权限的设置，请注意， 该文件不允许它具有可执行权限。如果强行给该参数赋予表示可执行权限的参数值S_IXUGO， 那么最终生成的内核模块在加载时会提示错误。其实参数 perm 在 sysfs 文件系统中所对应的文件节点的属性， 其权限定义在“<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/uapi/linux/stat.h#L29">stat.h - include&#x2F;uapi&#x2F;linux&#x2F;stat.h</a>”文件中。 可以用宏定义和数字法两种方式来表示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> S_IRWXU 00700</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> S_IRUSR 00400 <span class="comment">/*文件所有者可读*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> S_IWUSR 00200 <span class="comment">/*文件所有者可写*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> S_IXUSR 00100 <span class="comment">/*文件所有者可执行*/</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> S_IRWXG 00070</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> S_IRGRP 00040 <span class="comment">/*与文件所有者同组的用户可读*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> S_IWGRP 00020 <span class="comment">/*与文件所有者同组的用户可写*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> S_IXGRP 00010 <span class="comment">/*与文件所有者同组的用户可执行*/</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> S_IRWXO 00007</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> S_IROTH 00004 <span class="comment">/*与文件所有者不同组的用户可读*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> S_IWOTH 00002 <span class="comment">/*与文件所有者不同组的用户可写*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> S_IXOTH 00001 <span class="comment">/*与文件所有者不同组的用户可可执行*/</span></span></span><br></pre></td></tr></table></figure>
+
+<p>还有一些组合的定义在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/stat.h#L9">stat.h - include&#x2F;linux&#x2F;stat.h</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> S_IRWXUGO	(S_IRWXU|S_IRWXG|S_IRWXO)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> S_IALLUGO	(S_ISUID|S_ISGID|S_ISVTX|S_IRWXUGO)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> S_IRUGO		(S_IRUSR|S_IRGRP|S_IROTH)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> S_IWUGO		(S_IWUSR|S_IWGRP|S_IWOTH)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> S_IXUGO		(S_IXUSR|S_IXGRP|S_IXOTH)</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="2-module-param-array"><a href="#2-module-param-array" class="headerlink" title="2. module_param_array"></a><font size=3>2. module_param_array</font></h2><p>module_param_array定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/moduleparam.h#L423">moduleparam.h - include&#x2F;linux&#x2F;moduleparam.h - <em>module_param_array</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * module_param_array - a parameter which is an array of some type</span></span><br><span class="line"><span class="comment"> * @name: the name of the array variable</span></span><br><span class="line"><span class="comment"> * @type: the type, as per module_param()</span></span><br><span class="line"><span class="comment"> * @nump: optional pointer filled in with the number written</span></span><br><span class="line"><span class="comment"> * @perm: visibility in sysfs</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Input and output are as comma-separated values.  Commas inside values</span></span><br><span class="line"><span class="comment"> * don&#x27;t work properly (eg. an array of charp).</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * ARRAY_SIZE(@name) is used to determine the number of elements in the</span></span><br><span class="line"><span class="comment"> * array, so the definition must be visible.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> module_param_array(name, type, nump, perm)		\</span></span><br><span class="line"><span class="meta">	module_param_array_named(name, name, type, nump, perm)</span></span><br></pre></td></tr></table></figure>
+
+<p>可以使用 module_param_array 传递数组类型参数， 相较于 module_param ()函数多了nump 参数， 用来表示传递参数个数，nump参数值会根据输入的参数个数而改变，nump 的最终值为传递的数组元素个数。</p>
+<h2 id="3-module-param-string"><a href="#3-module-param-string" class="headerlink" title="3. module_param_string  "></a><font size=3>3. module_param_string  </font></h2><p> module_param_string  用来传递字符串类型的变量 ，它定义在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/moduleparam.h#L286">moduleparam.h - include&#x2F;linux&#x2F;moduleparam.h - <em>module_param_string</em></a> ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * module_param_string - a char array parameter</span></span><br><span class="line"><span class="comment"> * @name: the name of the parameter</span></span><br><span class="line"><span class="comment"> * @string: the string variable</span></span><br><span class="line"><span class="comment"> * @len: the maximum length of the string, incl. terminator</span></span><br><span class="line"><span class="comment"> * @perm: visibility in sysfs.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This actually copies the string when it&#x27;s set (unlike type charp).</span></span><br><span class="line"><span class="comment"> * @len is usually just sizeof(string).</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> module_param_string(name, string, len, perm)			\</span></span><br><span class="line"><span class="meta">	static const struct kparam_string __param_string_##name		\</span></span><br><span class="line"><span class="meta">		= &#123; len, string &#125;;					\</span></span><br><span class="line"><span class="meta">	__module_param_call(MODULE_PARAM_PREFIX, name,			\</span></span><br><span class="line"><span class="meta">			    &amp;param_ops_string,				\</span></span><br><span class="line"><span class="meta">			    .str = &amp;__param_string_##name, perm, -1, 0);\</span></span><br><span class="line"><span class="meta">	__MODULE_PARM_TYPE(name, <span class="string">&quot;string&quot;</span>)</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>name：外部传入的参数名， 即加载模块时的传入值</p>
+</li>
+<li><p>string：内部的变量名， 即程序内定义的参数名</p>
+</li>
+<li><p>len：以 string 命名的 buffer 大小(可以小于 buffer 的大小， 但是没有意义)</p>
+</li>
+<li><p>perm：模块参数的访问权限 。</p>
+</li>
+</ul>
+<h2 id="4-头文件包含"><a href="#4-头文件包含" class="headerlink" title="4. 头文件包含"></a><font size=3>4. 头文件包含</font></h2><p>上面的几个宏使用的时候需要包含 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/moduleparam.h">moduleparam.h - include&#x2F;linux&#x2F;moduleparam.h</a>文件，但是这个文件在已经在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/module.h">module.h - include&#x2F;linux&#x2F;module.h</a>中进行了包含：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifndef</span> _LINUX_MODULE_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> _LINUX_MODULE_H</span></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Dynamic loading of modules into the kernel.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Rewritten by Richard Henderson &lt;rth@tamu.edu&gt; Dec 1996</span></span><br><span class="line"><span class="comment"> * Rewritten again by Rusty Russell, 2002</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="comment">// ......</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/moduleparam.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// ......</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">/* _LINUX_MODULE_H */</span></span></span><br></pre></td></tr></table></figure>
+
+<h2 id="5-sys-module-模块名-parameters"><a href="#5-sys-module-模块名-parameters" class="headerlink" title="5. &#x2F;sys&#x2F;module&#x2F;模块名&#x2F;parameters"></a><font size=3>5. &#x2F;sys&#x2F;module&#x2F;模块名&#x2F;parameters</font></h2><p>前面我们知道当模块初始化成功的时候会在&#x2F;sys&#x2F;module下新建一个以模块名为名的目录。这里当模块带有参数的时候，会在 <code>/sys/module/模块名</code> 这个目录下创建一个名为 parameters 的目录，里面会显示我们在模块中定义的一些参数名。后面我们实际看一下就明白了。</p>
+<h1 id="二、参数传递实例"><a href="#二、参数传递实例" class="headerlink" title="二、参数传递实例"></a><font size=3>二、参数传递实例</font></h1><h2 id="1-代码实例"><a href="#1-代码实例" class="headerlink" title="1. 代码实例"></a><font size=3>1. 代码实例</font></h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/init.h&gt;</span>     <span class="comment">/* module_init module_exit */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/module.h&gt;</span>   <span class="comment">/* MODULE_LICENSE */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./timestamp_autogenerated.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./version_autogenerated.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> number;     <span class="comment">// 定义int类型变量number</span></span><br><span class="line"><span class="type">static</span> <span class="type">char</span> *name;     <span class="comment">// 定义char类型变量name</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> para[<span class="number">8</span>];    <span class="comment">// 定义int类型的数组</span></span><br><span class="line"><span class="type">static</span> <span class="type">char</span> str1[<span class="number">10</span>];  <span class="comment">// 定义char类型字符串str1</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> n_para;     <span class="comment">// 定义int类型的用来记录module_param_array函数传递数组元素个数的变量n_para</span></span><br><span class="line"></span><br><span class="line">module_param(number, <span class="type">int</span>, S_IRUGO); <span class="comment">// 传递int类型的参数number，S_IRUGO表示权限为可读</span></span><br><span class="line">module_param(name, charp, S_IRUGO); <span class="comment">// 传递char类型变量name</span></span><br><span class="line">module_param_array(para , <span class="type">int</span> , &amp;n_para , S_IRUGO);    <span class="comment">// 传递int类型的数组变量para</span></span><br><span class="line">module_param_string(str, str1 ,<span class="keyword">sizeof</span>(str1), S_IRUGO); <span class="comment">// 传递字符串类型的变量str1</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 模块入口函数</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> __init <span class="title function_">module_param_demo_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">    printk(<span class="string">&quot;*** [%s:%d]Build Time: %s %s, git version:%s ***\n&quot;</span>, __FUNCTION__, __LINE__, KERNEL_KO_DATE, KERNEL_KO_TIME, KERNEL_KO_VERSION);</span><br><span class="line">    printk(<span class="string">&quot;module_param_demo module init!\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">    printk(KERN_EMERG <span class="string">&quot;number=%d\n&quot;</span>,number);</span><br><span class="line">    printk(KERN_EMERG <span class="string">&quot;name=%s\n&quot;</span>,name);                                                                                                                                                          </span><br><span class="line">    <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; n_para; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        printk(KERN_EMERG <span class="string">&quot;para[%d] : %d \n&quot;</span>, i, para[i]);</span><br><span class="line">    &#125;</span><br><span class="line">    printk(KERN_EMERG <span class="string">&quot;str1=%s\n&quot;</span>,str1);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 模块出口函数</span></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> __exit <span class="title function_">module_param_demo_exit</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	printk(<span class="string">&quot;module_param_demo exit!\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 将__init定义的函数指定为驱动的入口函数</span></span><br><span class="line">module_init(module_param_demo_init);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 将__exit定义的函数指定为驱动的出口函数</span></span><br><span class="line">module_exit(module_param_demo_exit);</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 模块信息(通过 modinfo module_param_demo 查看) */</span></span><br><span class="line">MODULE_LICENSE(<span class="string">&quot;GPL&quot;</span>);               <span class="comment">/* 源码的许可证协议 */</span></span><br><span class="line">MODULE_AUTHOR(<span class="string">&quot;sumu&quot;</span>);               <span class="comment">/* 字符串常量内容为模块作者说明 */</span></span><br><span class="line">MODULE_DESCRIPTION(<span class="string">&quot;Description&quot;</span>);   <span class="comment">/* 字符串常量内容为模块功能说明 */</span></span><br><span class="line">MODULE_ALIAS(<span class="string">&quot;module&#x27;s other name&quot;</span>); <span class="comment">/* 字符串常量内容为模块别名 */</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="2-开发板测试"><a href="#2-开发板测试" class="headerlink" title="2. 开发板测试"></a><font size=3>2. 开发板测试</font></h2><h3 id="2-1-不传参数"><a href="#2-1-不传参数" class="headerlink" title="2.1 不传参数"></a><font size=3>2.1 不传参数</font></h3><p>我们不传参试一下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">insmod module_param_demo.ko</span><br></pre></td></tr></table></figure>
+
+<p>会看到如下打印信息：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-07-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E5%8F%82%E6%95%B0%E4%BC%A0%E9%80%92/img/image-20241124214858760.png" alt="image-20241124214858760" />
+
+<p>会发现出现了上面提到的报错信息，这个报错就是因为我们给了number_x这个参数可执行权限。另外会看到其他的参数都是0，因为我们并没有传参进来。</p>
+<h3 id="2-2-传递参数"><a href="#2-2-传递参数" class="headerlink" title="2.2 传递参数"></a><font size=3>2.2 传递参数</font></h3><p>我们在串口终端敲以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">insmod module_param_demo.ko number=10 number_x=11 number_0=12 name=&quot;sumu&quot; para=0,1,2,3,4,5,6,7 str=&quot;demo&quot;</span><br></pre></td></tr></table></figure>
+
+<p>我们将会看到以下输出信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">insmod module_param_demo.ko number=10 number_x=11 number_0=12 name=<span class="string">&quot;sumu&quot;</span> para=0,1,2,3,4,5,6,7 str=<span class="string">&quot;demo&quot;</span></span></span><br><span class="line">[  220.278258] ------------[ cut here ]------------</span><br><span class="line">[  220.283281] WARNING: CPU: 0 PID: 167 at fs/sysfs/group.c:60 internal_create_group+0x324/0x398</span><br><span class="line">[  220.291995] Attribute number_x: Invalid permissions 0111</span><br><span class="line">[  220.297346] Modules linked in: module_param_demo(PO+) [last unloaded: module_param_demo]</span><br><span class="line">[  220.305603] CPU: 0 PID: 167 Comm: insmod Tainted: P        W  O      4.19.71-00007-g51f3cd8ec-dirty #9</span><br><span class="line">[  220.314936] Hardware name: Freescale i.MX6 Ultralite (Device Tree)</span><br><span class="line">[  220.321139] Backtrace:</span><br><span class="line">[  220.323639] [&lt;c010e590&gt;] (dump_backtrace) from [&lt;c010e918&gt;] (show_stack+0x18/0x1c)</span><br><span class="line">[  220.331242]  r7:00000000 r6:600f0013 r5:00000000 r4:c11cf698</span><br><span class="line">[  220.336939] [&lt;c010e900&gt;] (show_stack) from [&lt;c0b75e74&gt;] (dump_stack+0xdc/0x114)</span><br><span class="line">[  220.344289] [&lt;c0b75d98&gt;] (dump_stack) from [&lt;c0128b9c&gt;] (__warn.part.3+0xb0/0xf0)</span><br><span class="line">[  220.351805]  r10:00000003 r9:00000049 r8:00000000 r7:0000003c r6:00000009 r5:00000000</span><br><span class="line">[  220.359660]  r4:d8a31d7c r3:c15097ad</span><br><span class="line">[  220.363274] [&lt;c0128aec&gt;] (__warn.part.3) from [&lt;c0128c40&gt;] (warn_slowpath_fmt+0x64/0x88)</span><br><span class="line">[  220.371394]  r7:c031643c r6:0000003c r5:c0e7e010 r4:c1108908</span><br><span class="line">[  220.377092] [&lt;c0128be0&gt;] (warn_slowpath_fmt) from [&lt;c031643c&gt;] (internal_create_group+0x324/0x398)</span><br><span class="line">[  220.386076]  r3:bf009090 r2:c0e7e054</span><br><span class="line">[  220.389681]  r7:bf00a048 r6:d8ba7a4c r5:d8c058c0 r4:d8ab2504</span><br><span class="line">[  220.395375] [&lt;c0316118&gt;] (internal_create_group) from [&lt;c03164c8&gt;] (sysfs_create_group+0x18/0x1c)</span><br><span class="line">[  220.404282]  r10:c1108908 r9:00000000 r8:bf00a048 r7:00000006 r6:bf00a048 r5:00000006</span><br><span class="line">[  220.412135]  r4:bf009208</span><br><span class="line">[  220.414705] [&lt;c03164b0&gt;] (sysfs_create_group) from [&lt;c014ef44&gt;] (module_param_sysfs_setup+0x7c/0xb8)</span><br><span class="line">[  220.423873] [&lt;c014eec8&gt;] (module_param_sysfs_setup) from [&lt;c01d3cf8&gt;] (load_module+0x1ba4/0x2594)</span><br><span class="line">[  220.432779]  r9:d8a31f30 r8:00000006 r7:bf00a000 r6:c11dd480 r5:00000000 r4:bf00a048</span><br><span class="line">[  220.440556] [&lt;c01d2154&gt;] (load_module) from [&lt;c01d494c&gt;] (sys_finit_module+0xc4/0xe4)</span><br><span class="line">[  220.448421]  r10:0000017b r9:00000000 r8:7fffffff r7:00000003 r6:022b6150 r5:00000000</span><br><span class="line">[  220.456273]  r4:c1108908</span><br><span class="line">[  220.458842] [&lt;c01d4888&gt;] (sys_finit_module) from [&lt;c0101000&gt;] (ret_fast_syscall+0x0/0x28)</span><br><span class="line">[  220.467044] Exception stack(0xd8a31fa8 to 0xd8a31ff0)</span><br><span class="line">[  220.472129] 1fa0:                   41ff0200 bea69ef5 00000003 022b6150 00000000 bea69ef5</span><br><span class="line">[  220.480340] 1fc0: 41ff0200 bea69ef5 bea69de4 0000017b 00000003 00000000 004e79b8 00000000</span><br><span class="line">[  220.488545] 1fe0: bea69c40 bea69c30 0042ecac b6eba1b0</span><br><span class="line">[  220.493630]  r9:d8a30000 r8:c01011e4 r7:0000017b r6:bea69de4 r5:bea69ef5 r4:41ff0200</span><br><span class="line">[  220.501518] irq event stamp: 0</span><br><span class="line">[  220.504623] hardirqs last  enabled at (0): [&lt;00000000&gt;]   (null)</span><br><span class="line">[  220.510675] hardirqs last disabled at (0): [&lt;c0125c54&gt;] copy_process.part.3+0x2e4/0x1a84</span><br><span class="line">[  220.518868] softirqs last  enabled at (0): [&lt;c0125c54&gt;] copy_process.part.3+0x2e4/0x1a84</span><br><span class="line">[  220.527046] softirqs last disabled at (0): [&lt;00000000&gt;]   (null)</span><br><span class="line">[  220.533141] ---[ end trace d31065e9ec5213ff ]---</span><br><span class="line">[  220.548768] *** [module_param_demo_init:26]Build Time: Nov 24 2024 21:45:23, git version:15c3f15 ***</span><br><span class="line">[  220.558118] module_param_demo module init!</span><br><span class="line">[  220.562327] number=10</span><br><span class="line">[  220.564622] number_x=11</span><br><span class="line">[  220.567085] number_0=12</span><br><span class="line">[  220.569549] name=sumu</span><br><span class="line">[  220.571931] para[0] : 0</span><br><span class="line">[  220.574486] para[1] : 1</span><br><span class="line">[  220.577037] para[2] : 2</span><br><span class="line">[  220.579588] para[3] : 3</span><br><span class="line">[  220.582192] para[4] : 4</span><br><span class="line">[  220.584747] para[5] : 5</span><br><span class="line">[  220.587298] para[6] : 6</span><br><span class="line">[  220.589849] para[7] : 7</span><br><span class="line">[  220.592442] str1=demo</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>有和前面一样的报错信息，但是最下面每个参数的值都发生了变化，和我们前面传递的参数都是对应的：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">insmod module_param_demo.ko number=10 number_x=11 number_0=12 name=<span class="string">&quot;sumu&quot;</span> para=0,1,2,3,4,5,6,7 str=<span class="string">&quot;demo&quot;</span></span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-sys-module-模块名-parameters"><a href="#2-3-sys-module-模块名-parameters" class="headerlink" title="2.3 &#x2F;sys&#x2F;module&#x2F;模块名&#x2F;parameters"></a><font size=3>2.3 &#x2F;sys&#x2F;module&#x2F;模块名&#x2F;parameters</font></h3><p>不管我们有没有传递参数进去，我这里是以传递参数的加载方式为例，我们看一下 &#x2F;sys&#x2F;module&#x2F;模块名：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-07-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E5%8F%82%E6%95%B0%E4%BC%A0%E9%80%92/img/image-20241124213250840.png" alt="image-20241124213250840" />
+
+<p>会发现这个目录下还有很多目录，包括我们要看的 parameters 目录，我们看一下这个目录下都有什么：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-07-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E5%8F%82%E6%95%B0%E4%BC%A0%E9%80%92/img/image-20241124215301520.png" alt="image-20241124215301520" />
+
+<p>会发现，这不就是我们前面定义的几个内核模块参数嘛。不过这里会发现少了一个，少了number_0这个参数，因为我们前面给的权限是0，所以这里没有权限查看这个参数，这里也就不会显示。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/ce7b8e03.html">LV06-02-内核模块-07-内核模块参数传递</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年11月26日 - 00:02</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/ce7b8e03.html" title="LV06-02-内核模块-07-内核模块参数传递">https://sumumm.github.io/post/ce7b8e03.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/620e325b.html" rel="prev" title="LV06-02-内核模块-08-内核模块符号导出">
+                  <i class="fa fa-angle-left"></i> LV06-02-内核模块-08-内核模块符号导出
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/fcdda906.html" rel="next" title="LV06-02-内核模块-06-printk">
+                  LV06-02-内核模块-06-printk <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

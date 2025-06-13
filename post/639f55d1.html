@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是网络编程——多路复用IO中的select、poll和epoll的总结的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-03-网络编程-07-多路复用IO-04-总结">
+<meta property="og:url" content="https://sumumm.github.io/post/639f55d1.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是网络编程——多路复用IO中的select、poll和epoll的总结的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-10-27T03:49:59.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:56.999Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-网络编程">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/639f55d1.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/639f55d1.html","path":"post/639f55d1.html","title":"LV06-03-网络编程-07-多路复用IO-04-总结"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-03-网络编程-07-多路复用IO-04-总结 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81select%E3%80%81poll%E5%92%8Cepoll%E5%AF%B9%E6%AF%94"><span class="nav-text">一、select、poll和epoll对比</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%94%A8%E6%88%B7%E6%80%81%E5%B0%86%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6%E4%BC%A0%E5%85%A5%E5%86%85%E6%A0%B8%E7%9A%84%E6%96%B9%E5%BC%8F"><span class="nav-text">1. 用户态将文件描述符传入内核的方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%86%85%E6%A0%B8%E6%80%81%E6%A3%80%E6%B5%8B%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6%E8%AF%BB%E5%86%99%E7%8A%B6%E6%80%81%E7%9A%84%E6%96%B9%E5%BC%8F"><span class="nav-text">2. 内核态检测文件描述符读写状态的方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%89%BE%E5%88%B0%E5%B0%B1%E7%BB%AA%E7%9A%84%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6%E5%B9%B6%E4%BC%A0%E9%80%92%E7%BB%99%E7%94%A8%E6%88%B7%E6%80%81%E7%9A%84%E6%96%B9%E5%BC%8F"><span class="nav-text">3. 找到就绪的文件描述符并传递给用户态的方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E9%87%8D%E5%A4%8D%E7%9B%91%E5%90%AC%E7%9A%84%E5%A4%84%E7%90%86%E6%96%B9%E5%BC%8F"><span class="nav-text">4. 重复监听的处理方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%97%B6%E9%97%B4%E5%A4%8D%E6%9D%82%E5%BA%A6"><span class="nav-text">5. 时间复杂度</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81epoll%E6%9B%B4%E9%AB%98%E6%95%88%EF%BC%9F"><span class="nav-text">二、epoll更高效？</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/639f55d1.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-03-网络编程-07-多路复用IO-04-总结 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-03-网络编程-07-多路复用IO-04-总结
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-10-27 11:49:59" itemprop="dateCreated datePublished" datetime="2024-10-27T11:49:59+08:00">2024-10-27</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">LV06-网络编程</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>6 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是网络编程——多路复用IO中的select、poll和epoll的总结的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-04-%E6%80%BB%E7%BB%93/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="center">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table> 
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">---</td>        <td align="left">--- <a href="" target="_blank">  <i class="fa fa-external-link-alt"></i></a></td>      </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、select、poll和epoll对比"><a href="#一、select、poll和epoll对比" class="headerlink" title="一、select、poll和epoll对比"></a><font size=3>一、<code>select</code>、<code>poll</code>和<code>epoll</code>对比</font></h1><h2 id="1-用户态将文件描述符传入内核的方式"><a href="#1-用户态将文件描述符传入内核的方式" class="headerlink" title="1. 用户态将文件描述符传入内核的方式"></a><font size=3>1. 用户态将文件描述符传入内核的方式</font></h2><ul>
+<li><p><code>select</code>：创建<code>3</code>个文件描述符集并拷贝到内核中，分别监听读、写、异常动作。这里受到单个进程可以打开的<code>fd</code>数量限制，由<code>FD_SETSIZE</code>设置，默认是最大是<code>1024</code>。</p>
+</li>
+<li><p><code>poll</code>：将传入的<code>struct pollfd</code>结构体数组拷贝到内核中进行监听，<code>poll</code>克服了<code>select</code>模型的最大并发数限制。</p>
+</li>
+<li><p><code>epoll</code>：执行<code>epoll_create</code>，会在<strong>内核</strong>的高速<code>cache</code>区中，建立一颗红黑树以及就绪链表(该链表存储已经就绪的文件描述符)。接着用户执行的<code>epoll_ctl</code>函数，添加文件描述符会在红黑树上增加相应的结点。</p>
+</li>
+</ul>
+<h2 id="2-内核态检测文件描述符读写状态的方式"><a href="#2-内核态检测文件描述符读写状态的方式" class="headerlink" title="2. 内核态检测文件描述符读写状态的方式"></a><font size=3>2. 内核态检测文件描述符读写状态的方式</font></h2><ul>
+<li><p><code>select</code>：采用<strong>轮询</strong>方式，遍历所有<code>fd</code>，最后返回一个描述符读写操作是否就绪的<code>mask</code>掩码，根据这个掩码给<code>fd_set</code>赋值。</p>
+</li>
+<li><p><code>poll</code>：同样采用<strong>轮询</strong>方式，查询每个<code>fd</code>的状态，如果就绪则在等待队列中加入一项并继续遍历。</p>
+</li>
+<li><p><code>epoll</code>：采用<strong>事件回调</strong>机制。在执行 <code>epoll_ctl</code> 的<code>add</code>操作时，不仅将文件描述符放到红黑树上，而且也注册了回调函数；内核在检测到某文件描述符可读&#x2F;可写时会调用回调函数，该回调函数将文件描述符放在就绪链表中。</p>
+</li>
+</ul>
+<h2 id="3-找到就绪的文件描述符并传递给用户态的方式"><a href="#3-找到就绪的文件描述符并传递给用户态的方式" class="headerlink" title="3. 找到就绪的文件描述符并传递给用户态的方式"></a><font size=3>3. 找到就绪的文件描述符并传递给用户态的方式</font></h2><ul>
+<li><p><code>select</code>：将之前传入的<code>fd_set</code>拷贝传出到<strong>用户态</strong>并返回就绪的文件描述符总数。用户态并不知道是哪些文件描述符处于就绪态，需要遍历来判断。</p>
+</li>
+<li><p><code>poll</code>：将之前传入的 <code>fd</code> 数组拷贝传出<strong>用户态</strong>，并返回就绪的文件描述符总数。用户态并不知道是哪些文件描述符处于就绪态，需要遍历来判断。</p>
+</li>
+<li><p><code>epoll</code>：<code>epoll_wait</code> 只用观察<strong>就绪链表</strong>中有无数据即可，最后将链表的数据返回给数组, 并返回就绪的数量。<strong>内核</strong>，将就绪的文件描述符，放在传入的数组中。然后，依次遍历，处理即可。这里返回的文件描述符，是通过 <code>mmap()</code> ，让内核和用户空间，共享同一块内存实现传递的，减少了不必要的拷贝。</p>
+</li>
+</ul>
+<h2 id="4-重复监听的处理方式"><a href="#4-重复监听的处理方式" class="headerlink" title="4. 重复监听的处理方式"></a><font size=3>4. 重复监听的处理方式</font></h2><ul>
+<li><p><code>select</code>：将新的监听文件描述符集合拷贝传入内核中，继续上边的步骤。 </p>
+</li>
+<li><p><code>poll</code>：将新的<code>struct pollfd</code>结构体数组拷贝传入内核中，继续上边的步骤。 </p>
+</li>
+<li><p><code>epoll</code>：无需重新构建红黑树，直接沿用已存在的即可。</p>
+</li>
+</ul>
+<h2 id="5-时间复杂度"><a href="#5-时间复杂度" class="headerlink" title="5. 时间复杂度"></a><font size=3>5. 时间复杂度</font></h2><ul>
+<li><p><code>select</code>：<code>O(n)</code> ，随着连接数<code>n</code>的增大而增大。</p>
+</li>
+<li><p><code>poll</code>：<code>O(n)</code> ，随着连接数<code>n</code>的增大而增大。</p>
+</li>
+<li><p><code>epoll</code>：<code>O(1)</code> ，<strong>不会</strong>随着连接数<code>n</code>的增大而增大。</p>
+</li>
+</ul>
+<h1 id="二、epoll更高效？"><a href="#二、epoll更高效？" class="headerlink" title="二、epoll更高效？"></a><font size=3>二、<code>epoll</code>更高效？</font></h1><p><code>select</code>和<code>poll</code>的动作基本一致，只是<code>poll</code>采用链表来进行文件描述符的存储，而<code>select</code>采用<code>fd</code>标注位来存放，所以<code>select</code>会受到最大连接数的限制，而<code>poll</code>不会。</p>
+<p><code>select</code>、<code>poll</code>、<code>epoll</code>虽然都会返回就绪的文件描述符数量, 但是<code>select</code>和<code>poll</code>并不会明确指出是哪些文件描述符就绪，而<code>epoll</code>会。这就意味着系统调用返回后，调用<code>select</code>和<code>poll</code>的程序需要遍历监听的整个文件描述符找到是哪个文件描述符处于就绪，而<code>epoll</code>则直接处理即可（直接监听到了哪些文件描述符就绪）。</p>
+<p><code>select</code>、<code>poll</code>都需要将有关文件描述符的数据结构拷贝进内核，最后再拷贝出来。而<code>epoll</code>创建的有关文件描述符的数据结构本身就存于内核态中，系统调用返回时利用 <code>mmap()</code> 文件映射内存加速与内核空间的消息传递：即<code> epoll</code> 使用 <code>mmap()</code>  减少复制开销。</p>
+<p><code>select</code>、<code>poll</code>采用 <strong>轮询</strong> 的方式来检查文件描述符是否处于就绪态，而<code>epoll</code>采用回调机制。造成的结果就是，随着<code>fd</code>的增加，<code>select</code>和<code>poll</code>的效率会线性降低，而<code>epoll</code>不会受到太大影响，除非活跃的<code>socket</code>很多。</p>
+<p><code>epoll</code>的边缘触发模式效率高，系统不会充斥大量不关心的就绪文件描述符。</p>
+<p>最后，虽然<code>epoll</code>的性能最好，但是在<strong>连接数少并且连接都十分活跃</strong>的情况下，<code>select</code>和<code>poll</code>的性能可能比<code>epoll</code>好，毕竟<code>epoll</code>的通知机制需要很多函数回调。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/639f55d1.html">LV06-03-网络编程-07-多路复用IO-04-总结</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年10月27日 - 11:49</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/639f55d1.html" title="LV06-03-网络编程-07-多路复用IO-04-总结">https://sumumm.github.io/post/639f55d1.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" rel="tag"><i class="fa fa-tag"></i> LV06-网络编程</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/a07b6c8b.html" rel="prev" title="LV06-03-网络编程-08-域名解析">
+                  <i class="fa fa-angle-left"></i> LV06-03-网络编程-08-域名解析
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/699401d8.html" rel="next" title="LV06-03-网络编程-07-多路复用IO-03-epoll">
+                  LV06-03-网络编程-07-多路复用IO-03-epoll <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

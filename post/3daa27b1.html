@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是SQLite数据库的SQLite数据库中经常见到的NULL、约束和PRIMARY KEY相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV07-05-SQLite-NULL、约束和主键">
+<meta property="og:url" content="https://sumumm.github.io/post/3daa27b1.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是SQLite数据库的SQLite数据库中经常见到的NULL、约束和PRIMARY KEY相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-07-03T13:30:30.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.000Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV07-SQLite">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/3daa27b1.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/3daa27b1.html","path":"post/3daa27b1.html","title":"LV07-05-SQLite-NULL、约束和主键"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV07-05-SQLite-NULL、约束和主键 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81NULL%E5%80%BC"><span class="nav-text">一、NULL值</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AF%AD%E6%B3%95%E6%A0%BC%E5%BC%8F"><span class="nav-text">1. 语法格式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2. 使用实例</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E6%95%B0%E6%8D%AE%E5%87%86%E5%A4%87"><span class="nav-text">2.1 数据准备</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-%E5%88%9B%E5%BB%BA%E6%95%B0%E6%8D%AE%E8%A1%A8"><span class="nav-text">2.1.1 创建数据表</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-%E6%B7%BB%E5%8A%A0%E6%95%B0%E6%8D%AE"><span class="nav-text">2.1.2 添加数据</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-3-%E6%A0%BC%E5%BC%8F%E5%8C%96%E8%BE%93%E5%87%BA"><span class="nav-text">2.1.3 格式化输出</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-4-%E6%9F%A5%E7%9C%8B%E6%95%B0%E6%8D%AE%E6%83%85%E5%86%B5"><span class="nav-text">2.1.4 查看数据情况</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-5-%E5%B0%86%E9%83%A8%E5%88%86%E6%95%B0%E6%8D%AE%E8%AE%BE%E4%B8%BANULL"><span class="nav-text">2.1.5 将部分数据设为NULL</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-6-%E6%9F%A5%E7%9C%8B%E5%BD%93%E5%89%8D%E6%95%B0%E6%8D%AE%E6%83%85%E5%86%B5"><span class="nav-text">2.1.6 查看当前数据情况</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-null%E6%95%B0%E6%8D%AE%E6%9F%A5%E8%AF%A2"><span class="nav-text">2.2 null数据查询</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-%E5%88%97%E5%87%BA%E6%89%80%E6%9C%89-salary-%E4%B8%8D%E4%B8%BA-null-%E7%9A%84%E8%AE%B0%E5%BD%95"><span class="nav-text">2.2.1 列出所有 salary 不为 null 的记录</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-%E5%88%97%E5%87%BA%E6%89%80%E6%9C%89address%E4%B8%BAnull%E7%9A%84%E8%AE%B0%E5%BD%95"><span class="nav-text">2.2.2 列出所有address为null的记录</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E7%BA%A6%E6%9D%9F"><span class="nav-text">二、约束</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%BA%A6%E6%9D%9F%E7%9A%84%E6%A6%82%E5%BF%B5"><span class="nav-text">1. 约束的概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-NOT-NULL%E7%BA%A6%E6%9D%9F"><span class="nav-text">2. NOT NULL约束</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-DEFAULT%E7%BA%A6%E6%9D%9F"><span class="nav-text">3. DEFAULT约束</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-UNIQUE%E7%BA%A6%E6%9D%9F"><span class="nav-text">4. UNIQUE约束</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-PRIMARY-KEY%E7%BA%A6%E6%9D%9F"><span class="nav-text">5. PRIMARY KEY约束</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-CHECK%E7%BA%A6%E6%9D%9F"><span class="nav-text">6. CHECK约束</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E4%B8%BB%E9%94%AE"><span class="nav-text">三、主键</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%88%9B%E5%BB%BA%E4%B8%BB%E9%94%AE"><span class="nav-text">1. 创建主键</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%B7%BB%E5%8A%A0%E4%B8%BB%E9%94%AE"><span class="nav-text">2. 添加主键</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%88%A0%E9%99%A4%E4%B8%BB%E9%94%AE"><span class="nav-text">3. 删除主键</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E8%87%AA%E5%8A%A8%E9%80%92%E5%A2%9E"><span class="nav-text">四、自动递增</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AF%AD%E6%B3%95%E6%A0%BC%E5%BC%8F-1"><span class="nav-text">1. 语法格式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E8%87%AA%E5%A2%9E%E5%AD%97%E6%AE%B5%E8%B5%8B%E5%80%BC"><span class="nav-text">2. 自增字段赋值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">3. 使用实例</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/3daa27b1.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV07-05-SQLite-NULL、约束和主键 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV07-05-SQLite-NULL、约束和主键
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-07-03 21:30:30" itemprop="dateCreated datePublished" datetime="2023-07-03T21:30:30+08:00">2023-07-03</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV07-SQLite/" itemprop="url" rel="index"><span itemprop="name">LV07-SQLite</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>10 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是<code>SQLite</code>数据库的<code>SQLite</code>数据库中经常见到的<code>NULL</code>、约束和<code>PRIMARY KEY</code>相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: none -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="left">SQLite官网</td><td align="left"><a href="https://www.sqlite.org/index.html" target="_blank">SQLite Home Page <i class="fa fa-external-link-alt"></i> </a></td></tr>    <tr><td align="left">SQLite中文网</td><td align="left"><a href="https://www.sqlite.net.cn/" target="_blank">SQLite 中文网 <i class="fa fa-external-link-alt"></i> </a></td></tr>    <tr><td align="left">SQLite 基础教程</td><td align="left"><a href="https://www.php.cn/manual/view/19335.html" target="_blank">SQLite参考手册 - 在线原生手册 <i class="fa fa-external-link-alt"></i> </a></td></tr>    <tr><td align="left">菜鸟教程</td><td align="left"><a href="https://www.runoob.com/sqlite/sqlite-tutorial.html" target="_blank">SQLite 教程 <i class="fa fa-external-link-alt"></i> </a></td></tr>    <tr><td align="left">易百教程</td><td align="left"><a href="https://www.yiibai.com/sqlite" target="_blank">SQLite 教程 <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">---</td>        <td align="left">--- <a href="" target="_blank">  <i class="fa fa-external-link-alt"></i></a></td>      </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、NULL值"><a href="#一、NULL值" class="headerlink" title="一、NULL值"></a><font size=3>一、<code>NULL</code>值</font></h1><p>先来学习一个<code>NULL</code>，<code>SQLite</code> 的<code>NULL</code>是用来表示一个缺失值的项。表中的一个 <code>NULL</code> 值是在字段中显示为空白的一个值。带有 <code>NULL</code> 值的字段是一个不带有值的字段。<code>NULL</code> 值与零值或包含空格的字段是不同的。</p>
+<h2 id="1-语法格式"><a href="#1-语法格式" class="headerlink" title="1. 语法格式"></a><font size=3>1. 语法格式</font></h2><p>创建数据表的时候使用<code>NULL</code>的基本语法如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">SQLite&gt; CREATE TABLE company(</span><br><span class="line">   ID INT PRIMARY KEY     NOT NULL,</span><br><span class="line">   NAME           TEXT    NOT NULL,</span><br><span class="line">   AGE            INT     NOT NULL,</span><br><span class="line">   ADDRESS        CHAR(50),</span><br><span class="line">   SALARY         REAL</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p>在这里，<code>NOT NULL</code>表示列<strong>总是接受给定数据类型的显式值</strong>。这里有两个列没有使用 <code>NOT NULL</code>，这意味着这两个列可以为 <code>NULL</code>。带有 <code>NULL</code> 值的字段在记录创建的时候可以保留为空。</p>
+<h2 id="2-使用实例"><a href="#2-使用实例" class="headerlink" title="2. 使用实例"></a><font size=3>2. 使用实例</font></h2><h3 id="2-1-数据准备"><a href="#2-1-数据准备" class="headerlink" title="2.1 数据准备"></a><font size=3>2.1 数据准备</font></h3><p>我们先来准备一个数据表用于测试：</p>
+<h4 id="2-1-1-创建数据表"><a href="#2-1-1-创建数据表" class="headerlink" title="2.1.1 创建数据表"></a><font size=3>2.1.1 创建数据表</font></h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">SQLite&gt; create table test(</span><br><span class="line">   id int primary key     not null,</span><br><span class="line">   name           TEXT    not null,</span><br><span class="line">   age            INT     not null,</span><br><span class="line">   address        char(50),</span><br><span class="line">   salary         real</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-1-2-添加数据"><a href="#2-1-2-添加数据" class="headerlink" title="2.1.2 添加数据"></a><font size=3>2.1.2 添加数据</font></h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">SQLite&gt; insert into test values (1, &quot;qidaink&quot;, 18, &quot;China&quot;, 2000);</span><br><span class="line">SQLite&gt; insert into test values (2, &quot;Allen&quot;, 19, &quot;Texas&quot;, 3000);</span><br><span class="line">SQLite&gt; insert into test values (3, &quot;fanhua&quot;, 25,  &quot;Houston&quot;, 1000);</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-1-3-格式化输出"><a href="#2-1-3-格式化输出" class="headerlink" title="2.1.3 格式化输出"></a><font size=3>2.1.3 格式化输出</font></h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sqlite&gt; .head on</span><br><span class="line">sqlite&gt; .mode column</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-1-4-查看数据情况"><a href="#2-1-4-查看数据情况" class="headerlink" title="2.1.4 查看数据情况"></a><font size=3>2.1.4 查看数据情况</font></h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sqlite&gt; select * from test;</span><br><span class="line">id          name        age         address     salary    </span><br><span class="line">----------  ----------  ----------  ----------  ----------</span><br><span class="line">1           qidaink     18          China       2000.0    </span><br><span class="line">2           Allen       19          Texas       3000.0    </span><br><span class="line">3           fanhua      25          Houston     1000.0</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-1-5-将部分数据设为NULL"><a href="#2-1-5-将部分数据设为NULL" class="headerlink" title="2.1.5 将部分数据设为NULL"></a><font size=3>2.1.5 将部分数据设为<code>NULL</code></font></h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sqlite&gt; update test set address = null, salary = null where id in(2, 3);</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-1-6-查看当前数据情况"><a href="#2-1-6-查看当前数据情况" class="headerlink" title="2.1.6 查看当前数据情况"></a><font size=3>2.1.6 查看当前数据情况</font></h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sqlite&gt; select * from test;</span><br><span class="line">id          name        age         address     salary    </span><br><span class="line">----------  ----------  ----------  ----------  ----------</span><br><span class="line">1           qidaink     18          China       2000.0    </span><br><span class="line">2           Allen       19                                </span><br><span class="line">3           fanhua      25                                </span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-null数据查询"><a href="#2-2-null数据查询" class="headerlink" title="2.2 null数据查询"></a><font size=3>2.2 <code>null</code>数据查询</font></h3><h4 id="2-2-1-列出所有-salary-不为-null-的记录"><a href="#2-2-1-列出所有-salary-不为-null-的记录" class="headerlink" title="2.2.1 列出所有 salary 不为 null 的记录"></a><font size=3>2.2.1 列出所有 <code>salary</code> 不为 <code>null</code> 的记录</font></h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sqlite&gt; select * from test where salary is not null;</span><br><span class="line">id          name        age         address     salary    </span><br><span class="line">----------  ----------  ----------  ----------  ----------</span><br><span class="line">1           qidaink     18          China       2000.0 </span><br></pre></td></tr></table></figure>
+
+<h4 id="2-2-2-列出所有address为null的记录"><a href="#2-2-2-列出所有address为null的记录" class="headerlink" title="2.2.2 列出所有address为null的记录"></a><font size=3>2.2.2 列出所有<code>address</code>为<code>null</code>的记录</font></h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sqlite&gt; select * from test where address is null;</span><br><span class="line">id          name        age         address     salary    </span><br><span class="line">----------  ----------  ----------  ----------  ----------</span><br><span class="line">2           Allen       19                                </span><br><span class="line">3           fanhua      25                                </span><br></pre></td></tr></table></figure>
+
+<h1 id="二、约束"><a href="#二、约束" class="headerlink" title="二、约束"></a><font size=3>二、约束</font></h1><h2 id="1-约束的概念"><a href="#1-约束的概念" class="headerlink" title="1. 约束的概念"></a><font size=3>1. 约束的概念</font></h2><p>其实上边新创建表的时候使用的<code>NOT NULL</code>就属于一种约束，<strong>约束</strong>是在表的数据列上强制执行的规则。这些是用来限制可以插入到表中的数据类型。这确保了数据库中数据的准确性和可靠性。约束可以是列级或表级。列级约束仅适用于列，表级约束被应用到整个表。</p>
+<table>
+    <tr><td align="left">NOT NULL 约束</td><td align="left">确保某列不能有 NULL 值。</td></tr>
+    <tr><td align="left">DEFAULT 约束</td><td align="left">当某列没有指定值时，为该列提供默认值。</td></tr>
+    <tr><td align="left">UNIQUE 约束</td><td align="left">确保某列中的所有值是不同的。</td></tr>
+    <tr><td align="left">PRIMARY Key 约束</td><td align="left">唯一标识数据库表中的各行/记录。</td></tr>
+    <tr><td align="left">CHECK 约束</td><td align="left">CHECK 约束确保某列中的所有值满足一定条件。</td></tr>
+</table>
+
+<h2 id="2-NOT-NULL约束"><a href="#2-NOT-NULL约束" class="headerlink" title="2. NOT NULL约束"></a><font size=3>2. <code>NOT NULL</code>约束</font></h2><p>默认情况下，列可以保存 <code>NULL</code> 值。如果我们不希望某列有 <code>NULL</code> 值，那么需要在该列上定义此约束，指定在该列上不允许 <code>NULL</code> 值。<code>NULL</code> 与没有数据是不一样的，它代表着未知的数据。例如，</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLE COMPANY(</span><br><span class="line">   ID INT PRIMARY KEY     NOT NULL,</span><br><span class="line">   NAME           TEXT    NOT NULL,</span><br><span class="line">   AGE            INT     NOT NULL,</span><br><span class="line">   ADDRESS        CHAR(50),</span><br><span class="line">   SALARY         REAL</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p>该语句创建一个新的表 <code>COMPANY</code>，并增加了五列，其中 <code>ID</code>、<code>NAME</code> 和 <code>AGE</code> 三列指定不接受 <code>NULL</code> 值。</p>
+<h2 id="3-DEFAULT约束"><a href="#3-DEFAULT约束" class="headerlink" title="3. DEFAULT约束"></a><font size=3>3. <code>DEFAULT</code>约束</font></h2><p><code>DEFAULT</code> 约束在 <code>INSERT INTO</code> 语句没有提供一个特定的值时，为列提供一个默认值。例如，</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLE COMPANY(</span><br><span class="line">   ID INT PRIMARY KEY     NOT NULL,</span><br><span class="line">   NAME           TEXT    NOT NULL,</span><br><span class="line">   AGE            INT     NOT NULL,</span><br><span class="line">   ADDRESS        CHAR(50),</span><br><span class="line">   SALARY         REAL    DEFAULT 100.00</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p>该语句创建一个新的表 <code>COMPANY</code>，并增加了五列。在这里，<code>SALARY</code> 列默认设置为 <code>100.00</code>。所以当 <code>INSERT INTO</code> 语句没有为该列提供值时，该列将被设置为 <code>100.00</code>。</p>
+<h2 id="4-UNIQUE约束"><a href="#4-UNIQUE约束" class="headerlink" title="4. UNIQUE约束"></a><font size=3>4. <code>UNIQUE</code>约束</font></h2><p><code>UNIQUE </code> 约束防止在一个特定的列存在两个记录具有相同的值。例如，在 <code>COMPANY</code> 表中，我们可能要防止两个或两个以上的人具有相同的年龄。例如，</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLE COMPANY(</span><br><span class="line">   ID INT PRIMARY KEY     NOT NULL,</span><br><span class="line">   NAME           TEXT    NOT NULL,</span><br><span class="line">   AGE            INT     NOT NULL UNIQUE,</span><br><span class="line">   ADDRESS        CHAR(50),</span><br><span class="line">   SALARY         REAL    DEFAULT 50000.00</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p>该语句创建一个新的表 <code>COMPANY</code>，并增加了五列。在这里，<code>AGE</code> 列设置为 <code>UNIQUE</code>，所以不能有两个相同年龄的记录。</p>
+<h2 id="5-PRIMARY-KEY约束"><a href="#5-PRIMARY-KEY约束" class="headerlink" title="5. PRIMARY KEY约束"></a><font size=3>5. <code>PRIMARY KEY</code>约束</font></h2><p><code>PRIMARY KEY</code> 约束唯一标识数据库表中的每个记录。在一个表中可以有多个 <code>UNIQUE</code> 列，但只能有一个主键。在设计数据库表时，主键是很重要的，主键是唯一的 <code>ID</code>。</p>
+<p>我们使用主键来引用表中的行。可通过把主键设置为其他表的外键，来创建表之间的关系。由于”长期存在编码监督”，在 <code>SQLite </code>中，主键可以是 <code>NULL</code>，这是与其他数据库不同的地方。</p>
+<p>主键是表中的一个字段，唯一标识数据库表中的各行或者说是各条记录。主键必须包含唯一值。主键列不能有 <code>NULL</code> 值。一个表只能有一个主键，它可以由一个或多个字段组成。当多个字段作为主键，它们被称为<strong>复合键</strong>。<strong>如果一个表在任何字段上定义了一个主键，那么在这些字段上不能有两个记录具有相同的值</strong>。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLE COMPANY(</span><br><span class="line">   ID INT PRIMARY KEY     NOT NULL,</span><br><span class="line">   NAME           TEXT    NOT NULL,</span><br><span class="line">   AGE            INT     NOT NULL,</span><br><span class="line">   ADDRESS        CHAR(50),</span><br><span class="line">   SALARY         REAL</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p>该语句创建一个新的表 <code>COMPANY</code>，并增加了五列。在这里，<code>ID</code>列就是主键。</p>
+<h2 id="6-CHECK约束"><a href="#6-CHECK约束" class="headerlink" title="6. CHECK约束"></a><font size=3>6. <code>CHECK</code>约束</font></h2><p><code>CHECK</code> 约束启用输入一条记录要检查值的条件。如果条件值为 <code>false</code>，则记录违反了约束，且不能输入到表。例如</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLE COMPANY3(</span><br><span class="line">   ID INT PRIMARY KEY     NOT NULL,</span><br><span class="line">   NAME           TEXT    NOT NULL,</span><br><span class="line">   AGE            INT     NOT NULL,</span><br><span class="line">   ADDRESS        CHAR(50),</span><br><span class="line">   SALARY         REAL    CHECK(SALARY &gt; 0)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p>该语句创建一个新的表 <code>COMPANY</code>，并增加了五列。在这里，我们为 <code>SALARY</code> 列添加 <code>CHECK</code>，所以工资不能为零。</p>
+<h1 id="三、主键"><a href="#三、主键" class="headerlink" title="三、主键"></a><font size=3>三、主键</font></h1><p>前边我们已经多次使用到这个主键了，<code>SQLite</code>主键是用于唯一定义行记录的一个简单字段或多个字段的组合。一个表只能有一个主键。在<code>SQLite</code>中主键的值可以是一个<code>NULL</code>值。</p>
+<h2 id="1-创建主键"><a href="#1-创建主键" class="headerlink" title="1. 创建主键"></a><font size=3>1. 创建主键</font></h2><p>我们可以在创建表的时候直接定义主键，格式如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLE table_name(  </span><br><span class="line">    column1 datatype PRIMARY KEY,  </span><br><span class="line">    column2 datatype,  </span><br><span class="line">    ......  </span><br><span class="line">    columnN datatype,  </span><br><span class="line">); </span><br></pre></td></tr></table></figure>
+
+<h2 id="2-添加主键"><a href="#2-添加主键" class="headerlink" title="2. 添加主键"></a><font size=3>2. 添加主键</font></h2><p>当我们没有在<code>CREATE TABLE</code>语句中定义主键时，也可以在创建表后再添加主键。需要注意的是，不能使用<code>ALTER TABLE</code>语句来创建主键。在<code>SQLite</code>中需要先创建一个与原表一样的新表，并在这个新表上创建主键，然后复制旧表中的所有数据到新表中就可以了。步骤如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">PRAGMA foreign_keys=off;  </span><br><span class="line"></span><br><span class="line">BEGIN TRANSACTION;  </span><br><span class="line"></span><br><span class="line">ALTER TABLE table_name RENAME TO old_table; </span><br><span class="line"></span><br><span class="line">CREATE TABLE table_name(  </span><br><span class="line">    column1 datatype PRIMARY KEY,  </span><br><span class="line">    column2 datatype,  </span><br><span class="line">    ......  </span><br><span class="line">    columnN datatype,  </span><br><span class="line">); </span><br><span class="line"></span><br><span class="line">INSERT INTO table_name SELECT * FROM old_table;  </span><br><span class="line"></span><br><span class="line">COMMIT;  </span><br><span class="line"></span><br><span class="line">PRAGMA foreign_keys=on;</span><br><span class="line"></span><br><span class="line">DROP TABLE old_table; -- 删除原来的表 </span><br></pre></td></tr></table></figure>
+
+<h2 id="3-删除主键"><a href="#3-删除主键" class="headerlink" title="3. 删除主键"></a><font size=3>3. 删除主键</font></h2><p>与添加主键一样，不能使用<code>ALTER TABLE</code>语句来删除主键。需要创建一个没有(删除)主键的新表，并将数据复制到此新表中。格式如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">PRAGMA foreign_keys=off;  </span><br><span class="line"></span><br><span class="line">BEGIN TRANSACTION;  </span><br><span class="line"></span><br><span class="line">ALTER TABLE table_name RENAME TO old_table;  </span><br><span class="line"></span><br><span class="line">CREATE TABLE table_name(  </span><br><span class="line">    column1 datatype PRIMARY KEY,  </span><br><span class="line">    column2 datatype,  </span><br><span class="line">    ......  </span><br><span class="line">    columnN datatype,  </span><br><span class="line">);  </span><br><span class="line"></span><br><span class="line">INSERT INTO table_name SELECT * FROM old_table;  </span><br><span class="line"></span><br><span class="line">COMMIT;  </span><br><span class="line"></span><br><span class="line">PRAGMA foreign_keys=on;</span><br><span class="line"></span><br><span class="line">DROP TABLE old_table; -- 删除原来的表 </span><br></pre></td></tr></table></figure>
+
+<h1 id="四、自动递增"><a href="#四、自动递增" class="headerlink" title="四、自动递增"></a><font size=3>四、自动递增</font></h1><p><code>SQLite</code> 的 <code>AUTOINCREMENT</code> 是一个关键字，用于<strong>表中的字段值自动递增</strong>。我们可以在创建表时在特定的列名称上使用 <code>AUTOINCREMENT</code> 关键字实现该字段值的自动增加。</p>
+<p><strong>【注意】</strong></p>
+<p>（1）关键字 <code>AUTOINCREMENT</code> <strong>只能用于整型</strong>（<code>INTEGER</code>）字段，否则会报错，<code>INT</code>类型也是不可以的。</p>
+<p>（2）只能用于<code>PRIMARY KEY</code>字段，否则会报错。</p>
+<h2 id="1-语法格式-1"><a href="#1-语法格式-1" class="headerlink" title="1. 语法格式"></a><font size=3>1. 语法格式</font></h2><p>一般语法格式如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLE table_name(</span><br><span class="line">   column1 INTEGER PRIMARY KEY AUTOINCREMENT,</span><br><span class="line">   column2 datatype,</span><br><span class="line">   .....</span><br><span class="line">   columnN datatype,</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-自增字段赋值"><a href="#2-自增字段赋值" class="headerlink" title="2. 自增字段赋值"></a><font size=3>2. 自增字段赋值</font></h2><p>自增字段赋值有三种方法：一是不赋值，二是直接赋值，三是置为<code>NULL</code>。若是进行了赋值，下一条数据记录的自增字段若是不进行赋值，那么这条数据记录的自增字段将会在上一条即基础上加<code>1</code>。</p>
+<h2 id="3-使用实例"><a href="#3-使用实例" class="headerlink" title="3. 使用实例"></a><font size=3>3. 使用实例</font></h2><ul>
+<li>创建带自增字段的数据表</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sqlite&gt; create table test(id integer primary key autoincrement, name text not null);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>设置输出格式</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sqlite&gt;.head on</span><br><span class="line">sqlite&gt;.mode column</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>添加数据</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">-- 不赋值</span><br><span class="line">sqlite&gt; insert into test(name) values(&quot;a&quot;);</span><br><span class="line">sqlite&gt; insert into test(name) values(&quot;b&quot;);</span><br><span class="line">sqlite&gt; insert into test(name) values(&quot;c&quot;);</span><br><span class="line"></span><br><span class="line">-- 赋值</span><br><span class="line">sqlite&gt; insert into test(id, name) values(100, &quot;d&quot;);</span><br><span class="line">sqlite&gt; insert into test(id, name) values(200, &quot;e&quot;);</span><br><span class="line">sqlite&gt; insert into test(name) values(&quot;f&quot;);</span><br><span class="line"></span><br><span class="line">-- 赋值为null</span><br><span class="line">sqlite&gt; insert into test(id, name) values(NULL, &quot;g&quot;);</span><br><span class="line">sqlite&gt; insert into test(name) values(&quot;h&quot;);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>查看数据</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">sqlite&gt; select * from test;</span><br><span class="line">id          name      </span><br><span class="line">----------  ----------</span><br><span class="line">1           a         </span><br><span class="line">2           b         </span><br><span class="line">3           c         </span><br><span class="line">100         d         </span><br><span class="line">200         e         </span><br><span class="line">201         f         </span><br><span class="line">202         g         </span><br><span class="line">203         h </span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/3daa27b1.html">LV07-05-SQLite-NULL、约束和主键</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年07月03日 - 21:30</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/3daa27b1.html" title="LV07-05-SQLite-NULL、约束和主键">https://sumumm.github.io/post/3daa27b1.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV07-SQLite/" rel="tag"><i class="fa fa-tag"></i> LV07-SQLite</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/8f29659f.html" rel="prev" title="LV07-06-SQLite-C语言API">
+                  <i class="fa fa-angle-left"></i> LV07-06-SQLite-C语言API
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/d17b4c8b.html" rel="next" title="LV07-04-SQLite-点命令">
+                  LV07-04-SQLite-点命令 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

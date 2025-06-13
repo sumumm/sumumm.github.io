@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是中断与异常——中断与中断控制器GIC的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV04-07-中断与异常-03-中断与GIC">
+<meta property="og:url" content="https://sumumm.github.io/post/9dde3ff0.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是中断与异常——中断与中断控制器GIC的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-03-%E4%B8%AD%E6%96%AD%E4%B8%8EGIC/img/image-20230910095454580.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-03-%E4%B8%AD%E6%96%AD%E4%B8%8EGIC/img/image-20230910100505193.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-03-%E4%B8%AD%E6%96%AD%E4%B8%8EGIC/img/image-20230910103302383.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-03-%E4%B8%AD%E6%96%AD%E4%B8%8EGIC/img/image-20230910102508350.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-03-%E4%B8%AD%E6%96%AD%E4%B8%8EGIC/img/image-20230910103319234.png">
+<meta property="article:published_time" content="2024-01-21T08:04:10.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.040Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV04-裸机开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-03-%E4%B8%AD%E6%96%AD%E4%B8%8EGIC/img/image-20230910095454580.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/9dde3ff0.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/9dde3ff0.html","path":"post/9dde3ff0.html","title":"LV04-07-中断与异常-03-中断与GIC"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV04-07-中断与异常-03-中断与GIC | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%B8%AD%E6%96%AD%E5%A4%84%E7%90%86"><span class="nav-text">一、中断处理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%A4%96%E9%83%A8%E4%B8%AD%E6%96%AD%E8%AF%B7%E6%B1%82"><span class="nav-text">1. 外部中断请求</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%86%E9%85%8D%E4%B8%AD%E6%96%AD"><span class="nav-text">2. 分配中断</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%AE%80%E5%8D%95%E7%9A%84%E4%B8%AD%E6%96%AD%E5%A4%84%E7%90%86"><span class="nav-text">3. 简单的中断处理  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%B5%8C%E5%A5%97%E4%B8%AD%E6%96%AD%E5%A4%84%E7%90%86"><span class="nav-text">4. 嵌套中断处理  </span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E9%80%9A%E7%94%A8%E4%B8%AD%E6%96%AD%E6%8E%A7%E5%88%B6%E5%99%A8%EF%BC%88GIC%EF%BC%89"><span class="nav-text">二、通用中断控制器（GIC）  </span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84"><span class="nav-text">1. 基本结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%B1%BB%E5%9E%8B%E4%B8%8E%E7%8A%B6%E6%80%81"><span class="nav-text">2. 中断的类型与状态</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E4%B8%AD%E6%96%AD%E5%8F%AF%E4%BB%A5%E6%9C%89%E5%A4%9A%E7%A7%8D%E4%B8%8D%E5%90%8C%E7%9A%84%E7%B1%BB%E5%9E%8B"><span class="nav-text">2.1 中断可以有多种不同的类型  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E4%B8%AD%E6%96%AD%E5%8F%AF%E4%BB%A5%E5%A4%84%E4%BA%8E%E5%A4%9A%E7%A7%8D%E4%B8%8D%E5%90%8C%E7%8A%B6%E6%80%81"><span class="nav-text">2.2 中断可以处于多种不同状态  </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-GIC%E7%9A%84%E9%80%BB%E8%BE%91%E7%BB%93%E6%9E%84"><span class="nav-text">3. GIC的逻辑结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-GIC%E7%9A%84%E9%85%8D%E7%BD%AE"><span class="nav-text">4. GIC的配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E5%88%9D%E5%A7%8B%E5%8C%96GIC"><span class="nav-text">5. 初始化GIC</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-GIC-%E4%B8%AD%E6%96%AD%E5%A4%84%E7%90%86"><span class="nav-text">6. GIC 中断处理  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-%E4%B8%AD%E6%96%AD%E6%8E%A7%E5%88%B6%E5%99%A8%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">7. 中断控制器寄存器</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/9dde3ff0.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV04-07-中断与异常-03-中断与GIC | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV04-07-中断与异常-03-中断与GIC
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-01-21 16:04:10" itemprop="dateCreated datePublished" datetime="2024-01-21T16:04:10+08:00">2024-01-21</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV04-裸机开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4.9k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>18 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是中断与异常——中断与中断控制器GIC的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-03-%E4%B8%AD%E6%96%AD%E4%B8%8EGIC/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows版本</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu版本</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>      </tr>    <tr>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="4">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">在线阅读linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga" target="_blank">nxp-imx/linux-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga</a></td>        <td align="left">NXP linux内核仓库tags中的rel_imx_4.1.15_2.1.0_ga</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.1.15_2.1.0_ga</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>        <tr>        <td align="center" rowspan="5">ARM</td>        <td align="left"><a href="https://developer.arm.com/documentation/ddi0464/latest" target="_blank">Cortex-A7 MPCore Technical Reference Manual</a></td>        <td align="left">Cortex-A7 MPCore技术参考手册</td>    </tr>    <tr>        <td align="left"><a href="https://developer.arm.com/documentation/ddi0406/cd/?lang=en" target="_blank">ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition</a></td>        <td align="left">ARM架构参考手册ARMv7-A和ARMv7-R版</td>    </tr>    <tr>        <td align="left"><a href="https://developer.arm.com/documentation/ihi0069/h/?lang=en" target="_blank">Arm Generic Interrupt Controller Architecture Specification- version 3 and version 4</a></td>        <td align="left">Arm通用中断控制器架构规范-版本3和版本4</td>    </tr>    <tr>        <td align="left"><a href="https://developer.arm.com/documentation/ihi0048/bb/?lang=en" target="_blank">ARM Generic Interrupt Controller Architecture Specification - Version 2.0</a></td>        <td align="left">Arm通用中断控制器架构规范-版本2.0</td>    </tr>    <tr>        <td align="left"><a href="https://developer.arm.com/documentation/den0013/d/?lang=en" target="_blank">ARM Cortex-A Series Programmer's Guide for ARMv7-A</a></td>        <td align="left">Cortex-A系列ARMv7-A编程指南</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、中断处理"><a href="#一、中断处理" class="headerlink" title="一、中断处理"></a><font size=3>一、中断处理</font></h1><p>对于 S3C2440 等较旧的 ARM 体系结构版本，芯片厂家在设计外部中断控制器时具有很大的自由度，在中断的数量、类型、与中断控制器模块接口等时方面<br>都可以自由发挥。</p>
+<p>通用中断控制器 v2（ GIC）架构提供了更为严格的规范，不同厂商的中断控制器之间具有更高的一致性。这使中断处理程序代码更易于移植。  </p>
+<h2 id="1-外部中断请求"><a href="#1-外部中断请求" class="headerlink" title="1. 外部中断请求"></a><font size=3>1. 外部中断请求</font></h2><p>ARM 核有两个外部中断请求 FIQ 和 IRQ，如下图所示：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-03-%E4%B8%AD%E6%96%AD%E4%B8%8EGIC/img/image-20230910095454580.png" alt="image-20230910095454580" style="zoom:50%;" />
+
+<p>各个不同的芯片实现，里面都有中断控制器。中断控制器接受来自各种外部源的中断请求并将它们映射为 FIQ 或 IRQ，从而导致 ARM 核发生异常。  </p>
+<p>通常，只有当相应的 CPSR 禁止位（分别为 F 和 I 位）清零并且相应的输入为有效时，才可以产生中断异常。</p>
+<p>CPS 指令提供了一种简单的机制来启用或禁用由 CPSR A， I 和 F 位（分别为异步中止， IRQ 和 FIQ）控制的异常。</p>
+<p>CPS IE 或 CPS ID 将分别启用或禁用异常。使用字母 A， I 和 F 中的一个或多个指定要启用或禁用的异常。省略了相应字母的异常将不会被修改。</p>
+<p>在 Cortex-A 系列处理器中，可以配置 CPU 核，以使 FIQ 不能被软件屏蔽。这被称为不可屏蔽 FIQ，并由 CPU 核复位时采样的硬件配置的输入信号控制。发<br>生 FIQ 异常后，它们仍将自动被屏蔽。  </p>
+<h2 id="2-分配中断"><a href="#2-分配中断" class="headerlink" title="2. 分配中断"></a><font size=3>2. 分配中断</font></h2><p>中断控制器接受来自各种源的中断, 并决定谁能优先被处理(仲裁)。控制器通常包含多个寄存器，通过这些寄存器，我们能够屏蔽或使能各个中断源，为<br>各个中断源分配优先级；当发生中断时，可以确定中断源。</p>
+<p>中断控制器可以由芯片厂家自己设计(比如比较老的芯片 S3C2440)，也可以使用 ARM 通用中断控制器（ GIC）架构。  </p>
+<h2 id="3-简单的中断处理"><a href="#3-简单的中断处理" class="headerlink" title="3. 简单的中断处理  "></a><font size=3>3. 简单的中断处理  </font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-03-%E4%B8%AD%E6%96%AD%E4%B8%8EGIC/img/image-20230910100505193.png" alt="image-20230910100505193" style="zoom:50%;" />
+
+<p>上图代表了最简单的中断处理程序。发生中断时，将禁用其他同类中断，直到稍后显式启用。我们只能在第一个中断请求完成时才能处理其他中断，并且在<br>此期间没有更高优先级或更紧急的中断需要处理。在这种情况下是不可重入的中断处理程序。处理中断所采取的步骤如下：    </p>
+<ul>
+<li>（1）外部硬件引发 IRQ 异常</li>
+</ul>
+<p>ARM 核自动执行几个步骤：</p>
+<p>① 当前模式下 PC 的内容存储在 LR_IRQ 中；</p>
+<p>② CPSR 寄存器被复制到 SPSR_IRQ；</p>
+<p>③ CPSR 内容被更新，设置模式位为 IRQ 模式，并且将 I 位设置为屏蔽其他IRQ；</p>
+<p>④ PC 被设置为向量表中的 IRQ 入口。</p>
+<ul>
+<li><p>（2）执行向量表中 IRQ 入口处（中断异常的分支）的指令；</p>
+</li>
+<li><p>（3）中断处理程序保存被中断程序的上下文：它将被该中断处理程序损坏的所有寄存器压入堆栈。</p>
+</li>
+<li><p>（4）中断处理程序确定中断源，然后调用响应的处理程序。</p>
+</li>
+<li><p>（5）恢复现场。</p>
+</li>
+</ul>
+<p>通过将 SPSR_IRQ 复制到 CPSR，并还原先前保存的上下文，准备将 CPU 核切换到先前的执行状态，最后从 LR_IRQ 恢复 PC。相同的顺序也适用于 FIQ 中断。  </p>
+<h2 id="4-嵌套中断处理"><a href="#4-嵌套中断处理" class="headerlink" title="4. 嵌套中断处理  "></a><font size=3>4. 嵌套中断处理  </font></h2><p>嵌套中断处理是软件可以在完成对当前中断的处理之前，接受另一个中断。这可以将中断进行优先级分级，降低高优先级事件的响应延迟，代价是增加了软<br>件的复杂性。值得注意的是，嵌套中断处理是由软件来实现。</p>
+<p>支持中断嵌套的处理函数，被称为“可重入中断处理程序”。在 Linux 系统中，不支持中断嵌套。对于裸机程序，我们也不需要花费精力在这上面。在实时性要求很高的 RTOS 中，也许对中断嵌套有所要求。但是可以通过其他办法习实现，比如把某个中断单独设置在 FIQ。  </p>
+<h1 id="二、通用中断控制器（GIC）"><a href="#二、通用中断控制器（GIC）" class="headerlink" title="二、通用中断控制器（GIC）  "></a><font size=3>二、通用中断控制器（GIC）  </font></h1><p>ARM 体系结构定义了通用中断控制器（GIC, Generic InterruptController），该控制器包括一组用于管理单核或多核系统中的中断的硬件资源。 GIC 提供了内存映射寄存器，可用于管理中断源和行为，以及（在多核系统中）用于将中断路由到各个 CPU 核。它使软件能够屏蔽，启用和禁用来自各个中断源的中断，以（在硬件中）对各个中断源进行优先级排序和生成软件触发中断。它还提供对 TrustZone 安全性扩展的支持。GIC 接受系统级别中断的产生，并可以发信号通知给它所连接的每个内核，从而有可能导致 IRQ 或 FIQ 异常发生。  </p>
+<p>GIC 是 ARM 公司给 Cortex-A&#x2F;R 内核提供的一个中断控制器，类似 Cortex-M 内核中的NVIC。目前 GIC 有 4 个版本:V1~V4， V1 是最老的版本，已经被废弃了。 V2~V4 目前正在大量的使用。 GIC V2 是给 ARMv7-A 架构使用的，比如 Cortex-A7、 Cortex-A9、 Cortex-A15 等，V3 和 V4 是给 ARMv8-A&#x2F;R 架构使用的，也就是 64 位芯片使用的。   </p>
+<h2 id="1-基本结构"><a href="#1-基本结构" class="headerlink" title="1. 基本结构"></a><font size=3>1. 基本结构</font></h2><p>从软件角度来看， GIC 具有两个主要功能模块，  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-03-%E4%B8%AD%E6%96%AD%E4%B8%8EGIC/img/image-20230910103302383.png" alt="image-20230910103302383" style="zoom:50%;" />
+
+<ul>
+<li>分发器(Distributor)</li>
+</ul>
+<p>系统中的所有中断源都连接到该单元。可以通过仲裁单元的寄存器来控制各个中断源的属性，例如优先级、状态、安全性、路由信息和使能状态。分发器把中断输出到“ CPU 接口单元”，后者决定将哪个中断转发给 CPU 核。</p>
+<ul>
+<li>CPU 接口单元（CPU Interface）</li>
+</ul>
+<p>CPU 核通过控制器的 CPU 接口单元接收中断。 CPU 接口单元寄存器用于屏蔽，识别和控制转发到 CPU 核的中断的状态。系统中的每个 CPU 核心都有一个单独的 CPU 接口。中断在软件中由一个称为中断 ID 的数字标识。中断 ID 唯一对应于一个中断源。软件可以使用中断 ID 来识别中断源并调用相应的处理程序来处理中断。呈现给软件的中断 ID 由系统设计确定，一般在 SOC 的数据手册有记录。  </p>
+<h2 id="2-中断的类型与状态"><a href="#2-中断的类型与状态" class="headerlink" title="2. 中断的类型与状态"></a><font size=3>2. 中断的类型与状态</font></h2><h3 id="2-1-中断可以有多种不同的类型"><a href="#2-1-中断可以有多种不同的类型" class="headerlink" title="2.1 中断可以有多种不同的类型  "></a><font size=3>2.1 中断可以有多种不同的类型  </font></h3><ul>
+<li>（1）软件触发中断（SGI， Software Generated Interrupt）</li>
+</ul>
+<p>这是由软件通过写入专用仲裁单元的寄存器即软件触发中断寄存器（ ICDSGIR）显式生成的。它最常用于 CPU 核间通信。 SGI 既可以发给所有的核，也可以发送给系统中选定的一组核心。中断号 0-15 保留用于 SGI 的中断号。用于通信的确切中断号由软件决定。</p>
+<ul>
+<li>（2）私有外设中断（PPI， Private Peripheral Interrupt）</li>
+</ul>
+<p>这是由单个 CPU 核私有的外设生成的。 PPI 的中断号为 16-31。它们标识CPU 核私有的中断源，并且独立于另一个内核上的相同中断源，比如，每个核的计时器。</p>
+<ul>
+<li>（3）共享外设中断（SPI， Shared Peripheral Interrupt）</li>
+</ul>
+<p>这是由外设生成的，中断控制器可以将其路由到多个核。中断号为 32-1020。SPI 用于从整个系统可访问的各种外围设备发出中断信号。中断可以是边沿触发的（在中断控制器检测到相关输入的上升沿时认为中断触发，并且一直保持到清除为止）或电平触发（仅在中断控制器的相关输入为高时触发）。  </p>
+<h3 id="2-2-中断可以处于多种不同状态"><a href="#2-2-中断可以处于多种不同状态" class="headerlink" title="2.2 中断可以处于多种不同状态  "></a><font size=3>2.2 中断可以处于多种不同状态  </font></h3><p>（1）非活动状态（Inactive）： 这意味着该中断未触发。</p>
+<p>（2）挂起（Pending）： 这意味着中断源已被触发，但正在等待 CPU 核处理。待处理的中断要通过转发到 CPU 接口单元，然后再由 CPU 接口单元转发到内核。</p>
+<p>（3）活动（Active）： 描述了一个已被内核接收并正在处理的中断。</p>
+<p>（4）活动和挂起（Active and pending）：描述了一种情况，其中 CPU 核正在为中断服务，而 GIC 又收到来自同一源的中断。  </p>
+<h2 id="3-GIC的逻辑结构"><a href="#3-GIC的逻辑结构" class="headerlink" title="3. GIC的逻辑结构"></a><font size=3>3. GIC的逻辑结构</font></h2><p>GIC 控制器的逻辑结构 如下图（《ARM® Generic Interrupt Controller Architecture version 2.0》的2.1 About GIC partitioning）所示：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-03-%E4%B8%AD%E6%96%AD%E4%B8%8EGIC/img/image-20230910102508350.png" alt="image-20230910102508350" style="zoom:50%;" />
+
+<p>中断的优先级和可接收中断的核都在分发器(distributor)中配置。外设发给分发器的中断将标记为 pending 状态（或 Active and Pending 状态，如触发时果状态是 active）。 distributor 确定可以传递给 CPU 核的优先级最高的 pending 中断，并将其转发给内核的 CPU interface。通过 CPU interface，该中断又向 CPU 核发出信号，此时 CPU 核将触发 FIQ 或 IRQ 异常。  </p>
+<p>作为响应， CPU 核执行异常处理程序。异常处理程序必须从 CPU interface寄存器查询中断 ID，并开始为中断源提供服务。完成后，处理程序必须写入 CPU interface 寄 存 器 以 报 告 处 理 结 束 。 然 后 CPU interface 准备转发distributor 发给它的下一个中断。</p>
+<p>在处理中断时，中断的状态开始为 pending， active，结束时变成 inactive。中断状态保存在 distributor 寄存器中。</p>
+<h2 id="4-GIC的配置"><a href="#4-GIC的配置" class="headerlink" title="4. GIC的配置"></a><font size=3>4. GIC的配置</font></h2><p>GIC 作为内存映射的外围设备，被软件访问。所有内核都可以访问公共的distributor 单元，但是 CPU interface 是备份的，也就是说，每个 CPU 核都使用相同的地址来访问其专用 CPU 接口。一个 CPU 核不可能访问另一个 CPU 核的 CPU 接口。Distributor 拥有许多寄存器，可以通过它们配置各个中断的属性。这些可配置属性是：  </p>
+<ul>
+<li>中断优先级： Distributor 使用它来确定接下来将哪个中断转发到 CPU 接口。  </li>
+<li>中断配置：这确定中断是对电平触发还是边沿触发。</li>
+<li>中断目标：这确定了可以将中断发给哪些 CPU 核。</li>
+<li>中断启用或禁用状态：只有 Distributor 中启用的那些中断变为挂起状态时，才有资格转发。</li>
+<li>中断安全性：确定将中断分配给 Secure 还是 Normal world 软件。</li>
+<li>中断状态。</li>
+</ul>
+<p>Distributor 还提供优先级屏蔽，可防止低于某个优先级的中断发送给 CPU核。每个 CPU 核上的 CPU interface，专注于控制和处理发送给该 CPU 核的中断。  </p>
+<h2 id="5-初始化GIC"><a href="#5-初始化GIC" class="headerlink" title="5. 初始化GIC"></a><font size=3>5. 初始化GIC</font></h2><p>Distributor 和 CPU interface 在复位时均被禁用。复位后，必须初始化GIC，才能将中断传递给 CPU 核。在 Distributor 中，软件必须配置优先级、目标核、安全性并启用单个中断；随后必须通过其控制寄存器使能。</p>
+<p>对于每个 CPU interface，软件必须对优先级和抢占设置进行编程。每个CPU 接口模块本身必须通过其控制寄存器使能。</p>
+<p>在 CPU 核可以处理中断之前，软件会通过在向量表中设置有效的中断向量并清除 CPSR 中的中断屏蔽位来让 CPU 核可以接收中断。</p>
+<p>可以通过禁用 Distributor 单元来禁用系统中的整个中断机制；可以通过禁用单个 CPU 的 CPU 接口模块或者在 CPSR 中设置屏蔽位来禁止向单个 CPU 核的中断传递。也可以在 Distributor 中禁用（或启用）单个中断。</p>
+<p>为了使某个中断可以触发 CPU 核，必须将各个中断， Distributor 和 CPUinterface 全部使能，并将 CPSR 中断屏蔽位清零，如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-03-%E4%B8%AD%E6%96%AD%E4%B8%8EGIC/img/image-20230910103319234.png" alt="image-20230910103319234" style="zoom:50%;" />
+
+<h2 id="6-GIC-中断处理"><a href="#6-GIC-中断处理" class="headerlink" title="6. GIC 中断处理  "></a><font size=3>6. GIC 中断处理  </font></h2><p>当 CPU 核接收到中断时，它会跳转到中断向量表执行。顶层中断处理程序读取CPU接口模块的 Interrupt Acknowledge Register，以获取中断 ID。除了返回中断 ID 之外，读取操作还会使该中断在Distributor 中标记为 active 状态。一旦知道了中断 ID（标识中断源），顶层处理程序现在就可以分派特定于设备的处理程序来处理中断。  </p>
+<p>当特定于设备的处理程序完成执行时，顶级处理程序将相同的中断 ID 写入 CPU interface 模块中的 End of Interrupt register 中断结束寄存器， 指示中断处理结束。除了把当前中断移除 active 状态之外，这将使最终中断状态变为 inactive 或 pending（如果状态为 inactive and pending），这将使CPU interface 能够将更多待处理 pending 的中断转发给 CPU 核。这样就结束了单个中断的处理。   </p>
+<p>同一 CPU 核上可能有多个中断等待服务，但是 CPU interface 一次只能发出一个中断信号。顶层中断处理程序重复上述顺序，直到读取特殊的中断 ID 值1023，表明该内核不再有任何待处理的中断。这个特殊的中断 ID 被称为伪中断ID（ spurious interrupt ID）。</p>
+<p>伪中断 ID 是保留值，不能分配给系统中的任何设备。  </p>
+<h2 id="7-中断控制器寄存器"><a href="#7-中断控制器寄存器" class="headerlink" title="7. 中断控制器寄存器"></a><font size=3>7. 中断控制器寄存器</font></h2><p>GIC 分为两部分： Distributor 和 CPU interface，它们的寄存器都有相应的前缀：“GICD_”、“ GICC_”。这些寄存器都是映射为内存接口(memery map)，CPU 可以直接读写。  </p>
+<p>这里就不详细介绍了，需要的时候可以查看《ARM® Generic Interrupt Controller Architecture version 2.0》的Chapter 4  Programmers’ Model一节。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/9dde3ff0.html">LV04-07-中断与异常-03-中断与GIC</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年01月21日 - 16:04</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/9dde3ff0.html" title="LV04-07-中断与异常-03-中断与GIC">https://sumumm.github.io/post/9dde3ff0.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV04-裸机开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/c504b455.html" rel="prev" title="LV04-07-中断与异常-04-CortexA7中断系统">
+                  <i class="fa fa-angle-left"></i> LV04-07-中断与异常-04-CortexA7中断系统
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/5b5ddfcd.html" rel="next" title="LV04-07-中断与异常-02-异常处理实例">
+                  LV04-07-中断与异常-02-异常处理实例 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

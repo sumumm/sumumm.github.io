@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是使用STM32的SPI通信协议读写外部SPI FLASH W25Q128的一些相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV16-20-SPI-02-读写外部SPI-FLASH">
+<meta property="og:url" content="https://sumumm.github.io/post/7e1c4c31.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是使用STM32的SPI通信协议读写外部SPI FLASH W25Q128的一些相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507192414828.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507192941513.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507200233319.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507201400133.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507204248563.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507202117478.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507202629656.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507202413239.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507203050335.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507203139132.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507203432851.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507203540042.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507205517724.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507210048082.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507210419381.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507210922311.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507212600204.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230508231720539.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507202413239.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230508231904323.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230509070328475.png">
+<meta property="article:published_time" content="2023-06-04T14:07:13.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.011Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV16-STM32开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507192414828.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/7e1c4c31.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/7e1c4c31.html","path":"post/7e1c4c31.html","title":"LV16-20-SPI-02-读写外部SPI-FLASH"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV16-20-SPI-02-读写外部SPI-FLASH | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81W25Q128%E7%AE%80%E4%BB%8B"><span class="nav-text">一、W25Q128简介</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%AE%80%E4%BB%8B"><span class="nav-text">1. 简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%BB%93%E6%9E%84%E7%BB%84%E6%88%90"><span class="nav-text">2. 结构组成  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%AD%98%E5%82%A8%E7%89%B9%E6%80%A7"><span class="nav-text">3. 存储特性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%BC%95%E8%84%9A%E8%AF%B4%E6%98%8E"><span class="nav-text">4. 引脚说明</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E9%80%9A%E4%BF%A1%E9%80%9F%E5%BA%A6"><span class="nav-text">5. 通信速度</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E7%8A%B6%E6%80%81%E5%92%8C%E6%8E%A7%E5%88%B6%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">6. 状态和控制寄存器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-%E6%94%AF%E6%8C%81%E7%9A%84%E5%91%BD%E4%BB%A4"><span class="nav-text">7. 支持的命令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-%E5%9C%B0%E5%9D%80%E4%BD%8D%E6%95%B0%EF%BC%9F"><span class="nav-text">8. 地址位数？</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E8%AF%BB%E5%86%99%E6%95%B0%E6%8D%AE"><span class="nav-text">二、读写数据</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AF%BB%E5%8F%96%E7%8A%B6%E6%80%81%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">1. 读取状态寄存器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%93%A6%E9%99%A4%E6%89%87%E5%8C%BA"><span class="nav-text">2. 擦除扇区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%86%99%E5%85%A5%E6%95%B0%E6%8D%AE"><span class="nav-text">3. 写入数据</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%AF%BB%E5%8F%96%E6%95%B0%E6%8D%AE"><span class="nav-text">4. 读取数据</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E8%AF%BB%E5%86%99%E5%AE%9E%E4%BE%8B"><span class="nav-text">三、读写实例</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%A1%AC%E4%BB%B6%E8%AE%BE%E8%AE%A1"><span class="nav-text">1. 硬件设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%89%A9%E7%90%86SPI%E8%AF%BB%E5%86%99FLASH"><span class="nav-text">2. 物理SPI读写FLASH</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-STM32CubeMX%E9%85%8D%E7%BD%AE"><span class="nav-text">2.1 STM32CubeMX配置</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-%E6%89%93%E5%BC%80SPI2"><span class="nav-text">2.1.1 打开SPI2</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-NSS%E5%BC%95%E8%84%9A"><span class="nav-text">2.1.2 NSS引脚</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-3-SPI%E9%85%8D%E7%BD%AE"><span class="nav-text">2.1.3 SPI配置</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%AE%8F%E5%AE%9A%E4%B9%89"><span class="nav-text">2.2 宏定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-SPI%E8%AF%BB%E5%86%99%E4%B8%80%E4%B8%AA%E5%AD%97%E8%8A%82%E6%95%B0%E6%8D%AE"><span class="nav-text">2.3 SPI读写一个字节数据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E5%86%99%E4%BD%BF%E8%83%BD%E4%B8%8E%E7%A6%81%E6%AD%A2"><span class="nav-text">2.4 写使能与禁止</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-1-%E5%86%99%E4%BD%BF%E8%83%BD"><span class="nav-text">2.4.1 写使能</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-2-%E5%86%99%E7%A6%81%E6%AD%A2"><span class="nav-text">2.4.2 写禁止</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-%E8%AF%BB%E5%86%99%E7%8A%B6%E6%80%81%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">2.5 读写状态寄存器</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-1-%E7%8A%B6%E6%80%81%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">2.5.1 状态寄存器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-2-%E8%AF%BB%E7%8A%B6%E6%80%81%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">2.5.2 读状态寄存器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-2-%E5%86%99%E7%8A%B6%E6%80%81%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">2.5.2 写状态寄存器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-3-%E7%AD%89%E5%BE%85%E7%A9%BA%E9%97%B2"><span class="nav-text">2.5.3 等待空闲</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6-%E8%AF%BB%E5%8F%96FLASH%E8%8A%AF%E7%89%87ID"><span class="nav-text">2.6 读取FLASH芯片ID</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-7-%E6%89%87%E5%8C%BA%E6%93%A6%E9%99%A4"><span class="nav-text">2.7 扇区擦除  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-8-%E5%86%99%E5%85%A5%E6%95%B0%E6%8D%AE"><span class="nav-text">2.8 写入数据</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-8-1-%E6%8C%89%E9%A1%B5%E5%86%99%E5%85%A5"><span class="nav-text">2.8.1 按页写入</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-8-2-%E6%97%A0%E6%A0%A1%E9%AA%8C%E5%86%99%E5%85%A5%E6%95%B0%E6%8D%AE"><span class="nav-text">2.8.2 无校验写入数据</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-8-3-%E5%86%99%E5%85%A5%E6%8C%87%E5%AE%9A%E5%AD%97%E8%8A%82%E6%95%B0%E6%8D%AE"><span class="nav-text">2.8.3 写入指定字节数据</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-9-%E8%AF%BB%E5%8F%96%E6%95%B0%E6%8D%AE"><span class="nav-text">2.9 读取数据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-10-%E6%B5%8B%E8%AF%95%E5%87%BD%E6%95%B0"><span class="nav-text">2.10 测试函数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%A8%A1%E6%8B%9FSPI%E8%AF%BB%E5%86%99FLASH"><span class="nav-text">3. 模拟SPI读写FLASH</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/7e1c4c31.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV16-20-SPI-02-读写外部SPI-FLASH | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV16-20-SPI-02-读写外部SPI-FLASH
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-06-04 22:07:13" itemprop="dateCreated datePublished" datetime="2023-06-04T22:07:13+08:00">2023-06-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV16-STM32开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>8.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>31 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是使用STM32的SPI通信协议读写外部SPI FLASH W25Q128的一些相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI%20FLASH/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <ul><li>通用</li></ul><table><tr><td align="center">分类  </td><td align="center">网址</td><td align="center">说明</td></tr><tr><td align="center" rowspan="4">官方网站</td><td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td><td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td></tr><tr>                                            <td align="left"><a href="https://www.st.com/content/st_com/zh.html" target="_blank">https://www.st.com/content/st_com/zh.html</a></td><td align="left">ST官方网站，在这里我们可以找到STM32的相关文档</td></tr><tr>                                            <td align="left"><a href="https://www.stmcu.com.cn/" target="_blank">https://www.stmcu.com.cn/</a></td><td align="left">意法半导体ST中文官方网站，在这里我们可以找到STM32的相关中文参考文档</td></tr><tr>                                            <td align="left"><a href="http://elm-chan.org/fsw/ff/00index_e.html" target="_blank">http://elm-chan.org/fsw/ff/00index_e.html</a></td><td align="left">FatFs文件系统官网</td></tr><tr><td align="center" rowspan="3">教程书籍</td><td align="left"><a href="STM32开发相关资料/01ARM参考资料/ARM Cortex-M3权威指南(中文).pdf" target="_blank">《ARM Cortex-M3权威指南》</a></td><td alirn="left" rowspan="3">ARM公司专家Joseph Yiu（姚文祥）的力作，中文翻译是NXP的宋岩</td></tr><tr>                                            <td align="left"><a href="STM32开发相关资料/01ARM参考资料/ARM Cortex-M0权威指南(中文).pdf" target="_blank">《ARM Cortex-M0权威指南》</a></td></tr><tr>                                            <td align="left"><a href="" target="_blank">《ARM Cortex-M3与Cortex-M4权威指南》</a></td></tr><tr><td align="center" rowspan="4">开发论坛</td><td align="left"><a href="http://47.111.11.73/forum.php" target="_blank">http://47.111.11.73/forum.php</a></td><td align="left">开源电子网，正点原子的资料下载及问题讨论论坛</td></tr><tr>                                            <td align="left"><a href="https://www.firebbs.cn/forum.php" target="_blank">https://www.firebbs.cn/forum.php</a></td><td align="left">国内Kinetis开发板-野火/秉火（刘火良）主持的论坛，现也做STM32和i.MX RT</td></tr><tr>                                            <td align="left"><a href="https://www.amobbs.com/index.php" target="_blank">https://www.amobbs.com/index.php</a></td><td align="left">阿莫（莫进明）主持的论坛，号称国内最早最火的电子论坛，以交流Atmel AVR系列单片机起家，现已拓展到嵌入式全平台，其STM32系列帖子有70W+。</td></tr><tr>                                            <td align="left"><a href="http://download.100ask.net/index.html" target="_blank">http://download.100ask.net/index.html</a></td><td align="left">韦东山嵌入式资料中心，有些STM32和linux的相关资料也可以来这里找。</td></tr><tr><td align="center" rowspan="3">博客参考</td><td align="left"><a href="http://www.openedv.com/" target="_blank">http://www.openedv.com/</a></td><td align="left">开源网-原子哥个人博客</td></tr><tr>                                            <td align="left"><a href="http://blog.chinaaet.com/jihceng0622" target="_blank">http://blog.chinaaet.com/jihceng0622</a></td><td align="left">博主是原Freescale现NXP的现场应用工程师</td></tr><tr>                                            <td align="left"><a href="https://community.arm.com/arm-community-blogs/b/architectures-and-processors-blog/posts/cortex-m-resources" target="_blank">cortex-m-resources</a></td><td align="left">这其实并不算是一个博客，这是ARM公司专家Joseph Yiu收集整理的所有对开发者有用的官方Cortex-M资料链接（也包含极少数外部资源链接）</td></tr></table><ul><li>STM32</li></ul><table>    <tr><td align="center" rowspan="2">STM32</td><td align="left"><a href="https://doc.embedfire.com/mcu/stm32/f103/hal_general/zh/latest/index.html" target="_blank">STM32 HAL库开发实战指南——基于F103系列开发板</a></td><td align="left">野火STM32开发教程在线文档</td></tr><tr>                                            <td align="left"><a href="https://doc.embedfire.com/mcu/stm32/f103badao/std/zh/latest/index.html" target="_blank">STM32库开发实战指南——基于野火霸道开发板</a></td><td align="left">野火STM32开发教程在线文档</td></tr></table><ul><li>SD卡</li></ul><table>    <tr><td align="left"><a href="https://www.sdcard.org/" target="_blank">SD Association</a></td><td align="left">提供了SD存储卡和SDIO卡系统规范</td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr><td align="left"><a href="https://www.st.com/resource/en/datasheet/stm32f103ze.pdf" target="_blank">STM32F103xx英文数据手册</a></td><td align="left">STM32F103xC/D/E系列的英文数据手册</td></tr>    <tr><td align="left"><a href="https://www.stmcu.com.cn/Designresource/detail/localization_document%20/709978" target="_blank">STM32F103xx中文数据手册</a></td><td align="left">STM32F103xC/D/E系列的中文数据手册</td></tr>    <tr><td align="left"><a href="https://www.st.com/resource/en/reference_manual/rm0008-stm32f101xx-stm32f102xx-stm32f103xx-stm32f105xx-and-stm32f107xx-advanced-armbased-32bit-mcus-stmicroelectronics.pdf" target="_blank">STM32F10xxx英文参考手册（RM0008）</a></td><td align="left">STM32F10xxx系列的英文参考手册</td></tr>    <tr><td align="left"><a href="https://www.stmcu.com.cn/Designresource/detail/localization_document%20/710001" target="_blank">STM32F10xxx中文参考手册（RM0008）</a></td><td align="left">STM32F10xxx系列的中文参考手册</td></tr>    <tr><td align="left"><a href="https://developer.arm.com/documentation/100165/0201/?lang=en" target="_blank">Arm Cortex-M3 处理器技术参考手册-英文版</a></td><td align="left">Cortex-M3技术参考手册-英文版</td></tr>    <tr><td align="left"><a href="https://www.st.com/resource/en/programming_manual/pm0056-stm32f10xxx20xxx21xxxl1xxxx-cortexm3-programming-manual-stmicroelectronics.pdf" target="_blank">STM32F10xxx Cortex-M3编程手册-英文版(PM0056)</a></td><td align="left">STM32F10xxx/20xxx/21xxx/L1xxxx系列Cortex-M3编程手册-英文版</td></tr>    <tr><td align="left"><a href="https://www.sdcard.org/downloads/pls/" target="_blank">SD卡相关资料——最新版本</a></td><td align="left">有关SD卡的一些资料可以从这里下载</td></tr>    <tr><td align="left"><a href="https://www.sdcard.org/downloads/pls/archives/" target="_blank">SD卡相关资料——历史版本</a></td><td align="left">有关SD卡的一些历史版本资料可以从这里下载，比如后边看的SD卡2.0协议</td></tr>    <tr><td align="left"><a href="./" target="_blank">SD 2.0 协议标准完整版</a></td><td align="left">这是一篇关于SD卡2.0协议的中文文档，还是比较有参考价值的，可以一看</td></tr></table>
+              </div>
+            </details>
+
+<h1 id="一、W25Q128简介"><a href="#一、W25Q128简介" class="headerlink" title="一、W25Q128简介"></a><font size=3>一、W25Q128简介</font></h1><h2 id="1-简介"><a href="#1-简介" class="headerlink" title="1. 简介"></a><font size=3>1. 简介</font></h2><p>EEPROM和Flash的本质上是一样的， 都用于保存数据，Flash包括MCU内部的Flash和外部扩展的Flash，我使用的开发板的W25Q128就是一个SPI接口的外部NOR Flash。从功能上， Flash通常存放运行代码，运行过程中不会修改，而EEPROM存放用户数据，可能会反复修改。 从结构上， Flash按扇区操作， EEPROM通常按字节操作。  </p>
+<p>W25Q128是<a target="_blank" rel="noopener" href="https://www.winbond.com/hq/?__locale=zh">华邦</a>的一款SPI接口 NOR FLASH 芯片，我看我使用的开发板上使用的型号是W25Q128JV，我们可以在这里找到它的芯片手册：<a target="_blank" rel="noopener" href="https://www.winbond.com/hq/product/code-storage-flash-memory/serial-nor-flash/?__locale=zh&partNo=W25Q128JV">W25Q128JV-datasheet</a>。</p>
+<h2 id="2-结构组成"><a href="#2-结构组成" class="headerlink" title="2. 结构组成  "></a><font size=3>2. 结构组成  </font></h2><p>Flash类型众多，其中比较常见是W25Qxx系列， 从命名上看， W25Qxx中xx的单位是M Bit，如W25Q16，其存储容量为16M Bit。本开发板上的Flash型号为W25Q128， 其存储容量为128M Bit。W25Q12将16MB的容量分为256个块（Block），每个块大小为64K字节，每个块又分为16个扇区（Sector），每个扇区4K个字节。每个扇区又可以分为16页，每一页256字节。这样划分主要是因为FLASH的存储特性。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507192414828.png" alt="image-20230507192414828" style="zoom:50%;" />
+
+<p>W25Qxx的最小擦除单位为一个扇区，也就是每次必须擦除4K个字节。这样我们需要给W25Qxx开辟一个至少4K的缓存区，这样对SRAM要求比较高，要求芯片必须有4K以上SRAM才能很好的操作。</p>
+<h2 id="3-存储特性"><a href="#3-存储特性" class="headerlink" title="3. 存储特性"></a><font size=3>3. 存储特性</font></h2><p>Flash有个物理特性：<strong>只能写0，不能写1</strong>。如果把Flash的每个Bit，都看作一张纸， bit&#x3D;1表示纸没有内容，bit&#x3D;0表示纸写入了内容。 当纸为白纸时（bit&#x3D;1），这时往纸上写东西是可以的，写完后纸的状态变为bit&#x3D;0。当纸有内容时（ bit&#x3D;0 ），这时往纸上写东西只能让数据越乱，也就无法正常写数据。此时需要橡皮檫，进行擦除操作，将有内容的纸（ bit&#x3D;0 ）变为白纸（ bit&#x3D;1 ），使得以后可以重新写入数据。  所以总的来说，FLASH存储特性有以下几点：</p>
+<p>（1）在写入数据前必须擦除；</p>
+<p>（2）擦除时会把所有的数据位置1；</p>
+<p>（3）写入数据时只能把数据从1改成0；</p>
+<p>（4）擦除时必须按照最小单位来擦除，对于FLASH我们没法一个字节一个字节擦除，最小单位擦除单位是一个扇区，对于此芯片来说就是4KB。一般来讲FLASH擦除的最小单位都是扇区。写入的时候没有限制，可以一个字节一个字节的写入。</p>
+<p>【说明】</p>
+<ul>
+<li><p>NOR FLASH 可以按字节写入数据。</p>
+</li>
+<li><p>NAND FLASH必须按照扇区或者块进行读写数据，SD卡、SSD硬盘等。</p>
+</li>
+</ul>
+<h2 id="4-引脚说明"><a href="#4-引脚说明" class="headerlink" title="4. 引脚说明"></a><font size=3>4. 引脚说明</font></h2><p>我们可以看芯片手册的<a target="_blank" rel="noopener" href="https://www.winbond.com/hq/product/code-storage-flash-memory/serial-nor-flash/?__locale=zh&partNo=W25Q128JV">W25Q128JV-datasheet</a>的 3.3 Pin Description SOIC 208-mil, WSON 6x5-mm &#x2F; 8x6-mm 和 4. PIN DESCRIPTIONS两节的内容</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507192941513.png" alt="image-20230507192941513" style="zoom:50%;" />
+
+<p>【注意】带有斜杠的引脚名表示低电平有效。</p>
+<h2 id="5-通信速度"><a href="#5-通信速度" class="headerlink" title="5. 通信速度"></a><font size=3>5. 通信速度</font></h2><p>我们看芯片手册的开头，有这么几句：</p>
+<blockquote>
+<p>SPI clock frequencies of W25Q128JV of up to 133MHz are supported allowing equivalent clock rates of 266MHz (133MHz x 2) for Dual I&#x2F;O and  532MHz (133MHz x 4) for Quad I&#x2F;O when using the Fast Read Dual&#x2F;Quad I&#x2F;O. These transfer rates can  outperform standard Asynchronous 8 and 16-bit Parallel Flash memories</p>
+</blockquote>
+<p>也就是说，这个SPI FLASH通信时支持的最高速率可以达到133MHZ，这就意味着，我们使用STM32F103ZET6来控制这个芯片时，SPI的时钟直接配置到最高36M也是没有任何问题的。</p>
+<h2 id="6-状态和控制寄存器"><a href="#6-状态和控制寄存器" class="headerlink" title="6. 状态和控制寄存器"></a><font size=3>6. 状态和控制寄存器</font></h2><p>状态和控制寄存器的相关描述我们可以看 <a target="_blank" rel="noopener" href="https://www.winbond.com/hq/product/code-storage-flash-memory/serial-nor-flash/?__locale=zh&partNo=W25Q128JV">W25Q128JV-datasheet</a>的7.1 Status Registers，需要注意的是不仅仅是下边这一小部分，还挺长的，这里只是说明一下去哪找资料。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507200233319.png" alt="image-20230507200233319" style="zoom:80%;" />
+
+<p>当我们擦除扇区或者写入数据的时候我们怎么知道已经完成相关操作了呢？W25Q128为我们提供了一个状态寄存器来表示各个状态，我们可以通过读取相关标志来判断内部操作是否已经完成了。</p>
+<h2 id="7-支持的命令"><a href="#7-支持的命令" class="headerlink" title="7. 支持的命令"></a><font size=3>7. 支持的命令</font></h2><p>W25Q128的寄存器是在芯片内部，那我们的STM32怎么读取呢？我们可以通过SPI总线，向W25Q128芯片发送一些特定的命令来读取对应的寄存器的数据。命令在哪里？我们可以参考  <a target="_blank" rel="noopener" href="https://www.winbond.com/hq/product/code-storage-flash-memory/serial-nor-flash/?__locale=zh&partNo=W25Q128JV">W25Q128JV-datasheet</a> 的 8.1 Device ID and Instruction Set Tables一节：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507201400133.png" alt="image-20230507201400133" style="zoom:50%;" />
+
+<p>比如说这里就有读取状态寄存器的命令。注意这张表里边，Byte1表示命令的编码，Byte2~Byte7中，带有 （） 的，表示芯片返回的数据，不带（）的，表示STM32写命令的时候向W25Q128传输的数据。这些在表格的最下方都有说明。比如说上边的读取状态寄存器的命令，Byte1的05h表示要读取状态寄存器，一般都是由STM32发送给W25Q128，然后W25Q128收到命令代码之后就知道是STM32主机想要读取状态寄存器的值，于是便将状态寄存器数据放在Byte2通过SPI协议返回给STM32。</p>
+<h2 id="8-地址位数？"><a href="#8-地址位数？" class="headerlink" title="8. 地址位数？"></a><font size=3>8. 地址位数？</font></h2><p>这个芯片分了这么多的块，扇区，页，我们想要将数据写入到某个地址中的话，应该给多少位地址？这个嘛，我们其实可以来看一下框图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507204248563.png" alt="image-20230507204248563" style="zoom: 43%;" />
+
+<p>左边是每个块内的地址，右边是每个块内部的每个扇区的地址范围，我们发现地址都是24位的，为什么是24位？我们一共是128Mbit，一共就是16M的内存空间，24位地址最多能表示多少空间？</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">2</span>^<span class="number">24</span> = <span class="number">2</span>^<span class="number">14</span> * <span class="number">2</span>^<span class="number">10</span> = <span class="number">2</span>^<span class="number">10</span> * <span class="number">2</span>^<span class="number">10</span> * <span class="number">2</span>^<span class="number">4</span> = <span class="number">2</span>^<span class="number">4</span>MB = <span class="number">16</span>MB</span><br></pre></td></tr></table></figure>
+
+<p>刚好够表示16M的地址空间，所以后边我们发送地址的时候只需要24位就可以啦。</p>
+<h1 id="二、读写数据"><a href="#二、读写数据" class="headerlink" title="二、读写数据"></a><font size=3>二、读写数据</font></h1><h2 id="1-读取状态寄存器"><a href="#1-读取状态寄存器" class="headerlink" title="1. 读取状态寄存器"></a><font size=3>1. 读取状态寄存器</font></h2><p>参考 <a target="_blank" rel="noopener" href="https://www.winbond.com/hq/product/code-storage-flash-memory/serial-nor-flash/?__locale=zh&partNo=W25Q128JV">W25Q128JV-datasheet</a> 的 8.2.4 Read Status Register-1 (05h), Status Register-2 (35h) &amp; Status Register-3 (15h)：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507202117478.png" alt="image-20230507202117478" style="zoom:45%;" />
+
+<h2 id="2-擦除扇区"><a href="#2-擦除扇区" class="headerlink" title="2. 擦除扇区"></a><font size=3>2. 擦除扇区</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507202629656.png" alt="image-20230507202629656" style="zoom:50%;" />
+
+<p>其中Byte2~Byte4一共24位（3个字节），表示要擦除的地址。时序可以参考 <a target="_blank" rel="noopener" href="https://www.winbond.com/hq/product/code-storage-flash-memory/serial-nor-flash/?__locale=zh&partNo=W25Q128JV">W25Q128JV-datasheet</a> 的8.2.15 Sector Erase (20h) ，这条命令将会每次擦除一个扇区的数据，也就是4KB数据。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507202413239.png" alt="image-20230507202413239" style="zoom: 40%;" />
+
+<h2 id="3-写入数据"><a href="#3-写入数据" class="headerlink" title="3. 写入数据"></a><font size=3>3. 写入数据</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507203050335.png" alt="image-20230507203050335" style="zoom:50%;" />
+
+<p>其中Byte2<del>Byte4一共24位（3个字节），表示要写入的地址。Byte5</del>Byte6表示要写入的数据。时序可以参考 <a target="_blank" rel="noopener" href="https://www.winbond.com/hq/product/code-storage-flash-memory/serial-nor-flash/?__locale=zh&partNo=W25Q128JV">W25Q128JV-datasheet</a> 的 8.2.13 Page Program (02h) ：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507203139132.png" alt="image-20230507203139132" style="zoom: 43%;" />
+
+<h2 id="4-读取数据"><a href="#4-读取数据" class="headerlink" title="4. 读取数据"></a><font size=3>4. 读取数据</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507203432851.png" alt="image-20230507203432851" style="zoom:50%;" />
+
+<p>其中Byte2~Byte4一共24位（3个字节），表示要读取的地址。Byte5表示W25Q128返回的的数据。时序可以参考 <a target="_blank" rel="noopener" href="https://www.winbond.com/hq/product/code-storage-flash-memory/serial-nor-flash/?__locale=zh&partNo=W25Q128JV">W25Q128JV-datasheet</a> 的8.2.6 Read Data (03h)：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507203540042.png" alt="image-20230507203540042" style="zoom:40%;" />
+
+<h1 id="三、读写实例"><a href="#三、读写实例" class="headerlink" title="三、读写实例"></a><font size=3>三、读写实例</font></h1><p>通过SPI读写外部FLASH的一般步骤如下：</p>
+<p>（1）初始化通讯使用的目标引脚及端口时钟；</p>
+<p>（2）使能 SPI 外设的时钟；</p>
+<p>（3）配置 SPI 外设的模式、地址、速率等参数并使能 SPI 外设；</p>
+<p>（4）编写基本 SPI 按字节收发的函数；</p>
+<p>（5）编写对 FLASH 擦除及读写操作的的函数；</p>
+<p>（6）编写测试程序，对读写数据进行校验。  </p>
+<h2 id="1-硬件设计"><a href="#1-硬件设计" class="headerlink" title="1. 硬件设计"></a><font size=3>1. 硬件设计</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507205517724.png" alt="image-20230507205517724" style="zoom:50%;" />
+
+<p>这里我们选择了PB12作为NSS引脚，它刚好就是SPI2外设的SPI2_NSS。</p>
+<h2 id="2-物理SPI读写FLASH"><a href="#2-物理SPI读写FLASH" class="headerlink" title="2. 物理SPI读写FLASH"></a><font size=3>2. 物理SPI读写FLASH</font></h2><h3 id="2-1-STM32CubeMX配置"><a href="#2-1-STM32CubeMX配置" class="headerlink" title="2.1 STM32CubeMX配置"></a><font size=3>2.1 STM32CubeMX配置</font></h3><h4 id="2-1-1-打开SPI2"><a href="#2-1-1-打开SPI2" class="headerlink" title="2.1.1 打开SPI2"></a><font size=3>2.1.1 打开SPI2</font></h4><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507210048082.png" alt="image-20230507210048082" style="zoom: 26%;" />
+
+<h4 id="2-1-2-NSS引脚"><a href="#2-1-2-NSS引脚" class="headerlink" title="2.1.2 NSS引脚"></a><font size=3>2.1.2 NSS引脚</font></h4><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507210419381.png" alt="image-20230507210419381" style="zoom: 33%;" />
+
+<p>我们前边已经说过了，这个NSS引脚可以是随便一个IO，由于这里刚好接在了SPI2的PB12引脚上，所以这里我们可以选择使用外设硬件控制NSS信号，还是使用软件控制，官方建议是自己使用软件控制，自己控制的话只需要将引脚配置成推挽输出，然后自己决定高低电平即可，所以我们这里还是使用软件控制，注意记得将引脚初始化。</p>
+<p>我们进入GPIO配置界面，将PB12进行初始化：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507210922311.png" alt="image-20230507210922311" style="zoom: 33%;" />
+
+<p>注意当开始传输数据时，引脚输出低电平，所以平时就输出高电平就可以了，需要使用的时候拉低即可。</p>
+<h4 id="2-1-3-SPI配置"><a href="#2-1-3-SPI配置" class="headerlink" title="2.1.3 SPI配置"></a><font size=3>2.1.3 SPI配置</font></h4><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507212600204.png" alt="image-20230507212600204" style="zoom: 43%;" />
+
+<p>基本保持默认就可以了，关注一下SCK的频率，注意不要超过SPI FLASH的最大频率。</p>
+<h3 id="2-2-宏定义"><a href="#2-2-宏定义" class="headerlink" title="2.2 宏定义"></a><font size=3>2.2 宏定义</font></h3><p>我们需要定义几个宏,，方便使用：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> W25Q128	0XEF17                   <span class="comment">// 器件ID</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span>	W25QXX_CS 		PBout(12)  		 <span class="comment">// W25QXX的片选信号</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">//指令表</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_WriteEnable		0x06 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_WriteDisable		0x04 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_ReadStatusReg1		0x05 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_ReadStatusReg2		0x35 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_ReadStatusReg3		0x15 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_WriteStatusReg1    0x01 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_WriteStatusReg2    0x31 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_WriteStatusReg3    0x11 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_ReadData			0x03 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_FastReadData		0x0B </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_FastReadDual		0x3B </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_PageProgram		0x02 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_BlockErase			0xD8 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_SectorErase		0x20 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_ChipErase			0xC7 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_PowerDown			0xB9 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_ReleasePowerDown	0xAB </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_DeviceID			0xAB </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_ManufactDeviceID	0x90 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_JedecDeviceID		0x9F </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_Enable4ByteAddr    0xB7</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> W25X_Exit4ByteAddr      0xE9</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-SPI读写一个字节数据"><a href="#2-3-SPI读写一个字节数据" class="headerlink" title="2.3 SPI读写一个字节数据"></a><font size=3>2.3 SPI读写一个字节数据</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">u8 <span class="title function_">SPI2_ReadWriteByte</span><span class="params">(u8 TxData)</span></span><br><span class="line">&#123;</span><br><span class="line">    u8 Rxdata;</span><br><span class="line">    HAL_SPI_TransmitReceive(&amp;SPI2_Handler, &amp;TxData, &amp;Rxdata, <span class="number">1</span>, <span class="number">1000</span>);       </span><br><span class="line"> 	<span class="keyword">return</span> Rxdata;          		    <span class="comment">//返回收到的数据		</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>SPI通信的时候可以一边读一边写，所以这里我们可以直接使用 HAL_SPI_TransmitReceive 函数将 TxData 数据写入SPI FLASH，同时获取到返回的数据并存放于 Rxdata 中。</p>
+<h3 id="2-4-写使能与禁止"><a href="#2-4-写使能与禁止" class="headerlink" title="2.4 写使能与禁止"></a><font size=3>2.4 写使能与禁止</font></h3><p>在向 FLASH 芯片存储矩阵写入数据前，首先要使能写操作，通过“Write Enable”命令即可写使能  </p>
+<h4 id="2-4-1-写使能"><a href="#2-4-1-写使能" class="headerlink" title="2.4.1 写使能"></a><font size=3>2.4.1 写使能</font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//W25QXX写使能	</span></span><br><span class="line"><span class="comment">//将WEL置位   </span></span><br><span class="line"><span class="type">void</span> <span class="title function_">W25QXX_Write_Enable</span><span class="params">(<span class="type">void</span>)</span>   </span><br><span class="line">&#123;</span><br><span class="line">	W25QXX_CS=<span class="number">0</span>;                            <span class="comment">//使能器件   </span></span><br><span class="line">    SPI2_ReadWriteByte(W25X_WriteEnable);   <span class="comment">//发送写使能  </span></span><br><span class="line">	W25QXX_CS=<span class="number">1</span>;                            <span class="comment">//取消片选     	      </span></span><br><span class="line">&#125; </span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h4 id="2-4-2-写禁止"><a href="#2-4-2-写禁止" class="headerlink" title="2.4.2 写禁止"></a><font size=3>2.4.2 写禁止</font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//W25QXX写禁止	</span></span><br><span class="line"><span class="comment">//将WEL清零  </span></span><br><span class="line"><span class="type">void</span> <span class="title function_">W25QXX_Write_Disable</span><span class="params">(<span class="type">void</span>)</span>   </span><br><span class="line">&#123;  </span><br><span class="line">	W25QXX_CS=<span class="number">0</span>;                            <span class="comment">//使能器件   </span></span><br><span class="line">    SPI2_ReadWriteByte(W25X_WriteDisable);  <span class="comment">//发送写禁止指令    </span></span><br><span class="line">	W25QXX_CS=<span class="number">1</span>;                            <span class="comment">//取消片选     	      </span></span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+
+<h3 id="2-5-读写状态寄存器"><a href="#2-5-读写状态寄存器" class="headerlink" title="2.5 读写状态寄存器"></a><font size=3>2.5 读写状态寄存器</font></h3><h4 id="2-5-1-状态寄存器"><a href="#2-5-1-状态寄存器" class="headerlink" title="2.5.1 状态寄存器"></a><font size=3>2.5.1 状态寄存器</font></h4><p>与EEPROM 一样，由于 FLASH 芯片向内部存储矩阵写入数据需要消耗一定的时间，并不是在总线通讯结束的一瞬间完成的，所以在写操作后需要确认 FLASH 芯片“空闲”时才能进行再次写入。为了表示自己的工作状态， FLASH 芯片定义了几个状态寄存器  ：</p>
+<p>（1）状态寄存器1</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">BIT7  <span class="number">6</span>    <span class="number">5</span>   <span class="number">4</span>   <span class="number">3</span>   <span class="number">2</span>   <span class="number">1</span>   <span class="number">0</span></span><br><span class="line">SPR   RV  TB  BP2 BP1 BP0 WEL BUSY</span><br></pre></td></tr></table></figure>
+
+<p>SPR：默认0，状态寄存器保护位，配合WP使用；</p>
+<p>TB、BP2、BP1、BP0：FLASH区域写保护设置；</p>
+<p>WEL：写使能锁定</p>
+<p>BUSY：忙标记位(1，忙；0，空闲)</p>
+<p>【注意】默认：0x00</p>
+<p>（2）状态寄存器2</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">BIT7   <span class="number">6</span>   <span class="number">5</span>   <span class="number">4</span>   <span class="number">3</span>   <span class="number">2</span>   <span class="number">1</span>    <span class="number">0</span></span><br><span class="line">SUS   CMP LB3 LB2 <span class="title function_">LB1</span> <span class="params">(R)</span>  QE  SRP1</span><br></pre></td></tr></table></figure>
+
+<p>（3）状态寄存器3：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">BIT7      <span class="number">6</span>     <span class="number">5</span>    <span class="number">4</span>   <span class="number">3</span>   <span class="number">2</span>   <span class="number">1</span>   <span class="number">0</span></span><br><span class="line">HOLD/RST  DRV1 <span class="title function_">DRV0</span> <span class="params">(R)</span> <span class="params">(R)</span> WPS ADP ADS</span><br></pre></td></tr></table></figure>
+
+<p>读取状态寄存器的时序如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230508231720539.png" alt="image-20230508231720539" style="zoom:50%;" />
+
+<h4 id="2-5-2-读状态寄存器"><a href="#2-5-2-读状态寄存器" class="headerlink" title="2.5.2 读状态寄存器"></a><font size=3>2.5.2 读状态寄存器</font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//读取W25QXX的状态寄存器，W25QXX一共有3个状态寄存器</span></span><br><span class="line"><span class="comment">//regno:状态寄存器号，范:1~3</span></span><br><span class="line"><span class="comment">//返回值:状态寄存器值</span></span><br><span class="line"><span class="type">uint8_t</span> <span class="title function_">W25QXX_ReadSR</span><span class="params">(<span class="type">uint8_t</span> regno)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">uint8_t</span> byte = <span class="number">0</span>, command = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">switch</span>(regno)</span><br><span class="line">    &#123;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">1</span>:</span><br><span class="line">        command = W25X_ReadStatusReg1;  <span class="comment">//读状态寄存器1指令</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">2</span>:</span><br><span class="line">        command = W25X_ReadStatusReg2;  <span class="comment">//读状态寄存器2指令</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">3</span>:</span><br><span class="line">        command = W25X_ReadStatusReg3;  <span class="comment">//读状态寄存器3指令</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">        command = W25X_ReadStatusReg1;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    W25QXX_CS = <span class="number">0</span>;                          <span class="comment">//使能器件</span></span><br><span class="line">    SPI2_ReadWriteByte(command);            <span class="comment">//发送读取状态寄存器命令</span></span><br><span class="line">    byte = SPI2_ReadWriteByte(<span class="number">0Xff</span>);        <span class="comment">//读取一个字节</span></span><br><span class="line">    W25QXX_CS = <span class="number">1</span>;                          <span class="comment">//取消片选</span></span><br><span class="line">    <span class="keyword">return</span> byte;</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure>
+
+<p>只要向 FLASH 芯片发送了读状态寄存器的指令， FLASH 芯片就会向主机返回最新的状态寄存器内容。  </p>
+<h4 id="2-5-2-写状态寄存器"><a href="#2-5-2-写状态寄存器" class="headerlink" title="2.5.2 写状态寄存器"></a><font size=3>2.5.2 写状态寄存器</font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//写W25QXX状态寄存器</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">W25QXX_Write_SR</span><span class="params">(<span class="type">uint8_t</span> regno, <span class="type">uint8_t</span> sr)</span>   </span><br><span class="line">&#123;   </span><br><span class="line">    <span class="type">uint8_t</span> command=<span class="number">0</span>;</span><br><span class="line">    <span class="keyword">switch</span>(regno)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">case</span> <span class="number">1</span>:</span><br><span class="line">            command=W25X_WriteStatusReg1;    <span class="comment">//写状态寄存器1指令</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> <span class="number">2</span>:</span><br><span class="line">            command=W25X_WriteStatusReg2;    <span class="comment">//写状态寄存器2指令</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> <span class="number">3</span>:</span><br><span class="line">            command=W25X_WriteStatusReg3;    <span class="comment">//写状态寄存器3指令</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            command=W25X_WriteStatusReg1;    </span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;   </span><br><span class="line">	W25QXX_CS=<span class="number">0</span>;                            <span class="comment">//使能器件   </span></span><br><span class="line">	SPI2_ReadWriteByte(command);            <span class="comment">//发送写取状态寄存器命令    </span></span><br><span class="line">	SPI2_ReadWriteByte(sr);                 <span class="comment">//写入一个字节  </span></span><br><span class="line">	W25QXX_CS=<span class="number">1</span>;                            <span class="comment">//取消片选     	      </span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-5-3-等待空闲"><a href="#2-5-3-等待空闲" class="headerlink" title="2.5.3 等待空闲"></a><font size=3>2.5.3 等待空闲</font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//等待空闲</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">W25QXX_Wait_Busy</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">while</span>((W25QXX_ReadSR(<span class="number">1</span>) &amp; <span class="number">0x01</span>) == <span class="number">0x01</span>); <span class="comment">// 等待BUSY位清空</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-6-读取FLASH芯片ID"><a href="#2-6-读取FLASH芯片ID" class="headerlink" title="2.6 读取FLASH芯片ID"></a><font size=3>2.6 读取FLASH芯片ID</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//读取芯片ID</span></span><br><span class="line"><span class="comment">//返回值如下:</span></span><br><span class="line"><span class="comment">//0XEF17,表示芯片型号为W25Q128</span></span><br><span class="line"><span class="type">uint16_t</span> <span class="title function_">W25QXX_ReadID</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">uint16_t</span> Temp = <span class="number">0</span>;</span><br><span class="line">    W25QXX_CS = <span class="number">0</span>;</span><br><span class="line">    SPI2_ReadWriteByte(<span class="number">0x90</span>);<span class="comment">//发送读取ID命令</span></span><br><span class="line">    SPI2_ReadWriteByte(<span class="number">0x00</span>);</span><br><span class="line">    SPI2_ReadWriteByte(<span class="number">0x00</span>);</span><br><span class="line">    SPI2_ReadWriteByte(<span class="number">0x00</span>);</span><br><span class="line">    Temp |= SPI2_ReadWriteByte(<span class="number">0xFF</span>) &lt;&lt; <span class="number">8</span>;</span><br><span class="line">    Temp |= SPI2_ReadWriteByte(<span class="number">0xFF</span>);</span><br><span class="line">    W25QXX_CS = <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">return</span> Temp;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意，这一步可以用来判断我们的SPI FLASH是否是功能正常，也可以确定型号。</p>
+<h3 id="2-7-扇区擦除"><a href="#2-7-扇区擦除" class="headerlink" title="2.7 扇区擦除  "></a><font size=3>2.7 扇区擦除  </font></h3><p>由于 FLASH 存储器的特性决定了它只能把原来为“1”的数据位改写成“0”，而原来为“0”的数据位不能直接改写为“1”。所以这里涉及到数据“擦除”的概念，在写入前，必须要对目标存储矩阵进行擦除操作，把矩阵中的数据位擦除为“1”，在数据写入的时候，如果要存储数据“1”，那就不修改存储矩阵，在要存储数据“0”时，才更改该位。</p>
+<p>通常，对存储矩阵擦除的基本操作单位都是多个字节进行，如这里使用的SPI FLASH 芯片W25Q128支持“扇区擦除”、“块擦除”以及“整片擦除”：</p>
+<table>
+<thead>
+<tr>
+<th>擦除单位</th>
+<th>大小</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>扇区擦除 Sector Erase</td>
+<td>4KB</td>
+</tr>
+<tr>
+<td>块擦除 Block Erase</td>
+<td>64KB</td>
+</tr>
+<tr>
+<td>整片擦除 Chip Erase</td>
+<td>整个芯片完全擦除</td>
+</tr>
+</tbody></table>
+<p>FLASH 芯片的最小擦除单位为扇区 (Sector)，而一个块 (Block) 包含 16 个扇区。使用扇区擦除指令“Sector Erase”可控制 FLASH 芯片开始擦写  。扇区擦除指令的第一个字节为指令编码，紧接着发送的 3 个字节用于表示要擦除的存储矩阵地址。要注意的是在扇区擦除指令前，还需要先发送“写使能”指令，发送扇区擦除指令后，通过读取寄存器状态等待扇区擦除操作完毕 。</p>
+<p>扇区擦除时序如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230507202413239.png" alt="image-20230507202413239" style="zoom: 40%;" />
+
+<p>扇区擦除指令的第一个字节为指令编码，紧接着发送的 3 个字节用于表示要擦除的存储矩阵地址。要注意的是在扇区擦除指令前，还需要先发送“写使能”指令，发送扇区擦除指令后，通过读取寄存器状态等待扇区擦除操作完毕 。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//擦除一个扇区</span></span><br><span class="line"><span class="comment">//Dst_Addr:扇区地址 根据实际容量设置</span></span><br><span class="line"><span class="comment">//擦除一个扇区的最少时间:150ms</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">W25QXX_Erase_Sector</span><span class="params">(<span class="type">uint32_t</span> Dst_Addr)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">//监视falsh擦除情况,测试用</span></span><br><span class="line">    <span class="comment">//printf(&quot;fe:%x\r\n&quot;,Dst_Addr);</span></span><br><span class="line">    Dst_Addr *= <span class="number">4096</span>;</span><br><span class="line">    W25QXX_Write_Enable();                  <span class="comment">//SET WEL</span></span><br><span class="line">    W25QXX_Wait_Busy();</span><br><span class="line">    W25QXX_CS = <span class="number">0</span>;                          <span class="comment">//使能器件</span></span><br><span class="line">    SPI2_ReadWriteByte(W25X_SectorErase);   <span class="comment">//发送扇区擦除指令</span></span><br><span class="line">    <span class="keyword">if</span>(W25QXX_TYPE == W25Q256)              <span class="comment">//如果是W25Q256的话地址为4字节的，要发送最高8位</span></span><br><span class="line">    &#123;</span><br><span class="line">        SPI2_ReadWriteByte((<span class="type">uint8_t</span>)((Dst_Addr) &gt;&gt; <span class="number">24</span>));</span><br><span class="line">    &#125;</span><br><span class="line">    SPI2_ReadWriteByte((<span class="type">uint8_t</span>)((Dst_Addr) &gt;&gt; <span class="number">16</span>)); <span class="comment">//发送24bit地址</span></span><br><span class="line">    SPI2_ReadWriteByte((<span class="type">uint8_t</span>)((Dst_Addr) &gt;&gt; <span class="number">8</span>));</span><br><span class="line">    SPI2_ReadWriteByte((<span class="type">uint8_t</span>)Dst_Addr);</span><br><span class="line">    W25QXX_CS = <span class="number">1</span>;                          <span class="comment">//取消片选</span></span><br><span class="line">    W25QXX_Wait_Busy();   				    <span class="comment">//等待擦除完成</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用扇区擦除指令时注意输入的地址要对齐到 4KB  </p>
+<h3 id="2-8-写入数据"><a href="#2-8-写入数据" class="headerlink" title="2.8 写入数据"></a><font size=3>2.8 写入数据</font></h3><h4 id="2-8-1-按页写入"><a href="#2-8-1-按页写入" class="headerlink" title="2.8.1 按页写入"></a><font size=3>2.8.1 按页写入</font></h4><p>目标扇区被擦除完毕后，就可以向它写入数据了。与 EEPROM 类似， FLASH 芯片也有页写入命令，使用页写入命令最多可以一次向 FLASH 传输 256 个字节的数据，我们把这个单位为页大小。  页写入时序如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230508231904323.png" alt="image-20230508231904323" style="zoom:50%;" />
+
+<p>从时序图可知，第 1 个字节为“页写入指令”编码， 2-4 字节为要写入的“地址 A”，接着的是要写入的内容，最多个可以发送 256 字节数据，这些数据将会从“地址 A”开始，按顺序写入到FLASH 的存储矩阵。若发送的数据超出 256 个，则会覆盖前面发送的数据。与擦除指令不一样，页写入指令的地址并不要求按 256 字节对齐，只要确认目标存储单元是擦除状态即可 (即被擦除后没有被写入过)。所以，若对“地址 x”执行页写入指令后，发送了 200 个字节数据后终止通讯，下一次再执行页写入指令，从“地址 (x+200)”开始写入 200 个字节也是没有问题的 (小于 256 均可)。只是在实际应用中由于基本擦除单元是 4KB，一般都以扇区为单位进行读写。  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//SPI在一页(0~65535)内写入少于256个字节的数据</span></span><br><span class="line"><span class="comment">//在指定地址开始写入最大256字节的数据</span></span><br><span class="line"><span class="comment">//pBuffer:数据存储区</span></span><br><span class="line"><span class="comment">//WriteAddr:开始写入的地址(24bit)</span></span><br><span class="line"><span class="comment">//NumByteToWrite:要写入的字节数(最大256),该数不应该超过该页的剩余字节数!!!</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">W25QXX_Write_Page</span><span class="params">(<span class="type">uint8_t</span>* pBuffer, <span class="type">uint32_t</span> WriteAddr, <span class="type">uint16_t</span> NumByteToWrite)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">uint16_t</span> i;</span><br><span class="line">    W25QXX_Write_Enable();                  <span class="comment">//SET WEL</span></span><br><span class="line">    W25QXX_CS = <span class="number">0</span>;                          <span class="comment">//使能器件</span></span><br><span class="line">    SPI2_ReadWriteByte(W25X_PageProgram);   <span class="comment">//发送写页命令</span></span><br><span class="line">    <span class="keyword">if</span>(W25QXX_TYPE == W25Q256)              <span class="comment">//如果是W25Q256的话地址为4字节的，要发送最高8位</span></span><br><span class="line">    &#123;</span><br><span class="line">        SPI2_ReadWriteByte((<span class="type">uint8_t</span>)((WriteAddr) &gt;&gt; <span class="number">24</span>));</span><br><span class="line">    &#125;</span><br><span class="line">    SPI2_ReadWriteByte((<span class="type">uint8_t</span>)((WriteAddr) &gt;&gt; <span class="number">16</span>)); <span class="comment">//发送24bit地址</span></span><br><span class="line">    SPI2_ReadWriteByte((<span class="type">uint8_t</span>)((WriteAddr) &gt;&gt; <span class="number">8</span>));</span><br><span class="line">    SPI2_ReadWriteByte((<span class="type">uint8_t</span>)WriteAddr);</span><br><span class="line">    <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; NumByteToWrite; i++)SPI2_ReadWriteByte(pBuffer[i]); <span class="comment">//循环写入</span></span><br><span class="line">    W25QXX_CS = <span class="number">1</span>;                          <span class="comment">//取消片选</span></span><br><span class="line">    W25QXX_Wait_Busy();					   <span class="comment">//等待写入结束</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-8-2-无校验写入数据"><a href="#2-8-2-无校验写入数据" class="headerlink" title="2.8.2 无校验写入数据"></a><font size=3>2.8.2 无校验写入数据</font></h4><p>必须确保所写的地址范围内的数据全部为0XFF，否则在非0XFF处写入的数据将失败!具有自动换页功能，在指定地址开始写入指定长度的数据,但是要确保地址不越界!</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//无检验写SPI FLASH</span></span><br><span class="line"><span class="comment">//pBuffer:数据存储区</span></span><br><span class="line"><span class="comment">//WriteAddr:开始写入的地址(24bit)</span></span><br><span class="line"><span class="comment">//NumByteToWrite:要写入的字节数(最大65535)</span></span><br><span class="line"><span class="comment">//CHECK OK</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">W25QXX_Write_NoCheck</span><span class="params">(<span class="type">uint8_t</span>* pBuffer, <span class="type">uint32_t</span> WriteAddr, <span class="type">uint16_t</span> NumByteToWrite)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">uint16_t</span> pageremain;</span><br><span class="line">    pageremain = <span class="number">256</span> - WriteAddr % <span class="number">256</span>; <span class="comment">//单页剩余的字节数</span></span><br><span class="line">    <span class="keyword">if</span>(NumByteToWrite &lt;= pageremain)pageremain = NumByteToWrite; <span class="comment">//不大于256个字节</span></span><br><span class="line">    <span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        W25QXX_Write_Page(pBuffer, WriteAddr, pageremain);</span><br><span class="line">        <span class="keyword">if</span>(NumByteToWrite == pageremain)<span class="keyword">break</span>; <span class="comment">//写入结束了</span></span><br><span class="line">        <span class="keyword">else</span> <span class="comment">//NumByteToWrite&gt;pageremain</span></span><br><span class="line">        &#123;</span><br><span class="line">            pBuffer += pageremain;</span><br><span class="line">            WriteAddr += pageremain;</span><br><span class="line"></span><br><span class="line">            NumByteToWrite -= pageremain;			 <span class="comment">//减去已经写入了的字节数</span></span><br><span class="line">            <span class="keyword">if</span>(NumByteToWrite &gt; <span class="number">256</span>)pageremain = <span class="number">256</span>; <span class="comment">//一次可以写入256个字节</span></span><br><span class="line">            <span class="keyword">else</span> pageremain = NumByteToWrite; 	 <span class="comment">//不够256个字节了</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-8-3-写入指定字节数据"><a href="#2-8-3-写入指定字节数据" class="headerlink" title="2.8.3 写入指定字节数据"></a><font size=3>2.8.3 写入指定字节数据</font></h4><p>该函数可以在 W25Q128 的任意地址开始写入任意长度（必须不超过 W25Q128 的容量）的数据。</p>
+<p>（1）先获得首地址（WriteAddr）所在的扇区，并计算在扇区内的偏移。</p>
+<p>（2）判断要写入的数据长度是否超过本扇区所剩下的长度，如果不超过，再先看看是否要擦除，如果不需要，则直接写入数据即可，如果要擦除则读出整个扇区，在对应的偏移处开始写入指定长度的数据，然后擦除这个扇区，再一次性写入。</p>
+<p>（3）当所需要写入的数据长度超过一个扇区的长度的时候，我们先按照前面的步骤把扇区剩余部分写完，再在新扇区内执行同样的操作，如此循环，直到写入结束。 这里我们定义了一个 W25QXX_BUFFER 的全局变量，用于擦除时缓存扇区内的数据。  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//写SPI FLASH</span></span><br><span class="line"><span class="comment">//在指定地址开始写入指定长度的数据,该函数带擦除操作!</span></span><br><span class="line"><span class="comment">//pBuffer:数据存储区</span></span><br><span class="line"><span class="comment">//WriteAddr:开始写入的地址(24bit)</span></span><br><span class="line"><span class="comment">//NumByteToWrite:要写入的字节数(最大65535)</span></span><br><span class="line"><span class="type">uint8_t</span> W25QXX_BUFFER[<span class="number">4096</span>];</span><br><span class="line"><span class="type">void</span> <span class="title function_">W25QXX_Write</span><span class="params">(<span class="type">uint8_t</span>* pBuffer, <span class="type">uint32_t</span> WriteAddr, <span class="type">uint16_t</span> NumByteToWrite)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">uint32_t</span> secpos;</span><br><span class="line">    <span class="type">uint16_t</span> secoff;</span><br><span class="line">    <span class="type">uint16_t</span> secremain;</span><br><span class="line">    <span class="type">uint16_t</span> i;</span><br><span class="line">    <span class="type">uint8_t</span> * W25QXX_BUF;</span><br><span class="line">    W25QXX_BUF = W25QXX_BUFFER;</span><br><span class="line">    secpos = WriteAddr / W25QXX_SECTOR_SIZE; <span class="comment">// 扇区地址</span></span><br><span class="line">    secoff = WriteAddr % W25QXX_SECTOR_SIZE; <span class="comment">// 在扇区内的偏移</span></span><br><span class="line">    secremain = W25QXX_SECTOR_SIZE - secoff; <span class="comment">// 扇区剩余空间大小</span></span><br><span class="line">    <span class="comment">//printf(&quot;ad:%X,nb:%X\r\n&quot;,WriteAddr,NumByteToWrite);//测试用</span></span><br><span class="line">    <span class="keyword">if</span>(NumByteToWrite &lt;= secremain)</span><br><span class="line">		secremain = NumByteToWrite; <span class="comment">//不大于4096个字节</span></span><br><span class="line">    <span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        W25QXX_Read(W25QXX_BUF, secpos * W25QXX_SECTOR_SIZE, W25QXX_SECTOR_SIZE); <span class="comment">//读出整个扇区的内容</span></span><br><span class="line">        <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; secremain; i++) <span class="comment">//校验数据</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span>(W25QXX_BUF[secoff + i] != <span class="number">0XFF</span>)<span class="keyword">break</span>; <span class="comment">//需要擦除</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span>(i &lt; secremain) <span class="comment">//需要擦除</span></span><br><span class="line">        &#123;</span><br><span class="line">            W25QXX_Erase_Sector(secpos);<span class="comment">//擦除这个扇区</span></span><br><span class="line">            <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; secremain; i++)	 <span class="comment">//复制</span></span><br><span class="line">            &#123;</span><br><span class="line">                W25QXX_BUF[i + secoff] = pBuffer[i];</span><br><span class="line">            &#125;</span><br><span class="line">            W25QXX_Write_NoCheck(W25QXX_BUF, secpos * W25QXX_SECTOR_SIZE, W25QXX_SECTOR_SIZE); <span class="comment">//写入整个扇区</span></span><br><span class="line"></span><br><span class="line">        &#125; </span><br><span class="line">		<span class="keyword">else</span> </span><br><span class="line">			W25QXX_Write_NoCheck(pBuffer, WriteAddr, secremain); <span class="comment">//写已经擦除了的,直接写入扇区剩余区间.</span></span><br><span class="line">        <span class="keyword">if</span>(NumByteToWrite == secremain)</span><br><span class="line">			<span class="keyword">break</span>; <span class="comment">//写入结束了</span></span><br><span class="line">        <span class="keyword">else</span><span class="comment">//写入未结束</span></span><br><span class="line">        &#123;</span><br><span class="line">            secpos++;<span class="comment">//扇区地址增1</span></span><br><span class="line">            secoff = <span class="number">0</span>; <span class="comment">//偏移位置为0</span></span><br><span class="line"></span><br><span class="line">            pBuffer += secremain; <span class="comment">//指针偏移</span></span><br><span class="line">            WriteAddr += secremain; <span class="comment">//写地址偏移</span></span><br><span class="line">            NumByteToWrite -= secremain;				<span class="comment">//字节数递减</span></span><br><span class="line">            <span class="keyword">if</span>(NumByteToWrite &gt; W25QXX_SECTOR_SIZE)</span><br><span class="line">				secremain = W25QXX_SECTOR_SIZE;	<span class="comment">//下一个扇区还是写不完</span></span><br><span class="line">            <span class="keyword">else</span> </span><br><span class="line">				secremain = NumByteToWrite;			<span class="comment">//下一个扇区可以写完了</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-9-读取数据"><a href="#2-9-读取数据" class="headerlink" title="2.9 读取数据"></a><font size=3>2.9 读取数据</font></h3><p>相对于写入， FLASH 芯片的数据读取要简单得多，使用读取指令“Read Data”即可 ，对应的时序图如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-20-SPI-02-%E8%AF%BB%E5%86%99%E5%A4%96%E9%83%A8SPI-FLASH/img/image-20230509070328475.png" alt="image-20230509070328475" style="zoom:50%;" />
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//读取SPI FLASH</span></span><br><span class="line"><span class="comment">//在指定地址开始读取指定长度的数据</span></span><br><span class="line"><span class="comment">//pBuffer:数据存储区</span></span><br><span class="line"><span class="comment">//ReadAddr:开始读取的地址(24bit)</span></span><br><span class="line"><span class="comment">//NumByteToRead:要读取的字节数(最大65535)</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">W25QXX_Read</span><span class="params">(<span class="type">uint8_t</span>* pBuffer, <span class="type">uint32_t</span> ReadAddr, <span class="type">uint16_t</span> NumByteToRead)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">uint16_t</span> i;</span><br><span class="line">    W25QXX_CS = <span class="number">0</span>;                          <span class="comment">//使能器件</span></span><br><span class="line">    SPI2_ReadWriteByte(W25X_ReadData);      <span class="comment">//发送读取命令</span></span><br><span class="line">    <span class="keyword">if</span>(W25QXX_TYPE == W25Q256)              <span class="comment">//如果是W25Q256的话地址为4字节的，要发送最高8位</span></span><br><span class="line">    &#123;</span><br><span class="line">        SPI2_ReadWriteByte((<span class="type">uint8_t</span>)((ReadAddr) &gt;&gt; <span class="number">24</span>));</span><br><span class="line">    &#125;</span><br><span class="line">    SPI2_ReadWriteByte((<span class="type">uint8_t</span>)((ReadAddr) &gt;&gt; <span class="number">16</span>)); <span class="comment">//发送24bit地址</span></span><br><span class="line">    SPI2_ReadWriteByte((<span class="type">uint8_t</span>)((ReadAddr) &gt;&gt; <span class="number">8</span>));</span><br><span class="line">    SPI2_ReadWriteByte((<span class="type">uint8_t</span>)ReadAddr);</span><br><span class="line">    <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; NumByteToRead; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        pBuffer[i] = SPI2_ReadWriteByte(<span class="number">0XFF</span>);  <span class="comment">//循环读数</span></span><br><span class="line">    &#125;</span><br><span class="line">    W25QXX_CS = <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>发送了指令编码及要读的起始地址后， FLASH 芯片就会按地址递增的方式返回存储矩阵的内容，读取的数据量没有限制，只要没有停止通讯， FLASH 芯片就会一直返回数据。  由于读取的数据量没有限制，所以发送读命令后一直接收 NumByteToRead个数据到结束即可。  </p>
+<h3 id="2-10-测试函数"><a href="#2-10-测试函数" class="headerlink" title="2.10 测试函数"></a><font size=3>2.10 测试函数</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">const</span> <span class="type">uint8_t</span> TEXT_Buffer[]=&#123;<span class="string">&quot;WarShipSTM32 SPI TEST&quot;</span>&#125;;</span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SIZE sizeof(TEXT_Buffer)</span></span><br><span class="line">	</span><br><span class="line"><span class="type">void</span> <span class="title function_">W25QXX_Test</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">uint32_t</span> FLASH_SIZE = <span class="number">0</span>;</span><br><span class="line">    <span class="type">uint8_t</span> datatemp[SIZE] = &#123;<span class="number">0</span>&#125;;  </span><br><span class="line">	</span><br><span class="line">	W25QXX_TYPE = W25QXX_ReadID();</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;SPI FLASH ID=%#x\r\n&quot;</span>, W25QXX_TYPE);</span><br><span class="line">    FLASH_SIZE= <span class="number">16</span> * <span class="number">1024</span> * <span class="number">1024</span>;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;write to SPI FLASH data=%s\r\n&quot;</span>, TEXT_Buffer);</span><br><span class="line">    W25QXX_Write((<span class="type">uint8_t</span>*)TEXT_Buffer, FLASH_SIZE - <span class="number">100</span>, SIZE);    <span class="comment">// 从倒数第100个地址处开始,写入SIZE长度的数据</span></span><br><span class="line">    W25QXX_Read(datatemp, FLASH_SIZE - <span class="number">100</span>, SIZE);					<span class="comment">// 从倒数第100个地址处开始,读出SIZE个字节</span></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;read from SPI FLASH data=%s\r\n\r\n&quot;</span>, datatemp);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-模拟SPI读写FLASH"><a href="#3-模拟SPI读写FLASH" class="headerlink" title="3. 模拟SPI读写FLASH"></a><font size=3>3. 模拟SPI读写FLASH</font></h2><p>这个这里我就没有去测试了，模拟的过程可以看《通信协议-04-SPI通信》这一节的笔记，在笔记中实现了SPI的通信协议，并且实现了读写字节的函数，再配合上边的读写函数就可以对SPI FLASH进行读写</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/7e1c4c31.html">LV16-20-SPI-02-读写外部SPI-FLASH</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年06月04日 - 22:07</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/7e1c4c31.html" title="LV16-20-SPI-02-读写外部SPI-FLASH">https://sumumm.github.io/post/7e1c4c31.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV16-STM32%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV16-STM32开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/9e4f210b.html" rel="prev" title="LV16-21-SDIO-01-SD卡基础知识">
+                  <i class="fa fa-angle-left"></i> LV16-21-SDIO-01-SD卡基础知识
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/8e938f98.html" rel="next" title="LV16-20-SPI-01-基础知识">
+                  LV16-20-SPI-01-基础知识 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

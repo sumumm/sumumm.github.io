@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是内存管理——进程的虚拟内存的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV05-06-内存管理-02-进程的虚拟内存">
+<meta property="og:url" content="https://sumumm.github.io/post/8921b6bf.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是内存管理——进程的虚拟内存的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/01.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/02.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/03.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/04.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/05.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/06.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/07.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/08.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/05.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/05.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/06.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/08.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/09.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/10.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/05.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/11.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/12.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/10.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/13.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/14.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/05.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/15.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/16.png">
+<meta property="article:published_time" content="2023-07-02T13:52:30.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:56.996Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV05-操作系统">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/01.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/8921b6bf.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/8921b6bf.html","path":"post/8921b6bf.html","title":"LV05-06-内存管理-02-进程的虚拟内存"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV05-06-内存管理-02-进程的虚拟内存 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E7%A9%BA%E9%97%B4"><span class="nav-text">一、进程的虚拟内存空间</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BB%A3%E7%A0%81%E6%AE%B5"><span class="nav-text">1. 代码段</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%95%B0%E6%8D%AE%E6%AE%B5%E4%B8%8EBSS%E6%AE%B5"><span class="nav-text">2. 数据段与BSS段</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%A0%86"><span class="nav-text">3. 堆</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E6%98%A0%E5%B0%84%E5%8C%BA"><span class="nav-text">4. 映射区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%A0%88"><span class="nav-text">5. 栈</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%91%BD%E4%BB%A4%E4%B8%8E%E6%80%BB%E7%BB%93"><span class="nav-text">6. 命令与总结</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81Linux%E7%B3%BB%E7%BB%9F%E7%9A%84%E8%BF%9B%E7%A8%8B%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E7%A9%BA%E9%97%B4"><span class="nav-text">二、Linux系统的进程虚拟内存空间</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-32%E4%BD%8D%E7%B3%BB%E7%BB%9F"><span class="nav-text">1. 32位系统</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-64%E4%BD%8D%E7%B3%BB%E7%BB%9F"><span class="nav-text">2. 64位系统</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E8%BF%9B%E7%A8%8B%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E7%A9%BA%E9%97%B4%E7%9A%84%E7%AE%A1%E7%90%86"><span class="nav-text">三、进程虚拟内存空间的管理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E9%A6%96%E5%85%88%E6%98%AFstruct-task-struct"><span class="nav-text">1. 首先是struct task_struct</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BB%8Efork%E5%BC%80%E5%A7%8B%E5%88%86%E6%9E%90"><span class="nav-text">2. 从fork开始分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%B7%B1%E5%85%A5%E5%88%B0-struct-mm-struct"><span class="nav-text">3. 深入到 struct mm_struct</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E5%88%92%E5%88%86%E7%94%A8%E6%88%B7%E5%92%8C%E5%86%85%E6%A0%B8"><span class="nav-text">3.1 划分用户和内核</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-mm-struct%E7%9B%B8%E5%85%B3%E6%88%90%E5%91%98"><span class="nav-text">3.2 mm_struct相关成员</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%86%85%E6%A0%B8%E6%80%8E%E4%B9%88%E7%AE%A1%E7%90%86%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F"><span class="nav-text">4. 内核怎么管理内存区域</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-vm-area-struct%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">4.1 vm_area_struct结构体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%AE%9A%E4%B9%89%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F%E7%9A%84%E8%AE%BF%E9%97%AE%E6%9D%83%E9%99%90%E5%92%8C%E8%A1%8C%E4%B8%BA%E8%A7%84%E8%8C%83"><span class="nav-text">4.2 定义虚拟内存区域的访问权限和行为规范</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E5%85%B3%E8%81%94%E5%86%85%E5%AD%98%E6%98%A0%E5%B0%84%E4%B8%AD%E7%9A%84%E6%98%A0%E5%B0%84%E5%85%B3%E7%B3%BB"><span class="nav-text">4.3 关联内存映射中的映射关系</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E9%92%88%E5%AF%B9%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F%E7%9A%84%E7%9B%B8%E5%85%B3%E6%93%8D%E4%BD%9C"><span class="nav-text">4.4 针对虚拟内存区域的相关操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-5-%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F%E5%9C%A8%E5%86%85%E6%A0%B8%E4%B8%AD%E6%98%AF%E5%A6%82%E4%BD%95%E8%A2%AB%E7%BB%84%E7%BB%87%E7%9A%84"><span class="nav-text">4.5 虚拟内存区域在内核中是如何被组织的</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/8921b6bf.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV05-06-内存管理-02-进程的虚拟内存 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV05-06-内存管理-02-进程的虚拟内存
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-07-02 21:52:30" itemprop="dateCreated datePublished" datetime="2023-07-02T21:52:30+08:00">2023-07-02</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" itemprop="url" rel="index"><span itemprop="name">LV05-操作系统</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>13k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>48 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是内存管理——进程的虚拟内存的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">---</td>        <td align="left">--- <a href="" target="_blank">  <i class="fa fa-external-link-alt"></i></a></td>      </tr></table>
+              </div>
+            </details>
+
+<p>看到这篇文章：<a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MzUxODAzNDg4NQ==&mid=2247522087&idx=2&sn=fe8f4cd34d68e0a10658dee88bd337df&chksm=f98dd38dcefa5a9ba43a9d1ac96852532f53278915a6f6b9f5187b8c1c885c1e5848ebabbc86&mpshare=1&scene=23&srcid=11063jZmSPqRgcXsIvaADdki&sharer_sharetime=1668693824030&sharer_shareid=4daf4f8ac44b01cb81e6e5beec11fe8b#rd">3.5 万字 + 60 张图 ｜一步一图带你深入理解 Linux 虚拟内存管理 (qq.com)</a>，真的是讲解的特别详细，推荐看原文，自己在这里做一个笔记，也是对自己的一个提升了。</p>
+<h1 id="一、进程的虚拟内存空间"><a href="#一、进程的虚拟内存空间" class="headerlink" title="一、进程的虚拟内存空间"></a><font size=3>一、进程的虚拟内存空间</font></h1><p>前边已经了解了虚拟内存空间，我们知道每个进程都有自己的虚拟内存空间，那么这个进程独占的虚拟内存空间到底是什么样子呢？我们先想象一下，如果我们是内核的设计人员，我们该从哪些方面来规划进程的虚拟内存空间呢？</p>
+<h2 id="1-代码段"><a href="#1-代码段" class="headerlink" title="1. 代码段"></a><font size=3>1. 代码段</font></h2><p>首先我们会想到的是一个进程运行起来是为了执行我们交代给进程的工作，执行这些工作的步骤我们通过代码事先编写好，然后编译成二进制文件存放在磁盘中，CPU 会执行二进制文件中的机器码来驱动进程的运行。所以在进程运行之前，这些存放在二进制文件中的机器码需要被加载进内存中，而用于存放这些机器码的虚拟内存空间叫做代码段。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/01.png" alt="01" style="zoom: 25%;" />
+
+<h2 id="2-数据段与BSS段"><a href="#2-数据段与BSS段" class="headerlink" title="2. 数据段与BSS段"></a><font size=3>2. 数据段与BSS段</font></h2><p>在程序运行起来之后，总要操作变量吧，在程序代码中我们通常会定义大量的全局变量和静态变量，这些全局变量在程序编译之后也会存储在二进制文件中，在程序运行之前，这些全局变量也需要被加载进内存中供程序访问。所以在虚拟内存空间中也需要一段区域来存储这些全局变量。</p>
+<ul>
+<li>那些在代码中被我们指定了初始值的全局变量和静态变量在虚拟内存空间中的存储区域我们叫做<strong>数据段</strong>。</li>
+<li>那些没有指定初始值的全局变量和静态变量在虚拟内存空间中的存储区域我们叫做 <strong>BSS 段</strong>。这些未初始化的全局变量被加载进内存之后会被初始化为 0 值。</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/02.png" alt="02" style="zoom:25%;" />
+
+<h2 id="3-堆"><a href="#3-堆" class="headerlink" title="3. 堆"></a><font size=3>3. 堆</font></h2><p>上面介绍的这些全局变量和静态变量都是在编译期间就确定的，但是我们程序在运行期间往往需要动态的申请内存，所以在虚拟内存空间中也需要一块区域来存放这些动态申请的内存，这块区域就叫做堆。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/03.png" alt="03" style="zoom:25%;" />
+
+<h2 id="4-映射区"><a href="#4-映射区" class="headerlink" title="4. 映射区"></a><font size=3>4. 映射区</font></h2><p>除上边的那些之外，我们的程序在运行过程中还需要依赖动态链接库，这些动态链接库以 .so 文件的形式存放在磁盘中，比如 C 程序中的 glibc，里边对系统调用进行了封装。glibc 库里提供的用于动态申请堆内存的 malloc 函数就是对系统调用 sbrk 和 mmap 的封装。这些动态链接库也有自己的对应的代码段，数据段，BSS 段，也需要一起被加载进内存中。</p>
+<p>还有用于内存文件映射的系统调用 mmap，会将文件与内存进行映射，那么映射的这块内存（虚拟内存）也需要在虚拟地址空间中有一块区域存储。</p>
+<p>这些动态链接库中的代码段，数据段，BSS 段，以及通过 mmap 系统调用映射的共享内存区，在虚拟内存空间的存储区域叫做<strong>文件映射</strong>与<strong>匿名映射</strong>区。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/04.png" alt="04" style="zoom:25%;" />
+
+<h2 id="5-栈"><a href="#5-栈" class="headerlink" title="5. 栈"></a><font size=3>5. 栈</font></h2><p>最后我们在程序运行的时候总该要调用各种函数吧，那么调用函数过程中使用到的局部变量和函数参数也需要一块内存区域来保存。这一块区域在虚拟内存空间中叫做栈。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/05.png" alt="05" style="zoom:25%;" />
+
+<h2 id="6-命令与总结"><a href="#6-命令与总结" class="headerlink" title="6. 命令与总结"></a><font size=3>6. 命令与总结</font></h2><p>针对于linux下进程的内存布局，我们可以使用下边的命令来查看实际的进程虚拟内存布局：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cat /proc/&lt;pid&gt;/maps</span><br><span class="line">pmap &lt;pid&gt;</span><br></pre></td></tr></table></figure>
+
+<p>其中 pid 为进行的进程号。</p>
+<p>现在进程的虚拟内存空间所包含的主要区域，我们就了解了大概了，我们看到内核根据进程运行的过程中所需要不同种类的数据而为其开辟了对应的地址空间。分别为：</p>
+<ul>
+<li>用于存放进程程序二进制文件中的机器指令的<strong>代码段</strong></li>
+<li>用于存放程序二进制文件中定义的全局变量和静态变量的<strong>数据段和 BSS 段</strong>。</li>
+<li>用于在程序运行过程中动态申请内存的<strong>堆</strong>。</li>
+<li>用于存放动态链接库以及内存映射区域的<strong>文件映射与匿名映射区</strong>。</li>
+<li>用于存放函数调用过程中的局部变量和函数参数的<strong>栈</strong>。</li>
+</ul>
+<p>以上就是我们通过一个程序在运行过程中所需要的数据所规划出的虚拟内存空间的分布，这些只是一个大概的规划，那么在真实的 Linux 系统中，进程的虚拟内存空间的具体规划又是如何的呢？</p>
+<h1 id="二、Linux系统的进程虚拟内存空间"><a href="#二、Linux系统的进程虚拟内存空间" class="headerlink" title="二、Linux系统的进程虚拟内存空间"></a><font size=3>二、Linux系统的进程虚拟内存空间</font></h1><h2 id="1-32位系统"><a href="#1-32位系统" class="headerlink" title="1. 32位系统"></a><font size=3>1. 32位系统</font></h2><p>在 32 位机器上，指针的寻址范围为 2^32，所能表达的虚拟内存空间为 4 GB。所以在 32 位机器上进程的虚拟内存地址范围为：0x0000 0000 - 0xFFFF FFFF。</p>
+<p>其中用户态虚拟内存空间为 3 GB，虚拟内存地址范围为：0x0000 0000 - 0xC000 000 。内核态虚拟内存空间为 1 GB，虚拟内存地址范围为：0xC000 000 - 0xFFFF FFFF。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/06.png" alt="06" style="zoom:25%;" />
+
+<p>但是用户态虚拟内存空间中的代码段并不是从 0x0000 0000 地址开始的，而是从 0x0804 8000 地址开始。0x0000 0000 到 0x0804 8000 这段虚拟内存地址是一段不可访问的保留区，因为在大多数操作系统中，数值比较小的地址通常被认为不是一个合法的地址，这块小地址是不允许访问的。比如在 C 语言中我们通常会将一些无效的指针设置为 NULL，指向这块不允许访问的地址。</p>
+<p>保留区的上边就是代码段和数据段，它们是从程序的二进制文件中直接加载进内存中的，BSS 段中的数据也存在于二进制文件中，因为内核知道这些数据是没有初值的，所以在二进制文件中只会记录 BSS 段的大小，在加载进内存时会生成一段 0 填充的内存空间。</p>
+<p>紧挨着 BSS 段的上边就是我们经常使用到的堆空间，从图中的红色箭头我们可以知道在<strong>堆空间中地址的增长方向是从低地址到高地址增长</strong>。</p>
+<p>内核中使用 start_brk 标识堆的起始位置，brk 标识堆当前的结束位置。当堆申请新的内存空间时，只需要将 brk 指针增加对应的大小，回收地址时减少对应的大小即可。比如当我们通过 malloc 向内核申请很小的一块内存时（128K 之内），就是通过改变 brk 位置实现的。</p>
+<p>堆空间的上边是一段待分配区域，用于扩展堆空间的使用。接下来就来到了文件映射与匿名映射区域。进程运行时所依赖的动态链接库中的代码段，数据段，BSS 段就加载在这里。还有我们调用 mmap 映射出来的一段虚拟内存空间也保存在这个区域。<strong>需要注意：在文件映射与匿名映射区的地址增长方向是从高地址向低地址增长</strong>。</p>
+<p>接下来用户态虚拟内存空间的最后一块区域就是栈空间了，在这里会保存函数运行过程所需要的局部变量以及函数参数等函数调用信息。<strong>栈空间中的地址增长方向是从高地址向低地址增长</strong>。每次进程申请新的栈地址时，其地址值是在减少的。</p>
+<p>在内核中使用 start_stack 标识栈的起始位置，RSP 寄存器中保存栈顶指针 stack pointer，RBP 寄存器中保存的是栈基地址。</p>
+<p>在栈空间的下边也有一段待分配区域用于扩展栈空间，在栈空间的上边就是内核空间了，进程虽然可以看到这段内核空间地址，但是就是不能访问。</p>
+<h2 id="2-64位系统"><a href="#2-64位系统" class="headerlink" title="2. 64位系统"></a><font size=3>2. 64位系统</font></h2><p>我们知道在 32 位机器上，指针的寻址范围为 2^32，所能表达的虚拟内存空间为 4 GB。那么在 64 位机器上，指针的寻址范围是不是就是为 2^64，所能表达的虚拟内存空间为 16 EB呢 。虚拟内存地址范围为：0x0000 0000 0000 0000 0000 - 0xFFFF FFFF FFFF FFFF 。</p>
+<p>16 EB 的内存空间，都没见过这么大的磁盘，在现实情况中根本不会用到这么大范围的内存空间，事实上在目前的 64 位系统下只使用了 48 位来描述虚拟内存空间，寻址范围为 2^48 ，所能表达的虚拟内存空间为 256TB。</p>
+<p>其中低 128 T 表示用户态虚拟内存空间，虚拟内存地址范围为：0x0000 0000 0000 0000 - 0x0000 7FFF FFFF F000 。高 128 T 表示内核态虚拟内存空间，虚拟内存地址范围为：0xFFFF 8000 0000 0000 - 0xFFFF FFFF FFFF FFFF 。</p>
+<p>这样一来就在用户态虚拟内存空间与内核态虚拟内存空间之间形成了一段 0x0000 7FFF FFFF F000 - 0xFFFF 8000 0000 0000 的地址空洞，我们把这个空洞叫做 canonical address 空洞。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/07.png" alt="07" style="zoom:25%;" />
+
+<blockquote>
+<p>那么这个 canonical address 空洞是如何形成的呢？</p>
+</blockquote>
+<p>我们都知道在 64 位机器上的指针寻址范围为 2^64，但是在实际使用中我们只使用了其中的低 48 位来表示虚拟内存地址，那么这多出的高 16 位就形成了这个地址空洞。</p>
+<p>注意到在低 128T 的用户态地址空间：0x0000 0000 0000 0000 - 0x0000 7FFF FFFF F000 范围中，所以虚拟内存地址的高 16 位全部为 0 。如果一个虚拟内存地址的高 16 位全部为 0 ，那么我们就可以直接判断出这是一个用户空间的虚拟内存地址。</p>
+<p>同样的道理，在高 128T 的内核态虚拟内存空间：0xFFFF 8000 0000 0000 - 0xFFFF FFFF FFFF FFFF 范围中，所以虚拟内存地址的高 16 位全部为 1 。也就是说内核态的虚拟内存地址的高 16 位全部为 1 ，如果一个试图访问内核的虚拟地址的高 16 位不全为 1 ，则可以快速判断这个访问是非法的。</p>
+<p>这个高 16 位的空闲地址被称为 canonical 。如果虚拟内存地址中的高 16 位全部为 0 （表示用户空间虚拟内存地址）或者全部为 1 （表示内核空间虚拟内存地址），这种地址的形式我们叫做 canonical form，对应的地址我们称作 canonical address 。</p>
+<p>那么处于 canonical address 空洞 ：0x0000 7FFF FFFF F000 - 0xFFFF 8000 0000 0000 范围内的地址的高 16 位 不全为 0 也不全为 1 。如果某个虚拟地址落在这段 canonical address 空洞区域中，那就是既不在用户空间，也不在内核空间，肯定是非法访问了。</p>
+<p>未来我们也可以利用这块 canonical address 空洞，来扩展虚拟内存地址的范围，比如扩展到 56 位。在我们理解了 canonical address 这个概念之后，我们再来看下 64 位 Linux 系统下的真实虚拟内存空间布局情况：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/08.png" alt="08" style="zoom:25%;" />
+
+<p>从上图中我们可以看出 64 位系统中的虚拟内存布局和 32 位系统中的虚拟内存布局大体上是差不多的。主要不同的地方有三点：</p>
+<p>（1）就是前边提到的由高 16 位空闲地址造成的 canonical address 空洞。在这段范围内的虚拟内存地址是不合法的，因为它的高 16 位既不全为 0 也不全为 1，不是一个 canonical address，所以称之为 canonical address 空洞。</p>
+<p>（2）在代码段跟数据段的中间还有一段不可以读写的保护段，它的作用是防止程序在读写数据段的时候越界访问到代码段，这个保护段可以让越界访问行为直接崩溃，防止它继续往下运行。</p>
+<p>（3）用户态虚拟内存空间与内核态虚拟内存空间分别占用 128T，其中低128T 分配给用户态虚拟内存空间，高 128T 分配给内核态虚拟内存空间。</p>
+<h1 id="三、进程虚拟内存空间的管理"><a href="#三、进程虚拟内存空间的管理" class="headerlink" title="三、进程虚拟内存空间的管理"></a><font size=3>三、进程虚拟内存空间的管理</font></h1><p>我们发现无论是在 32 位机器上还是在 64 位机器上，进程虚拟内存空间的核心区域分布的相对位置是不变的，它们都包含下图所示的这几个核心内存区域。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/05.png" alt="05" style="zoom:25%;" />
+
+<p>唯一不同的是这些核心内存区域在 32 位机器和 64 位机器上的绝对位置分布会有所不同。那么在此基础之上，内核如何为进程管理这些虚拟内存区域呢？</p>
+<h2 id="1-首先是struct-task-struct"><a href="#1-首先是struct-task-struct" class="headerlink" title="1. 首先是struct task_struct"></a><font size=3>1. 首先是struct task_struct</font></h2><p>既然我们要学习进程的虚拟内存空间管理，那就离不开进程在内核中的描述符 task_struct 结构。这个结构体定义在linux内核源码的 include&#x2F;linux&#x2F;sched.h 文件中，结构体内容如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> &#123;</span></span><br><span class="line">    <span class="comment">// ... ...</span></span><br><span class="line">	<span class="type">pid_t</span> pid;                         <span class="comment">// 进程ID</span></span><br><span class="line">    <span class="comment">// ... ...</span></span><br><span class="line">    <span class="type">pid_t</span> tgid;                        <span class="comment">// 用于标识线程所属的进程 pid</span></span><br><span class="line">    <span class="comment">// ... ...</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">files_struct</span> *<span class="title">files</span>;</span>        <span class="comment">// 进程打开的文件信息</span></span><br><span class="line">    <span class="comment">// ... ...</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">mm_struct</span> *<span class="title">mm</span>, *<span class="title">active_mm</span>;</span>  <span class="comment">// 内存描述符表示进程虚拟地址空间</span></span><br><span class="line">    <span class="comment">// ... ...</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>在进程描述符 task_struct 结构中，有一个专门描述进程虚拟地址空间的内存描述符 mm_struct 结构，这个结构体中包含了进程虚拟内存空间的全部信息。每个进程都有唯一的 mm_struct 结构体，也就是前边提到的每个进程的虚拟地址空间都是独立，互不干扰的。</p>
+<h2 id="2-从fork开始分析"><a href="#2-从fork开始分析" class="headerlink" title="2. 从fork开始分析"></a><font size=3>2. 从fork开始分析</font></h2><p>我们从创建进程的函数fork()开始，我反正是没有找到fork函数定义在哪，只是在&#x2F;usr&#x2F;include&#x2F;unistd.h这个文件中看到了该函数的声明，这还不是在内核源码中，总之没找到，找到后再补充吧：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">extern</span> <span class="type">__pid_t</span> <span class="title function_">fork</span> <span class="params">(<span class="type">void</span>)</span> __THROWNL;</span><br></pre></td></tr></table></figure>
+
+<p>虽然没找到这个函数在哪，但是经过资料查找，发现这个fork其实是调用了do_fork()函数实现进程的创建的，我们找不到fork，但是可以找到do_fork啊，哈哈哈，do_fork函数定义在 linux内核源码的 kernel&#x2F;fork.c 中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> *  Ok, this is the main fork-routine.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * It copies the process, and if successful kick-starts</span></span><br><span class="line"><span class="comment"> * it and waits for it to finish using the VM if required.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">long</span> <span class="title function_">do_fork</span><span class="params">(<span class="type">unsigned</span> <span class="type">long</span> clone_flags,</span></span><br><span class="line"><span class="params">	      <span class="type">unsigned</span> <span class="type">long</span> stack_start,</span></span><br><span class="line"><span class="params">	      <span class="type">unsigned</span> <span class="type">long</span> stack_size,</span></span><br><span class="line"><span class="params">	      <span class="type">int</span> __user *parent_tidptr,</span></span><br><span class="line"><span class="params">	      <span class="type">int</span> __user *child_tidptr)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> *<span class="title">p</span>;</span></span><br><span class="line">	<span class="comment">// ... ....</span></span><br><span class="line">	<span class="keyword">if</span> (!(clone_flags &amp; CLONE_UNTRACED)) &#123;</span><br><span class="line">		<span class="keyword">if</span> (clone_flags &amp; CLONE_VFORK)</span><br><span class="line">			trace = PTRACE_EVENT_VFORK;</span><br><span class="line">		<span class="keyword">else</span> <span class="keyword">if</span> ((clone_flags &amp; CSIGNAL) != SIGCHLD)</span><br><span class="line">			trace = PTRACE_EVENT_CLONE;</span><br><span class="line">		<span class="keyword">else</span></span><br><span class="line">			trace = PTRACE_EVENT_FORK;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (likely(!ptrace_event_enabled(current, trace)))</span><br><span class="line">			trace = <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//为进程创建 task_struct 结构，用父进程的资源填充 task_struct 信息</span></span><br><span class="line">	p = copy_process(clone_flags, stack_start, stack_size,</span><br><span class="line">			 child_tidptr, <span class="literal">NULL</span>, trace);</span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">	<span class="keyword">return</span> nr;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>当我们调用 fork() 函数创建进程的时候，表示进程地址空间的 mm_struct 结构会随着进程描述符 task_struct 的创建而创建。随后会在 copy_process 函数中创建 task_struct 结构，并拷贝父进程的相关资源到新进程的 task_struct 结构里，其中就包括拷贝父进程的虚拟内存空间 mm_struct 结构。<strong>这里可以看出子进程在新创建出来之后它的虚拟内存空间是和父进程的虚拟内存空间一模一样的，直接拷贝过来</strong>。其中 cpoy_process() 函数定义在linux内核源码的 kernel&#x2F;fork.c 中</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * This creates a new process as a copy of the old one,</span></span><br><span class="line"><span class="comment"> * but does not actually start it yet.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * It copies the registers, and all the appropriate</span></span><br><span class="line"><span class="comment"> * parts of the process environment (as per the clone</span></span><br><span class="line"><span class="comment"> * flags). The actual kick-off is left to the caller.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">struct</span> task_struct *<span class="title function_">copy_process</span><span class="params">(<span class="type">unsigned</span> <span class="type">long</span> clone_flags,</span></span><br><span class="line"><span class="params">					<span class="type">unsigned</span> <span class="type">long</span> stack_start,</span></span><br><span class="line"><span class="params">					<span class="type">unsigned</span> <span class="type">long</span> stack_size,</span></span><br><span class="line"><span class="params">					<span class="type">int</span> __user *child_tidptr,</span></span><br><span class="line"><span class="params">					<span class="keyword">struct</span> pid *pid,</span></span><br><span class="line"><span class="params">					<span class="type">int</span> trace)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> retval;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> *<span class="title">p</span>;</span></span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">	p = dup_task_struct(current); <span class="comment">// 创建 task_struct 结构</span></span><br><span class="line">	<span class="keyword">if</span> (!p)</span><br><span class="line">		<span class="keyword">goto</span> fork_out;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// ... ... (初始化子进程等)</span></span><br><span class="line">    <span class="comment">// 开始继承拷贝父进程资源</span></span><br><span class="line">	retval = copy_files(clone_flags, p);      <span class="comment">// 继承父进程打开的文件描述符</span></span><br><span class="line">	<span class="keyword">if</span> (retval)</span><br><span class="line">		<span class="keyword">goto</span> bad_fork_cleanup_semundo;</span><br><span class="line">	retval = copy_fs(clone_flags, p);         <span class="comment">// 继承父进程所属的文件系统</span></span><br><span class="line">	<span class="keyword">if</span> (retval)</span><br><span class="line">		<span class="keyword">goto</span> bad_fork_cleanup_files;</span><br><span class="line">	retval = copy_sighand(clone_flags, p);    <span class="comment">// 继承父进程注册的信号以及信号处理函数</span></span><br><span class="line">	<span class="keyword">if</span> (retval)</span><br><span class="line">		<span class="keyword">goto</span> bad_fork_cleanup_fs;</span><br><span class="line">	retval = copy_signal(clone_flags, p);</span><br><span class="line">	<span class="keyword">if</span> (retval)</span><br><span class="line">		<span class="keyword">goto</span> bad_fork_cleanup_sighand;</span><br><span class="line">	retval = copy_mm(clone_flags, p);         <span class="comment">// 继承父进程的虚拟内存空间</span></span><br><span class="line">	<span class="keyword">if</span> (retval)</span><br><span class="line">		<span class="keyword">goto</span> bad_fork_cleanup_signal;</span><br><span class="line">	retval = copy_namespaces(clone_flags, p); <span class="comment">// 继承父进程的 namespaces</span></span><br><span class="line">	<span class="keyword">if</span> (retval)</span><br><span class="line">		<span class="keyword">goto</span> bad_fork_cleanup_mm;</span><br><span class="line">	retval = copy_io(clone_flags, p);         <span class="comment">// 继承父进程的 IO 信息</span></span><br><span class="line">	<span class="keyword">if</span> (retval)</span><br><span class="line">		<span class="keyword">goto</span> bad_fork_cleanup_namespaces;</span><br><span class="line">	retval = copy_thread(clone_flags, stack_start, stack_size, p);</span><br><span class="line">	<span class="keyword">if</span> (retval)</span><br><span class="line">		<span class="keyword">goto</span> bad_fork_cleanup_io;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (pid != &amp;init_struct_pid) &#123;</span><br><span class="line">		pid = alloc_pid(p-&gt;nsproxy-&gt;pid_ns_for_children); <span class="comment">// 分配 pid</span></span><br><span class="line">		<span class="keyword">if</span> (IS_ERR(pid)) &#123;</span><br><span class="line">			retval = PTR_ERR(pid);</span><br><span class="line">			<span class="keyword">goto</span> bad_fork_cleanup_io;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">fork_out:</span><br><span class="line">	<span class="keyword">return</span> ERR_PTR(retval);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在这个函数中，我们重点关注 copy_mm 函数，正是在这里完成了子进程虚拟内存空间 mm_struct 结构的的创建以及初始化。我们再找一下这个函数在哪。它定义在 linux 内核源码的 kernel&#x2F;fork.c 文件中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">copy_mm</span><span class="params">(<span class="type">unsigned</span> <span class="type">long</span> clone_flags, <span class="keyword">struct</span> task_struct *tsk)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mm_struct</span> *<span class="title">mm</span>, *<span class="title">oldmm</span>;</span> <span class="comment">// 子进程虚拟内存空间，父进程虚拟内存空间</span></span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">    <span class="comment">// 获取父进程虚拟内存空间</span></span><br><span class="line">	oldmm = current-&gt;mm;</span><br><span class="line">	<span class="keyword">if</span> (!oldmm)</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">    <span class="comment">// 通过 vfork 或者 clone 系统调用创建出的子进程（线程）和父进程共享虚拟内存空间</span></span><br><span class="line">	<span class="keyword">if</span> (clone_flags &amp; CLONE_VM) &#123;</span><br><span class="line">		<span class="type">atomic_inc</span>(&amp;oldmm-&gt;mm_users);  <span class="comment">// 增加父进程虚拟地址空间的引用计数</span></span><br><span class="line">        <span class="comment">// 直接将父进程的虚拟内存空间赋值给子进程（线程）</span></span><br><span class="line">        <span class="comment">// 线程共享其所属进程的虚拟内存空间</span></span><br><span class="line">		mm = oldmm;</span><br><span class="line">		<span class="keyword">goto</span> good_mm;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	retval = -ENOMEM;</span><br><span class="line">	mm = dup_mm(tsk); <span class="comment">// 如果是 fork 系统调用创建出的子进程，则将父进程的虚拟内存空间以及相关页表拷贝到子进程中的 mm_struct 结构中。</span></span><br><span class="line">	<span class="keyword">if</span> (!mm)</span><br><span class="line">		<span class="keyword">goto</span> fail_nomem;</span><br><span class="line"></span><br><span class="line">good_mm:</span><br><span class="line">    <span class="comment">// 将拷贝出来的父进程虚拟内存空间 mm_struct 赋值给子进程</span></span><br><span class="line">	tsk-&gt;mm = mm;</span><br><span class="line">	tsk-&gt;active_mm = mm;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">fail_nomem:</span><br><span class="line">	<span class="keyword">return</span> retval;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>由于我们举的示例是通过 fork() 函数创建子进程的情形，所以这里先忽略 <code>if (clone_flags &amp; CLONE_VM)</code> 这个条件判断逻辑，copy_mm 函数首先会将父进程的虚拟内存空间 current-&gt;mm 赋值给指针 oldmm。然后通过 dup_mm 函数将父进程的虚拟内存空间以及<strong>相关页表</strong>拷贝到子进程的 mm_struct 结构中。最后将拷贝出来的 mm_struct 赋值给子进程的 task_struct 结构。</p>
+<blockquote>
+<p>通过 fork() 函数创建出的子进程，它的虚拟内存空间以及相关页表相当于父进程虚拟内存空间的一份拷贝，直接从父进程中拷贝到子进程中。</p>
+</blockquote>
+<p>而当我们通过 vfork 或者 clone 系统调用创建出的子进程，首先会设置 CLONE_VM 标识，这样来到copy_mm 函数中就会进入 <code>if (clone_flags &amp; CLONE_VM)</code> 条件中，在这个分支中会将父进程的虚拟内存空间以及相关页表直接赋值给子进程。这样一来父进程和子进程的虚拟内存空间就变成共享的了。也就是说父子进程之间使用的虚拟内存空间是一样的，并不是一份拷贝。</p>
+<p>子进程共享了父进程的虚拟内存空间，这样子进程就变成了我们熟悉的线程，<strong>是否共享地址空间几乎是进程和线程之间的本质区别。Linux 内核并不区别对待它们，线程对于内核来说仅仅是一个共享特定资源的进程而已</strong>。</p>
+<p>内核线程和用户态线程的区别就是内核线程没有相关的内存描述符 mm_struct ，内核线程对应的 task_struct 结构中的 mm 域指向 NULL，所以<strong>内核线程之间调度是不涉及地址空间切换的</strong>。</p>
+<p>当一个内核线程被调度时，它会发现自己的虚拟地址空间为 NULL，虽然它不会访问用户态的内存，但是它会访问内核内存，内核会将调度之前的上一个用户态进程的虚拟内存空间 mm_struct 直接赋值给内核线程，因为内核线程不会访问用户空间的内存，它仅仅只会访问内核空间的内存，所以直接复用上一个用户态进程的虚拟地址空间就可以避免为内核线程分配 mm_struct 和相关页表的开销，以及避免内核线程之间调度时地址空间的切换开销。</p>
+<blockquote>
+<p>父进程与子进程的区别，进程与线程的区别，以及内核线程与用户态线程的区别其实都是围绕着这个 mm_struct 展开的。</p>
+</blockquote>
+<p>现在我们知道了表示进程虚拟内存空间的 mm_struct 结构是如何被创建出来的相关背景，那么接下来就深入到  mm_struct 结构内部，来看一下内核如何通过这么一个 mm_struct 结构体来管理进程的虚拟内存空间的。</p>
+<h2 id="3-深入到-struct-mm-struct"><a href="#3-深入到-struct-mm-struct" class="headerlink" title="3. 深入到 struct mm_struct"></a><font size=3>3. 深入到 struct mm_struct</font></h2><p>我们前边已经知道了进程的虚拟内存空间分为两个部分：一部分是用户态虚拟内存空间，另一部分是内核态虚拟内存空间。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/05.png" alt="05" style="zoom:25%;" />
+
+<h3 id="3-1-划分用户和内核"><a href="#3-1-划分用户和内核" class="headerlink" title="3.1 划分用户和内核"></a><font size=3>3.1 划分用户和内核</font></h3><p>既然每个进程都认为自己占有所有的内存空间，那么用户态的地址空间和内核态的地址空间在内核中是如何被划分的呢？这就用到了进程的内存描述符 mm_struct 结构体中的 task_size 变量，task_size 定义了用户态地址空间与内核态地址空间之间的分界线。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">mm_struct</span> &#123;</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> task_size;		<span class="comment">/* size of task vm space */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过前边我们知道在 32 位系统中用户态虚拟内存空间为 3 GB，虚拟内存地址范围为：0x0000 0000 - 0xC000 000 。内核态虚拟内存空间为 1 GB，虚拟内存地址范围为：0xC000 000 - 0xFFFF FFFF。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/06.png" alt="06" style="zoom:25%;" />
+
+<p>32 位系统中用户地址空间和内核地址空间的分界线在 0xC000 000 地址处，那么自然进程的 mm_struct 结构中的 task_size 为 0xC000 000。</p>
+<p>我们来看下内核在 arch&#x2F;x86&#x2F;include&#x2F;asm&#x2F;processor.h 文件中关于 TASK_SIZE 的定义（参考原文找的是 arch&#x2F;x86&#x2F;include&#x2F;asm&#x2F;page_32_types.h 这个文件，但是不幸的是，用的内核中相应的文件没得这个宏）。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * User space process size: 3GB (default).</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> TASK_SIZE		PAGE_OFFSET</span></span><br></pre></td></tr></table></figure>
+
+<p>PAGE_OFFSET的值怎么找呢？说真的，我没找到，用SourceInsight找了一堆，好多值，然后还是决定查阅资料，查阅资料后，了解到这个值在 32 位系统下为 0xC000 000。而在 64 位系统中，只使用了其中的低 48 位来表示虚拟内存地址。其中用户态虚拟内存空间为低 128 T，虚拟内存地址范围为：0x0000 0000 0000 0000 - 0x0000 7FFF FFFF F000 。内核态虚拟内存空间为高 128 T，虚拟内存地址范围为：0xFFFF 8000 0000 0000 - 0xFFFF FFFF FFFF FFFF 。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/08.png" alt="08" style="zoom:25%;" />
+
+<p>64 位系统中用户地址空间和内核地址空间的分界线在 0x0000 7FFF FFFF F000 地址处，那么自然进程的 mm_struct 结构中的 task_size 为 0x0000 7FFF FFFF F000 。参考原文在这个文件中有这个 TASK_SIZE的宏定义，但是我用的内核的 arch&#x2F;x86&#x2F;include&#x2F;asm&#x2F;page_64_types.h 文件中没看到 TASK_SIZE 的定义，这里还是参考的原文中的定义吧：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> TASK_SIZE		(test_thread_flag(TIF_ADDR32) ? \</span></span><br><span class="line"><span class="meta">					IA32_PAGE_OFFSET : TASK_SIZE_MAX)</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> TASK_SIZE_MAX		task_size_max()</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> task_size_max()		((_AC(1,UL) &lt;&lt; __VIRTUAL_MASK_SHIFT) - PAGE_SIZE)</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __VIRTUAL_MASK_SHIFT	47</span></span><br></pre></td></tr></table></figure>
+
+<p>我们来看下在 64 位系统中内核如何来计算 TASK_SIZE，在 task_size_max() 的计算逻辑中 1 左移 47 位得到的地址是 0x0000800000000000，然后减去一个 PAGE_SIZE （默认为 4K），就是 0x00007FFFFFFFF000，共 128T。所以在 64 位系统中的 TASK_SIZE 为 0x00007FFFFFFFF000 。</p>
+<blockquote>
+<p>这里我们可以看出，64 位虚拟内存空间的布局是和物理内存页 page 的大小有关的，物理内存页 page 默认大小 PAGE_SIZE 为 4K。</p>
+</blockquote>
+<p>PAGE_SIZE 定义在  arch&#x2F;x86&#x2F;include&#x2F;asm&#x2F;page_types.h 文件中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* PAGE_SHIFT determines the page size */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PAGE_SHIFT		12</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PAGE_SIZE		(_AC(1,UL) &lt;&lt; PAGE_SHIFT)</span></span><br></pre></td></tr></table></figure>
+
+<p>而内核空间的起始地址是 0xFFFF 8000 0000 0000 。在 0x00007FFFFFFFF000 - 0xFFFF 8000 0000 0000 之间的内存区域就是我们在前边介绍的 canonical address 空洞。</p>
+<p>所以，到目前为止，我们了解了 mm_struct 结构体中的第一个重要成员 task_size，它的作用就是划分进程虚拟内存空间中的用户空间和内核空间，如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/09.png" alt="09" style="zoom:25%;" />
+
+<p>接下来，我们就来了解一下其他的成员，以及内核是如何通过这个结构体的相关成员完成进程虚拟内存空间的布局的。</p>
+<h3 id="3-2-mm-struct相关成员"><a href="#3-2-mm-struct相关成员" class="headerlink" title="3.2 mm_struct相关成员"></a><font size=3>3.2 mm_struct相关成员</font></h3><p>我们可以看一下这个结构体的相关成员，这个结构体是定义在linux内核源码的 include&#x2F;linux&#x2F;mm_types.h 文件中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">mm_struct</span> &#123;</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> task_size;  <span class="comment">/* size of task vm space */</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> start_code, end_code, start_data, end_data;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> start_brk, brk, start_stack;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> arg_start, arg_end, env_start, env_end;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> mmap_base;  <span class="comment">/* base of mmap area */</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> total_vm;   <span class="comment">/* Total pages mapped */</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> locked_vm;  <span class="comment">/* Pages that have PG_mlocked set */</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> pinned_vm;  <span class="comment">/* Refcount permanently increased */</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> data_vm;    <span class="comment">/* VM_WRITE &amp; ~VM_SHARED &amp; ~VM_STACK */</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> exec_vm;    <span class="comment">/* VM_EXEC &amp; ~VM_WRITE &amp; ~VM_STACK */</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> stack_vm;   <span class="comment">/* VM_STACK */</span></span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>内核中用 mm_struct 结构体中的上述属性来定义上虚拟内存空间里的不同内存区域。</p>
+<p>start_code 和 end_code 定义代码段的起始和结束位置，程序编译后的二进制文件中的机器码被加载进内存之后就存放在这里。</p>
+<p>start_data 和 end_data 定义数据段的起始和结束位置，二进制文件中存放的全局变量和静态变量被加载进内存中就存放在这里。</p>
+<p>后面紧挨着的是 BSS 段，用于存放未被初始化的全局变量和静态变量，这些变量在加载进内存时会生成一段 0 填充的内存区域 （BSS 段）， BSS 段的大小是固定的，</p>
+<p>下面就是 OS 堆了，在堆中内存地址的增长方向是由低地址向高地址增长， start_brk 定义堆的起始位置，brk 定义堆当前的结束位置。</p>
+<blockquote>
+<p>我们使用 malloc 申请小块内存时（低于 128K），就是通过改变 brk 位置调整堆大小实现的。</p>
+</blockquote>
+<p>接下来就是内存映射区，在内存映射区内存地址的增长方向是由高地址向低地址增长，mmap_base 定义内存映射区的起始地址。进程运行时所依赖的动态链接库中的代码段，数据段，BSS 段以及我们调用 mmap 映射出来的一段虚拟内存空间就保存在这个区域。</p>
+<p>start_stack 是栈的起始位置在 RBP 寄存器中存储，栈的结束位置也就是栈顶指针 stack pointer 在 RSP 寄存器中存储。在栈中内存地址的增长方向也是由高地址向低地址增长。</p>
+<p>arg_start 和 arg_end 是参数列表的位置， env_start 和 env_end 是环境变量的位置。它们都位于栈中的最高地址处。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/10.png" alt="10" style="zoom:25%;" />
+
+<p>在 mm_struct 结构体中除了上述用于划分虚拟内存区域的变量之外，还定义了一些虚拟内存与物理内存映射内容相关的统计变量，操作系统会把物理内存划分成一页一页的区域来进行管理，所以物理内存到虚拟内存之间的映射也是按照页为单位进行的。这部分会在下一小节介绍</p>
+<p>mm_struct 结构体中的 total_vm 表示在进程虚拟内存空间中总共与物理内存映射的页的总数。</p>
+<blockquote>
+<p>注意映射这个概念，它表示只是将虚拟内存与物理内存建立关联关系，并不代表真正的分配物理内存。</p>
+</blockquote>
+<p>当内存吃紧的时候，有些页可以换出到硬盘上，而有些页因为比较重要，不能换出。locked_vm 就是被锁定不能换出的内存页总数，pinned_vm 表示既不能换出，也不能移动的内存页总数。</p>
+<p>data_vm 表示数据段中映射的内存页数目，exec_vm 是代码段中存放可执行文件的内存页数目，stack_vm 是栈中所映射的内存页数目，这些变量均是表示进程虚拟内存空间中的虚拟内存使用情况。</p>
+<p>了解了这个结构体各个成员的含义，也就相当于了解linux是如何布局虚拟内存的内存空间的，到现在现在关于内核如何对进程虚拟内存空间进行布局的内容我们已经清楚了，那么布局之后划分出的这些虚拟内存区域在内核中又是如何被管理的呢？</p>
+<h2 id="4-内核怎么管理内存区域"><a href="#4-内核怎么管理内存区域" class="headerlink" title="4. 内核怎么管理内存区域"></a><font size=3>4. 内核怎么管理内存区域</font></h2><p>经过前边的了解，我们知道内核是通过一个 mm_struct 结构的内存描述符来表示进程的虚拟内存空间的，并通过 task_size 域来划分用户态虚拟内存空间和内核态虚拟内存空间。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/05.png" alt="05" style="zoom:25%;" />
+
+<p>而在划分出的这些虚拟内存空间中如上图所示，里边又包含了许多特定的虚拟内存区域，比如：代码段，数据段，堆，内存映射区，栈。那么这些虚拟内存区域在内核中又是如何表示的呢？</p>
+<h3 id="4-1-vm-area-struct结构体"><a href="#4-1-vm-area-struct结构体" class="headerlink" title="4.1 vm_area_struct结构体"></a><font size=3>4.1 vm_area_struct结构体</font></h3><p>我们来了解一个新的结构体 vm_area_struct，正是这个结构体描述了这些虚拟内存区域 VMA（virtual memory area）。这个结构体是定义在linux内核源码的 include&#x2F;linux&#x2F;mm_types.h 文件中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">vm_area_struct</span> &#123;</span></span><br><span class="line"></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> vm_start;	<span class="comment">/* Our start address within vm_mm. */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> vm_end;	<span class="comment">/* The first byte after our end address within vm_mm. */</span></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Access permissions of this VMA.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="type">pgprot_t</span> vm_page_prot;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> vm_flags;	</span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">anon_vma</span> *<span class="title">anon_vma</span>;</span>	<span class="comment">/* Serialized by page_table_lock */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">file</span> * <span class="title">vm_file</span>;</span>		<span class="comment">/* File we map to (can be NULL). */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> vm_pgoff;		<span class="comment">/* Offset (within vm_file) in PAGE_SIZE units */</span>	</span><br><span class="line">	<span class="type">void</span> * vm_private_data;		<span class="comment">/* was vm_pte (shared mem) */</span></span><br><span class="line">	<span class="comment">/* Function pointers to deal with this struct. */</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">vm_operations_struct</span> *<span class="title">vm_ops</span>;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>每个 vm_area_struct 结构对应于虚拟内存空间中的唯一虚拟内存区域 VMA，vm_start 指向了这块虚拟内存区域的起始地址（最低地址），vm_start 本身包含在这块虚拟内存区域内。vm_end 指向了这块虚拟内存区域的结束地址（最高地址），而 vm_end 本身包含在这块虚拟内存区域之外，所以 vm_area_struct 结构描述的是 [vm_start，vm_end) 这样一段左闭右开的虚拟内存区域。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/11.png" alt="11" style="zoom: 30%;" />
+
+<h3 id="4-2-定义虚拟内存区域的访问权限和行为规范"><a href="#4-2-定义虚拟内存区域的访问权限和行为规范" class="headerlink" title="4.2 定义虚拟内存区域的访问权限和行为规范"></a><font size=3>4.2 定义虚拟内存区域的访问权限和行为规范</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">vm_area_struct</span> &#123;</span></span><br><span class="line"></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> vm_start;	<span class="comment">/* Our start address within vm_mm. */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> vm_end;	<span class="comment">/* The first byte after our end address within vm_mm. */</span></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Access permissions of this VMA.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="type">pgprot_t</span> vm_page_prot;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> vm_flags;	</span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>还是vm_area_struct 结构体，这个结构体的 vm_page_prot 和 vm_flags 成员都是用来标记 vm_area_struct 结构表示的这块虚拟内存区域的访问权限和行为规范。</p>
+<p>上边我们也提到，内核会将整块物理内存划分为一页一页大小的区域，以页为单位来管理这些物理内存，每页大小默认 4K 。而虚拟内存最终也是要和物理内存一一映射起来的，所以在虚拟内存空间中也有虚拟页的概念与之对应，虚拟内存中的虚拟页映射到物理内存中的物理页。无论是在虚拟内存空间中还是在物理内存中，内核管理内存的最小单位都是页。</p>
+<p>vm_page_prot 偏向于定义底层内存管理架构中页这一级别的访问控制权限，它可以直接应用在底层页表中，它是一个具体的概念。</p>
+<blockquote>
+<p>页表用于管理虚拟内存到物理内存之间的映射关系，这部分内容后边会学习到。</p>
+</blockquote>
+<p>虚拟内存区域 VMA 由许多的虚拟页 (page) 组成，每个虚拟页需要经过页表的转换才能找到对应的物理页面。页表中关于内存页的访问权限就是由 vm_page_prot 决定的。</p>
+<p>vm_flags 则偏向于定于整个虚拟内存区域的访问权限以及行为规范。描述的是虚拟内存区域中的整体信息，而不是虚拟内存区域中具体的某个独立页面。它是一个抽象的概念。可以通过 <code>vma-&gt;vm_page_prot = vm_get_page_prot(vma-&gt;vm_flags)</code> 实现到具体页面访问权限 vm_page_prot 的转换。</p>
+<details class="folding-tag" blue><summary> 点击查看常用的 vm_flags </summary>
+              <div class='content'>
+              <table><thead><tr><th align="center">vm_flags</th><th align="center">访问权限</th></tr></thead><tbody><tr><td align="center">VM_READ</td><td align="center">可读</td></tr><tr><td align="center">VM_WRITE</td><td align="center">可写</td></tr><tr><td align="center">VM_EXEC</td><td align="center">可执行</td></tr><tr><td align="center">VM_SHARD</td><td align="center">可多进程之间共享</td></tr><tr><td align="center">VM_IO</td><td align="center">可映射至设备 IO 空间</td></tr><tr><td align="center">VM_RESERVED</td><td align="center">内存区域不可被换出</td></tr><tr><td align="center">VM_SEQ_READ</td><td align="center">内存区域可能被顺序访问</td></tr><tr><td align="center">VM_RAND_READ</td><td align="center">内存区域可能被随机访问</td></tr></tbody></table>
+              </div>
+            </details>
+
+<p>vm_flags 为 VM_READ，VM_WRITE，VM_EXEC 定义了虚拟内存区域是否可以被读取，写入，执行等权限。比如代码段这块内存区域的权限是可读，可执行，但是不可写。数据段具有可读可写的权限但是不可执行。堆则具有可读可写，可执行的权限，栈一般是可读可写的权限，一般很少有可执行权限。而文件映射与匿名映射区存放了共享链接库，所以也需要可执行的权限。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/12.png" alt="12" style="zoom: 30%;" />
+
+<p>vm_flags 为 VM_SHARD 时，用于指定这块虚拟内存区域映射的物理内存是否可以在多进程之间共享，以便完成进程间通讯。</p>
+<blockquote>
+<p>设置这个值即为 mmap 的共享映射，不设置的话则为私有映射。</p>
+</blockquote>
+<p>vm_flags 为 VM_IO 时的设置表示这块虚拟内存区域可以映射至设备 IO 空间中。通常在设备驱动程序执行 mmap 进行 IO 空间映射时才会被设置。</p>
+<p>vm_flags 为 VM_RESERVED 时的设置表示在内存紧张的时候，这块虚拟内存区域非常重要，不能被换出到磁盘中。</p>
+<p>vm_flags 为 VM_SEQ_READ 时的设置用来暗示内核，应用程序对这块虚拟内存区域的读取是会采用顺序读的方式进行，内核会根据实际情况决定预读后续的内存页数，以便加快下次顺序访问速度。</p>
+<p>vm_flags 为 VM_RAND_READ 时的设置会暗示内核，应用程序会对这块虚拟内存区域进行随机读取，内核则会根据实际情况减少预读的内存页数甚至停止预读。我们可以通过 posix_fadvise，madvise 系统调用来暗示内核是否对相关内存区域进行顺序读取或者随机读取。</p>
+<p>通过这一系列的介绍，我们可以看到 vm_flags 就是定义整个虚拟内存区域的访问权限以及行为规范，而内存区域中内存的最小单位为页（4K），虚拟内存区域中包含了很多这样的虚拟页，对于虚拟内存区域 VMA 设置的访问权限也会全部复制到区域中包含的内存页中。</p>
+<h3 id="4-3-关联内存映射中的映射关系"><a href="#4-3-关联内存映射中的映射关系" class="headerlink" title="4.3 关联内存映射中的映射关系"></a><font size=3>4.3 关联内存映射中的映射关系</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">vm_area_struct</span> &#123;</span></span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">anon_vma</span> *<span class="title">anon_vma</span>;</span>	<span class="comment">/* Serialized by page_table_lock */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">file</span> * <span class="title">vm_file</span>;</span>		<span class="comment">/* File we map to (can be NULL). */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> vm_pgoff;		<span class="comment">/* Offset (within vm_file) in PAGE_SIZE units */</span>	</span><br><span class="line">	<span class="type">void</span> * vm_private_data;		<span class="comment">/* was vm_pte (shared mem) */</span></span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>vm_area_struct 结构体接下来的三个属性 anon_vma，vm_file，vm_pgoff 分别和虚拟内存映射相关，虚拟内存区域可以映射到物理内存上，也可以映射到文件中，映射到物理内存上我们称之为匿名映射，映射到文件中我们称之为文件映射。</p>
+<p>那么这个映射关系在内核中该如何表示呢？这就用到了 vm_area_struct 结构体中的上述三个属性。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/10.png" alt="10" style="zoom:25%;" />
+
+<p>当我们调用 malloc 申请内存时，如果申请的是小块内存（低于 128K）则会使用 do_brk() 系统调用通过调整堆中的 brk 指针大小来增加或者回收堆内存。</p>
+<p>如果申请的是比较大块的内存（超过 128K）时，则会调用 mmap 在上图虚拟内存空间中的文件映射与匿名映射区创建出一块 VMA 内存区域（这里是匿名映射）。这块匿名映射区域就用 struct anon_vma 结构表示。</p>
+<p>当调用 mmap 进行文件映射时，vm_file 属性就用来关联被映射的文件。这样一来虚拟内存区域就与映射文件关联了起来。vm_pgoff 则表示映射进虚拟内存中的文件内容，在文件中的偏移。</p>
+<blockquote>
+<p>当然在匿名映射中，vm_area_struct 结构中的 vm_file 就为 null，vm_pgoff 也就没有了意义。</p>
+</blockquote>
+<p>vm_private_data 则用于存储 VMA 中的私有数据。具体的存储内容和内存映射的类型有关，我们暂不展开论述。</p>
+<h3 id="4-4-针对虚拟内存区域的相关操作"><a href="#4-4-针对虚拟内存区域的相关操作" class="headerlink" title="4.4 针对虚拟内存区域的相关操作"></a><font size=3>4.4 针对虚拟内存区域的相关操作</font></h3><p>在struct vm_area_struct 结构中还有一个 vm_ops 用来指向针对虚拟内存区域 VMA 的相关操作的函数指针。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">vm_area_struct</span> &#123;</span></span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">	<span class="comment">/* Function pointers to deal with this struct. */</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">vm_operations_struct</span> *<span class="title">vm_ops</span>;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中，vm_operations_struct结构体定义在 linux 内核源码的 include&#x2F;linux&#x2F;mm.h 文件中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">vm_operations_struct</span> &#123;</span></span><br><span class="line">	<span class="type">void</span> (*open)(<span class="keyword">struct</span> vm_area_struct * area);</span><br><span class="line">	<span class="type">void</span> (*close)(<span class="keyword">struct</span> vm_area_struct * area);</span><br><span class="line">    <span class="type">vm_fault_t</span> (*fault)(<span class="keyword">struct</span> vm_fault *vmf);</span><br><span class="line">    <span class="type">vm_fault_t</span> (*page_mkwrite)(<span class="keyword">struct</span> vm_fault *vmf);</span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>当指定的虚拟内存区域被加入到进程虚拟内存空间中时，open 函数会被调用</li>
+<li>当虚拟内存区域 VMA 从进程虚拟内存空间中被删除时，close 函数会被调用</li>
+<li>当进程访问虚拟内存时，访问的页面不在物理内存中，可能是未分配物理内存也可能是被置换到磁盘中，这时就会产生缺页异常，fault 函数就会被调用。</li>
+<li>当一个只读的页面将要变为可写时，page_mkwrite 函数会被调用。</li>
+</ul>
+<p>struct vm_operations_struct 结构中定义的都是对虚拟内存区域 VMA 的相关操作函数指针。内核中这种类似的用法其实有很多，在内核中每个特定领域的描述符都会定义相关的操作。比如内核中的文件描述符 struct file 中定义的 struct file_operations *f_op。里面定义了内核针对文件操作的函数指针，具体的实现根据不同的文件类型有所不同。</p>
+<details class="folding-tag" blue><summary> 点击查看实例 </summary>
+              <div class='content'>
+              <ul><li>Socket 文件类型</li></ul><p>针对 Socket 文件类型，这里的 file_operations 指向的是 socket_file_ops。</p><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/13.png" alt="13" style="zoom:25%;" /><ul><li>ext4 文件系统</li></ul><p>在 ext4 文件系统中管理的文件对应的 file_operations 指向 ext4_file_operations，专门用于操作 ext4 文件系统中的文件。还有针对 page cache 页高速缓存相关操作定义的 address_space_operations 。</p><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/14.png" alt="14" style="zoom:25%;" />
+              </div>
+            </details>
+
+<h3 id="4-5-虚拟内存区域在内核中是如何被组织的"><a href="#4-5-虚拟内存区域在内核中是如何被组织的" class="headerlink" title="4.5 虚拟内存区域在内核中是如何被组织的"></a><font size=3>4.5 虚拟内存区域在内核中是如何被组织的</font></h3><p>前边我们介绍了内核中用来表示虚拟内存区域 VMA 的结构体 struct vm_area_struct ，并了解了 struct vm_area_struct 中的一些重要的关键属性。现在我们已经熟悉了这些虚拟内存区域，那么接下来的问题就是在内核中这些虚拟内存区域是如何被组织的呢？</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/05.png" alt="05" style="zoom:25%;" />
+
+<p>我们继续来到 struct vm_area_struct 结构中，来看一下与组织结构相关的一些属性：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">vm_area_struct</span> &#123;</span></span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">vm_area_struct</span> *<span class="title">vm_next</span>, *<span class="title">vm_prev</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rb_node</span> <span class="title">vm_rb</span>;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">anon_vma_chain</span>;</span> </span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mm_struct</span> *<span class="title">vm_mm</span>;</span>	<span class="comment">/* The address space we belong to. */</span></span><br><span class="line">	</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> vm_start;     <span class="comment">/* Our start address within vm_mm. */</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> vm_end;       <span class="comment">/* The first byte after our end address</span></span><br><span class="line"><span class="comment">                       within vm_mm. */</span></span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * Access permissions of this VMA.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="type">pgprot_t</span> vm_page_prot;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> vm_flags; </span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">anon_vma</span> *<span class="title">anon_vma</span>;</span>  <span class="comment">/* Serialized by page_table_lock */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">file</span> * <span class="title">vm_file</span>;</span>      <span class="comment">/* File we map to (can be NULL). */</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> vm_pgoff;     <span class="comment">/* Offset (within vm_file) in PAGE_SIZE</span></span><br><span class="line"><span class="comment">                       units */</span> </span><br><span class="line">    <span class="type">void</span> * vm_private_data;     <span class="comment">/* was vm_pte (shared mem) */</span></span><br><span class="line">    <span class="comment">/* Function pointers to deal with this struct. */</span></span><br><span class="line">    <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">vm_operations_struct</span> *<span class="title">vm_ops</span>;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在内核中其实是通过一个 struct vm_area_struct 结构的双向链表将虚拟内存空间中的这些虚拟内存区域 VMA 串联起来的。</p>
+<p>vm_area_struct 结构中的 vm_next ，vm_prev 指针分别指向 VMA 节点所在双向链表中的后继节点和前驱节点，内核中的这个 VMA 双向链表是有顺序的，所有 VMA 节点按照低地址到高地址的增长方向排序。</p>
+<p>双向链表中的最后一个 VMA 节点的 vm_next 指针指向 NULL，双向链表的头指针存储在内存描述符 struct mm_struct 结构中的 mmap 中，正是这个 mmap 串联起了整个虚拟内存空间中的虚拟内存区域。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">mm_struct</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">vm_area_struct</span> *<span class="title">mmap</span>;</span>		<span class="comment">/* list of VMAs */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在每个虚拟内存区域 VMA 中又通过 struct vm_area_struct 中的 vm_mm 指针指向了所属的虚拟内存空间mm_struct。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/15.png" alt="15" style="zoom:25%;" />
+
+<p>我们可以通过 <code>cat /proc/pid/maps</code> 或者 <code>pmap pid</code> 查看进程的虚拟内存空间布局以及其中包含的所有内存区域。这两个命令背后的实现原理就是通过遍历内核中的这个 vm_area_struct 双向链表获取的。</p>
+<p>内核中关于这些虚拟内存区域的操作除了遍历之外还有许多需要根据特定虚拟内存地址在虚拟内存空间中查找特定的虚拟内存区域。</p>
+<p>尤其在进程虚拟内存空间中包含的内存区域 VMA 比较多的情况下，使用红黑树查找特定虚拟内存区域的时间复杂度是 O( logN ) ，可以显著减少查找所需的时间。所以在内核中，同样的内存区域 vm_area_struct 会有两种组织形式，一种是双向链表用于高效的遍历，另一种就是红黑树用于高效的查找。</p>
+<p>而红黑树中的根节点存储在内存描述符 struct mm_struct 中的 mm_rb 中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">mm_struct</span> &#123;</span></span><br><span class="line">     <span class="class"><span class="keyword">struct</span> <span class="title">rb_root</span> <span class="title">mm_rb</span>;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-06-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86-02-%E8%BF%9B%E7%A8%8B%E7%9A%84%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/img/16.png" alt="16" style="zoom:25%;" />
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/8921b6bf.html">LV05-06-内存管理-02-进程的虚拟内存</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年07月02日 - 21:52</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/8921b6bf.html" title="LV05-06-内存管理-02-进程的虚拟内存">https://sumumm.github.io/post/8921b6bf.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" rel="tag"><i class="fa fa-tag"></i> LV05-操作系统</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/d991441d.html" rel="prev" title="LV05-06-内存管理-03-编译后的二进制文件？">
+                  <i class="fa fa-angle-left"></i> LV05-06-内存管理-03-编译后的二进制文件？
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/e644c6e.html" rel="next" title="LV05-06-内存管理-01-什么是虚拟内存？">
+                  LV05-06-内存管理-01-什么是虚拟内存？ <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

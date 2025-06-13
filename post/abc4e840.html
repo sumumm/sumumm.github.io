@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是内核中中断处理的基础知识的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV10-07-中断-01-中断处理基础">
+<meta property="og:url" content="https://sumumm.github.io/post/abc4e840.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是内核中中断处理的基础知识的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-07-08T10:58:28.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.004Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV10-驱动开发">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/abc4e840.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/abc4e840.html","path":"post/abc4e840.html","title":"LV10-07-中断-01-中断处理基础"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV10-07-中断-01-中断处理基础 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%B8%AD%E6%96%AD%E7%9B%B8%E5%85%B3API"><span class="nav-text">一、中断相关API</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%B8%AD%E6%96%AD%E5%8F%B7%E8%8E%B7%E5%8F%96"><span class="nav-text">1. 中断号获取</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-irq-of-parse-and-map"><span class="nav-text">1.1 irq_of_parse_and_map()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">1.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%94%B3%E8%AF%B7%E4%B8%AD%E6%96%AD"><span class="nav-text">2. 申请中断</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-request-irq"><span class="nav-text">2.1 request_irq()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E9%87%8A%E6%94%BE%E4%B8%AD%E6%96%AD"><span class="nav-text">3. 释放中断</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-free-irq"><span class="nav-text">3.1 free_irq()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">3.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%B8%AD%E6%96%AD%E5%A4%84%E7%90%86%E5%87%BD%E6%95%B0"><span class="nav-text">4. 中断处理函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-irq-handler-t"><span class="nav-text">4.1 irq_handler_t</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">4.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E4%B8%AD%E6%96%AD%E4%BD%BF%E8%83%BD%E4%B8%8E%E7%A6%81%E6%AD%A2"><span class="nav-text">5. 中断使能与禁止</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-enable-irq"><span class="nav-text">5.1 enable_irq  ()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-disable-irq"><span class="nav-text">5.2 disable_irq  ()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-disable-irq-nosync"><span class="nav-text">5.3 disable_irq_nosync   ()</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E4%B8%8A%E5%8D%8A%E9%83%A8%E4%B8%8E%E4%B8%8B%E5%8D%8A%E9%83%A8"><span class="nav-text">二、上半部与下半部</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E4%B8%8B%E5%8D%8A%E9%83%A8%E5%A4%84%E7%90%86%E6%9C%BA%E5%88%B6"><span class="nav-text">三、下半部处理机制</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%BD%AF%E4%B8%AD%E6%96%AD"><span class="nav-text">1. 软中断</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E7%9B%B8%E5%85%B3%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">1.1 相关结构体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E8%BD%AF%E4%B8%AD%E6%96%AD%E7%9A%84%E5%AE%9A%E4%B9%89"><span class="nav-text">1.2 软中断的定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E7%9B%B8%E5%85%B3%E5%87%BD%E6%95%B0"><span class="nav-text">1.3 相关函数</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-1-open-softirq"><span class="nav-text">1.3.1 open_softirq()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-2-raise-softirq"><span class="nav-text">1.3.2 raise_softirq()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-3-softirq-init"><span class="nav-text">1.3.3 softirq_init()</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-tasklet"><span class="nav-text">2. tasklet</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E7%9B%B8%E5%85%B3%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">2.1 相关结构体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E7%9B%B8%E5%85%B3%E5%87%BD%E6%95%B0"><span class="nav-text">2.2 相关函数</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-tasklet-init"><span class="nav-text">2.2.1 tasklet_init  ()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-DECLARE-TASKLET"><span class="nav-text">2.2.2 DECLARE_TASKLET()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-3-tasklet-schedule"><span class="nav-text">2.2.3 tasklet_schedule()</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.3 使用实例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E4%BD%BF%E7%94%A8%E6%AD%A5%E9%AA%A4"><span class="nav-text">2.4 使用步骤</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%B7%A5%E4%BD%9C%E9%98%9F%E5%88%97"><span class="nav-text">3. 工作队列</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E7%9B%B8%E5%85%B3%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">3.1 相关结构体</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-1-%E5%B7%A5%E4%BD%9C%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">3.1.1 工作结构体</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-2-%E5%B7%A5%E4%BD%9C%E9%98%9F%E5%88%97%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">3.1.2 工作队列结构体</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-3-%E5%B7%A5%E4%BD%9C%E8%80%85%E7%BA%BF%E7%A8%8B"><span class="nav-text">3.1.3 工作者线程  </span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E7%9B%B8%E5%85%B3%E5%87%BD%E6%95%B0"><span class="nav-text">3.2 相关函数</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-1-INIT-WORK"><span class="nav-text">3.2.1 INIT_WORK()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-2-DECLARE-WORK"><span class="nav-text">3.2.2 DECLARE_WORK()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-3-schedule-work"><span class="nav-text">3.2.3 schedule_work()</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">3.3 使用实例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E4%BD%BF%E7%94%A8%E6%AD%A5%E9%AA%A4"><span class="nav-text">3.4 使用步骤</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%B8%8B%E5%8D%8A%E9%83%A8%E6%9C%BA%E5%88%B6%E6%AF%94%E8%BE%83"><span class="nav-text">4. 下半部机制比较</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/abc4e840.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV10-07-中断-01-中断处理基础 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV10-07-中断-01-中断处理基础
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-07-08 18:58:28" itemprop="dateCreated datePublished" datetime="2023-07-08T18:58:28+08:00">2023-07-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV10-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>6.3k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>23 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是内核中中断处理的基础知识的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-07-%E4%B8%AD%E6%96%AD-01-%E4%B8%AD%E6%96%AD%E5%A4%84%E7%90%86%E5%9F%BA%E7%A1%80/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center" width=150>Linux开发板</td>        <td align="left">华清远见 底板: FS4412_DEV_V5 核心板: FS4412 V2</td>      </tr>    <tr>        <td align="center" width=150>u-boot</td>        <td align="left">2013.01</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">文件</td><td align="center">下载链接</td></tr>    <tr><td align="left">---</td><td align="left"><a href="https://wwz.lanzouy.com/iH1vO09jxavi" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<h1 id="一、中断相关API"><a href="#一、中断相关API" class="headerlink" title="一、中断相关API"></a><font size=3>一、中断相关API</font></h1><h2 id="1-中断号获取"><a href="#1-中断号获取" class="headerlink" title="1. 中断号获取"></a><font size=3>1. 中断号获取</font></h2><p>每个中断都有一个中断号，通过中断号即可区分不同的中断，有些地方也会叫中断线。我们之前裸机开发的时候，是直接看芯片手册，在这里也一样，我们需要将中断号写入设备树，然后在驱动中通过相关函数读取。</p>
+<h3 id="1-1-irq-of-parse-and-map"><a href="#1-1-irq-of-parse-and-map" class="headerlink" title="1.1 irq_of_parse_and_map()"></a><font size=3>1.1 irq_of_parse_and_map()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep irq_of_parse_and_map -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/of_irq.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">unsigned</span> <span class="type">int</span> <span class="title function_">irq_of_parse_and_map</span><span class="params">(<span class="keyword">struct</span> device_node *node, </span></span><br><span class="line"><span class="params">                                  <span class="type">int</span> index)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数获得设备树中的中断号并进行映射。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>node ： struct device_node * 类型，设备节点指针。</li>
+<li>index ： int 类型，  GPIO  索引，因为一个属性里面可能包含多个  GPIO ，此参数指定要获取哪个  GPIO 的编号，如果只有一个  GPIO  信息的话此参数为  0 。</li>
+</ul>
+<p><strong>【返回值】</strong> int 类型，成功返回中断号，失败返回一个负数，绝对值表示错误码。  </p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong> none </p>
+<h3 id="1-2-使用实例"><a href="#1-2-使用实例" class="headerlink" title="1.2 使用实例"></a><font size=3>1.2 使用实例</font></h3><ul>
+<li>设备树</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">fs4412-key2&#123;</span><br><span class="line">		compatible = <span class="string">&quot;fs4412,key2&quot;</span>;</span><br><span class="line">		key2-gpio = &lt;&amp;gpx1 <span class="number">1</span> <span class="number">0</span>&gt;;</span><br><span class="line">		interrupt-parent = &lt;&amp;gpx1&gt;;</span><br><span class="line">		interrupts = &lt;<span class="number">1</span> <span class="number">3</span>&gt;; <span class="comment">/* 1表示组内中断号为25, 3表示上下沿都触发中断 */</span></span><br><span class="line">	&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>获取中断号</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">device_node</span> *<span class="title">pnode</span> =</span> <span class="literal">NULL</span>;</span><br><span class="line">pnode = of_find_node_by_path(<span class="string">&quot;/fs4412-key2&quot;</span>); <span class="comment">/* 通过路径查找指定节点 */</span></span><br><span class="line">irqno = irq_of_parse_and_map(pnode, <span class="number">0</span>);       <span class="comment">/* 获取设备树中的中断号并进行映射 */</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="2-申请中断"><a href="#2-申请中断" class="headerlink" title="2. 申请中断"></a><font size=3>2. 申请中断</font></h2><p>在 Linux 内核中要想使用某个中断是需要申请的， request_irq 函数用于申请中断。</p>
+<h3 id="2-1-request-irq"><a href="#2-1-request-irq" class="headerlink" title="2.1 request_irq()"></a><font size=3>2.1 request_irq()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep request_irq -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/interrupt.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数定义 */</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">int</span> __must_check</span><br><span class="line"><span class="title function_">request_irq</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> irq, <span class="type">irq_handler_t</span> handler, <span class="type">unsigned</span> <span class="type">long</span> flags,</span></span><br><span class="line"><span class="params">            <span class="type">const</span> <span class="type">char</span> *name, <span class="type">void</span> *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">        <span class="keyword">return</span> request_threaded_irq(irq, handler, <span class="literal">NULL</span>, flags, name, dev);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于申请中断。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>irq ： unsigned int irq 类型，要申请的中断号。</li>
+<li>handler ： irq_handler_t 类型，  这是一个函数指针，用于指向中断处理函数，中断发生的时候会执行该函数，中断处理函数格式见使用实例。</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看 irq_handler_t </summary>
+              <div class='content'>
+              <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* include/linux/interrupt.h */</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="title function_">irqreturn_t</span> <span class="params">(*<span class="type">irq_handler_t</span>)</span><span class="params">(<span class="type">int</span>, <span class="type">void</span> *)</span>;</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<ul>
+<li>flags ：unsigned long 类型，中断标志，表示触发方式或者处理方式。</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看常见的 flags 取值 </summary>
+              <div class='content'>
+              <p>中断标志定义在linux内核源码的这个文件中：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/interrupt.h</span><br></pre></td></tr></table></figure><ul><li>常用flag取值</li></ul><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">触发方式：</span><br><span class="line">		IRQF_TRIGGER_NONE 	  <span class="comment">// 无触发</span></span><br><span class="line">		IRQF_TRIGGER_RISING   <span class="comment">// 上升沿触发</span></span><br><span class="line">		IRQF_TRIGGER_FALLING  <span class="comment">// 下降沿触发</span></span><br><span class="line">		IRQF_TRIGGER_HIGH  	  <span class="comment">// 高电平触发</span></span><br><span class="line">		IRQF_TRIGGER_LOW 	  <span class="comment">// 低电平触发</span></span><br><span class="line">处理方式：</span><br><span class="line">		IRQF_DISABLED		  <span class="comment">// 用于快速中断，处理中屏蔽所有中断</span></span><br><span class="line">		IRQF_SHARED		      <span class="comment">// 共享中断</span></span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<ul>
+<li>name ：char * 类型，表示中断名字，设置以后可以在&#x2F;proc&#x2F;interrupts 文件中看到对应的中断名字。  </li>
+<li>dev： void * 类型，如果将 flags 设置为 IRQF_SHARED 的话， dev 用来区分不同的中断，一般情况下将 dev 设置为设备结构体地址， dev 会传递给中断处理函数 irq_handler_t 的第二个参数。</li>
+</ul>
+<p><strong>【返回值】</strong> int 类型，中断申请成功返回0 ，中断申请失败返回其他负值 ，如果返回 -EBUSY  的话表示中断已经被申请了。    </p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong>  none</p>
+<h3 id="2-2-使用实例"><a href="#2-2-使用实例" class="headerlink" title="2.2 使用实例"></a><font size=3>2.2 使用实例</font></h3><ul>
+<li>中断处理函数格式</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @Function    : xxx_irq_handle</span></span><br><span class="line"><span class="comment"> * @brief       : 中断处理函数</span></span><br><span class="line"><span class="comment"> * @param no    : int 类型</span></span><br><span class="line"><span class="comment"> * @param arg   ：void * 类型</span></span><br><span class="line"><span class="comment"> * @return      : 返回</span></span><br><span class="line"><span class="comment"> * @Description :</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">irqreturn_t</span> <span class="title function_">xxx_irq_handle</span><span class="params">(<span class="type">int</span> no, <span class="type">void</span> *arg)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// ... ...</span></span><br><span class="line">    <span class="keyword">return</span> IRQ_HANDLED;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>申请中断实例</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ret = request_irq(p_gmykey_dev-&gt;irqno, key2_irq_handle, IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING, <span class="string">&quot;fs4412key2&quot;</span>, p_gmykey_dev);</span><br><span class="line"><span class="keyword">if</span> (ret)</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-释放中断"><a href="#3-释放中断" class="headerlink" title="3. 释放中断"></a><font size=3>3. 释放中断</font></h2><h3 id="3-1-free-irq"><a href="#3-1-free-irq" class="headerlink" title="3.1 free_irq()"></a><font size=3>3.1 free_irq()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep free_irq -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/interrupt.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">free_irq</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span>, <span class="type">void</span> *)</span>;</span><br><span class="line"><span class="comment">// 其实可以写成这样</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">free_irq</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> irq, <span class="type">void</span> *dev)</span>；</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于释放中断。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><p>irq ： unsigned int irq 类型，要释放的中断号。</p>
+</li>
+<li><p>dev： void * 类型，如果中断设置为共享(IRQF_SHARED)的话，此参数用来区分具体的中断。共享中断只有在释放最后中断处理函数的时候才会被禁止掉。</p>
+</li>
+</ul>
+<p><strong>【返回值】</strong> int 类型，中断申请成功返回0 ，中断申请失败返回其他负值 ，如果返回 -EBUSY  的话表示中断已经被申请了。    </p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong>  none</p>
+<h3 id="3-2-使用实例"><a href="#3-2-使用实例" class="headerlink" title="3.2 使用实例"></a><font size=3>3.2 使用实例</font></h3><p>暂无</p>
+<h2 id="4-中断处理函数"><a href="#4-中断处理函数" class="headerlink" title="4. 中断处理函数"></a><font size=3>4. 中断处理函数</font></h2><h3 id="4-1-irq-handler-t"><a href="#4-1-irq-handler-t" class="headerlink" title="4.1 irq_handler_t"></a><font size=3>4.1 irq_handler_t</font></h3><p>在linux内核源码的这个文件中，定义了中断处理函数的类型：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/interrupt.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到该指针变量为：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="title function_">irqreturn_t</span> <span class="params">(*<span class="type">irq_handler_t</span>)</span><span class="params">(<span class="type">int</span>, <span class="type">void</span> *)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【参数说明】</strong></p>
+<p>第一个参数是要中断处理函数要相应的中断号。第二个参数是一个指向 void 的指针，也就是个通用指针，需要与 request_irq 函数的 dev 参数保持一致。 dev 用于区分共享中断的不同设备， 也可以指向设备数据结构。   </p>
+<p><strong>【返回值】</strong>中断处理函数的返回值为 irqreturn_t 类型， irqreturn_t 类型定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* include/linux/irqreturn.h */</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * enum irqreturn</span></span><br><span class="line"><span class="comment"> * @IRQ_NONE            interrupt was not from this device</span></span><br><span class="line"><span class="comment"> * @IRQ_HANDLED         interrupt was handled by this device</span></span><br><span class="line"><span class="comment"> * @IRQ_WAKE_THREAD     handler requests to wake the handler thread</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">enum</span> <span class="title">irqreturn</span> &#123;</span></span><br><span class="line">        IRQ_NONE                = (<span class="number">0</span> &lt;&lt; <span class="number">0</span>), </span><br><span class="line">        IRQ_HANDLED             = (<span class="number">1</span> &lt;&lt; <span class="number">0</span>), </span><br><span class="line">        IRQ_WAKE_THREAD         = (<span class="number">1</span> &lt;&lt; <span class="number">1</span>), </span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">enum</span> <span class="title">irqreturn</span> <span class="title">irqreturn_t</span>;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-使用实例"><a href="#4-2-使用实例" class="headerlink" title="4.2 使用实例"></a><font size=3>4.2 使用实例</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">irqreturn_t</span> <span class="title function_">xxx_irq_handle</span><span class="params">(<span class="type">int</span> irq_no, <span class="type">void</span> *arg)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">return</span> IRQ_HANDLED;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="5-中断使能与禁止"><a href="#5-中断使能与禁止" class="headerlink" title="5. 中断使能与禁止"></a><font size=3>5. 中断使能与禁止</font></h2><h3 id="5-1-enable-irq"><a href="#5-1-enable-irq" class="headerlink" title="5.1 enable_irq  ()"></a><font size=3>5.1 enable_irq  ()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep enable_irq -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/interrupt.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">enable_irq</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> irq)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于使能指定的中断。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>irq ： unsigned int irq 类型，要使能的中断号。</li>
+</ul>
+<p><strong>【返回值】</strong> none</p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong>  none</p>
+<h3 id="5-2-disable-irq"><a href="#5-2-disable-irq" class="headerlink" title="5.2 disable_irq  ()"></a><font size=3>5.2 disable_irq  ()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep disable_irq -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/interrupt.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">disable_irq</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> irq)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于禁止指定中断。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>irq ： unsigned int irq 类型，要禁止的中断号。</li>
+</ul>
+<p><strong>【返回值】</strong> none   </p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong>  该函数在当前正在执行的中断处理函数执行完才返回，因此需要保证不会产生新的中断，并且确保所有已经开始执行的中断处理程序已经全部退出。 </p>
+<h3 id="5-3-disable-irq-nosync"><a href="#5-3-disable-irq-nosync" class="headerlink" title="5.3 disable_irq_nosync   ()"></a><font size=3>5.3 disable_irq_nosync   ()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep disable_irq_nosync -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/interrupt.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">disable_irq_nosync</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> irq)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于禁止指定中断。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>irq ： unsigned int irq 类型，要禁止的中断号。</li>
+</ul>
+<p><strong>【返回值】</strong> none   </p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong>  disable_irq_nosync 函数调用以后立即返回，不会等待当前中断处理程序执行完毕。  </p>
+<h1 id="二、上半部与下半部"><a href="#二、上半部与下半部" class="headerlink" title="二、上半部与下半部"></a><font size=3>二、上半部与下半部</font></h1><p>前边我们在使用request_irq 申请中断的时候注册的中断服务函数属于中断处理的<strong>上半部</strong>，只要中断触发，那么中断处理函数就会执行。我们都知道中断处理函数一定要快点执行完毕，越短越好，但是现实往往是残酷的，有些中断处理过程就是比较费时间，我们必须要对其进行处理，缩小中断处理函数的执行时间。</p>
+<p>比如电容触摸屏通过中断通知 SOC 有触摸事件发生， SOC 响应中断，然后通过 IIC 接口读取触摸坐标值并将其上报给系统。但是我们们都知道 IIC 的速度最高也只有400Kbit&#x2F;S，所以在中断中通过 IIC 读取数据就会浪费时间。我们可以将通过 IIC 读取触摸数据的操作暂后执行，中断处理函数仅仅相应中断，然后清除中断标志位即可。</p>
+<p>按上边做法，这个时候中断处理过程就分为了两部分：</p>
+<ul>
+<li><p>上半部：上半部就是中断处理函数，那些处理过程比较快，不会占用很长时间的处理就可以放在上半部完成。</p>
+</li>
+<li><p>下半部：如果中断处理过程比较耗时，那么就将这些比较耗时的代码提出来，交给下半部去执行，这样中断处理函数就会快进快出。</p>
+</li>
+</ul>
+<p>因此， Linux 内核将中断分为上半部和下半部的<strong>主要目的</strong>就是<strong>实现中断处理函数的快进快出</strong>，那些对时间敏感、执行速度快的操作可以放到中断处理函数中，也就是上半部。剩下的所有工作都可以放到下半部去执行，比如在上半部将数据拷贝到内存中，关于数据的具体处理就可以放到下半部去执行。至于哪些代码属于上半部，哪些代码属于下半部并没有明确的规定，一切根据实际使用情况去判断。</p>
+<p>以下情况可以作为参考：</p>
+<p>（1）如果要处理的内容不希望被其他中断打断，那么可以放到上半部。  </p>
+<p>（2）如果要处理的任务对时间敏感，可以放到上半部。</p>
+<p>（3）如果要处理的任务与硬件有关，可以放到上半部 。</p>
+<h1 id="三、下半部处理机制"><a href="#三、下半部处理机制" class="headerlink" title="三、下半部处理机制"></a><font size=3>三、下半部处理机制</font></h1><p>下半部处理机制大概有三种，软中断，tasklet和工作队列，其实tasklet也是基于软中断的，相对而言更推荐使用tasklet，所以常见的下半部处理机制其实有两种，一种就是tasklet，另一种是工作队列。</p>
+<h2 id="1-软中断"><a href="#1-软中断" class="headerlink" title="1. 软中断"></a><font size=3>1. 软中断</font></h2><p>一开始 Linux 内核提供了 bottom half 机制来实现下半部，简称“BH”。后面引入了软中断和 tasklet 来替代“BH”机制，完全可以使用软中断和 tasklet 来替代 BH，<strong>从 2.5 版本的 Linux内核开始 BH 已经被抛弃了</strong>。  </p>
+<h3 id="1-1-相关结构体"><a href="#1-1-相关结构体" class="headerlink" title="1.1 相关结构体"></a><font size=3>1.1 相关结构体</font></h3><p>Linux 内核使用结构体 softirq_action 表示软中断，它定义在linux内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/interrupt.h </span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">softirq_action</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">        <span class="type">void</span>    (*action)(<span class="keyword">struct</span> softirq_action *); </span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>action ：函数指针变量，指向软中断服务函数。</li>
+</ul>
+<h3 id="1-2-软中断的定义"><a href="#1-2-软中断的定义" class="headerlink" title="1.2 软中断的定义"></a><font size=3>1.2 软中断的定义</font></h3><p>在 kernel&#x2F;softirq.c 文件中一共定义了 10 个软中断 ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">softirq_action</span> <span class="title">softirq_vec</span>[<span class="title">NR_SOFTIRQS</span>] __<span class="title">cacheline_aligned_in_smp</span>;</span></span><br></pre></td></tr></table></figure>
+
+<p>其中 NR_SOFTIRQS 是枚举类型，定义在文件 include&#x2F;linux&#x2F;interrupt.h 中 ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">enum</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	HI_SOFTIRQ=<span class="number">0</span>,          <span class="comment">/* 高优先级软中断 */</span></span><br><span class="line">	TIMER_SOFTIRQ,         <span class="comment">/* 定时器软中断   */</span></span><br><span class="line">	NET_TX_SOFTIRQ,        <span class="comment">/* 网络数据发送软中断 */</span></span><br><span class="line">	NET_RX_SOFTIRQ,        <span class="comment">/* 网络数据接收软中断 */</span></span><br><span class="line">	BLOCK_SOFTIRQ,</span><br><span class="line">	BLOCK_IOPOLL_SOFTIRQ,</span><br><span class="line">	TASKLET_SOFTIRQ,       <span class="comment">/* tasklet 软中断 */</span></span><br><span class="line">	SCHED_SOFTIRQ,         <span class="comment">/* 调度软中断 */</span></span><br><span class="line">	HRTIMER_SOFTIRQ,       <span class="comment">/* 高精度定时器软中断 */</span></span><br><span class="line">	RCU_SOFTIRQ,           <span class="comment">/* RCU 软中断，Preferable RCU should always be the last softirq */</span></span><br><span class="line"></span><br><span class="line">	NR_SOFTIRQS</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>可以看出，一共有 10 个软中断，因此 NR_SOFTIRQS 为 10，因此数组 softirq_vec 有 10 个元素。 softirq_action 结构体中的 action 成员变量就是软中断的服务函数，数组 softirq_vec 是个全局数组，因此所有的 CPU(对于 SMP 系统而言)都可以访问到，每个 CPU 都有自己的触发和控制机制，并且只执行自己所触发的软中断。但是各个 CPU 所执行的软中断服务函数确是相同的，都是数组 softirq_vec 中定义的 action 函数。  </p>
+<h3 id="1-3-相关函数"><a href="#1-3-相关函数" class="headerlink" title="1.3 相关函数"></a><font size=3>1.3 相关函数</font></h3><h4 id="1-3-1-open-softirq"><a href="#1-3-1-open-softirq" class="headerlink" title="1.3.1 open_softirq()"></a><font size=3>1.3.1 open_softirq()</font></h4><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep open_softirq -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/interrupt.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">open_softirq</span><span class="params">(<span class="type">int</span> nr, <span class="type">void</span> (*action)(<span class="keyword">struct</span> softirq_action *))</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于注册软中断函数。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>nr：int 类型，表示要开启的软中断，在10个软中断中选择一个。</li>
+<li>action：函数指针，指向软中断对应的处理函数。</li>
+</ul>
+<p><strong>【返回值】</strong>none   </p>
+<p><strong>【使用格式】</strong>none </p>
+<p><strong>【注意事项】</strong> 要使用软中断，必须先使用 open_softirq 函数注册对应的软中断处理函数。</p>
+<h4 id="1-3-2-raise-softirq"><a href="#1-3-2-raise-softirq" class="headerlink" title="1.3.2 raise_softirq()"></a><font size=3>1.3.2 raise_softirq()</font></h4><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep raise_softirq -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/interrupt.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">raise_softirq</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> nr)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于触发已经注册的软中断，注册好软中断以后需要通过 raise_softirq 函数触发  。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>nr：int 类型，表示要触发的软中断，在10个软中断中选择一个。</li>
+</ul>
+<p><strong>【返回值】</strong>none   </p>
+<p><strong>【使用格式】</strong>none </p>
+<p><strong>【注意事项】</strong> none</p>
+<h4 id="1-3-3-softirq-init"><a href="#1-3-3-softirq-init" class="headerlink" title="1.3.3 softirq_init()"></a><font size=3>1.3.3 softirq_init()</font></h4><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep softirq_init -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/interrupt.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">softirq_init</span><span class="params">(<span class="type">void</span>)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>软中断<strong>必须在编译的时候静态注册</strong>， Linux 内核使用 softirq_init 函数初始化软中断，这个函数好像不需要我们调用，内核会帮我们调用。</p>
+<details class="folding-tag" blue><summary> 点击查看 softirq_init 函数详情 </summary>
+              <div class='content'>
+              <p>这个函数定义在linux内核源码的这个文件：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kernel/softirq.c</span><br></pre></td></tr></table></figure><p>函数定义如下：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> __init <span class="title function_">softirq_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">        <span class="type">int</span> cpu;</span><br><span class="line"></span><br><span class="line">        for_each_possible_cpu(cpu) &#123;</span><br><span class="line">                per_cpu(tasklet_vec, cpu).tail =</span><br><span class="line">                        &amp;per_cpu(tasklet_vec, cpu).head;</span><br><span class="line">                per_cpu(tasklet_hi_vec, cpu).tail =</span><br><span class="line">                        &amp;per_cpu(tasklet_hi_vec, cpu).head;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        open_softirq(TASKLET_SOFTIRQ, tasklet_action);</span><br><span class="line">        open_softirq(HI_SOFTIRQ, tasklet_hi_action);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>可以看出， softirq_init 函数默认会打开 TASKLET_SOFTIRQ 和 HI_SOFTIRQ。  </p>
+              </div>
+            </details>
+
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>nr：int 类型，表示要触发的软中断，在10个软中断中选择一个。</li>
+</ul>
+<p><strong>【返回值】</strong>none   </p>
+<p><strong>【使用格式】</strong>none </p>
+<p><strong>【注意事项】</strong>softirq_init 函数默认会打开 TASKLET_SOFTIRQ 和 HI_SOFTIRQ。  </p>
+<h2 id="2-tasklet"><a href="#2-tasklet" class="headerlink" title="2. tasklet"></a><font size=3>2. tasklet</font></h2><p>tasklet 是<strong>利用软中断来实现</strong>的另外一种下半部机制，在软中断和 tasklet 之间，建议使用 tasklet。 </p>
+<h3 id="2-1-相关结构体"><a href="#2-1-相关结构体" class="headerlink" title="2.1 相关结构体"></a><font size=3>2.1 相关结构体</font></h3><p>Linux 内核使用 tasklet_struct 结构体来表示 tasklet，该结构体定义在linux内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/interrupt.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到这个结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tasklet_struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">tasklet_struct</span> *<span class="title">next</span>;</span> <span class="comment">/* 下一个 tasklet */</span></span><br><span class="line">        <span class="type">unsigned</span> <span class="type">long</span> state;         <span class="comment">/* tasklet 状态 */</span></span><br><span class="line">        <span class="type">atomic_t</span> count;              <span class="comment">/* 计数器，记录对 tasklet 的引用数 */</span></span><br><span class="line">        <span class="type">void</span> (*func)(<span class="type">unsigned</span> <span class="type">long</span>); <span class="comment">/* tasklet 执行的函数 */</span></span><br><span class="line">        <span class="type">unsigned</span> <span class="type">long</span> data;          <span class="comment">/* 函数 func 的参数 */</span>   </span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-相关函数"><a href="#2-2-相关函数" class="headerlink" title="2.2 相关函数"></a><font size=3>2.2 相关函数</font></h3><h4 id="2-2-1-tasklet-init"><a href="#2-2-1-tasklet-init" class="headerlink" title="2.2.1 tasklet_init  ()"></a><font size=3>2.2.1 tasklet_init  ()</font></h4><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep tasklet_init -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/interrupt.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">tasklet_init</span><span class="params">(<span class="keyword">struct</span> tasklet_struct *t, </span></span><br><span class="line"><span class="params">                         <span class="type">void</span> (*func)(<span class="type">unsigned</span> <span class="type">long</span>), <span class="type">unsigned</span> <span class="type">long</span> data)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数<strong>初始化</strong>一个 tasklet 。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>t ：struct tasklet_struct * 类型，要初始化的 tasklet。</li>
+<li>func： 函数指针，tasklet 的处理函数。</li>
+</ul>
+<details class="folding-tag" blue><summary> tasklet 处理函数一般格式 </summary>
+              <div class='content'>
+              <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">tasklet_func</span><span class="params">(<span class="type">unsigned</span> <span class="type">long</span> data)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// ... ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<ul>
+<li>data： unsigned long 类型，要传递给 tasklet 处理函数 func 的参数 。</li>
+</ul>
+<p><strong>【返回值】</strong>none   </p>
+<p><strong>【使用格式】</strong>none </p>
+<p><strong>【注意事项】</strong>none</p>
+<h4 id="2-2-2-DECLARE-TASKLET"><a href="#2-2-2-DECLARE-TASKLET" class="headerlink" title="2.2.2 DECLARE_TASKLET()"></a><font size=3>2.2.2 DECLARE_TASKLET()</font></h4><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep DECLARE_TASKLET -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/interrupt.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DECLARE_TASKLET(name, func, data) \</span></span><br><span class="line"><span class="meta">struct tasklet_struct name = &#123; NULL, 0, ATOMIC_INIT(0), func, data &#125;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>这是一个宏，可以直接完成 tasklet 的<strong>定义和初始化</strong>。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>name ：要定义的 tasklet 名字，这个名字就是一个 tasklet_struct 类型的指针变量  。</li>
+<li>func： 函数指针，tasklet 的处理函数名。</li>
+</ul>
+<details class="folding-tag" blue><summary> tasklet 处理函数一般格式 </summary>
+              <div class='content'>
+              <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">tasklet_func</span><span class="params">(<span class="type">unsigned</span> <span class="type">long</span> data)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// ... ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<ul>
+<li>data： 要传递给 tasklet 处理函数 func 的参数 。</li>
+</ul>
+<p><strong>【返回值】</strong>none   </p>
+<p><strong>【使用格式】</strong>none </p>
+<p><strong>【注意事项】</strong>none</p>
+<h4 id="2-2-3-tasklet-schedule"><a href="#2-2-3-tasklet-schedule" class="headerlink" title="2.2.3 tasklet_schedule()"></a><font size=3>2.2.3 tasklet_schedule()</font></h4><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep tasklet_schedule -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/interrupt.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> __tasklet_schedule(<span class="keyword">struct</span> tasklet_struct *t);</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">void</span> <span class="title function_">tasklet_schedule</span><span class="params">(<span class="keyword">struct</span> tasklet_struct *t)</span></span><br><span class="line">&#123;</span><br><span class="line">        <span class="keyword">if</span> (!test_and_set_bit(TASKLET_STATE_SCHED, &amp;t-&gt;state))</span><br><span class="line">                __tasklet_schedule(t);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数完成 tasklet 调度，<strong>用在中断处理函数中</strong>，tasklet 对应的处理函数将会在合适的时间运行 。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>t ：struct tasklet_struct * 类型，要调度的 tasklet，也就是 DECLARE_TASKLET 宏里面的 name。</li>
+</ul>
+<p><strong>【返回值】</strong>none   </p>
+<p><strong>【使用格式】</strong>none </p>
+<p><strong>【注意事项】</strong>none</p>
+<h3 id="2-3-使用实例"><a href="#2-3-使用实例" class="headerlink" title="2.3 使用实例"></a><font size=3>2.3 使用实例</font></h3><p>下边是一个使用的框架</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 定义 taselet */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tasklet_struct</span> <span class="title">testtasklet</span>;</span></span><br><span class="line"><span class="comment">/* tasklet 处理函数 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">testtasklet_func</span><span class="params">(<span class="type">unsigned</span> <span class="type">long</span> data)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">/* tasklet 具体处理内容 */</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/* 中断处理函数 */</span></span><br><span class="line"><span class="type">irqreturn_t</span> <span class="title function_">xxx_irq_handler</span><span class="params">(<span class="type">int</span> irq_no, <span class="type">void</span> *dev_id)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">	<span class="comment">/* 调度 tasklet */</span></span><br><span class="line">	tasklet_schedule(&amp;testtasklet);</span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/* 驱动入口函数 */</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> __init <span class="title function_">xxxx_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	......</span><br><span class="line">	<span class="comment">/* 初始化 tasklet */</span></span><br><span class="line">	tasklet_init(&amp;testtasklet, testtasklet_func, data);</span><br><span class="line">	<span class="comment">/* 注册中断处理函数 */</span></span><br><span class="line">	request_irq(xxx_irq, xxx_irq_handler, <span class="number">0</span>, <span class="string">&quot;xxx&quot;</span>, &amp;xxx_dev);</span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-4-使用步骤"><a href="#2-4-使用步骤" class="headerlink" title="2.4 使用步骤"></a><font size=3>2.4 使用步骤</font></h3><ul>
+<li>（1）定义一个 taselet ；</li>
+<li>（2）初始化 tasklet；</li>
+<li>（3）编写 tasklet 处理函数；</li>
+<li>（4）在需要tasklet作为下半部处理的中断处理函数中进行 tasklet 调度。</li>
+</ul>
+<h2 id="3-工作队列"><a href="#3-工作队列" class="headerlink" title="3. 工作队列"></a><font size=3>3. 工作队列</font></h2><p>工作队列是另外一种下半部执行方式，工作队列在进程上下文执行，工作队列<strong>将要推后的工作交给一个内核线程</strong>去执行，因为工作队列工作在进程上下文，因此工作队列<strong>允许睡眠或重新调度</strong>。</p>
+<p>如果我们要推后的工作可以睡眠那么就可以选择工作队列，否则的话就只能选择软中断或 tasklet。  </p>
+<h3 id="3-1-相关结构体"><a href="#3-1-相关结构体" class="headerlink" title="3.1 相关结构体"></a><font size=3>3.1 相关结构体</font></h3><h4 id="3-1-1-工作结构体"><a href="#3-1-1-工作结构体" class="headerlink" title="3.1.1 工作结构体"></a><font size=3>3.1.1 工作结构体</font></h4><p>Linux 内核使用 work_struct 结构体表示一个工作，它定义在linux内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/workqueue.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到这个结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">work_struct</span> &#123;</span></span><br><span class="line">        <span class="type">atomic_long_t</span> data;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">entry</span>;</span></span><br><span class="line">        <span class="type">work_func_t</span> func;</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_LOCKDEP</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">lockdep_map</span> <span class="title">lockdep_map</span>;</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-1-2-工作队列结构体"><a href="#3-1-2-工作队列结构体" class="headerlink" title="3.1.2 工作队列结构体"></a><font size=3>3.1.2 工作队列结构体</font></h4><p>工作组成工作队列，Linux 内核使用 workqueue_struct  结构体表示一个工作队列，它定义在linux内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kernel/workqueue.c</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到这个结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">workqueue_struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>        <span class="title">pwqs</span>;</span>           <span class="comment">/* WR: all pwqs of this wq */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>        <span class="title">list</span>;</span>           <span class="comment">/* PL: list of all workqueues */</span></span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mutex</span>            <span class="title">mutex</span>;</span>          <span class="comment">/* protects this wq */</span></span><br><span class="line">	<span class="type">int</span>                     work_color;     <span class="comment">/* WQ: current work color */</span></span><br><span class="line">	<span class="type">int</span>                     flush_color;    <span class="comment">/* WQ: current flush color */</span></span><br><span class="line">	<span class="type">atomic_t</span>                nr_pwqs_to_flush; <span class="comment">/* flush in progress */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">wq_flusher</span>       *<span class="title">first_flusher</span>;</span> <span class="comment">/* WQ: first flusher */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>        <span class="title">flusher_queue</span>;</span>  <span class="comment">/* WQ: flush waiters */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>        <span class="title">flusher_overflow</span>;</span> <span class="comment">/* WQ: flush overflow list */</span></span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>        <span class="title">maydays</span>;</span>        <span class="comment">/* MD: pwqs requesting rescue */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">worker</span>           *<span class="title">rescuer</span>;</span>       <span class="comment">/* I: rescue worker */</span></span><br><span class="line"></span><br><span class="line">	<span class="type">int</span>                     nr_drainers;    <span class="comment">/* WQ: drain in progress */</span></span><br><span class="line">	<span class="type">int</span>                     saved_max_active; <span class="comment">/* WQ: saved pwq max_active */</span></span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">workqueue_attrs</span>  *<span class="title">unbound_attrs</span>;</span> <span class="comment">/* WQ: only for unbound wqs */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">pool_workqueue</span>   *<span class="title">dfl_pwq</span>;</span>       <span class="comment">/* WQ: only for unbound wqs */</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_SYSFS</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">wq_device</span>        *<span class="title">wq_dev</span>;</span>        <span class="comment">/* I: for sysfs interface */</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_LOCKDEP</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">lockdep_map</span>      <span class="title">lockdep_map</span>;</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="type">char</span>                    name[WQ_NAME_LEN]; <span class="comment">/* I: workqueue name */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* hot fields used during command issue, aligned to cacheline */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>            flags ____cacheline_aligned; <span class="comment">/* WQ: WQ_* flags */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">pool_workqueue</span> __<span class="title">percpu</span> *<span class="title">cpu_pwqs</span>;</span> <span class="comment">/* I: per-cpu pwqs */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">pool_workqueue</span> __<span class="title">rcu</span> *<span class="title">numa_pwq_tbl</span>[];</span> <span class="comment">/* FR: unbound pwqs indexed by node */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-1-3-工作者线程"><a href="#3-1-3-工作者线程" class="headerlink" title="3.1.3 工作者线程  "></a><font size=3>3.1.3 工作者线程  </font></h4><p>Linux 内核使用工作者线程(worker thread)来处理工作队列中的各个工作， Linux 内核使用 worker 结构体表示工作者线程，它定义在linux内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kernel/workqueue_internal.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到这个结构体定义如下： </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">worker</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="comment">/* on idle list while idle, on busy hash table while busy */</span></span><br><span class="line">	<span class="class"><span class="keyword">union</span></span></span><br><span class="line"><span class="class">	&#123;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>        <span class="title">entry</span>;</span>  <span class="comment">/* L: while idle */</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">hlist_node</span>       <span class="title">hentry</span>;</span> <span class="comment">/* L: while busy */</span></span><br><span class="line">	&#125;;</span><br><span class="line">    <span class="comment">// ... ...</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">workqueue_struct</span> *<span class="title">rescue_wq</span>;</span>     <span class="comment">/* I: the workqueue to rescue */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到每个 worker 都有一个工作队列，工作者线程处理自己工作队列中的所有工作。在实际的驱动开发中，我们只需要定义工作（work_struct）即可，关于工作队列和工作者线程我们基本不用去管。  </p>
+<h3 id="3-2-相关函数"><a href="#3-2-相关函数" class="headerlink" title="3.2 相关函数"></a><font size=3>3.2 相关函数</font></h3><h4 id="3-2-1-INIT-WORK"><a href="#3-2-1-INIT-WORK" class="headerlink" title="3.2.1 INIT_WORK()"></a><font size=3>3.2.1 INIT_WORK()</font></h4><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep INIT_WORK -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/workqueue.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> INIT_WORK(_work, _func)                                         \</span></span><br><span class="line"><span class="meta">        do &#123;                                                            \</span></span><br><span class="line"><span class="meta">                __INIT_WORK((_work), (_func), 0);                       \</span></span><br><span class="line"><span class="meta">        &#125; while (0)</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数<strong>初始化</strong>一个工作 。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>_work ：struct work_struct 类型，要初始化的工作。</li>
+<li>_func ： 函数指针，工作对应处理函数。</li>
+</ul>
+<details class="folding-tag" blue><summary> 工作处理函数一般格式 </summary>
+              <div class='content'>
+              <p>工作处理函数指针是 work_func_t 类型的，该函数指针类型为：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* include/linux/workqueue.h */</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="title function_">void</span> <span class="params">(*<span class="type">work_func_t</span>)</span><span class="params">(<span class="keyword">struct</span> work_struct *work)</span>;</span><br></pre></td></tr></table></figure><p>所以工作的处理函数格式为：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">xxx_work_func</span><span class="params">(<span class="keyword">struct</span> work_struct *pwk)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// ... ...</span></span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<p><strong>【返回值】</strong>none   </p>
+<p><strong>【使用格式】</strong>none </p>
+<p><strong>【注意事项】</strong>none</p>
+<h4 id="3-2-2-DECLARE-WORK"><a href="#3-2-2-DECLARE-WORK" class="headerlink" title="3.2.2 DECLARE_WORK()"></a><font size=3>3.2.2 DECLARE_WORK()</font></h4><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep DECLARE_WORK  -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/workqueue.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DECLARE_WORK(n, f)                                              \</span></span><br><span class="line"><span class="meta">        struct work_struct n = __WORK_INITIALIZER(n, f)</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>这是一个宏，可以直接完成工作的<strong>定义和初始化</strong>。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>n ：表示定义的工作，work_struct类型的。</li>
+<li>f ：表示工作对应的处理函数 。</li>
+</ul>
+<details class="folding-tag" blue><summary> 工作处理函数一般格式 </summary>
+              <div class='content'>
+              <p>工作处理函数指针是 work_func_t 类型的，该函数指针类型为：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* include/linux/workqueue.h */</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="title function_">void</span> <span class="params">(*<span class="type">work_func_t</span>)</span><span class="params">(<span class="keyword">struct</span> work_struct *work)</span>;</span><br></pre></td></tr></table></figure><p>所以工作的处理函数格式为：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">xxx_work_func</span><span class="params">(<span class="keyword">struct</span> work_struct *pwk)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// ... ...</span></span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<p><strong>【返回值】</strong>none   </p>
+<p><strong>【使用格式】</strong>none </p>
+<p><strong>【注意事项】</strong>none</p>
+<h4 id="3-2-3-schedule-work"><a href="#3-2-3-schedule-work" class="headerlink" title="3.2.3 schedule_work()"></a><font size=3>3.2.3 schedule_work()</font></h4><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep schedule_work -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/workqueue.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数定义 */</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * schedule_work - put work task in global workqueue</span></span><br><span class="line"><span class="comment"> * @work: job to be done</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Returns %false if @work was already on the kernel-global workqueue and</span></span><br><span class="line"><span class="comment"> * %true otherwise.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This puts a job in the kernel-global workqueue if it was not already</span></span><br><span class="line"><span class="comment"> * queued and leaves it in the same position on the kernel-global</span></span><br><span class="line"><span class="comment"> * workqueue otherwise.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">bool</span> <span class="title function_">schedule_work</span><span class="params">(<span class="keyword">struct</span> work_struct *work)</span></span><br><span class="line">&#123;</span><br><span class="line">        <span class="keyword">return</span> queue_work(system_wq, work);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数完成队列调度，<strong>用在中断处理函数中</strong> 。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>work ：struct work_struct * 类型，要调度的工作结构体变量。</li>
+</ul>
+<p><strong>【返回值】</strong>none   </p>
+<p><strong>【使用格式】</strong>none </p>
+<p><strong>【注意事项】</strong>none</p>
+<h3 id="3-3-使用实例"><a href="#3-3-使用实例" class="headerlink" title="3.3 使用实例"></a><font size=3>3.3 使用实例</font></h3><p>下边是一个使用的框架：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 定义工作(work) */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">work_struct</span> <span class="title">testwork</span>;</span></span><br><span class="line"><span class="comment">/* work 处理函数 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">testwork_func_t</span><span class="params">(<span class="keyword">struct</span> work_struct *work)</span>;</span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">/* work 具体处理内容 */</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/* 中断处理函数 */</span></span><br><span class="line"><span class="type">irqreturn_t</span> <span class="title function_">xxx_irq_handler</span><span class="params">(<span class="type">int</span> irq_no, <span class="type">void</span> *dev_id)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">	<span class="comment">/* 调度 work */</span></span><br><span class="line">	schedule_work(&amp;testwork);</span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/* 驱动入口函数 */</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> __init <span class="title function_">xxxx_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">	<span class="comment">/* 初始化 work */</span></span><br><span class="line">	INIT_WORK(&amp;testwork, <span class="type">testwork_func_t</span>);</span><br><span class="line">	<span class="comment">/* 注册中断处理函数 */</span></span><br><span class="line">	request_irq(xxx_irq, xxx_irq_handler, <span class="number">0</span>, <span class="string">&quot;xxx&quot;</span>, &amp;xxx_dev);</span><br><span class="line">	<span class="comment">// ... ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-4-使用步骤"><a href="#3-4-使用步骤" class="headerlink" title="3.4 使用步骤"></a><font size=3>3.4 使用步骤</font></h3><ul>
+<li>（1）定义一个工作；</li>
+<li>（2）初始化工作；</li>
+<li>（3）编写工作处理函数；</li>
+<li>（4）在需要工作队列作为下半部处理的中断处理函数中调度工作队列。</li>
+</ul>
+<h2 id="4-下半部机制比较"><a href="#4-下半部机制比较" class="headerlink" title="4. 下半部机制比较"></a><font size=3>4. 下半部机制比较</font></h2><ul>
+<li>任务机制</li>
+</ul>
+<p>工作队列（workqueue）——内核线程，可以睡眠，运行时间无限制。</p>
+<ul>
+<li>异常机制——不能睡眠  下半部执行时间不宜太长（ &lt; 1s)</li>
+</ul>
+<p>（1）软中断，它的接口不方便；</p>
+<p>（2）tasklet，无具体延后时间要求时可以采用。</p>
+<p>（3）定时器，有具体延后时间要求时可以采用。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/abc4e840.html">LV10-07-中断-01-中断处理基础</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年07月08日 - 18:58</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/abc4e840.html" title="LV10-07-中断-01-中断处理基础">https://sumumm.github.io/post/abc4e840.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV10-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/6daf9146.html" rel="prev" title="LV10-08-设备树-01-设备树基础知识">
+                  <i class="fa fa-angle-left"></i> LV10-08-设备树-01-设备树基础知识
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/7b1a8f39.html" rel="next" title="LV10-06-内核内存管理-01-基础知识">
+                  LV10-06-内核内存管理-01-基础知识 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

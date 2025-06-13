@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="sysfs是什么？和内核对象有啥关系？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-04-linux设备模型-03-sysfs文件系统">
+<meta property="og:url" content="https://sumumm.github.io/post/d70fd185.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="sysfs是什么？和内核对象有啥关系？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250105105341778.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250105105704308.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250105110207314.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250105111237343.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250105111902569.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250105114155397.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250105120320519.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250106161831064.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250106163909605.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250106171744580.png">
+<meta property="article:published_time" content="2025-01-06T14:12:59.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.051Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250105105341778.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/d70fd185.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/d70fd185.html","path":"post/d70fd185.html","title":"LV06-04-linux设备模型-03-sysfs文件系统"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-04-linux设备模型-03-sysfs文件系统 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81sysfs-%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-text">一、sysfs 文件系统   </span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-sysfs-%E7%AE%80%E4%BB%8B"><span class="nav-text">1. sysfs 简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-sys%E7%9B%AE%E5%BD%95"><span class="nav-text">2. &#x2F;sys目录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-sys-bus"><span class="nav-text">2.1 &#x2F;sys&#x2F;bus</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-sys-devices"><span class="nav-text">2.2 &#x2F;sys&#x2F;devices</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-sys-class"><span class="nav-text">2.3 &#x2F;sys&#x2F;class</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E5%85%B6%E4%BB%96%E7%9B%AE%E5%BD%95"><span class="nav-text">2.4 其他目录</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-sys-%E7%9B%AE%E5%BD%95%E5%B1%82%E6%AC%A1%E5%9B%BE%E8%A7%A3"><span class="nav-text">3. sys 目录层次图解  </span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81-sysfs%E4%B8%8Ekobject"><span class="nav-text">二、 sysfs与kobject</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-sysfs%E4%B8%8Ekobject%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="nav-text">1. sysfs与kobject的关系</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BB%A3%E7%A0%81%E9%80%BB%E8%BE%91"><span class="nav-text">2. 代码逻辑</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-kobject-create-and-add"><span class="nav-text">2.1 kobject_create_and_add() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-kobject-add"><span class="nav-text">2.2  kobject_add() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-kobject-add-varg"><span class="nav-text">2.3 kobject_add_varg()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-kobject-add-internal"><span class="nav-text">2.4 kobject_add_internal()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-create-dir"><span class="nav-text">2.5 create_dir()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6-sysfs-create-dir-ns"><span class="nav-text">2.6 sysfs_create_dir_ns()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-7-init-sysfs-init"><span class="nav-text">2.7 __init sysfs_init()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-8-%E6%80%BB%E7%BB%93"><span class="nav-text">2.8 总结</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/d70fd185.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-04-linux设备模型-03-sysfs文件系统 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-04-linux设备模型-03-sysfs文件系统
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-01-06 22:12:59" itemprop="dateCreated datePublished" datetime="2025-01-06T22:12:59+08:00">2025-01-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5.5k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>20 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>sysfs是什么？和内核对象有啥关系？若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="3">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4" target="_blank">kernel/git/stable/linux.git - Linux kernel stable tree</a></td>        <td align="left">linux kernel源码(官网,tag 4.19.71)</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、sysfs-文件系统"><a href="#一、sysfs-文件系统" class="headerlink" title="一、sysfs 文件系统   "></a><font size=3>一、sysfs 文件系统   </font></h1><h2 id="1-sysfs-简介"><a href="#1-sysfs-简介" class="headerlink" title="1. sysfs 简介"></a><font size=3>1. sysfs 简介</font></h2><p>sysfs 文件系统是 Linux 内核提供的一种基于RAM的虚拟文件系统，用于向用户空间提供内核中设备， 驱动程序和其他内核对象的信息。它以一种层次结构的方式组织数据，并将这些数据表示为文件和目录，使得用户空间可以通过文件系统接口访问和操作内核对象的属性。 </p>
+<p>sysfs是一种表示内核对象、对象属性，以及对象关系的一种机制，一般内核对象、属性、以及对象关系组织成树状形式。其中内核对象被映射为用户态的目录；对象属性被映射为用户态的文件，文件在目录下；对象关系被映射成用户空间的符号链接。</p>
+<p>sysfs 提供了一种统一的接口，用于浏览和管理内核中的设备、总线、驱动程序和其他内核对象。它在 &#x2F;sys 目录下挂载，用户可以通过查看和修改 &#x2F;sys 目录下的文件和目录来获取和配置内核对象的信息。</p>
+<p>sysfs 文件系统总是被挂载在 &#x2F;sys 挂载点上。虽然在较早期的 2.6 内核系统上并没有规定 sysfs 的标准挂载位置，可以把 sysfs 挂载在任何位置，但 2.6 内核修正了这一规则，要求 sysfs 总是挂载在 &#x2F;sys 目录上；针对以前的 sysfs 挂载位置不固定或没有标准被挂载，有些程序从 &#x2F;proc&#x2F;mounts 中解析出 sysfs 是否被挂载以及具体的挂载点，这个步骤现在已经不需要了。</p>
+<h2 id="2-sys目录"><a href="#2-sys目录" class="headerlink" title="2. &#x2F;sys目录"></a><font size=3>2. &#x2F;sys目录</font></h2><p>我们知道在Linux中一切皆“文件”，在根文件系统中有个&#x2F;sys文件目录，里面记录各个设备之间的关系。 下面学习&#x2F;sys下几个较为重要目录的作用。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250105105341778.png" alt="image-20250105105341778" />
+
+<p>其中和设备模型有关的文件夹为 bus， class， devices。</p>
+<h3 id="2-1-sys-bus"><a href="#2-1-sys-bus" class="headerlink" title="2.1 &#x2F;sys&#x2F;bus"></a><font size=3>2.1 &#x2F;sys&#x2F;bus</font></h3><p>&#x2F;sys&#x2F;bus目录下的每个子目录都是注册好了的总线类型：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250105105704308.png" alt="image-20250105105704308" />
+
+<p>这里是设备按照总线类型分层放置的目录结构， 每个子目录(总线类型)下包含两个子目录——devices和drivers文件夹。其中devices下是该总线类型下的所有设备， 而这些设备都是符号链接，它们分别指向真正的设备(&#x2F;sys&#x2F;devices&#x2F;下)，例如&#x2F;sys&#x2F;bus&#x2F;i2c：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250105110207314.png" alt="image-20250105110207314" />
+
+<h3 id="2-2-sys-devices"><a href="#2-2-sys-devices" class="headerlink" title="2.2 &#x2F;sys&#x2F;devices"></a><font size=3>2.2 &#x2F;sys&#x2F;devices</font></h3><p>&#x2F;sys&#x2F;devices目录下是全局设备结构体系，包含所有被发现的注册在各种总线上的各种物理设备。一般来说， 所有的物理设备都按其在总线上的拓扑结构来显示。&#x2F;sys&#x2F;devices是内核对系统中所有设备的分层次表达模型， 也是&#x2F;sys文件系统管理设备的最重要的目录结构。</p>
+<p>每个设备子目录代表一个具体的设备， 通过其路径层次结构和符号链接反映设备的关系和拓扑结构。 每个设备子目录中包含了设备的属性、 状态和其他相关信息。  如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250105111237343.png" alt="image-20250105111237343" />
+
+<h3 id="2-3-sys-class"><a href="#2-3-sys-class" class="headerlink" title="2.3 &#x2F;sys&#x2F;class"></a><font size=3>2.3 &#x2F;sys&#x2F;class</font></h3><p>&#x2F;sys&#x2F;class目录包含了设备类别的子目录。 每个子目录代表一个设备类别， 例如磁盘、网络接口等。 每个设备类别子目录中包含了属于该类别的设备的信息。我们知道每种设备都具有自己特定的功能，比如：鼠标的功能是作为人机交互的输入，按照设备功能分类无论它 挂载在哪条总线上都是归类到&#x2F;sys&#x2F;class&#x2F;input下。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250105111902569.png" alt="image-20250105111902569" />
+
+<p>使用 class 进行归类有哪些好处？</p>
+<p>（1）逻辑上的组织： 通过将设备按照类别进行归类， 可以在设备模型中建立逻辑上的组织结构。 这样， 相关类型的设备可以被放置在同一个类别目录下， 使得设备的组织结构更加清晰和可管理。</p>
+<p>（2）统一的接口和属性： 每个设备类别目录下可以定义一组统一的接口和属性， 用于描述和配置该类别下所有设备的共同特征和行为。 这样， 对于同一类别的设备， 可以使用相同的方法和属性来操作和配置， 简化了设备驱动程序的编写和维护。</p>
+<p>（3）简化设备发现和管理： 通过将设备进行分类， 可以提供一种简化的设备发现和管理机制。 用户和应用程序可以在类别目录中查找和识别特定类型的设备， 而无需遍历整个设备模型。这样， 设备的发现和访问变得更加高效和方便。</p>
+<p>（4）扩展性和可移植性： 使用<code>class</code>进行归类可以提供一种扩展性和可移植性的机制。 当引入新的设备类型时， 可以将其归类到现有的类别中， 而无需修改现有的设备管理和驱动程序。这种扩展性和可移植性使得系统更加灵活， 并且对于开发人员和设备供应商来说，更容易集成新设备。  </p>
+<p>比如应用现在要设置 gpio。我们先要对gpio进行导出，首先要知道引脚编号：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">引脚编号 = GPIO编号 =(GROUP-1)*32+PIN</span><br></pre></td></tr></table></figure>
+
+<p>比如现在GPIO1_IO03，引脚编号就是3：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">echo 3 &gt; /sys/class/gpio/export             # 导出GPIO，导出成功，会生成 /sys/class/gpio/gpio3 目录</span><br><span class="line">echo out &gt; /sys/class/gpio/gpio3/direction  # 设置GPIO方向</span><br><span class="line">echo 1 &gt; /sys/class/gpio/gpio3/value        # 设置GPIO引脚的值</span><br><span class="line"></span><br><span class="line">echo 3 &gt; /sys/class/gpio/unexport           # 取消导出</span><br></pre></td></tr></table></figure>
+
+<p>若是被占用了，在导出时就会报：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250105114155397.png" alt="image-20250105114155397" />
+
+<p>这里就不管了，知道这么操作就行了。这里我就没有可用的实例，直接参考讯为的开发板吧：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">如果使用类可以直接使用以下命令：</span></span><br><span class="line">echo 1 &gt; /sys/class/gpio/gpio157/value</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">如果不使用类， 使用以下命令：</span></span><br><span class="line">echo 1 &gt; /sys/devices/platform/fe770000.gpio/gpiochip4/gpio/gpio157/value  </span><br></pre></td></tr></table></figure>
+
+<h3 id="2-4-其他目录"><a href="#2-4-其他目录" class="headerlink" title="2.4 其他目录"></a><font size=3>2.4 其他目录</font></h3><table>
+<thead>
+<tr>
+<th>&#x2F;sys 下的子目录</th>
+<th>所包含的内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&#x2F;sys&#x2F;dev</td>
+<td>这个目录下维护一个按字符设备和块设备的主次设备号（major:minor）链接到真实的设备（&#x2F;sys&#x2F;devices 下）的符号链接文件，它是在内核 2.6.26 首次引入；</td>
+</tr>
+<tr>
+<td>&#x2F;sys&#x2F;block</td>
+<td>这里是系统中当前所有的块设备所在，按照功能来说放置在 &#x2F;sys&#x2F;class 之下会更核识，但只是由于历史遗留因素而一直存在于 &#x2F;sys&#x2F;block，但从 2.6.22 开始就已标记为过时，只有在打开了 CONFIG_SYSFS_DEPRECATED 配置下编译才会有这个目录的存在，并且在 2.6.26 内核中已正式移到 &#x2F;sys&#x2F;class&#x2F;block，旧的接口 &#x2F;sys&#x2F;block 为了向后兼容保留存在，但其中的内容已经变为指向它们在 &#x2F;sys&#x2F;devices&#x2F; 中真是设备的符号链接文件；</td>
+</tr>
+<tr>
+<td>&#x2F;sys&#x2F;firmware</td>
+<td>这里是系统加载固件机制的对用户空间的接口，关于固件有专用于固件加载的一套 API。</td>
+</tr>
+<tr>
+<td>&#x2F;sys&#x2F;fs</td>
+<td>这里按照设计是用于描述系统中所有文件系统，包括文件系统本身和按文件系统分类存放的已挂载点，但目前只有 fuse，ext4 等少数文件系统支持 sysfs 接口，一些传统的虚拟文件系统（VFS）层次控制参数仍然在 sysctl（&#x2F;proc&#x2F;sys&#x2F;fs）接口中；</td>
+</tr>
+<tr>
+<td>&#x2F;sys&#x2F;kernel</td>
+<td>这里是内核所有可调整参数的位置，有些内核可调整参数仍然位于 sysctl（&#x2F;proc&#x2F;sys&#x2F;fs）接口中；</td>
+</tr>
+<tr>
+<td>&#x2F;sts&#x2F;module</td>
+<td>这里有系统中所有模块的信息，不论这些模块是以内联（inlined）方式编译到内核映像文件（vmlinuz）中还是编译为外部模块（ko 文件），都可能会出现在 &#x2F;sys&#x2F;module 中：编译为外部模块（ko 文件）在加载后会出现对应的 &#x2F;sys&#x2F;module&#x2F;&#x2F;，并且在这个目录下会出现一些属性文件和属性目录来表示次外部模块的一些信息，如版本号、加载状态、所提供的驱动程序等；编译为内联方式的模块则只在当它有非 0 属性的模块参数时会出现对应的 &#x2F;sys&#x2F;module&#x2F;，这些模块的可用参数会出现在 &#x2F;sys&#x2F;module&#x2F;&#x2F;parameters&#x2F; 中，如 &#x2F;sys&#x2F;module&#x2F;printk&#x2F;parameters&#x2F;time 这个可读可写参数控制着内联模块 printk 在打印内核消息时是否加上时间前缀；所有内联模块的参数也可以由 “.&#x3D;” 的形式写在内核启动参数上，如启动内核时加上参数 “printk.time &#x3D; 1” 与向 “&#x2F;sys&#x2F;module&#x2F;printk&#x2F;parameters&#x2F;time” 写入 1 的效果相同；没有非 0 属性参数的内联模快不会出现于此；</td>
+</tr>
+<tr>
+<td>&#x2F;sys&#x2F;power</td>
+<td>这里是系统中电源选项，这个目录下有几个属性文件可以用于控制整个机器的电源状态，如可以向其中写入控制命令让机器关机、重启等。</td>
+</tr>
+</tbody></table>
+<h2 id="3-sys-目录层次图解"><a href="#3-sys-目录层次图解" class="headerlink" title="3. sys 目录层次图解  "></a><font size=3>3. sys 目录层次图解  </font></h2><p>bus、device、class三个目录层次大概得关系如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250105120320519.png" alt="image-20250105120320519" />
+
+<h1 id="二、-sysfs与kobject"><a href="#二、-sysfs与kobject" class="headerlink" title="二、 sysfs与kobject"></a><font size=3>二、 sysfs与kobject</font></h1><h2 id="1-sysfs与kobject的关系"><a href="#1-sysfs与kobject的关系" class="headerlink" title="1. sysfs与kobject的关系"></a><font size=3>1. sysfs与kobject的关系</font></h2><p>当使用 kobject 时，通常不会单独使用它，而是将其嵌入到一个数据结构中。这样做的目的是将高级对象接入到设备模型中。比如 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/cdev.h#L14">struct cdev</a> 结构体和 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L963">struct device</a> 结构体，如下所示</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250106161831064.png" alt="image-20250106161831064"  />
+
+<p>所以我们也可以把总线，设备，驱动看作是 kobject 的派生类。因为他们都是设备模型中的实体，通过继承或扩展 kobject 来实现与设备模型的集成。</p>
+<p>在 Linux 内核中，kobject 是一个通用的基础结构，用于构建设备模型。每个 kobject 实例 对应于 sys 目录下的一个目录，这个目录包含了该 kobject 相关的属性，操作和状态信息。如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250106163909605.png" alt="image-20250106163909605"  />
+
+<p>因此，可以说 kobject 是设备模型的基石，通过创建对应的目录结构和属性文件， 它提 供了一个统一的接口和框架，用于管理和操作设备模型中的各个实体。</p>
+<h2 id="2-代码逻辑"><a href="#2-代码逻辑" class="headerlink" title="2. 代码逻辑"></a><font size=3>2. 代码逻辑</font></h2><p>上面提到每一个kobject，都会对应sysfs中的一个目录，这个目录怎么被创建的？从哪里开始分析呢？肯定是从 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L748">kobject_create_and_add()</a> 这个函数创建 kobject 作为入手点，前面写 <a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/05_device_model/02_kobject_create">kobject create demo</a> 的时候我们知道父节点为 NULL 的时候，对应的目录会在系统根目录&#x2F;sys 下创建。函数追踪路径如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-03-sysfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/img/image-20250106171744580.png" alt="image-20250106171744580"  />
+
+<h3 id="2-1-kobject-create-and-add"><a href="#2-1-kobject-create-and-add" class="headerlink" title="2.1 kobject_create_and_add() "></a><font size=3>2.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L748">kobject_create_and_add()</a> </font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L748">kobject_create_and_add()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> kobject *<span class="title function_">kobject_create_and_add</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *name, <span class="keyword">struct</span> kobject *parent)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kobject</span> *<span class="title">kobj</span>;</span></span><br><span class="line">	<span class="type">int</span> retval;</span><br><span class="line"></span><br><span class="line">	kobj = kobject_create();</span><br><span class="line">	<span class="keyword">if</span> (!kobj)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">	retval = kobject_add(kobj, parent, <span class="string">&quot;%s&quot;</span>, name);</span><br><span class="line">	<span class="keyword">if</span> (retval) &#123;</span><br><span class="line">		pr_warn(<span class="string">&quot;%s: kobject_add error: %d\n&quot;</span>, __func__, retval);</span><br><span class="line">		kobject_put(kobj);</span><br><span class="line">		kobj = <span class="literal">NULL</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> kobj;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(kobject_create_and_add);</span><br></pre></td></tr></table></figure>
+
+<p>首先调用了 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L724">kobject_create()</a>函数创建看一个新的 kobject。该函数分配了一 个新的 kobject 结构体，并对其进行初始化，包括将 kobject 的 name 字段设置为传入的 name 参数，将 kobject 的 parent 字段设置为传入的 parent 参数。</p>
+<p>接下来，函数调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L385">kobject_add()</a> 将新创建的 kobject 添加到设备模型中.</p>
+<h3 id="2-2-kobject-add"><a href="#2-2-kobject-add" class="headerlink" title="2.2  kobject_add() "></a><font size=3>2.2  <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L385">kobject_add()</a> </font></h3><p> <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L385">kobject_add()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">kobject_add</span><span class="params">(<span class="keyword">struct</span> kobject *kobj, <span class="keyword">struct</span> kobject *parent,</span></span><br><span class="line"><span class="params">		<span class="type">const</span> <span class="type">char</span> *fmt, ...)</span></span><br><span class="line">&#123;</span><br><span class="line">	va_list args;</span><br><span class="line">	<span class="type">int</span> retval;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!kobj)</span><br><span class="line">		<span class="keyword">return</span> -EINVAL;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!kobj-&gt;state_initialized) &#123;</span><br><span class="line">		pr_err(<span class="string">&quot;kobject &#x27;%s&#x27; (%p): tried to add an uninitialized object, something is seriously wrong.\n&quot;</span>,</span><br><span class="line">		       kobject_name(kobj), kobj);</span><br><span class="line">		dump_stack();</span><br><span class="line">		<span class="keyword">return</span> -EINVAL;</span><br><span class="line">	&#125;</span><br><span class="line">	va_start(args, fmt);</span><br><span class="line">	retval = kobject_add_varg(kobj, parent, fmt, args);</span><br><span class="line">	va_end(args);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> retval;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(kobject_add);</span><br></pre></td></tr></table></figure>
+
+<p>函数调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L370">kobject_add_varg()</a> ，该函数会根据传入的参数将 kobj 添加到设备 模型中。 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L370">kobject_add_varg()</a> 函数的实现可能会根据具体情况进行一些额外的处理，例如创建对应的目录并设置父节点等。</p>
+<h3 id="2-3-kobject-add-varg"><a href="#2-3-kobject-add-varg" class="headerlink" title="2.3 kobject_add_varg()"></a><font size=3>2.3 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L370">kobject_add_varg()</a></font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L370">kobject_add_varg()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> __printf(<span class="number">3</span>, <span class="number">0</span>) <span class="type">int</span> <span class="title function_">kobject_add_varg</span><span class="params">(<span class="keyword">struct</span> kobject *kobj,</span></span><br><span class="line"><span class="params">					   <span class="keyword">struct</span> kobject *parent,</span></span><br><span class="line"><span class="params">					   <span class="type">const</span> <span class="type">char</span> *fmt, va_list vargs)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> retval;</span><br><span class="line"></span><br><span class="line">	retval = kobject_set_name_vargs(kobj, fmt, vargs);</span><br><span class="line">	<span class="keyword">if</span> (retval) &#123;</span><br><span class="line">		pr_err(<span class="string">&quot;kobject: can not set name properly!\n&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> retval;</span><br><span class="line">	&#125;</span><br><span class="line">	kobj-&gt;parent = parent;</span><br><span class="line">	<span class="keyword">return</span> kobject_add_internal(kobj);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L370">kobject_add_varg()</a> 函数用于将指定的 kobject 添加到设备模型中。它通过调 用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L267">kobject_set_name_vargs()</a> 设置 kobject 的名称，并将父节点赋值给 kobject 的 parent 字段。然 后，它调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L217">kobject_add_internal()</a> 函数执行实际的添加操作。</p>
+<h3 id="2-4-kobject-add-internal"><a href="#2-4-kobject-add-internal" class="headerlink" title="2.4 kobject_add_internal()"></a><font size=3>2.4 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L217">kobject_add_internal()</a></font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L217">kobject_add_internal()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">kobject_add_internal</span><span class="params">(<span class="keyword">struct</span> kobject *kobj)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> error = <span class="number">0</span>;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kobject</span> *<span class="title">parent</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!kobj)</span><br><span class="line">		<span class="keyword">return</span> -ENOENT;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!kobj-&gt;name || !kobj-&gt;name[<span class="number">0</span>]) &#123;</span><br><span class="line">		WARN(<span class="number">1</span>,</span><br><span class="line">		     <span class="string">&quot;kobject: (%p): attempted to be registered with empty name!\n&quot;</span>,</span><br><span class="line">		     kobj);</span><br><span class="line">		<span class="keyword">return</span> -EINVAL;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	parent = kobject_get(kobj-&gt;parent);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* join kset if set, use it as parent if we do not already have one */</span></span><br><span class="line">	<span class="keyword">if</span> (kobj-&gt;kset) &#123;</span><br><span class="line">		<span class="keyword">if</span> (!parent)</span><br><span class="line">			parent = kobject_get(&amp;kobj-&gt;kset-&gt;kobj);</span><br><span class="line">		kobj_kset_join(kobj);</span><br><span class="line">		kobj-&gt;parent = parent;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	pr_debug(<span class="string">&quot;kobject: &#x27;%s&#x27; (%p): %s: parent: &#x27;%s&#x27;, set: &#x27;%s&#x27;\n&quot;</span>,</span><br><span class="line">		 kobject_name(kobj), kobj, __func__,</span><br><span class="line">		 parent ? kobject_name(parent) : <span class="string">&quot;&lt;NULL&gt;&quot;</span>,</span><br><span class="line">		 kobj-&gt;kset ? kobject_name(&amp;kobj-&gt;kset-&gt;kobj) : <span class="string">&quot;&lt;NULL&gt;&quot;</span>);</span><br><span class="line"></span><br><span class="line">	error = create_dir(kobj);</span><br><span class="line">	<span class="keyword">if</span> (error) &#123;</span><br><span class="line">		kobj_kset_leave(kobj);</span><br><span class="line">		kobject_put(parent);</span><br><span class="line">		kobj-&gt;parent = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* be noisy on error issues */</span></span><br><span class="line">		<span class="keyword">if</span> (error == -EEXIST)</span><br><span class="line">			pr_err(<span class="string">&quot;%s failed for %s with -EEXIST, don&#x27;t try to register things with the same name in the same directory.\n&quot;</span>,</span><br><span class="line">			       __func__, kobject_name(kobj));</span><br><span class="line">		<span class="keyword">else</span></span><br><span class="line">			pr_err(<span class="string">&quot;%s failed for %s (error: %d parent: %s)\n&quot;</span>,</span><br><span class="line">			       __func__, kobject_name(kobj), error,</span><br><span class="line">			       parent ? kobject_name(parent) : <span class="string">&quot;&#x27;none&#x27;&quot;</span>);</span><br><span class="line">	&#125; <span class="keyword">else</span></span><br><span class="line">		kobj-&gt;state_in_sysfs = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> error;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L217">kobject_add_internal()</a> 函数用于在设备模型中添加指定的 kobject。它会检查 kobject 的有效 性和名称是否为空，并处理 kobject 所属的 kset 相关的操作。然后，它会创建 kobject 在 sysfs 中的目录，并处理创建失败的情况。最后，它会设置 kobject 的相关状态，并返回相应的错误。</p>
+<h3 id="2-5-create-dir"><a href="#2-5-create-dir" class="headerlink" title="2.5 create_dir()"></a><font size=3>2.5 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L83">create_dir()</a></font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L83">create_dir()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">create_dir</span><span class="params">(<span class="keyword">struct</span> kobject *kobj)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">kobj_ns_type_operations</span> *<span class="title">ops</span>;</span></span><br><span class="line">	<span class="type">int</span> error;</span><br><span class="line"></span><br><span class="line">	error = sysfs_create_dir_ns(kobj, kobject_namespace(kobj));</span><br><span class="line">	<span class="keyword">if</span> (error)</span><br><span class="line">		<span class="keyword">return</span> error;</span><br><span class="line"></span><br><span class="line">	error = populate_dir(kobj);</span><br><span class="line">	<span class="keyword">if</span> (error) &#123;</span><br><span class="line">		sysfs_remove_dir(kobj);</span><br><span class="line">		<span class="keyword">return</span> error;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * @kobj-&gt;sd may be deleted by an ancestor going away.  Hold an</span></span><br><span class="line"><span class="comment">	 * extra reference so that it stays until @kobj is gone.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	sysfs_get(kobj-&gt;sd);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * If @kobj has ns_ops, its children need to be filtered based on</span></span><br><span class="line"><span class="comment">	 * their namespace tags.  Enable namespace support on @kobj-&gt;sd.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	ops = kobj_child_ns_ops(kobj);</span><br><span class="line">	<span class="keyword">if</span> (ops) &#123;</span><br><span class="line">		BUG_ON(ops-&gt;type &lt;= KOBJ_NS_TYPE_NONE);</span><br><span class="line">		BUG_ON(ops-&gt;type &gt;= KOBJ_NS_TYPES);</span><br><span class="line">		BUG_ON(!kobj_ns_type_registered(ops-&gt;type));</span><br><span class="line"></span><br><span class="line">		sysfs_enable_ns(kobj-&gt;sd);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L83">create_dir()</a> 函数用于创建与给定 kobject 相关联的目录，并填充该目录。它还处理了引用计数、命名空间操作等相关的逻辑。如果创建目录或填充目录时发生错误，函数会相应地处理并 返回错误码。函数调用<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/sysfs/dir.c#L35">sysfs_create_dir_ns()</a> 函数来创建与kobj相关联的目录。</p>
+<h3 id="2-6-sysfs-create-dir-ns"><a href="#2-6-sysfs-create-dir-ns" class="headerlink" title="2.6 sysfs_create_dir_ns()"></a><font size=3>2.6 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/sysfs/dir.c#L35">sysfs_create_dir_ns()</a></font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/sysfs/dir.c#L35">sysfs_create_dir_ns()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">sysfs_create_dir_ns</span><span class="params">(<span class="keyword">struct</span> kobject *kobj, <span class="type">const</span> <span class="type">void</span> *ns)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kernfs_node</span> *<span class="title">parent</span>, *<span class="title">kn</span>;</span></span><br><span class="line">	<span class="type">kuid_t</span> uid;</span><br><span class="line">	<span class="type">kgid_t</span> gid;</span><br><span class="line"></span><br><span class="line">	BUG_ON(!kobj);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (kobj-&gt;parent)</span><br><span class="line">		parent = kobj-&gt;parent-&gt;sd;</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		parent = sysfs_root_kn;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!parent)</span><br><span class="line">		<span class="keyword">return</span> -ENOENT;</span><br><span class="line"></span><br><span class="line">	kobject_get_ownership(kobj, &amp;uid, &amp;gid);</span><br><span class="line"></span><br><span class="line">	kn = kernfs_create_dir_ns(parent, kobject_name(kobj),</span><br><span class="line">				  S_IRWXU | S_IRUGO | S_IXUGO, uid, gid,</span><br><span class="line">				  kobj, ns);</span><br><span class="line">	<span class="keyword">if</span> (IS_ERR(kn)) &#123;</span><br><span class="line">		<span class="keyword">if</span> (PTR_ERR(kn) == -EEXIST)</span><br><span class="line">			sysfs_warn_dup(parent, kobject_name(kobj));</span><br><span class="line">		<span class="keyword">return</span> PTR_ERR(kn);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	kobj-&gt;sd = kn;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在上面的函数中，当没有父节点的时候，父节点被赋值成了 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/sysfs/mount.c#L21">sysfs_root_kn</a>，即&#x2F;sys 目录根 目录的节点。如果有 parent，则它的父节点为 kobj-&gt;parent-&gt;sd，然后调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/kernfs/dir.c#L999">kernfs_create_dir_ns()</a> 函数创建目录。</p>
+<h3 id="2-7-init-sysfs-init"><a href="#2-7-init-sysfs-init" class="headerlink" title="2.7 __init sysfs_init()"></a><font size=3>2.7 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/sysfs/mount.c#L61">__init sysfs_init()</a></font></h3><p>那么 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/sysfs/mount.c#L21">sysfs_root_kn</a> 是在什么时候创建的呢？我们找一下这个函数：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/sysfs/mount.c#L61">__init sysfs_init()</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> __init <span class="title function_">sysfs_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> err;</span><br><span class="line"></span><br><span class="line">	sysfs_root = kernfs_create_root(<span class="literal">NULL</span>, KERNFS_ROOT_EXTRA_OPEN_PERM_CHECK,</span><br><span class="line">					<span class="literal">NULL</span>);</span><br><span class="line">	<span class="keyword">if</span> (IS_ERR(sysfs_root))</span><br><span class="line">		<span class="keyword">return</span> PTR_ERR(sysfs_root);</span><br><span class="line"></span><br><span class="line">	sysfs_root_kn = sysfs_root-&gt;kn;</span><br><span class="line"></span><br><span class="line">	err = register_filesystem(&amp;sysfs_fs_type);</span><br><span class="line">	<span class="keyword">if</span> (err) &#123;</span><br><span class="line">		kernfs_destroy_root(sysfs_root);</span><br><span class="line">		<span class="keyword">return</span> err;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-8-总结"><a href="#2-8-总结" class="headerlink" title="2.8 总结"></a><font size=3>2.8 总结</font></h3><p>通过上述对 API 函数的分析，我们知道创建目录的规律：</p>
+<p>（1）无父目录、无 kset，则将在 sysfs 的根目录（即&#x2F;sys&#x2F;）下创建目录。</p>
+<p>（2）无父目录、有 kset，则将在 kset 下创建目录，并将 kobj 加入 kset.list。 </p>
+<p>（3）有父目录、无 kset，则将在 parent 下创建目录。 </p>
+<p>（4）有父目录、有 kset，则将在 parent 下创建目录，并将 kobj 加入 kset.list。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/d70fd185.html">LV06-04-linux设备模型-03-sysfs文件系统</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2025年01月06日 - 22:12</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/d70fd185.html" title="LV06-04-linux设备模型-03-sysfs文件系统">https://sumumm.github.io/post/d70fd185.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/ea2f5d9c.html" rel="prev" title="LV06-04-linux设备模型-04-kobject的释放">
+                  <i class="fa fa-angle-left"></i> LV06-04-linux设备模型-04-kobject的释放
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/5eede1d3.html" rel="next" title="LV06-04-linux设备模型-02-kobject相关的数据结构">
+                  LV06-04-linux设备模型-02-kobject相关的数据结构 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

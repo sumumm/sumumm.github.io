@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是源码与编译——kconfig基础知识的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV01-01-AliOSThings-09-源码与编译-02-kconfig基础">
+<meta property="og:url" content="https://sumumm.github.io/post/12776282.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是源码与编译——kconfig基础知识的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124190100105.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124190422228.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124192614594.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124192902898.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124193715749.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124195513688.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124195958154.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124194835479.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124195044046.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124195422245.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124201500548.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124202621010.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124202418185.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/762927-20161016221850702-879475685.jpg">
+<meta property="article:published_time" content="2023-11-26T13:33:06.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.020Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV21-天猫精灵IOT">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124190100105.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/12776282.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/12776282.html","path":"post/12776282.html","title":"LV01-01-AliOSThings-09-源码与编译-02-kconfig基础"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV01-01-AliOSThings-09-源码与编译-02-kconfig基础 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81menuconfig"><span class="nav-text">一、menuconfig</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%89%93%E5%BC%80%E5%9B%BE%E5%BD%A2%E9%85%8D%E7%BD%AE%E7%95%8C%E9%9D%A2"><span class="nav-text">1. 打开图形配置界面</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-SDK%E6%BA%90%E7%A0%81%E7%9B%AE%E5%BD%95"><span class="nav-text">1.1 SDK源码目录</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E5%B7%A5%E7%A8%8B%E7%9B%AE%E5%BD%95"><span class="nav-text">1.2 工程目录</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%85%8D%E7%BD%AE%E6%93%8D%E4%BD%9C"><span class="nav-text">2. 配置操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E9%A2%84%E5%AE%9A%E4%B9%89%E9%85%8D%E7%BD%AE"><span class="nav-text">2.1 预定义配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%8A%A0%E8%BD%BD%E9%A2%84%E5%AE%9A%E4%B9%89%E9%85%8D%E7%BD%AE"><span class="nav-text">2.2 加载预定义配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E4%BF%9D%E5%AD%98%E9%A2%84%E5%AE%9A%E4%B9%89%E9%85%8D%E7%BD%AE"><span class="nav-text">2.2 保存预定义配置</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%9B%BE%E5%BD%A2%E7%95%8C%E9%9D%A2%E4%BF%AE%E6%94%B9%E9%85%8D%E7%BD%AE"><span class="nav-text">3. 图形界面修改配置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E4%BF%AE%E6%94%B9%E4%BF%9D%E5%AD%98%E9%85%8D%E7%BD%AE%E9%A1%B9"><span class="nav-text">3.1 修改保存配置项</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E5%BD%B1%E5%93%8D%E4%BA%86%E5%93%AA%E4%BA%9B%E6%96%87%E4%BB%B6%EF%BC%9F"><span class="nav-text">3.2 影响了哪些文件？</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E7%9B%B8%E5%85%B3%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="nav-text">4. 相关配置文件</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81Kconfig%E8%AF%AD%E6%B3%95"><span class="nav-text">二、Kconfig语法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%8F%9C%E5%8D%95%E9%80%89%E9%A1%B9"><span class="nav-text">1. 菜单选项</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E8%8F%9C%E5%8D%95%E5%B1%9E%E6%80%A7"><span class="nav-text">2. 菜单属性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%8F%9C%E5%8D%95%E4%BE%9D%E8%B5%96%E5%85%B3%E7%B3%BB"><span class="nav-text">3. 菜单依赖关系</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%8F%9C%E5%8D%95%E7%BB%93%E6%9E%84"><span class="nav-text">4. 菜单结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-kconfig%E5%85%B3%E9%94%AE%E5%AD%97"><span class="nav-text">5. kconfig关键字</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-config"><span class="nav-text">5.1 config</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-menuconfig"><span class="nav-text">5.2 menuconfig</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-choices"><span class="nav-text">5.3 choices</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-4-comment"><span class="nav-text">5.4 comment</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-5-menu"><span class="nav-text">5.5 menu</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-6-if"><span class="nav-text">5.6 if</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-7-source"><span class="nav-text">5.7 source</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/12776282.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV01-01-AliOSThings-09-源码与编译-02-kconfig基础 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV01-01-AliOSThings-09-源码与编译-02-kconfig基础
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-11-26 21:33:06" itemprop="dateCreated datePublished" datetime="2023-11-26T21:33:06+08:00">2023-11-26</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/" itemprop="url" rel="index"><span itemprop="name">LV21-天猫精灵IOT</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>7.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>28 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是源码与编译——kconfig基础知识的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows版本</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu版本</td>        <td align="left">Ubuntu22.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="6">官方网站</td>        <td align="left"><a href="https://cn.aliyun.com/" target="_blank">阿里云</a></td>        <td align="left">阿里云官网主页</td>    </tr>    <tr>        <td align="left"><a href="https://www.aliyun.com/product/iot/livinglink?spm=5176.28508143.J_4VYgf18xNlTAyFFbOuOQe.317.5421154acZniIL&scm=20140722.X_data-1da961ea118f5bb0e4b2._.V_1" target="_blank">阿里生活物联平台</a></td>        <td align="left">生活物联网平台(飞燕平台)主页</td>    </tr>    <tr>        <td align="left"><a href="https://iap.aligenie.com/?spm=0.7629140.0.0.2c611780Ty6tzg" target="_blank">AliGenie</a></td>        <td align="left">天猫精灵开放平台AliGenie主页</td>    </tr>    <tr>        <td align="left"><a href="https://www.aliyun.com/product/iot/iot_instc_public_cn?spm=5176.28508143.J_4VYgf18xNlTAyFFbOuOQe.81.5421154au3ocqp&scm=20140722.X_data-9349178ba84cf028806a._.V_1" target="_blank">阿里物联网平台</a></td>        <td align="left">阿里物联网平台主页</td>    </tr>    <tr>        <td align="left"><a href="https://www.bluetooth.com/zh-cn/" target="_blank">Bluetooth 技术网站</a></td>        <td align="left">蓝牙协议规范什么的可以来这里找</td>    </tr>    <tr>        <td align="left"><a href="https://www.telink-semi.com/" target="_blank">Telink</a></td>        <td align="left">Telink | Chips for a Smarter IoT (telink-semi.com)<br><a href="https://www.telink-semi.cn/" target="_blank">Telink中文官网</a></td>    </tr>    <tr>        <td align="center" rowspan="5">开发手册</td>        <td align="left"><a href="https://help.aliyun.com/zh/alios-things/" target="_blank">AliOS Things开发指南</a></td>        <td align="left">AliOS Things开发指南，这里是最新版本，可以直接从官网找到</td>    </tr>     <tr>        <td align="left"><a href="https://haas.iot.aliyun.com/aliosthings/index.html" target="_blank">AliOS Things开发指南</a></td>        <td align="left">AliOS Things应用开发指南，这里应该是3.3版本的完整开发文档</td>    </tr>    <tr>        <td align="left"><a href="https://gaic.alicdn.com/aic/h5_daily/test/aliosthings/3.0.13/index.html" target="_blank">AliOS Things开发指南(3.0)</a></td>        <td align="left">AliOS Things应用开发指南，这里应该是3.0版本的完整开发文档</td>    </tr>    <tr>        <td align="left"><a href="https://help.aliyun.com/product/123207.html?spm=a2c4g.11186623.6.540.114e60d84sF58G" target="_blank">生活物联网平台开发文档</a></td>        <td align="left">生活物联网平台（飞燕平台）开发文档<br><a href="https://help.aliyun.com/document_detail/180778.html?spm=a2c4g.123207.0.0.49556adcO5apvd" target="_blank">《设备端开发指南》</a></td>    </tr>    <tr>        <td align="left"><a href="https://doc-bot.tmall.com/docs/doc.htm?spm=0.7629140.0.0.7bf81780UN7WkQ&treeId=578&articleId=118057&docType=1" target="_blank">Wi-Fi IoT品类定义与功能开发</a></td>        <td align="left">天猫精灵IoT开放平台——Wi-Fi IoT品类定义与功能开发</td>    </tr>    <tr>        <td align="center" rowspan="3">硬件平台</td>        <td align="left"><a href="https://developer.aliyun.com/article/761644?spm=a2c6h.12873581.0.dArticle761644.1c1b589dRHgvcR&groupCode=genieaiot" target="_blank">mk3080 WiFi开发板</a></td>        <td align="left">WiFi开发板使用指南-阿里云开发者社区</td>    </tr>    <tr>        <td align="left"><a href="http://www.taichi-maker.com/homepage/esp8266-nodemcu-iot/esp8266-nodemcu-tutorial-index/" target="_blank">esp8266开发板</a></td>        <td align="left">一个教程：ESP8266-NodeMCU开发板详解-太极创客 (taichi-maker.com)</td>    </tr>    <tr>        <td align="left"><a href="https://wiki.telink-semi.cn/doc/ds/DS_TLSR8258-E_Datasheet%20for%20Telink%20BLE+IEEE802.15.4%20Multi-Standard%20Wireless%20SoC%20TLSR8258.pdf" target="_blank">TLSR8258 Datasheet</a></td>        <td align="left">Datasheet for Telink BLE + IEEE802.15.4 MultiStandard Wireless SoC TLSR8258</td>    </tr>    <tr>        <td align="center" rowspan="2">参考资料</td>        <td align="left"><a href="https://developer.aliyun.com/article/720516#" target="_blank">AliOS Things 3.0 应用开发指南</a></td>        <td align="left">这个只是一篇参考文章，里面是一些环境搭建相关的，可以参考</td>    </tr>    <tr>        <td align="left"><a href="https://info.support.huawei.com/info-finder/encyclopedia/zh/index.html" target="_blank">IP知识百科 - 华为 (huawei.com)</a></td>        <td align="left">IP的一些相关知识点</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="left" rowspan="6">蓝牙规范相关文档</td>        <td align="left"><a href="https://www.bluetooth.com/zh-cn/specifications/specs/core-specification-5-2/" target="_blank">Core Specification 5.2</a></td>        <td align="left">核心规格 5.2，该规范定义了创建可互操作的Bluetooth 设备所需的技术。                        <br><a href="./蓝牙参考资料/Core_v5.2.pdf" target="_blank">《Core_v5.2.pdf》</a></td>      </tr>    <tr>        <td align="left"><a href="https://www.bluetooth.com/zh-cn/specifications/specs/mesh-model-1-1/" target="_blank">Mesh Model(v1.1)</a></td>        <td align="left">本Bluetooth 规范定义了模型（以及它们所需的状态和消息），这些模型用于在mesh 网络中的节点上执行基本功能，超出了Bluetooth Mesh 配置文件 规范中定义的基础模型。                        <br>本规范包括定义跨设备类型标准功能的通用模型，以及支持关键mesh 场景的模型，如照明控制、传感器、时间和场景。                        <br><a href="./蓝牙参考资料/MshMDL_v1.1.pdf" target="_blank">《MshMDL_v1.1.pdf》</a></td>      </tr>    <tr>        <td align="left"><a href="https://www.bluetooth.com/zh-cn/specifications/specs/mesh-profile-1-0-1/" target="_blank">Mesh Profile(v1.0.1)</a></td>        <td align="left">该Bluetooth 规范定义了基本要求，以实现可互操作的mesh 网络解决方案，用于Bluetooth 低能量无线技术。                        <br><a href="./蓝牙参考资料/MshPRFv1.0.1.pdf" target="_blank">《MshPRFv1.0.1.pdf》</a></td>      </tr>    <tr>        <td align="left"><a href="https://www.bluetooth.com/zh-cn/specifications/device-properties/" target="_blank">Mesh Device Properties</a></td>        <td align="left">本规范包含Bluetooth Mesh 配置文件 和Bluetooth Mesh 模型规范所要求的设备属性的定义。                        <br>但是跟之前的有些区别，我主要看的之前的版本：<a href="./蓝牙参考资料/MeshDeviceProperties_v1.2.pdf" target="_blank">《MMeshDeviceProperties_v1.2.pdf》</a></td>      </tr>    <tr>        <td align="left"><a href="https://www.bluetooth.com/specifications/gss/" target="_blank">GATT Specification Supplement</a></td>        <td align="left">GATT Specification Supplement | Bluetooth® Technology Website。                        <br>好像可以在线看：<a href="https://btprodspecificationrefs.blob.core.windows.net/gatt-specification-supplement/GATT_Specification_Supplement.pdf" target="_blank">《GATT Specification Supplement》</a></td>      </tr>     <tr>        <td align="left"><a href="https://www.bluetooth.com/specifications/assigned-numbers/" target="_blank">Assigned Numbers</a></td>        <td align="left">GATT的一些类型定义可以在这里找。</td>      </tr>    <tr>        <td align="left" rowspan="2">AliOS Things</td>        <td align="left"><a href="https://gitee.com/alios-things-admin/AliOS-Things" target="_blank">alios-things/AliOS-Things</a></td>        <td align="left">Gitee上的AliOSThings SDK源码仓库</td>      </tr>    <tr>        <td align="left"><a href="https://github.com/alibaba/AliOS-Things" target="_blank">alibaba/AliOS-Things</a></td>        <td align="left">GitHub上的AliOSThings SDK源码仓库</td>      </tr>    <tr>        <td align="left" rowspan="2">天猫精灵蓝牙Mesh协议栈</td>        <td align="left"><a href="https://github.com/alibaba-archive/genie-bt-mesh-stack" target="_blank">alibaba-archive/genie-bt-mesh-stack</a></td>        <td align="left">GitHub上的天猫精灵蓝牙Mesh协议栈源码仓库。<br>之前是在<a href="https://github.com/alibaba/genie-bt-mesh-stack"target="_blank">alibaba/genie-bt-mesh-stack</a>这个仓库。<br>写笔记的时候最新提交为<a href="https://github.com/alibaba-archive/genie-bt-mesh-stack/tree/faf523618a6a2560090fc423222b9db80984bb7a" target="_blank">faf523618a6a2560090fc423222b9db80984bb7a</a></td>      </tr>    <tr>        <td align="left"><a href="https://help.aliyun.com/document_detail/171552.html?spm=a2c4g.173310.0.0.55d6e992e8xJip" target="_blank">蓝牙Mesh设备开发指南</a></td>        <td align="left">阿里云生活服务平台开发手册——蓝牙设备开发一节中的内容</td>      </tr></table>
+              </div>
+            </details>
+
+<p>这个其实在前面学习linux的时候就学习过，这里再简单介绍一下吧。</p>
+<h1 id="一、menuconfig"><a href="#一、menuconfig" class="headerlink" title="一、menuconfig"></a><font size=3>一、menuconfig</font></h1><h2 id="1-打开图形配置界面"><a href="#1-打开图形配置界面" class="headerlink" title="1. 打开图形配置界面"></a><font size=3>1. 打开图形配置界面</font></h2><p>自AliOS Things 2.1开始，引入了基于Menuconfig的图形配置系统，组件配置文件（Config.in）是配置系统工作的基础。</p>
+<h3 id="1-1-SDK源码目录"><a href="#1-1-SDK源码目录" class="headerlink" title="1.1 SDK源码目录"></a><font size=3>1.1 SDK源码目录</font></h3><p>我们在AliOS-Things源码目录敲<code>aos make menuconfig</code>文件就可以打开图形配置界面啦：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124190100105.png" alt="image-20231124190100105" style="zoom:50%;" />
+
+<h3 id="1-2-工程目录"><a href="#1-2-工程目录" class="headerlink" title="1.2 工程目录"></a><font size=3>1.2 工程目录</font></h3><p>其实我们在工程目录下敲也可以打开一个图形配置界面，我们可以在 helloworld_mk3080 目录下打开图形配置文件看一下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124190422228.png" alt="image-20231124190422228" style="zoom:50%;" />
+
+<p>可以看到这里的配置选项会比源码目录中少很多。</p>
+<h2 id="2-配置操作"><a href="#2-配置操作" class="headerlink" title="2. 配置操作"></a><font size=3>2. 配置操作</font></h2><h3 id="2-1-预定义配置"><a href="#2-1-预定义配置" class="headerlink" title="2.1 预定义配置"></a><font size=3>2.1 预定义配置</font></h3><p>其实前面我们知道，我们在图形配置界面进行配置的时候，其实他原本是有一个默认的配置文件的，这个配置就是预定义配置。预定义配置是由系统预设、或者用户创建的配置内容，可以在工程中复用并作为工程配置的起点。系统使用统一的SDK目录 <code>AOS_SDK_PATH</code>下<code>build/configs</code>目录存放预定义配置文件。用户可以加载已有配置，也可以将自定义配置保存至该目录，当我们自己创建配置文件的时候需要遵循以下规则：</p>
+<ul>
+<li><p>默认的配置文件名以 <code>_defconfig</code>结尾，例如<code>profile-linkkit-mk3060_defconfig</code>。</p>
+</li>
+<li><p>文件名里面不可以包含<code>@</code>，若是需要表达<code>app@Board</code>这样的含义，可以使用其他字符代替，例如<code>app-board_defconfig</code>。</p>
+</li>
+</ul>
+<h3 id="2-2-加载预定义配置"><a href="#2-2-加载预定义配置" class="headerlink" title="2.2 加载预定义配置"></a><font size=3>2.2 加载预定义配置</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">SDK源码目录下 ~/AliOS-Things-SDK</span></span><br><span class="line">aos make list-defconfig           # 检查有效配置列表</span><br><span class="line">aos make &lt;profile-name_defconfig&gt; # 加载预定义配置</span><br></pre></td></tr></table></figure>
+
+<p>我们现在来加载一个默认配置文件，我们先看一下图形配置界面中的BSP配置项：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124192614594.png" alt="image-20231124192614594" style="zoom:50%;" />
+
+<p>接下来我们来加载一个<code>profile-linkkitapp_esp8266_defconfig</code>配置文件，然后再来看一下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">hk@vm:~/AliOS-Things-SDK$ aos make profile-linkkitapp_esp8266_defconfig</span><br><span class="line">aos-cube version: 0.5.11</span><br><span class="line">platform/board/stm32f103rb-nucleo/Config.in:3:warning: defaults for choice values not supported</span><br><span class="line">platform/board/esp8266/Config.in:3:warning: defaults for choice values not supported</span><br><span class="line">platform/board/mk3072/Config.in:3:warning: defaults for choice values not supported</span><br><span class="line">application/example/example_legacy/uai_demo/uai_kws_demo/Config.in:15:warning: defaults for choice values not supported</span><br><span class="line">application/example/example_legacy/uai_demo/uai_cifar10_demo/Config.in:15:warning: defaults for choice values not supported</span><br><span class="line">warning: (ENABLE_OTA) selects ENABLE_AOS_OTA which has unmet direct dependencies (&lt;choice&gt; &amp;&amp; AOS_APP_LINKKIT_DEMO)</span><br><span class="line">warning: (ENABLE_OTA) selects ENABLE_AOS_OTA which has unmet direct dependencies (&lt;choice&gt; &amp;&amp; AOS_APP_LINKKIT_DEMO)</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash"></span></span><br><span class="line"><span class="language-bash"><span class="comment"># configuration written to .config</span></span></span><br><span class="line"><span class="meta prompt_">#</span></span><br></pre></td></tr></table></figure>
+
+<p>然后我们再打打开配置界面看一下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124192902898.png" alt="image-20231124192902898" style="zoom:50%;" />
+
+<p>可以看到这里已经变成了ESP8266，他还有一些其他的配置项会改变，这里就不再细说了。</p>
+<h3 id="2-2-保存预定义配置"><a href="#2-2-保存预定义配置" class="headerlink" title="2.2 保存预定义配置"></a><font size=3>2.2 保存预定义配置</font></h3><p>我们平时使用图形配置界面配置好后，我们可以将配置文件保存为默认配置文件到对应的目录，这样后边我们更换开发板或者修改配置文件后就很容易切换回原来的配置啦：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">情形一：保存所有配置选项，包括未配置选项</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">&lt;AOS_SDK_PATH&gt;为AliOS-Things源码目录</span></span><br><span class="line">cp .config &lt;AOS_SDK_PATH&gt;/build/configs/&lt;config-name&gt;_defconfig</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">情形二：保存最少配置项，不包括默认选项</span></span><br><span class="line">aos make savedefconfig</span><br><span class="line">cp .defconfig &lt;AOS_SDK_PATH&gt;/build/configs/&lt;config-name&gt;_defconfig</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124193715749.png" alt="image-20231124193715749" style="zoom:50%;" />
+
+<p>显然可以看到.config文件配置项很多，而.defconfig文件配置项就很少，但是一般还是建议保存全部配置文件，毕竟更安全一些。</p>
+<h2 id="3-图形界面修改配置"><a href="#3-图形界面修改配置" class="headerlink" title="3. 图形界面修改配置"></a><font size=3>3. 图形界面修改配置</font></h2><p>这里我们要看meunconfig图形界面配置后影响了哪些文件，所以这里我们可以先将源码目录进行git管理，注意可以使用下面的.gitignore文件：</p>
+<details class="folding-tag" blue><summary> 点击查看 .gitignore文件 </summary>
+              <div class='content'>
+              <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line">trace_test</span><br><span class="line">activate</span><br><span class="line">out</span><br><span class="line">*.out</span><br><span class="line">*.db</span><br><span class="line">.gdbinit</span><br><span class="line">.gdbinitkernel</span><br><span class="line">.gdbinitframework</span><br><span class="line">.gdbinitapp</span><br><span class="line">.openocd_cfg</span><br><span class="line">copy_bootloader_output_for_eclipse</span><br><span class="line">copy_output_for_eclipse</span><br><span class="line">*.sw*</span><br><span class="line">build/compiler</span><br><span class="line">build/OpenOCD</span><br><span class="line">si</span><br><span class="line">.cproject</span><br><span class="line">.project</span><br><span class="line">*.pyc</span><br><span class="line">aos_partition_*.bin</span><br><span class="line">OSX</span><br><span class="line">example/flash/flash.mk</span><br><span class="line">example/flash/main.c</span><br><span class="line">example/flash/README.md</span><br><span class="line">settings.json</span><br><span class="line">build/cmd/win32/Python27/Lib/encodings/*.pyc</span><br><span class="line">*.d</span><br><span class="line">build/scripts/config_mk.py</span><br><span class="line">build/scripts/*.pyc</span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">Recycle.Bin</span></span><br><span class="line">.sconsign.dblite</span><br><span class="line">cb2201*.map</span><br><span class="line">projects/autogen/*</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="built_in">source</span> sight project files</span></span><br><span class="line">*.IAB</span><br><span class="line">*.IAD</span><br><span class="line">*.IMB</span><br><span class="line">*.IMD</span><br><span class="line">*.PFI</span><br><span class="line">*.PO</span><br><span class="line">*.PR</span><br><span class="line">*.PRI</span><br><span class="line">*.PS</span><br><span class="line">*.SearchResults</span><br><span class="line">*.WK3</span><br><span class="line">.DS_Store</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<h3 id="3-1-修改保存配置项"><a href="#3-1-修改保存配置项" class="headerlink" title="3.1 修改保存配置项"></a><font size=3>3.1 修改保存配置项</font></h3><p>这个很简单，这里就不写了。当我们修改保存后，会将这些配置文件写入一个.config文件：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124195513688.png" alt="image-20231124195513688" style="zoom:50%;" />
+
+<p>这个.config配置文件的路径我们是可以自定义的，默认的话是在Alios-Things源码目录下。那个我们选择OK的时候，构建系统就会自动把.config文件配置信息同步到aos_config.h中。为什么有这么个文件？我们知道.config文件是给图形配置界面用的，我们在图形配置界面进行的配置最终肯定是要影响代码的，那怎么通过这些配置项来影响代码？我们打开这个.h文件一看就会看到这里面全是宏，这下我们很容易就明白了：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124195958154.png" alt="image-20231124195958154" style="zoom:50%;" />
+
+<p>要注意的是这个头文件分为两个部分：用户自定义宏和组件的配置所对应的宏。初始情况下，用户自定义的宏区域不包含任何宏，由用户自行添加，这里我们添加自己的宏定义的话，不会被覆盖掉。组件配置对应的宏是和.config里面的配置一一对应的，两者是由编译系统自动实现同步。</p>
+<h3 id="3-2-影响了哪些文件？"><a href="#3-2-影响了哪些文件？" class="headerlink" title="3.2 影响了哪些文件？"></a><font size=3>3.2 影响了哪些文件？</font></h3><p>那我们进行图形界面配置后，影响了哪些文件？我们修改一个配置项看一下，我们修改一下应用版本，我们修改为下面的版本(原来为<code>app-1.0.0-20200214.140831</code>)：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124194835479.png" alt="image-20231124194835479" style="zoom:50%;" />
+
+<p>然后我们退出并保存配置项，然后敲一下<code>git status</code>命令：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124195044046.png" alt="image-20231124195044046" style="zoom:50%;" />
+
+<p>会看到由有上面3个文件被修改了，我们只需要关注.config和aos_config.h文件即可，那个带有.config.old的文件应该是个备份文件之类的吧，我们不需要关注，我么看一下都产生了哪些变化，我们敲一下<code>git diff</code>命令：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124195422245.png" alt="image-20231124195422245" style="zoom:50%;" />
+
+<p>可以看到这两个文件中都有版本号的配置发生了改变。</p>
+<h2 id="4-相关配置文件"><a href="#4-相关配置文件" class="headerlink" title="4. 相关配置文件"></a><font size=3>4. 相关配置文件</font></h2><p>这一部分我们在自己创建的工程目录中操作，其实上面在SDK源码目录中的文件情况对工程目录也是一样的，另外还会有一些文件我们接下来一工程目录分析一下这些文件。我们用相同的方式看一下会有哪些文件发生变化（我这里直接创建工程，没有编译，直接提交所有文件到版本库，然后修改一个配置项就会有如下文件发生改变）：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124201500548.png" alt="image-20231124201500548" style="zoom:50%;" />
+
+<p>会发现修改的文件更多了，但是实际我们需要关注的只有下面几个：</p>
+<ul>
+<li>配置参数文件</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">配置参数文件</span></span><br><span class="line">修改：     .config</span><br><span class="line">修改：     aos_config.h</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124202621010.png" alt="image-20231124202621010" style="zoom:50%;" />
+
+<p>.config 和 aos_config.h两个文件是同步的，不管更改任何一个，只要我们敲下aos命令，这两个文件都会同步更新，由于menuconfig菜单界面使用的是.config文件，所以menuconfig菜单界面也会同时改变，这三者无论修改哪一个，另外两个都会进行更新。注意，SDK源码目录和工程源码目录下都会有.config和aos_config.h文件，我们在工程源码中编译的话，就主要看工程源码的就可以，要是配置SDK源码的话，就关注SDK里面的文件就可以了。</p>
+<ul>
+<li>配置后参与编译的文件</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">配置后参与编译的文件</span></span><br><span class="line">修改：     out/config/auto.conf</span><br><span class="line">修改：     out/config/autoconf.h</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/image-20231124202418185.png" alt="image-20231124202418185" style="zoom:50%;" />
+
+<p>这两个文件中的内容都是配置选项， auto.conf 是给Makefile文件用的，用于实际编译使用，autoconf.h是我们工程源码使用的，这两个文件是实际参与编译的文件，为什么这么麻烦？当然也可以是直接使用编译配置文件，但是AliOS-Things为了开发者的便利，才这样的来设计。</p>
+<h1 id="二、Kconfig语法"><a href="#二、Kconfig语法" class="headerlink" title="二、Kconfig语法"></a><font size=3>二、Kconfig语法</font></h1><p>Kconfig是有语法的，它在SDK中有一个文档：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">AliOS-Things-SDK/build/kconfig/Linux64/kconfig-language.txt</span><br></pre></td></tr></table></figure>
+
+<p>这个文档就是Kconfig文件的所有语法。</p>
+<h2 id="1-菜单选项"><a href="#1-菜单选项" class="headerlink" title="1. 菜单选项"></a><font size=3>1. 菜单选项</font></h2><p>大多数的选项都定义了一个配置选项，其它选项则有助于对它们进行组织。一个配置选项定义可以是下面的形式：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br><span class="line">config MODVERSIONS</span><br><span class="line"></span><br><span class="line">   bool &quot;Set version information on all module symbols&quot;</span><br><span class="line"></span><br><span class="line">   depends MODULES</span><br><span class="line"></span><br><span class="line">   help</span><br><span class="line"></span><br><span class="line">      Usually, modules have to be recompiled whenever you switch to a new</span><br><span class="line"></span><br><span class="line">      kernel. ...</span><br></pre></td></tr></table></figure>
+
+<p>每行都是以config关键字开始，并可以接多个参数。”config” 为定义了一新的配置选项。下面的几行定义了该配置选项的属性。属性可以是该配置选项的类型、输入提示(input prompt)、依赖关系、帮助信息和默认值。配置选项可以用相同的名字定义多次，但每个定义只能有一个输入提示并且类型还不能冲突。</p>
+<h2 id="2-菜单属性"><a href="#2-菜单属性" class="headerlink" title="2. 菜单属性"></a><font size=3>2. 菜单属性</font></h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line">菜单选项可以有多个属性。并不要求这些属性可以用在任何地方(见语法)。</span><br><span class="line"></span><br><span class="line">类型定义：<span class="string">&quot;bool&quot;</span>/<span class="string">&quot;tristate&quot;</span>/<span class="string">&quot;string&quot;</span>/<span class="string">&quot;hex&quot;</span>/<span class="string">&quot;int&quot;</span></span><br><span class="line"></span><br><span class="line">每个配置选项都必须指定类型。有两个基本类型：tristate 和 <span class="built_in">string</span>，其他类型都是基于这两个基本类型。类型定义可以用输入提示，所以下面的两个例子是等价的：</span><br><span class="line"></span><br><span class="line">   <span class="type">bool</span> <span class="string">&quot;Networking support&quot;</span></span><br><span class="line"></span><br><span class="line">和</span><br><span class="line"></span><br><span class="line">   <span class="type">bool</span></span><br><span class="line"></span><br><span class="line">   prompt <span class="string">&quot;Networking support&quot;</span></span><br><span class="line"></span><br><span class="line"> </span><br><span class="line"></span><br><span class="line">输入提示： <span class="string">&quot;prompt &quot;</span> &lt;prompt&gt; [<span class="string">&quot;if&quot;</span> &lt;expr&gt;]</span><br><span class="line"></span><br><span class="line">每个菜单选项最多只能有一个显示给用户的输入提示。可以用 <span class="string">&quot;if&quot;</span> 来表示该提示的依赖关系，当然这是可选的。</span><br><span class="line"></span><br><span class="line">默认值：<span class="string">&quot;default&quot;</span> &lt;expr&gt; [<span class="string">&quot;if&quot;</span> &lt;expr&gt;]</span><br><span class="line"></span><br><span class="line">一个配置选项可以有任意多个默认值。如果有多个默认值，那么只有第一个被定义的值是可用的。默认值并不是只限于应用在定义他们的菜单选项。这就意味着默认值可以定义在任何地方或被更早的定义覆盖。如果用户没有设置(通过上面的输入提示)，配置选项的值就是默认值。如果可以显示输入提示的话，就会把默认值显示给用户，并可以让用户进行修改。默认值的依赖关系可以用 <span class="string">&quot;if&quot;</span> 添加。(可选项)</span><br><span class="line"></span><br><span class="line">依赖关系：<span class="string">&quot;depends on&quot;</span>/<span class="string">&quot;requires&quot;</span> &lt;expr&gt;</span><br><span class="line"></span><br><span class="line">为一菜单选项定义依赖关系。如果定义了多个依赖关系，它们之间用 <span class="string">&#x27;&amp;&amp;&#x27;</span> 间隔。依赖关系也可以应用到该菜单中所有的其它选项(同样接受一<span class="keyword">if</span>表达式)，所以下面的两个例子是等价的：</span><br><span class="line"></span><br><span class="line">   <span class="type">bool</span> <span class="string">&quot;foo&quot;</span> <span class="keyword">if</span> BAR</span><br><span class="line"></span><br><span class="line">   <span class="keyword">default</span> y <span class="keyword">if</span> BAR</span><br><span class="line"></span><br><span class="line">and</span><br><span class="line"></span><br><span class="line">   depends on BAR</span><br><span class="line"></span><br><span class="line">   <span class="type">bool</span> <span class="string">&quot;foo&quot;</span></span><br><span class="line"></span><br><span class="line">   <span class="keyword">default</span> y</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">反向依赖关系：<span class="string">&quot;select&quot;</span> &lt;symbol&gt; [<span class="string">&quot;if&quot;</span> &lt;expr&gt;]</span><br><span class="line"></span><br><span class="line">尽管普通的依赖关系可以降低选项的上限，反向依赖能将这一限制降的更低。当前菜单选项的值是symbol的最小值。如果symbol被选择了多次，上限就是其中的最大值。反向依赖只能用在 boolean 或 tristate 选项上。</span><br><span class="line"></span><br><span class="line"> </span><br><span class="line">数据范围：<span class="string">&quot;range&quot;</span> &lt;symbol&gt; &lt;symbol&gt; [<span class="string">&quot;if&quot;</span> &lt;expr&gt;]</span><br><span class="line"></span><br><span class="line">为<span class="type">int</span>和hex类型的选项设置可以接受输入值范围。用户只能输入大于等于第一个symbol，小于等于第二个symbol的值。</span><br><span class="line"></span><br><span class="line"> </span><br><span class="line"></span><br><span class="line">帮助信息： <span class="string">&quot;help&quot;</span> or <span class="string">&quot;---help---&quot;</span></span><br><span class="line"></span><br><span class="line">定义一帮助信息。帮助信息的结束就由缩进的水平决定的，这也就意味着信息是在第一个比帮助信息开始行的缩进小的行结束。<span class="string">&quot;---help---&quot;</span> 和 <span class="string">&quot;help&quot;</span> 在实现的作用上没有区别，<span class="string">&quot;---help---&quot;</span> 有助于将文件中的配置逻辑与给开发人员的提示分开。</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-菜单依赖关系"><a href="#3-菜单依赖关系" class="headerlink" title="3. 菜单依赖关系"></a><font size=3>3. 菜单依赖关系</font></h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">依赖关系决定了菜单选项是否可见，也可以减少tristate的输入范围。tristate逻辑比boolean逻辑在表达式中用更多的状态(state)来表示模块的状态。依赖关系表达式的语法如下：</span><br><span class="line"></span><br><span class="line">&lt;expr&gt; ::= &lt;symbol&gt;                             (<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">           &lt;symbol&gt; <span class="string">&#x27;=&#x27;</span> &lt;symbol&gt;                (<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line">           &lt;symbol&gt; <span class="string">&#x27;!=&#x27;</span> &lt;symbol&gt;               (<span class="number">3</span>)</span><br><span class="line"></span><br><span class="line">           <span class="string">&#x27;(&#x27;</span> &lt;expr&gt; <span class="string">&#x27;)&#x27;</span>                       (<span class="number">4</span>)</span><br><span class="line"></span><br><span class="line">           <span class="string">&#x27;!&#x27;</span> &lt;expr&gt;                           (<span class="number">5</span>)</span><br><span class="line"></span><br><span class="line">           &lt;expr&gt; <span class="string">&#x27;&amp;&amp;&#x27;</span> &lt;expr&gt;                   (<span class="number">6</span>)</span><br><span class="line"></span><br><span class="line">           &lt;expr&gt; <span class="string">&#x27;||&#x27;</span> &lt;expr&gt;                   (<span class="number">7</span>)</span><br><span class="line"></span><br><span class="line">表达式是以优先级的降序列出的。</span><br><span class="line"></span><br><span class="line">(<span class="number">1</span>) 将symbol赋给表达式。boolean和tristate类型的symbol直接赋给表达式。所有其它类型的symbol都赋 <span class="string">&#x27;n&#x27;</span>。</span><br><span class="line"></span><br><span class="line">(<span class="number">2</span>) 如果两个symbol相等，返回<span class="string">&#x27;y&#x27;</span>，否则为<span class="string">&#x27;n&#x27;</span>。</span><br><span class="line"></span><br><span class="line">(<span class="number">3</span>) 如果两个symbol相等，返回<span class="string">&#x27;n&#x27;</span>，否则为<span class="string">&#x27;y&#x27;</span>。</span><br><span class="line"></span><br><span class="line">(<span class="number">4</span>) 返回表达式的值。用于改变优先级。</span><br><span class="line"></span><br><span class="line">(<span class="number">5</span>) 返回 !(/expr/) 的结果。</span><br><span class="line"></span><br><span class="line">(<span class="number">6</span>) 返回 min(/expr/,/expr/) 的结果。</span><br><span class="line"></span><br><span class="line">(<span class="number">7</span>) 返回 max(/expr/,/expr/) 的结果。</span><br><span class="line"></span><br><span class="line">一个表达式的值可以是<span class="string">&#x27;n&#x27;</span>，<span class="string">&#x27;m&#x27;</span>或<span class="string">&#x27;y&#x27;</span>(或者是计算的结果 <span class="number">0</span>,<span class="number">1</span>,<span class="number">2</span>）。当表达式的值为<span class="string">&#x27;m&#x27;</span>或<span class="string">&#x27;y&#x27;</span>的时候，菜单项才是可见的。</span><br><span class="line"></span><br><span class="line">symbol有两种类型：不可变的和可变的。不可变的symbol是最普通的，由<span class="string">&#x27;config&#x27;</span>语句定义，完全由数字、字母和下划线组成。不可变的symbol只是表达式的一部分。经常用单引号或双引号括起来。在引号中，可以使用任何字符，使用引号要用转义字符<span class="string">&#x27;/&#x27;</span>。</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-菜单结构"><a href="#4-菜单结构" class="headerlink" title="4. 菜单结构"></a><font size=3>4. 菜单结构</font></h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">菜单在树中的位置可由两种方法决定。第一种可以是这样：</span><br><span class="line"></span><br><span class="line">menu <span class="string">&quot;Network device support&quot;</span></span><br><span class="line"></span><br><span class="line">   depends NET</span><br><span class="line"></span><br><span class="line">config NETDEVICES</span><br><span class="line"></span><br><span class="line">   ...</span><br><span class="line"></span><br><span class="line">endmenu</span><br><span class="line"></span><br><span class="line">所有的在<span class="string">&quot;menu&quot;</span> ... <span class="string">&quot;endmenu&quot;</span> 之间都是<span class="string">&quot;Network device support&quot;</span>的子菜单。所有的子菜单选项都继承了父菜单的依赖关系，比如，<span class="string">&quot;NET&quot;</span>的依赖关系就被加到了配置选项NETDEVICES的依赖列表中。</span><br><span class="line"></span><br><span class="line">还有就是通过分析依赖关系生成菜单的结构。如果菜单选项在一定程度上依赖于前面的选项，它就能成为该选项的子菜单。首先，前面的(父)选项必须是依赖列表中的一部分并且它们中必须有满足下面两个条件的选项：</span><br><span class="line"></span><br><span class="line">如果父选项为<span class="string">&#x27;n&#x27;</span>，子选项必须不可见。</span><br><span class="line"></span><br><span class="line">如果父选项可见，子选项才能可见。</span><br><span class="line"></span><br><span class="line">config MODULES</span><br><span class="line"></span><br><span class="line">   <span class="type">bool</span> <span class="string">&quot;Enable loadable module support&quot;</span></span><br><span class="line"></span><br><span class="line">config MODVERSIONS</span><br><span class="line"></span><br><span class="line">   <span class="type">bool</span> <span class="string">&quot;Set version information on all module symbols&quot;</span></span><br><span class="line"></span><br><span class="line">   depends MODULES</span><br><span class="line"></span><br><span class="line">comment <span class="string">&quot;module support disabled&quot;</span></span><br><span class="line"></span><br><span class="line">   depends !MODULES</span><br><span class="line"></span><br><span class="line">MODVERSIONS 直接依赖 MODULES，这就意味着如果MODULES不为<span class="string">&#x27;n&#x27;</span>，该选项才可见。换句话说，当MODULES可见时，选项才可见(MODULES的(空)依赖关系也是选项依赖关系的一部分)。</span><br></pre></td></tr></table></figure>
+
+<h2 id="5-kconfig关键字"><a href="#5-kconfig关键字" class="headerlink" title="5. kconfig关键字"></a><font size=3>5. kconfig关键字</font></h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">配置文件描述了菜单选项，每行都是以一关键字开头(除了帮助信息)。下面的关键字：</span><br><span class="line"></span><br><span class="line">- config</span><br><span class="line"></span><br><span class="line">- menuconfig</span><br><span class="line"></span><br><span class="line">- choice/endchoice</span><br><span class="line"></span><br><span class="line">- comment</span><br><span class="line"></span><br><span class="line">- menu/endmenu</span><br><span class="line"></span><br><span class="line">- <span class="keyword">if</span>/endif</span><br><span class="line"></span><br><span class="line">- source</span><br><span class="line"></span><br><span class="line">前<span class="number">5</span>个同样可以用在菜单选项定义的开始。</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-1-config"><a href="#5-1-config" class="headerlink" title="5.1 config"></a><font size=3>5.1 config</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">   <span class="string">&quot;config&quot;</span> &lt;symbol&gt;</span><br><span class="line"></span><br><span class="line">   &lt;config options&gt;</span><br><span class="line"></span><br><span class="line">config是关键字，表示一个配置选项的开始；紧跟着的&lt;symbol&gt;是配置选项的名称，省略了前缀<span class="string">&quot;CONFIG_&quot;</span>。</span><br><span class="line"></span><br><span class="line">例如：</span><br><span class="line"></span><br><span class="line">config TMPFS_POSIX_ACL</span><br><span class="line"></span><br><span class="line">    <span class="type">bool</span> <span class="string">&quot;Tmpfs POSIX Access Control Lists&quot;</span></span><br><span class="line"></span><br><span class="line">    depends on TMPFS</span><br><span class="line"></span><br><span class="line">    select GENERIC_ACL</span><br><span class="line"></span><br><span class="line">    help</span><br><span class="line"></span><br><span class="line">      POSIX Access Control <span class="title function_">Lists</span> <span class="params">(ACLs)</span> support permissions <span class="keyword">for</span> users and</span><br><span class="line"></span><br><span class="line">      groups beyond the owner/group/world scheme.</span><br><span class="line"></span><br><span class="line">      To learn more about Access Control Lists, visit the POSIX ACLs <span class="keyword">for</span></span><br><span class="line"></span><br><span class="line">      Linux website &lt;http:<span class="comment">//acl.bestbits.at/&gt;.</span></span><br><span class="line"></span><br><span class="line">     If you don&#x27;t know what Access Control Lists are, say N.</span><br><span class="line"></span><br><span class="line">解析：config是关键字，表示一个配置选项的开始；紧跟着的TMPFS_POSIX_ACL是配置选项的名称，省略了前缀&quot;CONFIG_&quot;</span><br><span class="line"></span><br><span class="line">    <span class="type">bool</span>表示变量类型，即&quot;CONFIG_ TMPFS_POSIX_ACL &quot;的类型，有5种类型：<span class="type">bool</span>、tristate、<span class="built_in">string</span>、hex和<span class="type">int</span>，其中tristate和<span class="built_in">string</span>是基本的类型</span><br><span class="line"></span><br><span class="line">    <span class="type">bool</span>变量的值：     y和n</span><br><span class="line"></span><br><span class="line">    tristate变量的值： y、n和m</span><br><span class="line"></span><br><span class="line">    <span class="built_in">string</span>变量的值：   字符串</span><br><span class="line"></span><br><span class="line">    <span class="type">bool</span>之后的字符串“Tmpfs POSIX Access Control Lists”是提示信息，在配置界面中上下移动光标选中它时，就可以通过按空格或回车键来设置CONFIG_ TMPFS_POSIX_ACL的值。</span><br><span class="line"></span><br><span class="line">depends on：表示依赖于XXX，“depends on TMPFS”表示只有当TMPFS配置选项被选中时，当前配置选项的提示信息才会出现，才能设置当前配置选项。</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-menuconfig"><a href="#5-2-menuconfig" class="headerlink" title="5.2 menuconfig"></a><font size=3>5.2 menuconfig</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"> <span class="string">&quot;menuconfig&quot;</span> &lt;symbol&gt;</span><br><span class="line"></span><br><span class="line">   &lt;config options&gt;</span><br><span class="line"></span><br><span class="line">此关键字和前面的关键字很相似，但它在前面的基础上要求所有的子选项作为独立的行显示。</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-3-choices"><a href="#5-3-choices" class="headerlink" title="5.3 choices"></a><font size=3>5.3 choices</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">  <span class="string">&quot;choice&quot;</span></span><br><span class="line"></span><br><span class="line">   &lt;choice options&gt;</span><br><span class="line"></span><br><span class="line">   &lt;choice block&gt;</span><br><span class="line"></span><br><span class="line">   <span class="string">&quot;endchoice&quot;</span></span><br><span class="line"></span><br><span class="line">该关键字定义了一组选择项，并且选项可以是前面描述的任何属性。尽管boolean只允许选择一个配置选项，tristate可以抒多个配置选项设为<span class="string">&#x27;m&#x27;</span>，但选项只能是boolean或tristate类型。这可以在一个硬件有多个驱动的情况下使用，最终只有一个驱动被编译进/加载到内核，但所有的驱动都可以编译成模块。选项可以接受的另一个选项是<span class="string">&quot;optional&quot;</span>，这样选项就被设置为<span class="string">&#x27;n&#x27;</span>，没有被选中的。</span><br><span class="line"></span><br><span class="line">例如：</span><br><span class="line"></span><br><span class="line">    choice条目将多个类似的配置选项组合在一起，供用户单选或多选</span><br><span class="line"></span><br><span class="line">       choice</span><br><span class="line"></span><br><span class="line">             prompt <span class="string">&quot;ARM system type&quot;</span></span><br><span class="line"></span><br><span class="line">             <span class="keyword">default</span> ARCH_VERSATILE</span><br><span class="line"></span><br><span class="line">             config ARCH_AAEC2000</span><br><span class="line"></span><br><span class="line">                  .........</span><br><span class="line"></span><br><span class="line">             config ARCH_REALVIEW</span><br><span class="line"></span><br><span class="line">                  .........</span><br><span class="line"></span><br><span class="line">        endchoice</span><br><span class="line"></span><br><span class="line">      prompt <span class="string">&quot;ARM system type&quot;</span>给出提示信息“ARM system type”，光标选中后回车进入就可以看到多个config条目定义的配置选项。choice条目中定义的变量只有<span class="type">bool</span>和tristate。</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-4-comment"><a href="#5-4-comment" class="headerlink" title="5.4 comment"></a><font size=3>5.4 comment</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">   <span class="string">&quot;comment&quot;</span> &lt;prompt&gt;</span><br><span class="line"></span><br><span class="line">   &lt;comment options&gt;</span><br><span class="line"></span><br><span class="line">这里定义了在配置过程中显示给用户的注释，该注释还将写进输出文件中。唯一可用的可选项是依赖关系。</span><br><span class="line"></span><br><span class="line">例如：</span><br><span class="line"></span><br><span class="line">    comment条目用于定义一些帮助信息，出现在界面的第一行，如在arch/arm/Kconifg中有如下代码：</span><br><span class="line"></span><br><span class="line">menu <span class="string">&quot;Floating point emulation&quot;</span></span><br><span class="line"></span><br><span class="line">comment <span class="string">&quot;At least one emulation must be selected&quot;</span></span><br><span class="line"></span><br><span class="line">config FPE_NWFPE</span><br><span class="line"></span><br><span class="line">.........                                                                              </span><br><span class="line"></span><br><span class="line">config FPE_NWFPE_XP</span><br></pre></td></tr></table></figure>
+
+<p>在界面中如下所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/LV01-01-AliOSThings-09-%E6%BA%90%E7%A0%81%E4%B8%8E%E7%BC%96%E8%AF%91-02-kconfig%E5%9F%BA%E7%A1%80/img/762927-20161016221850702-879475685.jpg" alt="762927-20161016221850702-879475685" style="zoom:50%;" />
+
+<h3 id="5-5-menu"><a href="#5-5-menu" class="headerlink" title="5.5 menu"></a><font size=3>5.5 menu</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">   <span class="string">&quot;menu&quot;</span> &lt;prompt&gt;</span><br><span class="line"></span><br><span class="line">   &lt;menu options&gt;</span><br><span class="line"></span><br><span class="line">   &lt;menu block&gt;</span><br><span class="line"></span><br><span class="line">   <span class="string">&quot;endmenu&quot;</span></span><br><span class="line"></span><br><span class="line">这里定义了一个菜单，详细信息请看前面的<span class="string">&quot;菜单结构&quot;</span>。唯一可用的可选项是依赖关系。</span><br><span class="line"></span><br><span class="line">例如：</span><br><span class="line"></span><br><span class="line">    menu条目用于生成菜单，其格式如下：</span><br><span class="line"></span><br><span class="line">         menu <span class="string">&quot;Floating poing emulation&quot;</span></span><br><span class="line"></span><br><span class="line">         config FPE_NWFPE</span><br><span class="line"></span><br><span class="line">         ..............</span><br><span class="line"></span><br><span class="line">         config FPE_NWFPE_XP</span><br><span class="line"></span><br><span class="line">         .............</span><br><span class="line"></span><br><span class="line">         endmenu</span><br><span class="line"></span><br><span class="line">   menu之后的Floating poing emulation是菜单名，menu和endmenu间有很多config条目，在配置界面中如下所示：</span><br><span class="line"></span><br><span class="line">         Floating poing emulation---&gt;</span><br><span class="line"></span><br><span class="line">                       [] FPE_NWFPE</span><br><span class="line"></span><br><span class="line">                       [] FPE_NWFPE_XP</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-6-if"><a href="#5-6-if" class="headerlink" title="5.6 if"></a><font size=3>5.6 if</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">   <span class="string">&quot;if&quot;</span> &lt;expr&gt;</span><br><span class="line"></span><br><span class="line">   &lt;<span class="keyword">if</span> block&gt;</span><br><span class="line"></span><br><span class="line">   <span class="string">&quot;endif&quot;</span></span><br><span class="line"></span><br><span class="line">这里定义了<span class="keyword">if</span>结构。依赖关系&lt;expr&gt;被加到所有在<span class="keyword">if</span> ... endif 中的菜单选项中。</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-7-source"><a href="#5-7-source" class="headerlink" title="5.7 source"></a><font size=3>5.7 source</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">source条目用于读取另一个Config.in文件，如：</span><br><span class="line"></span><br><span class="line">      source <span class="string">&quot;net/Kconifg&quot;</span></span><br></pre></td></tr></table></figure>
+
+
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/12776282.html">LV01-01-AliOSThings-09-源码与编译-02-kconfig基础</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年11月26日 - 21:33</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/12776282.html" title="LV01-01-AliOSThings-09-源码与编译-02-kconfig基础">https://sumumm.github.io/post/12776282.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV21-%E5%A4%A9%E7%8C%AB%E7%B2%BE%E7%81%B5IOT/" rel="tag"><i class="fa fa-tag"></i> LV21-天猫精灵IOT</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/375492f0.html" rel="prev" title="LV01-01-AliOSThings-09-源码与编译-03-源码编译工具GCC">
+                  <i class="fa fa-angle-left"></i> LV01-01-AliOSThings-09-源码与编译-03-源码编译工具GCC
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/a78884d1.html" rel="next" title="LV01-01-AliOSThings-09-源码与编译-01-SDK目录分析">
+                  LV01-01-AliOSThings-09-源码与编译-01-SDK目录分析 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

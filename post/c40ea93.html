@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是内核模块——内核模块框架解析的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-02-内核模块-05-内核模块框架解析">
+<meta property="og:url" content="https://sumumm.github.io/post/c40ea93.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是内核模块——内核模块框架解析的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-05-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E6%A1%86%E6%9E%B6%E8%A7%A3%E6%9E%90/img/image-20241118230823024.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-05-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E6%A1%86%E6%9E%B6%E8%A7%A3%E6%9E%90/img/image-20241120220437718.png">
+<meta property="article:published_time" content="2024-11-25T16:02:08.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.048Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-05-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E6%A1%86%E6%9E%B6%E8%A7%A3%E6%9E%90/img/image-20241118230823024.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/c40ea93.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/c40ea93.html","path":"post/c40ea93.html","title":"LV06-02-内核模块-05-内核模块框架解析"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-02-内核模块-05-内核模块框架解析 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%A8%A1%E5%9D%97%E6%BA%90%E7%A0%81"><span class="nav-text">一、模块源码</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E4%BB%A3%E7%A0%81%E6%A1%86%E6%9E%B6%E5%88%86%E6%9E%90"><span class="nav-text">二、代码框架分析</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="nav-text">三、源码分析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%A4%B4%E6%96%87%E4%BB%B6"><span class="nav-text">1. 头文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%A8%A1%E5%9D%97%E5%8A%A0%E8%BD%BD%E5%92%8C%E5%8D%B8%E8%BD%BD%E5%87%BD%E6%95%B0"><span class="nav-text">2. 模块加载和卸载函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-module-init"><span class="nav-text">2.1 module_init()</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-%E4%B8%80%E8%88%AC%E6%A0%BC%E5%BC%8F"><span class="nav-text">2.1.1 一般格式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-init"><span class="nav-text">2.1.2 __init</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-3-module-init"><span class="nav-text">2.1.3 module_init</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-module-exit"><span class="nav-text">2.2 module_exit()</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-%E4%B8%80%E8%88%AC%E6%A0%BC%E5%BC%8F"><span class="nav-text">2.2.1 一般格式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-exit"><span class="nav-text">2.2.2 __exit</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%AE%B8%E5%8F%AF%E8%AF%81"><span class="nav-text">3. 许可证</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E7%9B%B8%E5%85%B3%E4%BF%A1%E6%81%AF%E5%A3%B0%E6%98%8E"><span class="nav-text">4. 相关信息声明</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E4%BD%9C%E8%80%85%E4%BF%A1%E6%81%AF"><span class="nav-text">4.1 作者信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E6%A8%A1%E5%9D%97%E6%8F%8F%E8%BF%B0%E4%BF%A1%E6%81%AF"><span class="nav-text">4.2 模块描述信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%A8%A1%E5%9D%97%E5%88%AB%E5%90%8D"><span class="nav-text">4.3 模块别名</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/c40ea93.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-02-内核模块-05-内核模块框架解析 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-02-内核模块-05-内核模块框架解析
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-11-26 00:02:08" itemprop="dateCreated datePublished" datetime="2024-11-26T00:02:08+08:00">2024-11-26</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.7k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>13 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是内核模块——内核模块框架解析的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-05-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E6%A1%86%E6%9E%B6%E8%A7%A3%E6%9E%90/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="2">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<p>这一节我们来了解一下内核模块编写的框架。</p>
+<h1 id="一、模块源码"><a href="#一、模块源码" class="headerlink" title="一、模块源码"></a><font size=3>一、模块源码</font></h1><p>这里就用前面准备的hello_world_demo.c源码（<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/blob/master/03_module_basic/01_hello_world_demo/hello_world_demo.c">03_module_basic&#x2F;01_hello_world_demo&#x2F;hello_world_demo.c · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国 (gitee.com)</a>）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/init.h&gt;</span>     <span class="comment">/* module_init module_exit */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/module.h&gt;</span>   <span class="comment">/* MODULE_LICENSE */</span></span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 模块入口函数</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> __init <span class="title function_">hello_world_demo_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    printk(<span class="string">&quot;hello_world_demo module is running!\n&quot;</span>);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 模块出口函数</span></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> __exit <span class="title function_">hello_world_demo_exit</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	printk(<span class="string">&quot;hello_world_demo will exit\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 将__init定义的函数指定为驱动的入口函数</span></span><br><span class="line">module_init(hello_world_demo_init);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 将__exit定义的函数指定为驱动的出口函数</span></span><br><span class="line">module_exit(hello_world_demo_exit);</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 模块信息(通过 modinfo hello_world_demo 查看) */</span></span><br><span class="line">MODULE_LICENSE(<span class="string">&quot;GPL&quot;</span>);               <span class="comment">/* 源码的许可证协议 */</span></span><br><span class="line">MODULE_AUTHOR(<span class="string">&quot;sumu&quot;</span>);               <span class="comment">/* 字符串常量内容为模块作者说明 */</span></span><br><span class="line">MODULE_DESCRIPTION(<span class="string">&quot;Description&quot;</span>);   <span class="comment">/* 字符串常量内容为模块功能说明 */</span></span><br><span class="line">MODULE_ALIAS(<span class="string">&quot;module&#x27;s other name&quot;</span>); <span class="comment">/* 字符串常量内容为模块别名 */</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h1 id="二、代码框架分析"><a href="#二、代码框架分析" class="headerlink" title="二、代码框架分析"></a><font size=3>二、代码框架分析</font></h1><p>Linux 驱动的基本框架主要由模块加载函数， 模块卸载函数， 模块许可证声明， 模块参数，模块导出符号， 模块作者信息等几部分组成， 其中模块参数， 模块导出符号， 模块作者信息是可选的部分， 也就是可要可不要。 剩余部分是必须有的。   </p>
+<ul>
+<li><strong>模块加载函数(必须)：</strong> 当通过insmod或modprobe命令加载内核模块时，模块的加载函数就会自动被内核执行，完成本模块相关的初始化工作。</li>
+<li><strong>模块卸载函数(必须)：</strong> 当执行rmmod命令卸载模块时，模块卸载函数就会自动被内核自动执行，完成相关清理工作。</li>
+<li><strong>模块许可证声明(必须)：</strong> 许可证声明描述内核模块的许可权限，如果不声明模块许可，模块被加载时，将会有内核被污染（kernel tainted）的警告。 可接受的内核模块声明许可包括“GPL”“GPL v2”等。  </li>
+<li><strong>模块参数：</strong> 模块参数是模块被加载时，可以传值给模块中的参数。</li>
+<li><strong>模块导出符号：</strong> 模块可以导出准备好的变量或函数作为符号，以便其他内核模块调用。</li>
+<li><strong>模块的其他相关信息：</strong> 可以声明模块作者等信息。</li>
+</ul>
+<p>上面示例的hello_world_demo.c程序只包含上面三个必要部分以及模块的其他信息声明（模块参数和导出符号将在后面的学习中出现）。</p>
+<p>头文件包含了&lt;linux&#x2F;init.h&gt;和&lt;linux&#x2F;module.h&gt;，这两个头文件是写内核模块必须要包含的。 模块初始化函数hello_world_demo_init()调用了printk函数，在内核模块运行的过程中，他不能依赖于C库函数， 因此用不了printf函数，需要使用单独的打印输出函数printk。该函数的用法与printf函数类似。 完成模块初始化函数之后，还需要调用宏module_init来告诉内核，使用hello_world_demo_init()函数来进行初始化。 模块卸载函数也用printk函数打印字符串，并用宏module_exit在内核注册该模块的卸载函数。 最后，必须声明该模块使用遵循的许可证，这里我们设置为GPL协议。</p>
+<h1 id="三、源码分析"><a href="#三、源码分析" class="headerlink" title="三、源码分析"></a><font size=3>三、源码分析</font></h1><h2 id="1-头文件"><a href="#1-头文件" class="headerlink" title="1. 头文件"></a><font size=3>1. 头文件</font></h2><p>前面我们已经接触过了Linux的应用编程，了解到Linux的头文件都存放在&#x2F;usr&#x2F;include中。 编写内核模块所需要的头文件，并不在上述说到的目录，而是在Linux内核源码中的include文件夹。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/module.h&gt;</span> <span class="comment">// 包含了内核加载module_init()/卸载module_exit()函数和内核模块信息相关函数的声明</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/init.h&gt;</span>   <span class="comment">// 包含一些内核模块相关节区的宏定义</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/kernel.h&gt;</span> <span class="comment">// 包含内核提供的各种函数，如printk</span></span></span><br></pre></td></tr></table></figure>
+
+<p>编写内核模块中经常要使用到的头文件有以下两个：&lt;linux&#x2F;init.h&gt;和&lt;linux&#x2F;module.h&gt;。 我们可以看到在头文件前面也带有一个文件夹的名字linux，对应了include下的linux文件夹，我们到该文件夹下，查看这两个头文件都有什么内容。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/init.h">init.h - include&#x2F;linux&#x2F;init.h </a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* SPDX-License-Identifier: GPL-2.0 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> _LINUX_INIT_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> _LINUX_INIT_H</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/compiler.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/types.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// ......</span></span><br><span class="line"><span class="comment">/* These are for everybody (although not all archs will actually</span></span><br><span class="line"><span class="comment">   discard it in modules) */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __init		__section(.init.text) __cold  __latent_entropy __noinitretpoline</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __initdata	__section(.init.data)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __initconst	__section(.init.rodata)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __exitdata	__section(.exit.data)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __exit_call	__used __section(.exitcall.exit)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// ......</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">/* _LINUX_INIT_H */</span></span></span><br></pre></td></tr></table></figure>
+
+<p>init.h头文件主要包含了内核模块用到的一些宏定义，因此，只要我们涉及内核模块的编程，就需要加上该头文件。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/module.h">module.h - include&#x2F;linux&#x2F;module.h</a></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> module_init(x)  __initcall(x);</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> module_exit(x)  __exitcall(x);</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* Generic info of form tag = &quot;info&quot; */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MODULE_INFO(tag, info) __MODULE_INFO(tag, tag, info)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MODULE_ALIAS(_alias) MODULE_INFO(alias, _alias)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MODULE_LICENSE(_license) MODULE_INFO(license, _license)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MODULE_AUTHOR(_author) MODULE_INFO(author, _author)</span></span><br></pre></td></tr></table></figure>
+
+<p>以上代码中，包含了内核模块的加载、卸载函数的声明，还列举了module.h文件中的部分宏定义，这部分宏定义， 有的是可有可无的，但是MODULE_LICENSE这个是指定该内核模块的许可证，是必须要有的。</p>
+<p><strong>注意：</strong> 在本这里使用的4.19.71版本内核中， <code>module_init</code> 和 <code>module_exit</code> 函数声明在 <code>include/linux/module.h</code> 文件中，旧版本的内核这两个函数声明在 <code>include/linux/init.h</code> 文件中。</p>
+<h2 id="2-模块加载和卸载函数"><a href="#2-模块加载和卸载函数" class="headerlink" title="2. 模块加载和卸载函数"></a><font size=3>2. 模块加载和卸载函数</font></h2><h3 id="2-1-module-init"><a href="#2-1-module-init" class="headerlink" title="2.1 module_init()"></a><font size=3>2.1 module_init()</font></h3><h4 id="2-1-1-一般格式"><a href="#2-1-1-一般格式" class="headerlink" title="2.1.1 一般格式"></a><font size=3>2.1.1 一般格式</font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> __init <span class="title function_">func_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">&#125;</span><br><span class="line">module_init(func_init);</span><br></pre></td></tr></table></figure>
+
+<p>当模块初始化成功，的时候会在&#x2F;sys&#x2F;module下新建一个以模块名为名的目录。例如我们之前插入hello_world_demo.ko后，会有如下目录产生：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-05-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E6%A1%86%E6%9E%B6%E8%A7%A3%E6%9E%90/img/image-20241118230823024.png" alt="image-20241118230823024" />
+
+<p>在C语言中，static关键字的作用如下：</p>
+<p>（1）static修饰的静态局部变量直到程序运行结束以后才释放，延长了局部变量的生命周期；</p>
+<p>（2）static的修饰全局变量只能在本文件中访问，不能在其它文件中访问；</p>
+<p>（3）static修饰的函数只能在本文件中调用，不能被其他文件调用。</p>
+<p>内核模块的代码，实际上是内核代码的一部分， 假如内核模块定义的函数和内核源代码中的某个函数重复了， 编译器就会报错，导致编译失败，因此我们给内核模块的代码加上static修饰符的话， 那么就可以避免这种错误。</p>
+<h4 id="2-1-2-init"><a href="#2-1-2-init" class="headerlink" title="2.1.2 __init"></a><font size=3>2.1.2 __init</font></h4><p>这个宏定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/init.h#L50">init.h - include&#x2F;linux&#x2F;init.h</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> __init      __section(.init.text) __cold  __latent_entropy __noinitretpoline</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __initdata  __section(.init.data)</span></span><br></pre></td></tr></table></figure>
+
+<p>以上代码 __init、__initdata宏定义（位于内核源码&#x2F;linux&#x2F;init.h）中的__init用于修饰函数，__initdata用于修饰变量。 带有__init的修饰符，表示将该函数放到可执行文件的__init节区中，该节区的内容只能用于模块的初始化阶段， 初始化阶段执行完毕之后，这部分的内容就会被释放掉。</p>
+<h4 id="2-1-3-module-init"><a href="#2-1-3-module-init" class="headerlink" title="2.1.3 module_init"></a><font size=3>2.1.3 module_init</font></h4><p>module_init也是一个宏，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/module.h#L87">module.h - include&#x2F;linux&#x2F;module.h</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> module_init(x) __initcall(x);</span></span><br></pre></td></tr></table></figure>
+
+<p>宏定义module_init用于通知内核初始化模块的时候， 要使用哪个函数进行初始化。它会将函数地址加入到相应的节区section中， 这样的话，开机的时候就可以自动加载模块了。</p>
+<h3 id="2-2-module-exit"><a href="#2-2-module-exit" class="headerlink" title="2.2 module_exit()"></a><font size=3>2.2 module_exit()</font></h3><h4 id="2-2-1-一般格式"><a href="#2-2-1-一般格式" class="headerlink" title="2.2.1 一般格式"></a><font size=3>2.2.1 一般格式</font></h4><p>与内核加载函数相反，内核模块卸载函数func_exit主要是用于释放初始化阶段分配的内存， 分配的设备号等，是初始化过程的逆过程。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span> __exit <span class="title function_">func_exit</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">&#125;</span><br><span class="line">module_exit(func_exit);</span><br></pre></td></tr></table></figure>
+
+<p>与函数func_init区别在于，该函数的返回值是void类型，且修饰符也不一样， 这里使用的使用__exit，表示将该函数放在可执行文件的__exit节区， 当执行完模块卸载阶段之后，就会自动释放该区域的空间。</p>
+<h4 id="2-2-2-exit"><a href="#2-2-2-exit" class="headerlink" title="2.2.2 __exit"></a><font size=3>2.2.2 __exit</font></h4><p>__exit宏定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/init.h#L83">init.h - include&#x2F;linux&#x2F;init.h</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> __exit          __section(.exit.text) __exitused __cold notrace</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __exitdata  __section(.exit.data)</span></span><br></pre></td></tr></table></figure>
+
+<p>__exit用于修饰函数，__exitdata用于修饰变量。 宏定义module_exit用于告诉内核，当卸载模块时，需要调用哪个函数。</p>
+<h2 id="3-许可证"><a href="#3-许可证" class="headerlink" title="3. 许可证"></a><font size=3>3. 许可证</font></h2><p>Linux是一款免费的操作系统，采用了GPL协议，允许用户可以任意修改其源代码。 GPL协议的主要内容是软件产品中即使使用了某个GPL协议产品提供的库， 衍生出一个新产品，该软件产品都必须采用GPL协议，即必须是开源和免费使用的， 可见GPL协议具有传染性。因此，我们可以在Linux使用各种各样的免费软件。 在以后学习Linux的过程中，可能会发现我们安装任何一款软件，从来没有30天试用期或者是要求输入激活码的。这个宏定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/module.h#L200">module.h - include&#x2F;linux&#x2F;module.h </a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> MODULE_LICENSE(_license) MODULE_INFO(license, _license)</span></span><br></pre></td></tr></table></figure>
+
+<p>内核模块许可证有 “GPL”，“GPL v2”，“GPL and additional rights”，“Dual SD&#x2F;GPL”，“Dual MPL&#x2F;GPL”，“Proprietary”。这里要是不标明的话可能会出现这种问题：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-05-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E6%A1%86%E6%9E%B6%E8%A7%A3%E6%9E%90/img/image-20241120220437718.png" alt="image-20241120220437718" />
+
+<h2 id="4-相关信息声明"><a href="#4-相关信息声明" class="headerlink" title="4. 相关信息声明"></a><font size=3>4. 相关信息声明</font></h2><p>最后这部分内容只是为了给使用该模块的读者一本“说明书”，属于可有可无的部分， 有则锦上添花，若没有也无所谓。例如：</p>
+<h3 id="4-1-作者信息"><a href="#4-1-作者信息" class="headerlink" title="4.1 作者信息"></a><font size=3>4.1 作者信息</font></h3><p>MODULE_AUTHOR这个宏定义的事作者信息，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/module.h#L206">module.h - include&#x2F;linux&#x2F;module.h</a>中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Author(s), use &quot;Name &lt;email&gt;&quot; or just &quot;Name&quot;, for multiple</span></span><br><span class="line"><span class="comment"> * authors use multiple MODULE_AUTHOR() statements/lines.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MODULE_AUTHOR(_author) MODULE_INFO(author, _author)</span></span><br></pre></td></tr></table></figure>
+
+<p>我们可以使用modinfo中打印出的模块信息，其中“author”信息便是来自于宏定义MODULE_AUTHOR。 该宏定义用于声明该模块的作者。</p>
+<h3 id="4-2-模块描述信息"><a href="#4-2-模块描述信息" class="headerlink" title="4.2 模块描述信息"></a><font size=3>4.2 模块描述信息</font></h3><p>MODULE_DESCRIPTION这个宏定义的是模块的描述信息，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/module.h#L209">module.h - include&#x2F;linux&#x2F;module.h</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* What your module does. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MODULE_DESCRIPTION(_description) MODULE_INFO(description, _description)</span></span><br></pre></td></tr></table></figure>
+
+<p>模块信息中“description”信息就是来自宏MODULE_DESCRIPTION，该宏用于描述该模块的功能作用。</p>
+<h3 id="4-3-模块别名"><a href="#4-3-模块别名" class="headerlink" title="4.3 模块别名"></a><font size=3>4.3 模块别名</font></h3><p>MODULE_ALIAS用于定义模块的别名，这个宏定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/module.h#L165">module.h - include&#x2F;linux&#x2F;module.h</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* For userspace: you can also call me... */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MODULE_ALIAS(_alias) MODULE_INFO(alias, _alias)</span></span><br></pre></td></tr></table></figure>
+
+<p>模块信息中“alias”信息来自于宏定义MODULE_ALIAS。该宏定义用于给内核模块起别名。 注意，在使用该模块的别名时，需要将该模块复制到&#x2F;lib&#x2F;modules&#x2F;(uname -r)&#x2F;下， 使用命令depmod更新模块的依赖关系，否则的话，Linux内核不知道这个模块还有另一个名字。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/c40ea93.html">LV06-02-内核模块-05-内核模块框架解析</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年11月26日 - 00:02</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/c40ea93.html" title="LV06-02-内核模块-05-内核模块框架解析">https://sumumm.github.io/post/c40ea93.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/fcdda906.html" rel="prev" title="LV06-02-内核模块-06-printk">
+                  <i class="fa fa-angle-left"></i> LV06-02-内核模块-06-printk
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/549b1511.html" rel="next" title="LV06-02-内核模块-04-内核模块的工作机制">
+                  LV06-02-内核模块-04-内核模块的工作机制 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

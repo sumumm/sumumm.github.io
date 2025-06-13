@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是编译与调试——GCC编译的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV02-03-编译与调试-02-GCC编译">
+<meta property="og:url" content="https://sumumm.github.io/post/f7a56c0b.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是编译与调试——GCC编译的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241028222408311.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20220919223139549.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029070418595.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241028224455565.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241028225143958.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241028225317318.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029070842669.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029071406831.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029072110164.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029072321515.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029072452357.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029073159894.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029214807867.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029221610352.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241030071301753.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241030072625850.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241030072706101.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241030075109936.png">
+<meta property="article:published_time" content="2024-10-30T00:00:14.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:56.989Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV02-编译基础">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241028222408311.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/f7a56c0b.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/f7a56c0b.html","path":"post/f7a56c0b.html","title":"LV02-03-编译与调试-02-GCC编译"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV02-03-编译与调试-02-GCC编译 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%B5%8B%E8%AF%95%E6%96%87%E4%BB%B6"><span class="nav-text">一、测试文件</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%8D%95%E6%96%87%E4%BB%B6test-c"><span class="nav-text">1. 单文件test.c</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%A4%9A%E6%96%87%E4%BB%B6-main"><span class="nav-text">2. 多文件 main</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-main-c"><span class="nav-text">2.1 main.c</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-func1-c"><span class="nav-text">2.2 func1.c</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-func2-c"><span class="nav-text">2.3 func2.c</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-func1-h"><span class="nav-text">2.4 func1.h</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-func2-h"><span class="nav-text">2.5 func2.h</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81GCC-%E7%BC%96%E8%AF%91%E8%BF%87%E7%A8%8B"><span class="nav-text">二、GCC 编译过程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%9F%BA%E6%9C%AC%E8%AF%AD%E6%B3%95"><span class="nav-text">1. 基本语法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%BC%96%E8%AF%91%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90"><span class="nav-text">2. 编译过程分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-GCC%E7%BC%96%E8%AF%91%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%AD%A5%E9%AA%A4"><span class="nav-text">3. GCC编译的基本步骤</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E9%A2%84%E5%A4%84%E7%90%86-Pre-Processing"><span class="nav-text">3.1 预处理( Pre-Processing ) </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E7%BC%96%E8%AF%91-Compiling"><span class="nav-text">3.2 编译( Compiling )</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E6%B1%87%E7%BC%96-Assembling"><span class="nav-text">3.3 汇编( Assembling )</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E9%93%BE%E6%8E%A5-Linking"><span class="nav-text">3.4 链接( Linking )</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%A4%9A%E6%96%87%E4%BB%B6%E7%BC%96%E8%AF%91"><span class="nav-text">4. 多文件编译</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%9C%A8%E5%90%8C%E4%B8%80%E4%B8%AA%E7%9B%AE%E5%BD%95%E4%B8%8B"><span class="nav-text">4.1 在同一个目录下</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-1-%E5%9F%BA%E6%9C%AC%E8%AF%AD%E6%B3%95"><span class="nav-text">4.1.1 基本语法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">4.1.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%9C%A8%E4%B8%8D%E5%90%8C%E7%9B%AE%E5%BD%95%E4%B8%AD"><span class="nav-text">4.2 在不同目录中</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-1-%E6%88%91%E4%BB%AC%E7%BC%96%E8%AF%91%E4%B8%80%E4%B8%8B"><span class="nav-text">4.2.1 我们编译一下</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-3-%E5%8E%BB%E5%93%AA%E9%87%8C%E6%89%BE%E5%A4%B4%E6%96%87%E4%BB%B6%EF%BC%9F"><span class="nav-text">4.2.3 去哪里找头文件？</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E5%87%A0%E4%B8%AA%E9%97%AE%E9%A2%98"><span class="nav-text">4.3 几个问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E7%B3%BB%E7%BB%9F%E7%9B%AE%E5%BD%95%E5%9C%A8%E5%93%AA%EF%BC%9F"><span class="nav-text">4.4 系统目录在哪？</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81GCC%E9%80%89%E9%A1%B9%E8%AF%B4%E6%98%8E"><span class="nav-text">三、GCC选项说明</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%9F%BA%E6%9C%AC%E9%80%89%E9%A1%B9"><span class="nav-text">1. 基本选项</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%93%BE%E6%8E%A5%E5%99%A8%E9%80%89%E9%A1%B9-Linker-Option"><span class="nav-text">2. 链接器选项(Linker Option)  </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-object-file-name"><span class="nav-text">2.1 object-file-name  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-llibrary-%E5%B0%8F%E5%86%99%E7%9A%84L"><span class="nav-text">2.2 -llibrary(小写的L)</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-%E9%93%BE%E6%8E%A5%E5%BA%93"><span class="nav-text">2.2.1 链接库</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-%E5%9F%BA%E6%9C%AC%E6%A0%BC%E5%BC%8F"><span class="nav-text">2.2.2 基本格式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-3-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.2.3 使用实例</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-4-%E9%BB%98%E8%AE%A4%E9%93%BE%E6%8E%A5%E5%BA%93%EF%BC%9F"><span class="nav-text">2.2.4 默认链接库？</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-nostartfiles"><span class="nav-text">2.3 -nostartfiles  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-nostdlib"><span class="nav-text">2.4 -nostdlib  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-static"><span class="nav-text">2.5 -static  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6-shared"><span class="nav-text">2.6 -shared  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-7-Xlinker-option"><span class="nav-text">2.7 -Xlinker option  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-8-Wl-option"><span class="nav-text">2.8 -Wl,option  </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%9B%AE%E5%BD%95%E9%80%89%E9%A1%B9-Directory-Option"><span class="nav-text">3. 目录选项(Directory Option) </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-ldir"><span class="nav-text">3.1 -ldir</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-1-%E5%9F%BA%E6%9C%AC%E6%A0%BC%E5%BC%8F"><span class="nav-text">3.1.1 基本格式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">3.1.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-I"><span class="nav-text">3.2 -I-</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-Ldir"><span class="nav-text">3.3 -Ldir  </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-1-%E5%9F%BA%E6%9C%AC%E6%A0%BC%E5%BC%8F"><span class="nav-text">3.3.1 基本格式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">3.3.2 使用实例</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#3-3-2-1-%E6%96%87%E4%BB%B6%E5%87%86%E5%A4%87"><span class="nav-text">3.3.2.1 文件准备</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#3-3-2-2-%E5%88%B6%E4%BD%9C%E9%9D%99%E6%80%81%E5%BA%93"><span class="nav-text">3.3.2.2 制作静态库</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#3-3-2-3-%E7%BC%96%E8%AF%91%E4%B8%BB%E5%87%BD%E6%95%B0%E6%BA%90%E6%96%87%E4%BB%B6"><span class="nav-text">3.3.2.3 编译主函数源文件</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-Bprefix"><span class="nav-text">3.4 -Bprefix  </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%AD%A6%E5%91%8A%E9%80%89%E9%A1%B9-Warning-Option-Wall"><span class="nav-text">4. 警告选项(Warning Option)-Wall  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E8%B0%83%E8%AF%95%E9%80%89%E9%A1%B9-Debugging-Option-g"><span class="nav-text">5. 调试选项(Debugging Option)-g  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E4%BC%98%E5%8C%96%E9%80%89%E9%A1%B9-Optimization-Option"><span class="nav-text">6. 优化选项(Optimization Option)  </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-O0"><span class="nav-text">6.1 -O0  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-O-%E6%88%96-O1"><span class="nav-text">6.2 -O 或-O1  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3-O2"><span class="nav-text">6.3 -O2  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-4-O3"><span class="nav-text">6.4 -O3  </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-%E9%A2%84%E5%A4%84%E7%90%86%E5%99%A8%E9%80%89%E9%A1%B9-Preprocessor-Options"><span class="nav-text">7. 预处理器选项(Preprocessor Options)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#7-1-D"><span class="nav-text">7.1 -D</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#7-1-1-%E5%9F%BA%E6%9C%AC%E6%A0%BC%E5%BC%8F"><span class="nav-text">7.1.1 基本格式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#7-1-1-GCC%E5%AE%9E%E4%BE%8B"><span class="nav-text">7.1.1 GCC实例</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#7-1-2-Makefile%E5%AE%9E%E4%BE%8B"><span class="nav-text">7.1.2 Makefile实例</span></a></li></ol></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/f7a56c0b.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV02-03-编译与调试-02-GCC编译 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV02-03-编译与调试-02-GCC编译
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-10-30 08:00:14" itemprop="dateCreated datePublished" datetime="2024-10-30T08:00:14+08:00">2024-10-30</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">LV02-编译基础</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>13k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>48 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是编译与调试——GCC编译的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <p>说明：此篇笔记若有更新，系统环境可能会发生变化，但大概的应该都是一样的。</p><table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.6的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.0.0 build-20800274</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <ul><li>通用</li></ul><table>    <tr><td align="center">参考资料  </td><td align="center">相关链接</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">---<i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr><td align="left"><a href="" target="_blank">---</a></td><td align="left">---</td></tr></table>
+              </div>
+            </details>
+
+<h1 id="一、测试文件"><a href="#一、测试文件" class="headerlink" title="一、测试文件"></a><font size=3>一、测试文件</font></h1><p>这里准备几个文件用于测试，文件内容如下。</p>
+<h2 id="1-单文件test-c"><a href="#1-单文件test-c" class="headerlink" title="1. 单文件test.c"></a><font size=3>1. 单文件test.c</font></h2><p>这个是不调用其他自定义的头文件和函数。<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/tree/master/LV01_GCC_COMPILE/00_compile/01_monofile">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;01_monofile · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> **argv)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;Hello, world!\n&quot;</span>);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-多文件-main"><a href="#2-多文件-main" class="headerlink" title="2. 多文件 main"></a><font size=3>2. 多文件 main</font></h2><p>这个测试文件包含多个文件，在main.c中调用另外两个c文件中的函数。<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/tree/master/LV01_GCC_COMPILE/00_compile/02_multifile">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;02_multifile · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a></p>
+<h3 id="2-1-main-c"><a href="#2-1-main-c" class="headerlink" title="2.1 main.c"></a><font size=3>2.1 main.c</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;func1.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;func2.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">const</span> <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is main file!\n&quot;</span>);</span><br><span class="line">	func1();</span><br><span class="line">	func2();</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-func1-c"><a href="#2-2-func1-c" class="headerlink" title="2.2 func1.c"></a><font size=3>2.2 func1.c</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">func1</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;This is func1.c file\n&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-func2-c"><a href="#2-3-func2-c" class="headerlink" title="2.3 func2.c"></a><font size=3>2.3 func2.c</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">func2</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;This is func2.c file\n&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-4-func1-h"><a href="#2-4-func1-h" class="headerlink" title="2.4 func1.h"></a><font size=3>2.4 func1.h</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifndef</span> __FUNC1_H__</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __FUNC1_H__</span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">func1</span><span class="params">(<span class="type">void</span>)</span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-5-func2-h"><a href="#2-5-func2-h" class="headerlink" title="2.5 func2.h"></a><font size=3>2.5 func2.h</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifndef</span> __FUNC2_H__</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __FUNC2_H__</span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">func2</span><span class="params">(<span class="type">void</span>)</span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+
+<h1 id="二、GCC-编译过程"><a href="#二、GCC-编译过程" class="headerlink" title="二、GCC 编译过程"></a><font size=3>二、GCC 编译过程</font></h1><h2 id="1-基本语法"><a href="#1-基本语法" class="headerlink" title="1. 基本语法"></a><font size=3>1. 基本语法</font></h2><p>我们先看几个编译命令，这里以单文件test.c为例：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -o test # 直接编译成可执行文件</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">以上命令等价于执行以下全部操作</span></span><br><span class="line">gcc -E test.c -o test.i # 预处理，可理解为把头文件的代码汇总成C代码，把*.c转换得到*.i文件</span><br><span class="line">gcc -S test.i -o test.s # 编译，可理解为把C代码转换为汇编代码，把*.i转换得到*.s文件</span><br><span class="line">gcc -c test.s -o test.o # 汇编，可理解为把汇编代码转换为机器码，把*.s转换得到*.o，即目标文件</span><br><span class="line">gcc test.o -o test # 链接，把不同文件之间的调用关系链接起来，把一个或多个*.o转换成最终的可执行文件</span><br></pre></td></tr></table></figure>
+
+<p>然后我们就会得到以下文件：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241028222408311.png" alt="image-20241028222408311" />
+
+<h2 id="2-编译过程分析"><a href="#2-编译过程分析" class="headerlink" title="2. 编译过程分析"></a><font size=3>2. 编译过程分析</font></h2><p> GCC 编译的流程有四个步骤：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20220919223139549.png" alt="image-20220919223139549" style="zoom:50%;" />
+
+<p><strong>【编译命令】</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">gcc -E test.c -o test.i # 预处理,得到预处理文件 *.i</span><br><span class="line">gcc -S test.i -o test.s # 编译,  得到汇编文件 *.s</span><br><span class="line">gcc -c test.s -o test.o # 汇编,  得到二进制文件 *.o</span><br><span class="line">gcc test.o -o test      # 链接,  得到可执行文件 *.out</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-GCC编译的基本步骤"><a href="#3-GCC编译的基本步骤" class="headerlink" title="3. GCC编译的基本步骤"></a><font size=3>3. GCC编译的基本步骤</font></h2><p>接下来我们对每个步骤进行分析，想要更为详细的了解，可以看这本书：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029070418595.png" alt="image-20241029070418595" style="zoom: 25%;" />
+
+<h3 id="3-1-预处理-Pre-Processing"><a href="#3-1-预处理-Pre-Processing" class="headerlink" title="3.1 预处理( Pre-Processing ) "></a><font size=3>3.1 预处理( Pre-Processing ) </font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -E test.c -o test.i</span><br></pre></td></tr></table></figure>
+
+<p>使用GCC的参数“-E”，可以让编译器生成.i文件，参数“-o”，可以指定输出文件的名字。</p>
+<p>预处理主要是进行宏的替换，例如 对文件包含#include 和预编译语句（如宏定义#define 等）进行处理，需要包含的进行包含，需要展开的宏进行展开等，所以在后续进行编译的时候是没有 include 和 define 的，所以 .i 文件里都是一些库函数的声明。 可理解为把头文件的代码、宏之类的内容转换成更纯粹的C代码，不过生成的文件以.i为后缀。</p>
+<p>可以看这个文件：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/blob/master/LV01_GCC_COMPILE/00_compile/01_monofile/test.i">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;01_monofile&#x2F;test.i · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a></p>
+<p>文件中以“#”开头的是注释，可看到有非常多的类型定义、函数声明被加入到文件中， 这些就是预处理阶段完成的工作，相当于它把原C代码中包含的头文件中引用的内容汇总到一处。 如果原C代码有宏定义，还可以更直观地看到它把宏定义展开成具体的内容（如宏定义代表的数字）。</p>
+<h3 id="3-2-编译-Compiling"><a href="#3-2-编译-Compiling" class="headerlink" title="3.2 编译( Compiling )"></a><font size=3>3.2 编译( Compiling )</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -S test.i -o test.s</span><br></pre></td></tr></table></figure>
+
+<p>这个阶段编译器主要做词法分析、语法分析、语义分析等，在检查无错误后后，把代码翻译成汇编语言，生成 .s 文件。 在这个过程，即使我们调用了一个没有定义的函数，也不会报错。</p>
+<p>可以看这个文件：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/blob/master/LV01_GCC_COMPILE/00_compile/01_monofile/test.s">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;01_monofile&#x2F;test.s · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a></p>
+<p>汇编语言是跟平台相关的，由于本示例的GCC目标平台是x86，所以此处生成的汇编文件是x86的汇编代码。</p>
+<h3 id="3-3-汇编-Assembling"><a href="#3-3-汇编-Assembling" class="headerlink" title="3.3 汇编( Assembling )"></a><font size=3>3.3 汇编( Assembling )</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -c test.s -o test.o</span><br></pre></td></tr></table></figure>
+
+<p>汇编器 as 将 汇编语言文件翻译成机器语言。这一步是由汇编文件生成目标文件.o文件，每一个源文件都对应一个目标文件。GCC的参数“c”表示只编译(compile)源文件但不链接，会将源程序编译成目标文件（.o后缀）。计算机只认识0或者1，不懂得C语言，也不懂得汇编语言，经过编译汇编之后，生成的目标文件包含着机器代码，这部分代码就可以直接被计算机执行。</p>
+<p>可以看这个文件：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/blob/master/LV01_GCC_COMPILE/00_compile/01_monofile/test.o">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;01_monofile&#x2F;test.o · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a></p>
+<p>*.o是为了让计算机阅读的，所以不像前面生成的*.i和*.s文件直接使用字符串来记录， 如果直接使用编辑器打开，只会看到乱码。Linux下生成的*.o目标文件、*.so动态库文件以及\链接阶段生成最终的可执行文件都是elf格式的， 可以使用“readelf”工具来查看它们的内容。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">readelf -a test.o</span><br></pre></td></tr></table></figure>
+
+<p>然后我们可以看到如下内容：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/blob/master/LV01_GCC_COMPILE/00_compile/01_monofile/test.o.txt">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;01_monofile&#x2F;test.o.txt · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a>：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241028224455565.png" alt="image-20241028224455565" />
+
+<p>从readelf的工具输出的信息，可以了解到目标文件包含ELF头、程序头、节等内容， 对于*.o目标文件或*.so库文件，编译器在链接阶段利用这些信息把多个文件组织起来， 对于可执行文件，系统在运行时根据这些信息加载程序运行。</p>
+<h3 id="3-4-链接-Linking"><a href="#3-4-链接-Linking" class="headerlink" title="3.4 链接( Linking )"></a><font size=3>3.4 链接( Linking )</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc test.o -o test</span><br></pre></td></tr></table></figure>
+
+<p>最后将每个源文件对应的.o文件以及各种库链接起来，生成一个可执行程序文件，得到最终的可执行文件。</p>
+<p>这里只有一个test.c文件，但它调用了C标准代码库的printf函数， 所以链接器会把它和printf函数链接起来，生成最终的可执行文件。</p>
+<p>还会有多个文件的情况，例如一个工程里包含了A和B两个代码文件，编译后生成了各自的A.o和B.o目标文件， 如果在代码A中调用了B中的某个函数fun，那么在A的代码中只要包含了fun的函数声明， 编译就会通过，而不管B中是否真的定义了fun函数（当然，如果函数声明都没有，编译也会报错）。 也就是说A.o和B.o目标文件在编译阶段是独立的，而在链接阶段， 链接过程需要把A和B之间的函数调用关系理顺，也就是说要告诉A在哪里能够调用到fun函数， 建立映射关系，所以称之为<strong>链接</strong>。若链接过程中找不到fun函数的具体定义，则会链接报错。</p>
+<p>链接分为两种：</p>
+<ul>
+<li>动态链接，GCC编译时的默认选项。动态是指在应用程序运行时才去加载外部的代码库， 例如printf函数的C标准代码库*.so文件存储在Linux系统的某个位置， hello程序执行时调用库文件*.so中的内容，不同的程序可以共用代码库。 所以动态链接生成的程序比较小，占用较少的内存。</li>
+<li>静态链接，链接时使用选项“–static”，它在编译阶段就会把所有用到的库打包到自己的可执行程序中。 所以静态链接的优点是具有较好的兼容性，不依赖外部环境，但是生成的程序比较大。</li>
+</ul>
+<p>我们可以看一下两者的区别：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">test.o所在的目录执行如下命令</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">动态链接，生成名为<span class="built_in">test</span>的可执行文件</span></span><br><span class="line">gcc test.o -o test_dynamic</span><br><span class="line">gcc test.c -o test_dynamic # 也可以直接使用C文件一步生成，与上面的命令等价</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">静态链接，使用--static参数，生成名为hello_static的可执行文件</span></span><br><span class="line">gcc test.o -o test_static --static</span><br><span class="line">gcc test.c -o test_static --static # 也可以直接使用C文件一步生成，与上面的命令等价</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241028225143958.png" alt="image-20241028225143958" />
+
+<p>从图中可以看到，使用动态链接生成的hello程序才17KB， 而使用静态链接生成的程序则高达852KB。在Ubuntu下，可以使用ldd工具查看动态文件的库依赖，尝试执行如下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在 <span class="built_in">test</span> 所在的目录执行如下命令</span></span><br><span class="line">ldd test_dynamic</span><br><span class="line">ldd test_static</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241028225317318.png" alt="image-20241028225317318" />
+
+<p>可以看到，动态链接生成的test_dynamic程序依赖于库文件linux-vdso.so.1、libc.so.6 以及ld-linux-x86-64.so.2，其中的libc.so.6就是我们常说的C标准代码库， 我们的程序中调用了它的printf库函数。静态链接生成的test_static没有依赖外部库文件。</p>
+<h2 id="4-多文件编译"><a href="#4-多文件编译" class="headerlink" title="4. 多文件编译"></a><font size=3>4. 多文件编译</font></h2><h3 id="4-1-在同一个目录下"><a href="#4-1-在同一个目录下" class="headerlink" title="4.1 在同一个目录下"></a><font size=3>4.1 在同一个目录下</font></h3><p>很多时候我们写代码不可能一个源文件写到尾，我们会根据功能，模块等将其写在不同的文件中，例如：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/tree/master/LV01_GCC_COMPILE/00_compile/02_multifile">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;02_multifile · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a></p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029070842669.png" alt="image-20241029070842669" />
+
+<p>需要注意的是一个C语言工程中，不管有多少个源文件，都一定知道能有一个main函数。</p>
+<h4 id="4-1-1-基本语法"><a href="#4-1-1-基本语法" class="headerlink" title="4.1.1 基本语法"></a><font size=3>4.1.1 基本语法</font></h4><p>有的时候我们在一个 C 文件中调用了另一个 C文件中的函数，但是这些文件必须只有一个 main 函数，他们编译的时候要一起编译。一般格式如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">一般我们会在main函数所在的源文件目录下编译</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">一起编译链接</span></span><br><span class="line">gcc file1.c file2.c ... main.c -o file_name </span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">分开编译，统一链接</span></span><br><span class="line">gcc file1.c -o file1_name </span><br><span class="line">gcc file2.c -o file2_name </span><br><span class="line">... </span><br><span class="line">gcc main.c -o file_name </span><br></pre></td></tr></table></figure>
+
+<p><strong>【参数说明】</strong></p>
+<ul>
+<li><p>file1.c  … main.c：所有的源文件</p>
+</li>
+<li><p>file_name ：表示最终生成的可执行文件的名称。</p>
+</li>
+</ul>
+<h4 id="4-1-2-使用实例"><a href="#4-1-2-使用实例" class="headerlink" title="4.1.2 使用实例"></a><font size=3>4.1.2 使用实例</font></h4><p>如果说源 文件不在同一个目录下的话，我们编译需要加上 c 文件的路径，否则 GCC 编译的时候是找不到源文件的，例如如下文件目录结构（此处仅为展示目录结构，用的并不是笔记开头的文件）：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">.</span><br><span class="line">├── func1.c</span><br><span class="line">├── func1.h</span><br><span class="line">├── func2.c</span><br><span class="line">├── func2.h</span><br><span class="line">└── main.c</span><br></pre></td></tr></table></figure>
+
+<p>我们在 main.c 所在目录进行编译：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc func1.c func2.c main.c -o main</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029071406831.png" alt="image-20241029071406831" />
+
+<p>发现一切正常。</p>
+<h3 id="4-2-在不同目录中"><a href="#4-2-在不同目录中" class="headerlink" title="4.2 在不同目录中"></a><font size=3>4.2 在不同目录中</font></h3><p>例如：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/tree/master/LV01_GCC_COMPILE/00_compile/03_multifile_dir_01">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;03_multifile_dir_01 · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a>和<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/tree/master/LV01_GCC_COMPILE/00_compile/04_multifile_dir_02">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;04_multifile_dir_02 · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">自己的C文件和自己的头文件一起</span></span><br><span class="line">.</span><br><span class="line">├── func1</span><br><span class="line">│   ├── func1.c</span><br><span class="line">│   └── func1.h</span><br><span class="line">├── func2</span><br><span class="line">│   ├── func2.c</span><br><span class="line">│   └── func2.h</span><br><span class="line">└── main.c</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">C文件和h文件分开</span></span><br><span class="line">.</span><br><span class="line">├── func1</span><br><span class="line">│   ├── func1.c</span><br><span class="line">│   └── func1.h</span><br><span class="line">├── func2</span><br><span class="line">│   ├── func2.c</span><br><span class="line">│   └── func2.h</span><br><span class="line">└── main.c</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>其实这两种情况都差不多。</p>
+<h4 id="4-2-1-我们编译一下"><a href="#4-2-1-我们编译一下" class="headerlink" title="4.2.1 我们编译一下"></a><font size=3>4.2.1 我们编译一下</font></h4><ul>
+<li><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/tree/master/LV01_GCC_COMPILE/00_compile/03_multifile_dir_01">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;03_multifile_dir_01 · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a></li>
+</ul>
+<p>我们按照之前的方式编译：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc func1.c func2.c main.c -o main</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029072110164.png" alt="image-20241029072110164" />
+
+<p>发现找不到两个源文件，那我们加上路径好了：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc ./func1/func1.c ./func1/func2.c main.c -o main</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029072321515.png" alt="image-20241029072321515" />
+
+<p>然后又提示找不到头文件。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/tree/master/LV01_GCC_COMPILE/00_compile/04_multifile_dir_02">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;04_multifile_dir_02 · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a></li>
+</ul>
+<p>我们试一下另一个目录的情况：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc ./func/func1.c ./func/func2.c main.c -o main</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029072452357.png" alt="image-20241029072452357" />
+
+<p>发现也是一样的。</p>
+<h4 id="4-2-3-去哪里找头文件？"><a href="#4-2-3-去哪里找头文件？" class="headerlink" title="4.2.3 去哪里找头文件？"></a><font size=3>4.2.3 去哪里找头文件？</font></h4><p>上面编译的过程中，我们发现，只要头文件跟main.c不在一个目录下，main.c在编译的时候必然报错，这是在预处理main.c的时候找不到这个头文件导致的，我们可以这样：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">include <span class="string">&quot;./include/func1.h&quot;</span></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">include <span class="string">&quot;./include/func2.h&quot;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>这样修改源文件就不会有问题了，但是这是我们直接写出了头文件的位置，那要是我们优化工程，改变了头文件的位置，那岂不是要把所有的头文件都改一遍？那肯定不行，GCC为我们提供了 <code>-I</code>选项，这个选项就指明了头文件的位置。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc ./func1/func1.c ./func2/func2.c main.c -o main -I./func1 -I./func2</span><br><span class="line">gcc ./func/func1.c ./func/func2.c main.c -o main -I ./include</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029073159894.png" alt="image-20241029073159894" />
+
+<h3 id="4-3-几个问题"><a href="#4-3-几个问题" class="headerlink" title="4.3 几个问题"></a><font size=3>4.3 几个问题</font></h3><ul>
+<li>（1）编译程序时去哪找头文件？</li>
+</ul>
+<p>答：系统目录，就是编译工具链里的某个 include 目录；也可以自己指定：编译时用<code>-I dir </code>选项指定。   <code>#include &lt;xxx.h&gt;</code>尖括号中的头文件就是在系统目录找。</p>
+<ul>
+<li>（2）链接时去哪找库文件？</li>
+</ul>
+<p>答：系统目录，就是交叉编译工具链里的某个 lib 目录；也可以自己指定：链接时用 <code>-L dir</code>选项指定。  </p>
+<ul>
+<li>（3）运行时去哪找库文件？</li>
+</ul>
+<p>答：系统目录，就是板子上的&#x2F;lib、 &#x2F;usr&#x2F;lib 目录；也可以自己指定：运行程序用环境变量 <code>LD_LIBRARY_PATH</code> 指定。  </p>
+<blockquote>
+<p>【注意】当我们移植某些功能到arm开发板的时候，会有库文件，头文件等。由于运行时不需要头文件，所以头文件不用放到板子上  </p>
+</blockquote>
+<h3 id="4-4-系统目录在哪？"><a href="#4-4-系统目录在哪？" class="headerlink" title="4.4 系统目录在哪？"></a><font size=3>4.4 系统目录在哪？</font></h3><p>我们在编译过程中除了语法问题，可能会遇到：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">头文件问题</span></span><br><span class="line">xxx.c:2:10: fatal error: xxxxx.h: 没有那个文件或目录</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">库文件问题</span></span><br><span class="line">undefined reference to &#x27;xxx&#x27;</span><br></pre></td></tr></table></figure>
+
+<p>在运行时有可能遇到：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">error while loading shared libraries: libxxx.so:</span><br><span class="line">cannot open shared object file: No such file or directory</span><br></pre></td></tr></table></figure>
+
+<p>这其实就对应上面的三个问题，他们的答案都是系统目录，那么系统目录在哪？ 执行下面命令确定目录：  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo &#x27;main()&#123;&#125;&#x27;| gcc -E -v -</span><br></pre></td></tr></table></figure>
+
+<p>它会列出头文件目录、库目录(<code>LIBRARY_PATH</code>)。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">sumu@sumu-virtual-machine:~/1sharedfiles/linux_develop/imx6ull-app-demo/LV01_GCC_COMPILE/00_compile/multifile_dir_01$ echo &#x27;main()&#123;&#125;&#x27;| gcc -E -v -</span><br><span class="line">Using built-in specs.</span><br><span class="line">COLLECT_GCC=gcc</span><br><span class="line">OFFLOAD_TARGET_NAMES=nvptx-none:hsa</span><br><span class="line">OFFLOAD_TARGET_DEFAULT=1</span><br><span class="line">Target: x86_64-linux-gnu</span><br><span class="line">Configured with: ../src/configure -v --with-pkgversion=&#x27;Ubuntu 9.4.0-1ubuntu1~20.04.2&#x27; --with-bugurl=file:///usr/share/doc/gcc-9/README.Bugs --enable-languages=c,ada,c++,go,brig,d,fortran,objc,obj-c++,gm2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-9 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-9-9QDOt0/gcc-9-9.4.0/debian/tmp-nvptx/usr,hsa --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu</span><br><span class="line">Thread model: posix</span><br><span class="line">gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.2) </span><br><span class="line">COLLECT_GCC_OPTIONS=&#x27;-E&#x27; &#x27;-v&#x27; &#x27;-mtune=generic&#x27; &#x27;-march=x86-64&#x27;</span><br><span class="line"> /usr/lib/gcc/x86_64-linux-gnu/9/cc1 -E -quiet -v -imultiarch x86_64-linux-gnu - -mtune=generic -march=x86-64 -fasynchronous-unwind-tables -fstack-protector-strong -Wformat -Wformat-security -fstack-clash-protection -fcf-protection</span><br><span class="line">ignoring nonexistent directory &quot;/usr/local/include/x86_64-linux-gnu&quot;</span><br><span class="line">ignoring nonexistent directory &quot;/usr/lib/gcc/x86_64-linux-gnu/9/include-fixed&quot;</span><br><span class="line">ignoring nonexistent directory &quot;/usr/lib/gcc/x86_64-linux-gnu/9/../../../../x86_64-linux-gnu/include&quot;</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">include <span class="string">&quot;...&quot;</span> search starts here:</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">include &lt;...&gt; search starts here:</span></span><br><span class="line"> /usr/lib/gcc/x86_64-linux-gnu/9/include</span><br><span class="line"> /usr/local/include</span><br><span class="line"> /usr/include/x86_64-linux-gnu</span><br><span class="line"> /usr/include</span><br><span class="line">End of search list.</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">1 <span class="string">&quot;&lt;stdin&gt;&quot;</span></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">1 <span class="string">&quot;&lt;built-in&gt;&quot;</span></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">1 <span class="string">&quot;&lt;command-line&gt;&quot;</span></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">31 <span class="string">&quot;&lt;command-line&gt;&quot;</span></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">1 <span class="string">&quot;/usr/include/stdc-predef.h&quot;</span> 1 3 4</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">32 <span class="string">&quot;&lt;command-line&gt;&quot;</span> 2</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">1 <span class="string">&quot;&lt;stdin&gt;&quot;</span></span></span><br><span class="line">main()&#123;&#125;</span><br><span class="line">COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/</span><br><span class="line">LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../:/lib/:/usr/lib/</span><br><span class="line">COLLECT_GCC_OPTIONS=&#x27;-E&#x27; &#x27;-v&#x27; &#x27;-mtune=generic&#x27; &#x27;-march=x86-64&#x27;</span><br></pre></td></tr></table></figure>
+
+<p>后面我们会用到交叉编译工具，就是编译出可以在arm板子上跑的程序的工具，我们也来看一下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">sumu@sumu-virtual-machine:~/1sharedfiles/linux_develop/imx6ull-app-demo/LV01_GCC_COMPILE/00_compile/multifile_dir_01$ echo &#x27;main()&#123;&#125;&#x27;| arm-linux-gnueabihf-gcc -E -v -</span><br><span class="line">使用内建 specs。</span><br><span class="line">COLLECT_GCC=arm-linux-gnueabihf-gcc</span><br><span class="line">目标：arm-linux-gnueabihf</span><br><span class="line">配置为：/home/tcwg-buildslave/workspace/tcwg-make-release/label/docker-trusty-amd64-tcwg-build/target/arm-linux-gnueabihf/snapshots/gcc-linaro-4.9-2017.01/configure SHELL=/bin/bash --with-mpc=/home/tcwg-buildslave/workspace/tcwg-make-release/label/docker-trusty-amd64-tcwg-build/target/arm-linux-gnueabihf/_build/builds/destdir/x86_64-unknown-linux-gnu --with-mpfr=/home/tcwg-buildslave/workspace/tcwg-make-release/label/docker-trusty-amd64-tcwg-build/target/arm-linux-gnueabihf/_build/builds/destdir/x86_64-unknown-linux-gnu --with-gmp=/home/tcwg-buildslave/workspace/tcwg-make-release/label/docker-trusty-amd64-tcwg-build/target/arm-linux-gnueabihf/_build/builds/destdir/x86_64-unknown-linux-gnu --with-gnu-as --with-gnu-ld --disable-libmudflap --enable-lto --enable-objc-gc --enable-shared --without-included-gettext --enable-nls --disable-sjlj-exceptions --enable-gnu-unique-object --enable-linker-build-id --disable-libstdcxx-pch --enable-c99 --enable-clocale=gnu --enable-libstdcxx-debug --enable-long-long --with-cloog=no --with-ppl=no --with-isl=no --disable-multilib --with-float=hard --with-mode=thumb --with-tune=cortex-a9 --with-arch=armv7-a --with-fpu=vfpv3-d16 --enable-threads=posix --enable-multiarch --enable-libstdcxx-time=yes --with-build-sysroot=/home/tcwg-buildslave/workspace/tcwg-make-release/label/docker-trusty-amd64-tcwg-build/target/arm-linux-gnueabihf/_build/sysroots/arm-linux-gnueabihf --with-sysroot=/home/tcwg-buildslave/workspace/tcwg-make-release/label/docker-trusty-amd64-tcwg-build/target/arm-linux-gnueabihf/_build/builds/destdir/x86_64-unknown-linux-gnu/arm-linux-gnueabihf/libc --enable-checking=release --disable-bootstrap --enable-languages=c,c++,fortran,lto --build=x86_64-unknown-linux-gnu --host=x86_64-unknown-linux-gnu --target=arm-linux-gnueabihf --prefix=/home/tcwg-buildslave/workspace/tcwg-make-release/label/docker-trusty-amd64-tcwg-build/target/arm-linux-gnueabihf/_build/builds/destdir/x86_64-unknown-linux-gnu</span><br><span class="line">线程模型：posix</span><br><span class="line">gcc 版本 4.9.4 (Linaro GCC 4.9-2017.01) </span><br><span class="line">COLLECT_GCC_OPTIONS=&#x27;-E&#x27; &#x27;-v&#x27; &#x27;-march=armv7-a&#x27; &#x27;-mtune=cortex-a9&#x27; &#x27;-mfloat-abi=hard&#x27; &#x27;-mfpu=vfpv3-d16&#x27; &#x27;-mthumb&#x27; &#x27;-mtls-dialect=gnu&#x27;</span><br><span class="line"> /home/sumu/2software/gcc-linaro-4.9.4/bin/../libexec/gcc/arm-linux-gnueabihf/4.9.4/cc1 -E -quiet -v -imultilib . -imultiarch arm-linux-gnueabihf -iprefix /home/sumu/2software/gcc-linaro-4.9.4/bin/../lib/gcc/arm-linux-gnueabihf/4.9.4/ -isysroot /home/sumu/2software/gcc-linaro-4.9.4/bin/../arm-linux-gnueabihf/libc - -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -mfpu=vfpv3-d16 -mthumb -mtls-dialect=gnu</span><br><span class="line">忽略重复的目录“/home/sumu/2software/gcc-linaro-4.9.4/bin/../lib/gcc/../../lib/gcc/arm-linux-gnueabihf/4.9.4/include”</span><br><span class="line">忽略不存在的目录“/home/sumu/2software/gcc-linaro-4.9.4/bin/../arm-linux-gnueabihf/libc/usr/local/include/arm-linux-gnueabihf”</span><br><span class="line">忽略不存在的目录“/home/sumu/2software/gcc-linaro-4.9.4/bin/../arm-linux-gnueabihf/libc/usr/local/include”</span><br><span class="line">忽略重复的目录“/home/sumu/2software/gcc-linaro-4.9.4/bin/../lib/gcc/../../lib/gcc/arm-linux-gnueabihf/4.9.4/include-fixed”</span><br><span class="line">忽略重复的目录“/home/sumu/2software/gcc-linaro-4.9.4/bin/../lib/gcc/../../lib/gcc/arm-linux-gnueabihf/4.9.4/../../../../arm-linux-gnueabihf/include”</span><br><span class="line">忽略不存在的目录“/home/sumu/2software/gcc-linaro-4.9.4/bin/../arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf”</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">include <span class="string">&quot;...&quot;</span> 搜索从这里开始：</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">include &lt;...&gt; 搜索从这里开始：</span></span><br><span class="line"> /home/sumu/2software/gcc-linaro-4.9.4/bin/../lib/gcc/arm-linux-gnueabihf/4.9.4/include</span><br><span class="line"> /home/sumu/2software/gcc-linaro-4.9.4/bin/../lib/gcc/arm-linux-gnueabihf/4.9.4/include-fixed</span><br><span class="line"> /home/sumu/2software/gcc-linaro-4.9.4/bin/../lib/gcc/arm-linux-gnueabihf/4.9.4/../../../../arm-linux-gnueabihf/include</span><br><span class="line"> /home/sumu/2software/gcc-linaro-4.9.4/bin/../arm-linux-gnueabihf/libc/usr/include</span><br><span class="line">搜索列表结束。</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">1 <span class="string">&quot;&lt;stdin&gt;&quot;</span></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">1 <span class="string">&quot;&lt;built-in&gt;&quot;</span></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">1 <span class="string">&quot;&lt;命令行&gt;&quot;</span></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">1 <span class="string">&quot;/home/sumu/2software/gcc-linaro-4.9.4/arm-linux-gnueabihf/libc/usr/include/stdc-predef.h&quot;</span> 1 3 4</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">1 <span class="string">&quot;&lt;命令行&gt;&quot;</span> 2</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">1 <span class="string">&quot;&lt;stdin&gt;&quot;</span></span></span><br><span class="line">main()&#123;&#125;</span><br><span class="line">COMPILER_PATH=/home/sumu/2software/gcc-linaro-4.9.4/bin/../libexec/gcc/arm-linux-gnueabihf/4.9.4/:/home/sumu/2software/gcc-linaro-4.9.4/bin/../libexec/gcc/arm-linux-gnueabihf/:/home/sumu/2software/gcc-linaro-4.9.4/bin/../libexec/gcc/:/home/sumu/2software/gcc-linaro-4.9.4/bin/../lib/gcc/arm-linux-gnueabihf/4.9.4/../../../../arm-linux-gnueabihf/bin/</span><br><span class="line">LIBRARY_PATH=/home/sumu/2software/gcc-linaro-4.9.4/bin/../lib/gcc/arm-linux-gnueabihf/4.9.4/:/home/sumu/2software/gcc-linaro-4.9.4/bin/../lib/gcc/arm-linux-gnueabihf/:/home/sumu/2software/gcc-linaro-4.9.4/bin/../lib/gcc/:/home/sumu/2software/gcc-linaro-4.9.4/bin/../lib/gcc/arm-linux-gnueabihf/4.9.4/../../../../arm-linux-gnueabihf/lib/:/home/sumu/2software/gcc-linaro-4.9.4/bin/../arm-linux-gnueabihf/libc/lib/:/home/sumu/2software/gcc-linaro-4.9.4/bin/../arm-linux-gnueabihf/libc/usr/lib/</span><br><span class="line">COLLECT_GCC_OPTIONS=&#x27;-E&#x27; &#x27;-v&#x27; &#x27;-march=armv7-a&#x27; &#x27;-mtune=cortex-a9&#x27; &#x27;-mfloat-abi=hard&#x27; &#x27;-mfpu=vfpv3-d16&#x27; &#x27;-mthumb&#x27; &#x27;-mtls-dialect=gnu&#x27;</span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="三、GCC选项说明"><a href="#三、GCC选项说明" class="headerlink" title="三、GCC选项说明"></a><font size=3>三、GCC选项说明</font></h1><h2 id="1-基本选项"><a href="#1-基本选项" class="headerlink" title="1. 基本选项"></a><font size=3>1. 基本选项</font></h2><p>在 GCC 编译的四个步骤中，我们单独进行每一步的时候都需要使用相应的参数选项：</p>
+<table>
+    <tr>
+        <td align="center">选项</td>
+        <td align="center">说明</td>
+    </tr>
+    <tr>
+        <td align="center">-E</td>
+        <td align="left">只激活预处理，不生成文件，需要把它重定向到一个输出文件里面。<br>例如，gcc -E test.c > test.txt</td>
+    </tr>
+    <tr>
+        <td align="center">-S</td>
+        <td align="left">只激活预处理和编译，就是指把文件编译成为汇编代码。<br>例如，gcc -S test.c # 将生成.s的汇编代码</td>
+    </tr>
+    <tr>
+        <td align="center">-c</td>
+        <td align="left">只激活预处理，编译，和汇编，也就是他只把程序做成obj文件。<br>例如，gcc -c test.c # 将生成.o的obj文件</td>
+    </tr>
+    <tr>
+        <td align="center">-o</td>
+        <td align="left">指定目标名称，缺省的时候，gcc 编译出来的文件默认名称是a.out。<br>例如，gcc test.c -o test</td>
+    </tr>
+    <tr>
+        <td align="center">-v</td>
+        <td align="left">显示制作 GCC 工具自身时的配置命令；同时显示编译器驱动程序、预处理器、
+编译器的版本号。<br>例如：gcc -E test.c -o test.i -v</td>
+    </tr>
+</table>
+
+<p><strong>【说明】</strong></p>
+<p>使用 GCC 编译器编译 C 或者 C++ 程序，必须要经历这 4 个过程，就是预处理，编译，汇编和链接。但考虑在实际使用中，用户可能并不关心程序的执行结果，只想快速得到最终的可执行程序，因此 gcc 和 g++ 都对此需求做了支持。所以我们可以通过 gcc 命令一步直接得到可执行文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">gcc -c test.c         # 将会直接生成 a.out 可执行文件</span><br><span class="line">gcc -c test.c -o test # 直接生成可执行文件，并且指定生成文件名为 test</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">或者直接省略 -c</span></span><br><span class="line">gcc test.c         # 将会直接生成 a.out 可执行文件</span><br><span class="line">gcc test.c -o test # 直接生成可执行文件，并且指定生成文件名为 test</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-链接器选项-Linker-Option"><a href="#2-链接器选项-Linker-Option" class="headerlink" title="2. 链接器选项(Linker Option)  "></a><font size=3>2. 链接器选项(Linker Option)  </font></h2><p>这一部分的选项是用于链接 OBJ 文件，输出可执行文件或库文件。  </p>
+<h3 id="2-1-object-file-name"><a href="#2-1-object-file-name" class="headerlink" title="2.1 object-file-name  "></a><font size=3>2.1 object-file-name  </font></h3><p>如果某些文件没有特别明确的后缀(a special recognized suffix)，GCC 就认为他们是 OBJ 文件或库文件(根据文件内容,链接器能够区分 OBJ 文件和库文件)。</p>
+<p>如果 GCC 执行链接操作，这些 OBJ 文件将成为链接器的输入文件。比如</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc func.o main.o -o main</span><br></pre></td></tr></table></figure>
+
+<p>其中的 main.o、 func.o 就是输入的文件。  </p>
+<h3 id="2-2-llibrary-小写的L"><a href="#2-2-llibrary-小写的L" class="headerlink" title="2.2 -llibrary(小写的L)"></a><font size=3>2.2 -llibrary(小写的L)</font></h3><p>链接名为 library 的库文件。链接器在标准搜索目录中寻找这个库文件，库文件的真正名字是<code>liblibrary.a</code>。搜索目录除了一些系统标准目录外，还包括用户以 <code>-L</code> 选项指定的路径。</p>
+<p>一般说来用这个方法找到的文件是库文件──即由 OBJ 文件组成的归档文件(archive file)。链接器处理归档文件的方法是：扫描归档文件，寻找某些成员，这些成员的符号目前已被引用，不过还没有被定义。但是，如果链接器找到普通的 OBJ 文件，而不是库文件，就把这个 OBJ 文件按平常方式链接进来。</p>
+<p>指定<code>-l</code>选项和指定文件名的唯一区别是， <code>-l</code>选项用<code>lib</code>和<code>.a</code>把 library 包裹起来，而且搜索一些目录。  </p>
+<h4 id="2-2-1-链接库"><a href="#2-2-1-链接库" class="headerlink" title="2.2.1 链接库"></a><font size=3>2.2.1 链接库</font></h4><p>链接器把多个二进制的目标文件（object file）链接成一个单独的可执行文件。在链接过程中，它必须把符号（变量名、函数名等一些列标识符）用对应的数据的内存地址（变量地址、函数地址等）替代，以完成程序中多个模块的外部引用。</p>
+<p>标准库的大部分函数通常放在<strong>静态链接库</strong> libc.a 中（文件名后缀 .a 代表“achieve”，译为“获取”），或者放在用于共享的<strong>动态链接</strong>库 libc.so 中（文件名后缀 .so 代表“share object”，译为“共享对象”）。这些链接库一般位于 &#x2F;lib&#x2F; 或 &#x2F;usr&#x2F;lib&#x2F;，或者位于 GCC默认搜索的其他目录。</p>
+<p>当使用 GCC 编译和链接程序时，GCC 默认会链接 libc.a 或者 libc.so，但是对于其他的库（例如非标准库、第三方库等），就需要手动添加。</p>
+<h4 id="2-2-2-基本格式"><a href="#2-2-2-基本格式" class="headerlink" title="2.2.2 基本格式"></a><font size=3>2.2.2 基本格式</font></h4><p>-l （小写的 L）参数，用来指定程序要链接的库(库文件在&#x2F;lib、&#x2F;usr&#x2F;lib和&#x2F;usr&#x2F;local&#x2F;lib下)，-l 参数紧接着就是库名，一般使用格式如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -l&lt;lib_name&gt;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>lib_name ：表示要链接的库名称（不包括库的前缀和后缀）。</li>
+</ul>
+<p><strong>【注意】</strong>这个是<strong>小写的 L</strong>。</p>
+<h4 id="2-2-3-使用实例"><a href="#2-2-3-使用实例" class="headerlink" title="2.2.3 使用实例"></a><font size=3>2.2.3 使用实例</font></h4><p>我们在使用 math.h 中的数学函数的时候，会产生函数未定义错误，标准头文件 &lt;math.h&gt; 对应的数学库默认不会被链接，如果没有手动将它添加进来，就会发生函数未定义错误。数学库的文件名是 libm.a。前缀 lib 和后缀 .a 是标准的，m 是库名称，<strong>GCC 会在 -l 选项后紧跟着的基本名称的基础上自动添加这些前缀、后缀</strong>。如下程序<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/tree/master/LV01_GCC_COMPILE/00_compile/05_option_linker">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;05_option_linker · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a>，调用了 math.h 中的cos函数</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;math.h&gt;</span>       <span class="comment">/* cos */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PI 3.14159265</span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">const</span> <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">double</span> param; </span><br><span class="line">	<span class="type">double</span> result;</span><br><span class="line">    param = <span class="number">60.0</span>;</span><br><span class="line">    result = <span class="built_in">cos</span> ( param * PI / <span class="number">180.0</span> );</span><br><span class="line">    <span class="built_in">printf</span> (<span class="string">&quot;The cosine of %f degrees is %f.\n&quot;</span>, param, result );</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后我们在终端执行以下命令，我们先不加 -l 选项，编译程序，输入以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc main.c</span><br></pre></td></tr></table></figure>
+
+<p>不出意外我们会看到以下打印信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">/usr/bin/ld: /tmp/ccb61up1.o: in function `main&#x27;:</span><br><span class="line">main.c:(.text+0x3e): undefined reference to `cos&#x27;</span><br><span class="line">collect2: error: ld returned 1 exit status</span><br></pre></td></tr></table></figure>
+
+<p>会发现有上边的报错信息出现，当我们加上 -l 选项的时候，再编译：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc main.c -lm</span><br></pre></td></tr></table></figure>
+
+<p>这个时候就不会有信息输出，因为我们的程序编译没有任何问题了。我们用ldd命令看一下这个文件的依赖库：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ldd a.out</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029214807867.png" alt="image-20241029214807867" />
+
+<h4 id="2-2-4-默认链接库？"><a href="#2-2-4-默认链接库？" class="headerlink" title="2.2.4 默认链接库？"></a><font size=3>2.2.4 默认链接库？</font></h4><p>即使不明显地使用-llibrary 选项，一些默认的库也被链接进去，可以使用-v 选项看到这点，还是使用刚才带有数学库的这个程序<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/tree/master/LV01_GCC_COMPILE/00_compile/05_option_linker">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;05_option_linker · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a>：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -v main.c -lm</span><br></pre></td></tr></table></figure>
+
+<p>我们将会看到以下信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">Using built-in specs.</span><br><span class="line">COLLECT_GCC=gcc</span><br><span class="line">COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper</span><br><span class="line">OFFLOAD_TARGET_NAMES=nvptx-none:hsa</span><br><span class="line">OFFLOAD_TARGET_DEFAULT=1</span><br><span class="line">Target: x86_64-linux-gnu</span><br><span class="line">Configured with: ../src/configure -v --with-pkgversion=&#x27;Ubuntu 9.4.0-1ubuntu1~20.04.2&#x27; --with-bugurl=file:///usr/share/doc/gcc-9/README.Bugs --enable-languages=c,ada,c++,go,brig,d,fortran,objc,obj-c++,gm2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-9 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-9-9QDOt0/gcc-9-9.4.0/debian/tmp-nvptx/usr,hsa --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu</span><br><span class="line">Thread model: posix</span><br><span class="line">gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.2) </span><br><span class="line">COLLECT_GCC_OPTIONS=&#x27;-v&#x27; &#x27;-mtune=generic&#x27; &#x27;-march=x86-64&#x27;</span><br><span class="line"> /usr/lib/gcc/x86_64-linux-gnu/9/cc1 -quiet -v -imultiarch x86_64-linux-gnu main.c -quiet -dumpbase main.c -mtune=generic -march=x86-64 -auxbase main -version -fasynchronous-unwind-tables -fstack-protector-strong -Wformat -Wformat-security -fstack-clash-protection -fcf-protection -o /tmp/ccf6qxWl.s</span><br><span class="line">GNU C17 (Ubuntu 9.4.0-1ubuntu1~20.04.2) version 9.4.0 (x86_64-linux-gnu)</span><br><span class="line">        compiled by GNU C version 9.4.0, GMP version 6.2.0, MPFR version 4.0.2, MPC version 1.1.0, isl version isl-0.22.1-GMP</span><br><span class="line"></span><br><span class="line">GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072</span><br><span class="line">ignoring nonexistent directory &quot;/usr/local/include/x86_64-linux-gnu&quot;</span><br><span class="line">ignoring nonexistent directory &quot;/usr/lib/gcc/x86_64-linux-gnu/9/include-fixed&quot;</span><br><span class="line">ignoring nonexistent directory &quot;/usr/lib/gcc/x86_64-linux-gnu/9/../../../../x86_64-linux-gnu/include&quot;</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">include <span class="string">&quot;...&quot;</span> search starts here:</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">include &lt;...&gt; search starts here:</span></span><br><span class="line"> /usr/lib/gcc/x86_64-linux-gnu/9/include</span><br><span class="line"> /usr/local/include</span><br><span class="line"> /usr/include/x86_64-linux-gnu</span><br><span class="line"> /usr/include</span><br><span class="line">End of search list.</span><br><span class="line">GNU C17 (Ubuntu 9.4.0-1ubuntu1~20.04.2) version 9.4.0 (x86_64-linux-gnu)</span><br><span class="line">        compiled by GNU C version 9.4.0, GMP version 6.2.0, MPFR version 4.0.2, MPC version 1.1.0, isl version isl-0.22.1-GMP</span><br><span class="line"></span><br><span class="line">GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072</span><br><span class="line">Compiler executable checksum: 01da938ff5dc2163489aa33cb3b747a7</span><br><span class="line">COLLECT_GCC_OPTIONS=&#x27;-v&#x27; &#x27;-mtune=generic&#x27; &#x27;-march=x86-64&#x27;</span><br><span class="line"> as -v --64 -o /tmp/ccfeejDk.o /tmp/ccf6qxWl.s</span><br><span class="line">GNU汇编版本 2.34 (x86_64-linux-gnu) 使用BFD版本 (GNU Binutils for Ubuntu) 2.34</span><br><span class="line">COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/</span><br><span class="line">LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../:/lib/:/usr/lib/</span><br><span class="line">COLLECT_GCC_OPTIONS=&#x27;-v&#x27; &#x27;-mtune=generic&#x27; &#x27;-march=x86-64&#x27;</span><br><span class="line"> /usr/lib/gcc/x86_64-linux-gnu/9/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper -plugin-opt=-fresolution=/tmp/ccoTvGJk.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. /tmp/ccfeejDk.o -lm -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/9/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crtn.o</span><br><span class="line">COLLECT_GCC_OPTIONS=&#x27;-v&#x27; &#x27;-mtune=generic&#x27; &#x27;-march=x86-64&#x27;</span><br></pre></td></tr></table></figure>
+
+<p>可以看见，还链接了启动文件 Scrt1.o、 crti.o、crtend.o 、 crtn.o，还有一些库文件(-lgcc -lgcc_s -lc)。  </p>
+<h3 id="2-3-nostartfiles"><a href="#2-3-nostartfiles" class="headerlink" title="2.3 -nostartfiles  "></a><font size=3>2.3 -nostartfiles  </font></h3><p>不链接系统标准启动文件，而标准库文件仍然正常使用，还是这个实例<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/tree/master/LV01_GCC_COMPILE/00_compile/05_option_linker">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;05_option_linker · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a>：  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -v -nostartfiles main.c -lm</span><br></pre></td></tr></table></figure>
+
+<p>我们将会看到以下打印信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">......</span></span><br><span class="line"> /usr/lib/gcc/x86_64-linux-gnu/9/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper -plugin-opt=-fresolution=/tmp/cc8zjNED.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. /tmp/ccgRZiNF.o -lm -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state</span><br><span class="line">/usr/bin/ld: 警告: 无法找到项目符号 _start; 缺省为 0000000000001050</span><br><span class="line">COLLECT_GCC_OPTIONS=&#x27;-v&#x27; &#x27;-nostartfiles&#x27; &#x27;-mtune=generic&#x27; &#x27;-march=x86-64&#x27;</span><br></pre></td></tr></table></figure>
+
+<p>可以看见启动文件 Scrt1.o、 crti.o、 crtend.o 、 crtn.o 没有被链接进去。但是最终还是会生成a.out文件。需要说明的是，对于一般应用程序，这些启动文件是必需的，这里仅是作为例子(这样编译出来的 a.out 文件无法执行)。<strong>在编译 bootloader、内核时，将用到这个选项。</strong>  </p>
+<h3 id="2-4-nostdlib"><a href="#2-4-nostdlib" class="headerlink" title="2.4 -nostdlib  "></a><font size=3>2.4 -nostdlib  </font></h3><p>不链接系统标准启动文件和标准库文件，只把指定的文件传递给链接器。这个选项常用于编译内核、 bootloader 等程序，它们不需要启动文件、标准库文件。  还是以<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/tree/master/LV01_GCC_COMPILE/00_compile/05_option_linker">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;05_option_linker · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a>这个文件为例：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -v -nostdlib main.c -lm</span><br></pre></td></tr></table></figure>
+
+<p>将会看到以下信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">......</span></span><br><span class="line">/usr/lib/gcc/x86_64-linux-gnu/9/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper -plugin-opt=-fresolution=/tmp/ccWOd8Ds.res --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. /tmp/ccmtDNcr.o -lm</span><br><span class="line">/usr/bin/ld: /tmp/ccmtDNcr.o: undefined reference to symbol &#x27;printf@@GLIBC_2.2.5&#x27;</span><br><span class="line">/usr/bin/ld: /lib/x86_64-linux-gnu/libc.so.6: error adding symbols: DSO missing from command line</span><br><span class="line">collect2: error: ld returned 1 exit status</span><br></pre></td></tr></table></figure>
+
+<p>出现了一大堆错误，因为 printf 等函数是在库文件中实现的。在编译bootloader、内核时，用到这个选项──它们用到的很多函数是自包含的。</p>
+<h3 id="2-5-static"><a href="#2-5-static" class="headerlink" title="2.5 -static  "></a><font size=3>2.5 -static  </font></h3><p>在支持动态链接(dynamic linking)的系统上，阻止链接共享库。仍以 程序为例，是否使用-static 选项编译出来的可执行程序大小相差很大，我们以这个为例<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/tree/master/LV01_GCC_COMPILE/00_compile/05_option_linker">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;05_option_linker · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a>：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc -static main.c -o a_static.out -lm</span><br><span class="line">gcc main.c -o a_no_static.out -lm</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241029221610352.png" alt="image-20241029221610352" />
+
+<p>当不使用-static 编译文件时，程序执行前要链接共享库文件，所以还需要将共享库文件放入文件系统中。  </p>
+<h3 id="2-6-shared"><a href="#2-6-shared" class="headerlink" title="2.6 -shared  "></a><font size=3>2.6 -shared  </font></h3><p>生成一个共享 OBJ 文件，它可以和其他 OBJ 文件链接产生可执行文件。只有部分系统支持该选项。当不想以源代码发布程序时，可以使用-shared 选项生成库文件。这个就是链接库的制作方法啦，后面还会详细去学习。</p>
+<h3 id="2-7-Xlinker-option"><a href="#2-7-Xlinker-option" class="headerlink" title="2.7 -Xlinker option  "></a><font size=3>2.7 -Xlinker option  </font></h3><p>把选项 option 传递给链接器。可以用来传递系统特定的链接选项， GCC 无法识别这些选项。如果需要传递携带参数的选项，必须使用两次<code>-Xlinker</code>，一次传递选项，另一次传递其参数。例如，如果传递<code>-assert definitions</code>，这样写：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-Xlinker -assert -Xlinker definitions</span><br></pre></td></tr></table></figure>
+
+<p>而不能写成</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-Xlinker &quot;-assert definitions&quot;</span><br></pre></td></tr></table></figure>
+
+<p>因为这样会把整个字符串当做一个参数传递，显然这不是链接器期待的。  </p>
+<h3 id="2-8-Wl-option"><a href="#2-8-Wl-option" class="headerlink" title="2.8 -Wl,option  "></a><font size=3>2.8 -Wl,option  </font></h3><p>把选项 option 传递给链接器。如果 option 中含有逗号，就在逗号处分割成多个选项。链接器通常是通过 gcc、 arm-linux-gcc 等命令间接启动的，要向它传入参数时，参数前面加上<code>-Wl,</code>。  </p>
+<h2 id="3-目录选项-Directory-Option"><a href="#3-目录选项-Directory-Option" class="headerlink" title="3. 目录选项(Directory Option) "></a><font size=3>3. 目录选项(Directory Option) </font></h2><p>下列选项指定搜索路径，用于查找头文件，库文件，或编译器的某些成员。  <a target="_blank" rel="noopener" href="https://gcc.gnu.org/onlinedocs/gcc-9.5.0/gcc/Directory-Options.html#Directory-Options">Directory Options (Using the GNU Compiler Collection (GCC))</a></p>
+<h3 id="3-1-ldir"><a href="#3-1-ldir" class="headerlink" title="3.1 -ldir"></a><font size=3>3.1 -ldir</font></h3><h4 id="3-1-1-基本格式"><a href="#3-1-1-基本格式" class="headerlink" title="3.1.1 基本格式"></a><font size=3>3.1.1 基本格式</font></h4><p> -I （大写的 i ）选项用于将指定头文件路径添加到 GCC 的头文件搜索路径中，一般使用格式如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-Idir                # 单个路径</span><br><span class="line">-Idir1 -Idir2 ...    # 多个路径，每个路径都要有 -I ，不同的 -I 之间用空格分隔开</span><br></pre></td></tr></table></figure>
+
+<p>在头文件的搜索路径列表中添加 dir 目录。头文件的搜索方法为：如果以<code>#include &lt; &gt;</code>包含文件，则只在标准库目录开始搜索(包括使用-Idir 选项定义的目录)；如果以<code>#include &quot; &quot;</code>包含文件，则先从用户的工作目录开始搜索，再搜索标准库目录。    </p>
+<p><strong>【注意】</strong></p>
+<p>（1）-I 和 dir 直接可以有空格，也可以没有空格.</p>
+<p>（2）这个参数是<strong>大写的 i</strong> ，有些字体下，看着比较容易与另一个字母混淆。</p>
+<h4 id="3-1-2-使用实例"><a href="#3-1-2-使用实例" class="headerlink" title="3.1.2 使用实例"></a><font size=3>3.1.2 使用实例</font></h4><ul>
+<li>测试文件及目录结构</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">.</span><br><span class="line">├── dir1</span><br><span class="line">│   └── func1.h</span><br><span class="line">├── dir2</span><br><span class="line">│   └── func2.h</span><br><span class="line">├── func1.c</span><br><span class="line">├── func2.c</span><br><span class="line">├── main.c</span><br></pre></td></tr></table></figure>
+
+<p>我们直接使用如下命令编译：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc func1.c func2.c main.c -o main</span><br></pre></td></tr></table></figure>
+
+<p>这样会直接报错：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241030071301753.png" alt="image-20241030071301753" />
+
+<p>我们加上 -I 选项：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc func1.c func2.c main.c -o main -I dir1 -I dir2</span><br></pre></td></tr></table></figure>
+
+<p>这个时候就可以正常编译啦，编译完成后会生成 main 可执行文件，我们直接在终端执行 .&#x2F;main，则会看到如下输出：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">This is main file!</span><br><span class="line">This is func1.c file</span><br><span class="line">This is func2.c file</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-I"><a href="#3-2-I" class="headerlink" title="3.2 -I-"></a><font size=3>3.2 -I-</font></h3><p>分割包含路径。此选项已弃用。下面这段是资料上写的，反正我也没看懂，平时编程也没见过，就简单了解下吧：</p>
+<p>任何在<code>-I-</code>前面用<code>-I</code>选项指定的搜索路径只适用于 <code>#include &quot;file&quot;</code>这种情况；它们不能用来搜索<code>#include &lt;file&gt;</code>包含的头文件。如果用<code>-I</code>选项指定的搜索路径位于<code>-I-</code>选项后面，就可以在这些路径中搜索所有的<code>#include</code>指令(一般说来-I 选项就是这么用的)。还有， <code>-I-</code>选项能够阻止当前目录(存放当前输入文件的地方)成为搜索<code>#include &quot;file&quot;</code>的第一选择。  </p>
+<p><code>-I-</code>不影响使用系统标准目录，因此， <code>-I-</code>和<code>-nostdinc</code>是不同的选项。  </p>
+<h3 id="3-3-Ldir"><a href="#3-3-Ldir" class="headerlink" title="3.3 -Ldir  "></a><font size=3>3.3 -Ldir  </font></h3><p>放在 &#x2F;lib 和 &#x2F;usr&#x2F;lib 和 &#x2F;usr&#x2F;local&#x2F;lib 里的库直接用 -l （小写L）参数就能链接了，但如果库文件没放在这三个目录里，而是放在其他目录里，这时我们只用-l参数的话，链接还是会出错，GCC在链接的时候并不知道除了这些地方的库外要链接的库在哪里。</p>
+<h4 id="3-3-1-基本格式"><a href="#3-3-1-基本格式" class="headerlink" title="3.3.1 基本格式"></a><font size=3>3.3.1 基本格式</font></h4><p>-L 选项可以为GCC增加一个搜索链接库的目录，当我们生成了自己的链接库的时候，我们可以用这个参数将其添加到GCC的搜索路径下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">单个路径</span></span><br><span class="line">gcc -L&lt;dir&gt;</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">多个路径</span></span><br><span class="line">gcc -L&lt;dir1&gt; -L&lt;dir2&gt; ...</span><br><span class="line">gcc -L&lt;dir1&gt;:&lt;dir2&gt;: ...</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>dir ：这就是我们要添加的链接库的目录。</li>
+</ul>
+<p><strong>【注意】</strong>要是有多个链接库的目录要添加的话，可以使用多个 -L 选项，或者就是在一个-L选项中用冒号分隔不同的路径。</p>
+<h4 id="3-3-2-使用实例"><a href="#3-3-2-使用实例" class="headerlink" title="3.3.2 使用实例"></a><font size=3>3.3.2 使用实例</font></h4><h5 id="3-3-2-1-文件准备"><a href="#3-3-2-1-文件准备" class="headerlink" title="3.3.2.1 文件准备"></a><font size=3>3.3.2.1 文件准备</font></h5><p>我们先进行一个文件的准备,准备完成后，所有文件目录结构如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">.</span><br><span class="line">├── include</span><br><span class="line">│   ├── func1.h</span><br><span class="line">│   └── func2.h</span><br><span class="line">├── lib</span><br><span class="line">├── main.c</span><br><span class="line">└── src</span><br><span class="line">    ├── func1.c</span><br><span class="line">    └── func2.c</span><br></pre></td></tr></table></figure>
+
+<h5 id="3-3-2-2-制作静态库"><a href="#3-3-2-2-制作静态库" class="headerlink" title="3.3.2.2 制作静态库"></a><font size=3>3.3.2.2 制作静态库</font></h5><p>由于要链接库，所以要先只做静态库，后边有笔记专门记录静态库和动态库的制作，这里就是记录一个过程。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">cd src/                  # 进入func1.c 和 func2.c 源文件所在目录</span><br><span class="line"></span><br><span class="line">gcc -c func1.c -o func1.o   # 编译func1.c，生成 func1.o</span><br><span class="line">gcc -c func2.c -o func2.o   # 编译func2.c，生成 func2.o</span><br><span class="line"></span><br><span class="line">ar -rsv libfunc.a func1.o func2.o  # 打包成静态库</span><br><span class="line">mv libfunc.a ../lib/               # 拷贝到库文件目录下</span><br></pre></td></tr></table></figure>
+
+<h5 id="3-3-2-3-编译主函数源文件"><a href="#3-3-2-3-编译主函数源文件" class="headerlink" title="3.3.2.3 编译主函数源文件"></a><font size=3>3.3.2.3 编译主函数源文件</font></h5><p>此时我们开始编译主函数，需要注意的是，我们即便做了静态链接库，但是还是需要指定头文件的位置：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc main.c -o main -I include/</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241030072625850.png" alt="image-20241030072625850" />
+
+<p>我们发现是在 ld 的时候出现问题，这说明我们没有链接相应的库，我们加上 -l 选项：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc main.c -o main -I include -lfunc</span><br></pre></td></tr></table></figure>
+
+<p>此时提示，找不到链接库：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241030072706101.png" alt="image-20241030072706101" />
+
+<p>这时候我们为 GCC 指条明路：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc main.c -o main -I include -L lib -lfunc </span><br></pre></td></tr></table></figure>
+
+<p>这个时候，就会发现，没有报错，正常生成了可执行文件。</p>
+<h3 id="3-4-Bprefix"><a href="#3-4-Bprefix" class="headerlink" title="3.4 -Bprefix  "></a><font size=3>3.4 -Bprefix  </font></h3><p>这个选项指出在何处寻找可执行文件，库文件，以及编译器自己的数据文件。</p>
+<p>编译器驱动程序需要使用某些工具，比如： <code>cpp</code>， <code>cc1</code> (或 C++的<code>cc1plus</code>)，<code>as</code>和<code>ld</code>。它把 prefix 当作欲执行的工具的前缀，这个前缀可以用来指定目录，也可以用来修改工具名字。  </p>
+<p>对于要运行的工具，编译器驱动程序首先试着加上<code>-B</code>前缀(如果存在)，如果没有找到文件，或没有指定<code>-B</code>选项，编译器接着会试验两个标准前缀<code>/usr/lib/gcc/</code>和<code>/usr/local/lib/gcc-lib/</code>。如果仍然没能够找到所需文件，编译器就在<code>PATH</code>环境变量指定的路径中寻找没加任何前缀的文件名。如果有需要，运行时(run-time)支持文件<code>libgcc.a</code>也在<code>-B</code>前缀的搜索范围之内。如果这里没有找到，就在上面提到的两个标准前缀中寻找，仅此而已。如果上述方法没有找到这个文件，就不链接它了。多数情况的多数机器上，<code>libgcc.a</code>并非必不可少。  </p>
+<p>可以通过环境变量 <code>GCC_EXEC_PREFIX</code> 获得近似的效果；如果定义了这个变量 ， 其值就和上面说的一样被用作前缀。如果同时指定了 <code>-B</code> 选 项 和<code>GCC_EXEC_PREFIX</code>变量，编译器首先使用<code>-B</code>选项，然后才尝试环境变量值。  </p>
+<h2 id="4-警告选项-Warning-Option-Wall"><a href="#4-警告选项-Warning-Option-Wall" class="headerlink" title="4. 警告选项(Warning Option)-Wall  "></a><font size=3>4. 警告选项(Warning Option)-Wall  </font></h2><p>这个选项基本打开了所有需要注意的警告信息，比如没有指定类型的声明、在声明之前就使用的函数、局部变量除了声明就没再使用等。</p>
+<p>有时候有的警告虽然对程序没有坏的影响，但是有些警告需要加以关注，比如类型匹配的警告等。  </p>
+<h2 id="5-调试选项-Debugging-Option-g"><a href="#5-调试选项-Debugging-Option-g" class="headerlink" title="5. 调试选项(Debugging Option)-g  "></a><font size=3>5. 调试选项(Debugging Option)-g  </font></h2><p>以操作系统的本地格式(stabs， COFF， XCOFF，或 DWARF)产生调试信息，GDB 能够使用这些调试信息。在大多数使用 stabs 格式的系统上， <code>-g</code>选项加入只有 GDB 才使用的额外调试信息。可以使用下面的选项来生成额外的信息： <code>-gstabs+</code>， <code>-gstabs</code>， <code>-gxcoff+</code>， <code>-gxcoff</code>， <code>-gdwarf+</code>或<code>-gdwarf</code>，具体用法可以参考 GCC 手册。  </p>
+<h2 id="6-优化选项-Optimization-Option"><a href="#6-优化选项-Optimization-Option" class="headerlink" title="6. 优化选项(Optimization Option)  "></a><font size=3>6. 优化选项(Optimization Option)  </font></h2><p>gcc 提供了为了满足用户不同程度的的优化需要，提供了近百种优化选项，用来对 编译时间，目标文件长度，执行效率 这个三维模型进行不同的取舍和平衡。优化的方法不一而足，总体上将有以下几类：</p>
+<ul>
+<li>（1）精简操作指令；</li>
+<li>（2）尽量满足cpu的流水操作；</li>
+<li>（3）通过对程序行为地猜测，重新调整代码的执行顺序；</li>
+<li>（4）充分使用寄存器；</li>
+<li>（5）对简单的调用进行展开等等。</li>
+</ul>
+<p>如果指定了多个-O 选项，不管带不带数字，生效的是最后一个选项。在一般应用中，经常使用<code>-O2</code>选项。  </p>
+<h3 id="6-1-O0"><a href="#6-1-O0" class="headerlink" title="6.1 -O0  "></a><font size=3>6.1 -O0  </font></h3><p>不做任何优化，这是默认的编译选项。 </p>
+<h3 id="6-2-O-或-O1"><a href="#6-2-O-或-O1" class="headerlink" title="6.2 -O 或-O1  "></a><font size=3>6.2 -O 或-O1  </font></h3><p>优化：对于大函数，优化编译的过程将占用稍微多的时间和相当大的内存。不使用<code>-O</code>或<code>-O1</code>选项的目的是减少编译的开销，使编译结果能够调试、语句是独立的：如果在两条语句之间用断点中止程序，可以对任何变量重新赋值，或者在函数体内把程序计数器指到其他语句，以及从源程序中精确地获取我们所期待的结果。  </p>
+<p>不使用<code>-O</code>或<code>-O1</code>选项时，只有声明了 register 的变量才分配使用寄存器。  </p>
+<p>使用了<code>-O</code>或<code>-O1</code>选项，编译器会试图减少目标码的大小和执行时间。如果指定了<code>-O</code>或<code>-O1</code>选项,， <code>-fthread-jumps</code>和<code>-fdefer-pop</code>选项将被打开。在有 delay slot 的机器上， <code>-fdelayed-branch</code>选项将被打开。在即使没有帧指针 (frame pointer)也支持调试的机器上， <code>-fomit-framepointer</code>选项将被打开。某些机器上还可能会打开其他选项。  </p>
+<h3 id="6-3-O2"><a href="#6-3-O2" class="headerlink" title="6.3 -O2  "></a><font size=3>6.3 -O2  </font></h3><p>多优化一些。除了涉及空间和速度交换的优化选项，执行几乎所有的优化工作。例如不进行循环展开(loop unrolling)和函数内嵌(inlining)。</p>
+<p>和<code>-O</code>或<code>-O1</code>选项比较，这个选项增加了编译时间，也提高了生成代码的运行效果。  </p>
+<h3 id="6-4-O3"><a href="#6-4-O3" class="headerlink" title="6.4 -O3  "></a><font size=3>6.4 -O3  </font></h3><p>优化的更多。除了打开<code>-O2</code> 所做的一切，它还打开了<code>-finline-functions</code>选项。  </p>
+<h2 id="7-预处理器选项-Preprocessor-Options"><a href="#7-预处理器选项-Preprocessor-Options" class="headerlink" title="7. 预处理器选项(Preprocessor Options)"></a><font size=3>7. 预处理器选项(Preprocessor Options)</font></h2><p>可以参考gcc9.5的文档：<a target="_blank" rel="noopener" href="https://gcc.gnu.org/onlinedocs/gcc-9.5.0/gcc/Preprocessor-Options.html#Preprocessor-Options">Preprocessor Options (Using the GNU Compiler Collection (GCC))</a></p>
+<h3 id="7-1-D"><a href="#7-1-D" class="headerlink" title="7.1 -D"></a><font size=3>7.1 -D</font></h3><p>有时候我们想在 c 源文件中使用 Makefile 中定义的某些变量，根据变量的取值做出不同的处理，比如 debug 开关、版本信息等，这时候我们可以通过 gcc 的 -D 选项来满足这一需求，它等同于在 C 文件中通过 #define 语句定义一个宏。</p>
+<p>常用的场景就是用 -DDEBUG 定义DEBUG宏，然后文件中有 DEBUG 宏部分的相关信息，用个 -DDEBUG 在编译的时候来选择开启或关闭 DEBUG 。</p>
+<h4 id="7-1-1-基本格式"><a href="#7-1-1-基本格式" class="headerlink" title="7.1.1 基本格式"></a><font size=3>7.1.1 基本格式</font></h4><p>GCC的 -D 选项就相当于是在 C 语言中定义了一个 #define 宏，一般格式如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -D name[=definition]</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>name：就是表示定义name这个宏，可以与-D之间没有空格</li>
+<li>[&#x3D;definition] ：表示定义的宏的值，这个是可选的，如果不写的话，宏的值<strong>默认是1</strong>。</li>
+</ul>
+<p><strong>【注意】</strong>要是需要给宏一个值的话， 等号两端不能有空格。</p>
+<h4 id="7-1-1-GCC实例"><a href="#7-1-1-GCC实例" class="headerlink" title="7.1.1 GCC实例"></a><font size=3>7.1.1 GCC实例</font></h4><ul>
+<li>测试文件内容</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">const</span> <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is main file!\n&quot;</span>);</span><br><span class="line">	<span class="meta">#<span class="keyword">ifdef</span> TEST</span></span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;TEST=%d\n&quot;</span>, TEST);</span><br><span class="line">	<span class="meta">#<span class="keyword">else</span></span></span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;TEST is not defined!\n&quot;</span>);</span><br><span class="line">	<span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们在终端执行以下命令编译程序，然后执行，会看到如下信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc main.c </span><br><span class="line">./a.out</span><br></pre></td></tr></table></figure>
+
+<p>可以看到如下打印信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">以下为执行可执行程序的输出信息</span></span><br><span class="line">This is main file!</span><br><span class="line">TEST is not defined!</span><br></pre></td></tr></table></figure>
+
+<p>然后我们加上 -D 选项，定义一个宏：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc main.c -D TEST</span><br><span class="line">./a.out </span><br></pre></td></tr></table></figure>
+
+<p>可以看到如下打印信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">以下为执行可执行程序的输出信息</span></span><br><span class="line">This is main file!</span><br><span class="line">TEST=1</span><br></pre></td></tr></table></figure>
+
+<p>然后我们加上 -D 选项，定义一个带有值的宏：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">hk@vm:~/1sharedfiles/test$ gcc main.c -D TEST=5</span><br><span class="line">hk@vm:~/1sharedfiles/test$ ./a.out </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">以下为执行可执行程序的输出信息</span></span><br><span class="line">This is main file!</span><br><span class="line">TEST=5</span><br></pre></td></tr></table></figure>
+
+<h4 id="7-1-2-Makefile实例"><a href="#7-1-2-Makefile实例" class="headerlink" title="7.1.2 Makefile实例"></a><font size=3>7.1.2 Makefile实例</font></h4><p>这部分是后来新加的，make相关知识可以看后边的笔记。</p>
+<ul>
+<li>测试文件内容</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">const</span> <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is main file!\n&quot;</span>);</span><br><span class="line">	<span class="meta">#<span class="keyword">ifdef</span> TEST</span></span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;TEST=%d\n&quot;</span>, TEST);</span><br><span class="line">	<span class="meta">#<span class="keyword">else</span></span></span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;TEST is not defined!\n&quot;</span>);</span><br><span class="line">	<span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们编写一个 Makefile 文件，内容如下：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">TEST = 8</span><br><span class="line"><span class="section">all:</span></span><br><span class="line">	gcc main.c -Wall -o main -D TEST=<span class="variable">$(TEST)</span></span><br></pre></td></tr></table></figure>
+
+<p>我们编译，并执行可执行文件，结果如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-02-GCC%E7%BC%96%E8%AF%91/img/image-20241030075109936.png" alt="image-20241030075109936" />
+
+
+
+<blockquote>
+<p>参考资料：</p>
+<p><a target="_blank" rel="noopener" href="https://developer.aliyun.com/article/1523509">编译器：原理与技术的奥秘-阿里云开发者社区 (aliyun.com)</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/f7a56c0b.html">LV02-03-编译与调试-02-GCC编译</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年10月30日 - 08:00</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/f7a56c0b.html" title="LV02-03-编译与调试-02-GCC编译">https://sumumm.github.io/post/f7a56c0b.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/" rel="tag"><i class="fa fa-tag"></i> LV02-编译基础</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/f8d667b.html" rel="prev" title="LV02-03-编译与调试-03-ARM平台的GCC">
+                  <i class="fa fa-angle-left"></i> LV02-03-编译与调试-03-ARM平台的GCC
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/b065a412.html" rel="next" title="LV02-03-编译与调试-01-GCC基础">
+                  LV02-03-编译与调试-01-GCC基础 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

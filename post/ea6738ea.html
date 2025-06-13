@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是线程同步——读写锁的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV05-03-线程同步-04-读写锁">
+<meta property="og:url" content="https://sumumm.github.io/post/ea6738ea.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是线程同步——读写锁的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-04-%E8%AF%BB%E5%86%99%E9%94%81/img/image-20220526115359198.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-04-%E8%AF%BB%E5%86%99%E9%94%81/img/image-20220526135637537.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-04-%E8%AF%BB%E5%86%99%E9%94%81/img/image-20220526140509441.png">
+<meta property="article:published_time" content="2023-07-02T13:52:13.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:56.994Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV05-操作系统">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-04-%E8%AF%BB%E5%86%99%E9%94%81/img/image-20220526115359198.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/ea6738ea.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/ea6738ea.html","path":"post/ea6738ea.html","title":"LV05-03-线程同步-04-读写锁"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV05-03-线程同步-04-读写锁 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E8%AF%BB%E5%86%99%E9%94%81%E7%9A%84%E6%A6%82%E5%BF%B5"><span class="nav-text">一、读写锁的概念</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E4%B8%8E%E7%89%B9%E6%80%A7"><span class="nav-text">1. 基本概念与特性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E8%AF%BB%E5%86%99%E5%93%AA%E4%B8%AA%E4%BC%98%E5%85%88%EF%BC%9F"><span class="nav-text">2. 读写哪个优先？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E8%AF%BB%E4%BC%98%E5%85%88%E9%94%81"><span class="nav-text">2.1 读优先锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2%E5%86%99%E4%BC%98%E5%85%88%E9%94%81"><span class="nav-text">2.2写优先锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3%E5%85%AC%E5%B9%B3%E8%AF%BB%E5%86%99"><span class="nav-text">2.3公平读写</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-text">3. 应用场景</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C"><span class="nav-text">二、基本操作</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AF%BB%E5%86%99%E9%94%81%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-text">1. 读写锁初始化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-pthread-rwlock-init"><span class="nav-text">1.1 pthread_rwlock_init() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">1.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">1.1.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-PTHREAD-RWLOCK-INITIALIZER"><span class="nav-text">1.2 PTHREAD_RWLOCK_INITIALIZER </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">1.2.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">1.2.2 使用实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%8A%A0%E9%94%81%E5%92%8C%E8%A7%A3%E9%94%81"><span class="nav-text">2. 加锁和解锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-pthread-mutex-lock"><span class="nav-text">2.1 pthread_mutex_lock() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.1.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-pthread-rwlock-tryrdlock"><span class="nav-text">2.2 pthread_rwlock_tryrdlock() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.2.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.2.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-pthread-rwlock-wrlock"><span class="nav-text">2.3 pthread_rwlock_wrlock() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.3.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.3.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-pthread-rwlock-trywrlock"><span class="nav-text">2.4 pthread_rwlock_trywrlock() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.4.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.4.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-pthread-rwlock-unlock"><span class="nav-text">2.5 pthread_rwlock_unlock() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.5.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.5.2 使用实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E9%94%80%E6%AF%81%E8%AF%BB%E5%86%99%E9%94%81"><span class="nav-text">3. 销毁读写锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-pthread-rwlock-destroy"><span class="nav-text">3.1 pthread_rwlock_destroy() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">3.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">3.1.2 使用实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%AF%BB%E5%86%99%E9%94%81%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">4. 读写锁使用实例</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E8%AF%BB%E5%86%99%E9%94%81%E5%B1%9E%E6%80%A7"><span class="nav-text">三、读写锁属性</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%B1%9E%E6%80%A7%E5%AF%B9%E8%B1%A1%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-text">1. 属性对象初始化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-pthread-rwlockattr-init"><span class="nav-text">1.1 pthread_rwlockattr_init() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E-1"><span class="nav-text">1.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B-1"><span class="nav-text">1.1.2 使用实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%B1%9E%E6%80%A7%E5%AF%B9%E8%B1%A1%E9%94%80%E6%AF%81"><span class="nav-text">2. 属性对象销毁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-pthread-rwlockattr-destroy"><span class="nav-text">2.1 pthread_rwlockattr_destroy() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E-1"><span class="nav-text">2.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B-1"><span class="nav-text">2.1.2 使用实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%85%B1%E4%BA%AB%E5%B1%9E%E6%80%A7"><span class="nav-text">3. 共享属性</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-pthread-rwlockattr-getpshared"><span class="nav-text">3.1 pthread_rwlockattr_getpshared() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E-1"><span class="nav-text">3.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B-1"><span class="nav-text">3.1.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-pthread-rwlockattr-setpshared"><span class="nav-text">3.2 pthread_rwlockattr_setpshared() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">3.2.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">3.2.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3%E5%85%B1%E4%BA%AB%E5%B1%9E%E6%80%A7%E8%AE%BE%E7%BD%AE%E5%AE%9E%E4%BE%8B"><span class="nav-text">3.3共享属性设置实例</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/ea6738ea.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV05-03-线程同步-04-读写锁 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV05-03-线程同步-04-读写锁
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-07-02 21:52:13" itemprop="dateCreated datePublished" datetime="2023-07-02T21:52:13+08:00">2023-07-02</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" itemprop="url" rel="index"><span itemprop="name">LV05-操作系统</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>7.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>26 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是线程同步——读写锁的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-04-%E8%AF%BB%E5%86%99%E9%94%81/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150>---</td>        <td align="left"><a href="" target="_blank">---<i class="fa fa-external-link-alt"></i> </a></td>      </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、读写锁的概念"><a href="#一、读写锁的概念" class="headerlink" title="一、读写锁的概念"></a><font size=3>一、读写锁的概念</font></h1><h2 id="1-基本概念与特性"><a href="#1-基本概念与特性" class="headerlink" title="1. 基本概念与特性"></a><font size=3>1. 基本概念与特性</font></h2><p>互斥锁和自旋锁都是只有两个状态，即加锁和不加锁，而且一次只有一个线程可以对其加锁。</p>
+<p>还有一种锁叫读写锁，读写锁从字面意思可以知道，它由读锁和写锁两部分构成，如果只读取共享资源用读锁加锁，如果要修改共享资源则用写锁加锁。读写锁也叫做<strong>共享互斥锁</strong>。当读写锁是读模式锁住时，就可以说成是共享模式锁住。当它是写模式锁住时，就可以说成是互斥模式锁住。</p>
+<p><strong>【说明】</strong>其实为了更好的区分，我个人更习惯把读写锁看成两把锁，一把读锁，一把写锁，后边的笔记也都这样写了，获取读锁就是读锁加锁，释放读锁就是读锁解锁；获取写锁就是写锁加锁，释放写锁就是写锁解锁。</p>
+<p>读写锁有<code>3</code>种状态：读模式下的加锁状态、写模式下的加锁状态和不加锁状态。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-04-%E8%AF%BB%E5%86%99%E9%94%81/img/image-20220526115359198.png" alt="image-20220526115359198" style="zoom:40%;" />
+
+<p>在应用程序当中，使用读写锁实现线程同步，当线程需要对共享数据进行读操作时，需要先获取读锁，当读取操作完成之后再释放读锁；当线程需要对共享数据进行写操作时，需要先获取到写锁，当写操作完成之后再释放写锁。</p>
+<p>当读写锁处于<strong>写锁加锁</strong>状态时，在这个写锁被解锁之前，所有试图对这个写锁进行加锁操作（不管是以读模式加锁还是以写模式加锁）的线程都会被阻塞。<br>当读写锁处于<strong>读锁加锁</strong>状态时，所有试图以读模式对它进行加读锁的线程都可以加锁成功；但是任何以写模式对它进行加写锁的线程都会被阻塞，直到所有持有读模式锁的线程释放它们的读锁为止。</p>
+<p><strong>【注意事项】</strong>写锁是独占锁，因为<strong>任何时刻只能有一个线程持有写锁</strong>，类似互斥锁和自旋锁，而读锁是共享锁，因为<strong>读锁可以被多个线程同时持有</strong>。</p>
+<h2 id="2-读写哪个优先？"><a href="#2-读写哪个优先？" class="headerlink" title="2. 读写哪个优先？"></a><font size=3>2. 读写哪个优先？</font></h2><h3 id="2-1-读优先锁"><a href="#2-1-读优先锁" class="headerlink" title="2.1 读优先锁"></a><font size=3>2.1 读优先锁</font></h3><p>读优先锁希望的是，读锁能被更多的线程持有，以便提高读线程的并发性，它的工作方式是：当读线程 <code>1</code> 先持有了读锁，写线程 <code>2</code> 在获取写锁的时候，会被阻塞，并且在阻塞过程中，后续来的读线程 <code>3</code> 仍然可以成功获取读锁，最后直到读线程 <code>1</code> 和 <code>3</code> 释放读锁后，写线程 <code>2</code> 才可以成功获取写锁。如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-04-%E8%AF%BB%E5%86%99%E9%94%81/img/image-20220526135637537.png" alt="image-20220526135637537" style="zoom:50%;" />
+
+<h3 id="2-2写优先锁"><a href="#2-2写优先锁" class="headerlink" title="2.2写优先锁"></a><font size=3>2.2写优先锁</font></h3><p>写优先锁是优先让写线程获取写锁，其工作方式是：当读线程 <code>1</code> 先持有了读锁，写线程 <code>2</code> 在获取写锁的时候，会被阻塞，并且在阻塞过程中，后续来的读线程 <code>3</code> 获取读锁时会失败，于是读线程 <code>3</code> 将被阻塞在获取读锁的操作，这样只要读线程<code>1</code> 释放读锁后，写线程 <code>1</code> 就可以成功获取读锁。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-04-%E8%AF%BB%E5%86%99%E9%94%81/img/image-20220526140509441.png" alt="image-20220526140509441" style="zoom:50%;" />
+
+<h3 id="2-3公平读写"><a href="#2-3公平读写" class="headerlink" title="2.3公平读写"></a><font size=3>2.3公平读写</font></h3><p>读优先锁对于读线程并发性更好，但也不是没有问题。如果一直有读线程获取读锁，那么写线程将永远获取不到写锁，这就造成了写线程一直阻塞的情况。</p>
+<p>写优先锁可以保证写线程优先获取写锁，但是如果一直有写线程获取写锁，读线程也会发生一直阻塞的情况。</p>
+<p>既然不管优先读锁还是写锁，对方可能会出现一直阻塞的问题，那么就不偏袒任何一方，来一手公平读写，即用队列把获取锁的线程排队，不管是写线程还是读线程都按照先进先出的原则加锁，先来的自然就要优先获取锁，这样读线程仍然可以并发，也不会出现某一种锁一直阻塞的现象。</p>
+<h2 id="3-应用场景"><a href="#3-应用场景" class="headerlink" title="3. 应用场景"></a><font size=3>3. 应用场景</font></h2><p>各操作系统对读写锁的实现各不相同，但当读写锁处于读锁加锁状态，而这时有一个线程试图以写模式获取锁时，该线程会被阻塞；而如果另一线程以读模式获取锁，则会成功获取到锁，对共享资源进行读操作。所以，读写锁非常适合于对<strong>共享数据读的次数远大于写的次数</strong>的情况。</p>
+<h1 id="二、基本操作"><a href="#二、基本操作" class="headerlink" title="二、基本操作"></a><font size=3>二、基本操作</font></h1><h2 id="1-读写锁初始化"><a href="#1-读写锁初始化" class="headerlink" title="1. 读写锁初始化"></a><font size=3>1. 读写锁初始化</font></h2><p>读写锁与互斥锁的初始化类似，都是有两种方式，一种是动态方式，即通过<code>pthread_rwlock_init()</code>函数完成初始化；另一种是静态方式，通过宏进行初始化。</p>
+<h3 id="1-1-pthread-rwlock-init"><a href="#1-1-pthread-rwlock-init" class="headerlink" title="1.1 pthread_rwlock_init() "></a><font size=3>1.1 pthread_rwlock_init() </font></h3><h4 id="1-1-1-函数说明"><a href="#1-1-1-函数说明" class="headerlink" title="1.1.1 函数说明"></a><font size=3>1.1.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_rwlock_init</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="comment">/* man 手册中的声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_rwlock_init</span><span class="params">(<span class="type">pthread_rwlock_t</span> *<span class="keyword">restrict</span> rwlock, <span class="type">const</span> <span class="type">pthread_rwlockattr_t</span> *<span class="keyword">restrict</span> attr)</span>;</span><br><span class="line"><span class="comment">/* 一些资料中的声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_rwlock_init</span><span class="params">(<span class="type">pthread_rwlock_t</span> *rwlock, <span class="type">const</span> <span class="type">pthread_rwlockattr_t</span> *attr)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>额……，😥函数声明又是这样，一些资料中使用的另一种声明，就还是使用自己容易理解的吧，反正传入的参数以及格式都是一样的。</p>
+<p><strong>【函数说明】</strong>该函数是以动态方式初始化一个读写锁。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>rwlock</code>：<code>pthread_rwlock_t *</code>类型，指向需要进行初始化操作的<strong>读写锁对象</strong>。</li>
+<li><code>attr</code>：<code>const pthread_rwlockattr_t *</code>类型，指向一个<code>pthread_rwlockattr_t </code>类型对象，该对象用于定义读写锁的属性，若将参数<code>attr</code>设置为<code>NULL</code>，则表示将读写锁的属性设置为默认值，在这种情况下其实就等价于<code>PTHREAD_RWLOCK_INITIALIZER</code>这种方式初始化，而不同之处在于，使用宏不进行错误检查。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，成功返回<code>0</code>；失败将返回一个非<code>0</code>的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">pthread_rwlock_t</span> rwlock; <span class="comment">/* 定义全局变量 */</span></span><br><span class="line">pthread_rwlock_init(&amp;rwlock, <span class="literal">NULL</span>);<span class="comment">/* 初始化读写锁 */</span></span><br><span class="line"><span class="comment">/* 或者 */</span></span><br><span class="line"><span class="type">pthread_rwlock_t</span> *rwlock; = <span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(<span class="type">pthread_rwlock_t</span>)); <span class="comment">/* 定义为全局指针变量 */</span></span><br><span class="line">pthread_rwlock_init(rwlock, <span class="literal">NULL</span>);<span class="comment">/* 初始化读写锁 */</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h4 id="1-1-2-使用实例"><a href="#1-1-2-使用实例" class="headerlink" title="1.1.2 使用实例"></a><font size=3>1.1.2 使用实例</font></h4><p>暂无。</p>
+<h3 id="1-2-PTHREAD-RWLOCK-INITIALIZER"><a href="#1-2-PTHREAD-RWLOCK-INITIALIZER" class="headerlink" title="1.2 PTHREAD_RWLOCK_INITIALIZER "></a><font size=3>1.2 PTHREAD_RWLOCK_INITIALIZER </font></h3><h4 id="1-2-1-函数说明"><a href="#1-2-1-函数说明" class="headerlink" title="1.2.1 函数说明"></a><font size=3>1.2.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man 3 pthread_rwlock_init</code>命令查看该宏的定义格式。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">pthread_rwlock_t</span> rwlock = PTHREAD_RWLOCK_INITIALIZER; <span class="comment">/* rwlock为读写锁名称，符合变量标识符定义规则即可。*/</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该宏用于使用默认属性初始化一个读写锁。</p>
+<p><strong>【定义原型】</strong>该宏定义在<code>pthread.h</code>文件中，可以在终端中使用以下命令查看<code>pthread.h</code>文件位置：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">locate pthread.h # 若出现locate 命令未安装之类的，按照提示安装即可</span><br></pre></td></tr></table></figure>
+
+<p>定义形式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Read-write lock initializers.  */</span></span><br><span class="line"><span class="meta"># <span class="keyword">define</span> PTHREAD_RWLOCK_INITIALIZER \</span></span><br><span class="line"><span class="meta">  &#123; &#123; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 &#125; &#125;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【返回值】</strong><code>none</code></p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">pthread_rwlock_t</span> rwlock = PTHREAD_RWLOCK_INITIALIZER; </span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong></p>
+<p>（1）<code>PTHREAD_RWLOCK_INITIALIZER</code>宏已经携带了读写锁的默认属性。</p>
+<p>（2）只适用于在定义的时候就直接进行初始化，对于其它情况则不能使用这种方式。</p>
+<h4 id="1-2-2-使用实例"><a href="#1-2-2-使用实例" class="headerlink" title="1.2.2 使用实例"></a><font size=3>1.2.2 使用实例</font></h4><p>暂无。</p>
+<h2 id="2-加锁和解锁"><a href="#2-加锁和解锁" class="headerlink" title="2. 加锁和解锁"></a><font size=3>2. 加锁和解锁</font></h2><h3 id="2-1-pthread-mutex-lock"><a href="#2-1-pthread-mutex-lock" class="headerlink" title="2.1 pthread_mutex_lock() "></a><font size=3>2.1 pthread_mutex_lock() </font></h3><h4 id="2-1-1-函数说明"><a href="#2-1-1-函数说明" class="headerlink" title="2.1.1 函数说明"></a><font size=3>2.1.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_rwlock_rdlock</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_rwlock_rdlock</span><span class="params">(<span class="type">pthread_rwlock_t</span> *rwlock)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数以读模式对读写锁上锁，也就是获取读锁（获取不到时，会阻塞等待）。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>rwlock</code>：<code>pthread_rwlock_t *</code>类型，指向已经初始化过的读写锁对象。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">pthread_rwlock_t</span> rwlock; <span class="comment">/* 定义全局变量 */</span></span><br><span class="line">pthread_rwlock_init(&amp;rwlock, <span class="literal">NULL</span>);<span class="comment">/* 初始化读写锁 */</span></span><br><span class="line">pthread_rwlock_rdlock(&amp;rwlock);<span class="comment">/* 获取读锁 */</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong></p>
+<p>（1）读写锁处于读模式加锁状态时，其它线程调用<code>pthread_rwlock_rdlock()</code>函数可以成功获取到锁，如果调用<code>pthread_rwlock_wrlock()</code>函数则不能获取到锁，从而陷入阻塞等待状态。</p>
+<p>（2）当读写锁处于写模式加锁状态时，其它线程调用<code>pthread_rwlock_rdlock()</code>或<code>pthread_rwlock_wrlock()</code>函数均会获取锁失败，从而陷入阻塞等待状态。</p>
+<h4 id="2-1-2-使用实例"><a href="#2-1-2-使用实例" class="headerlink" title="2.1.2 使用实例"></a><font size=3>2.1.2 使用实例</font></h4><p>暂无。</p>
+<h3 id="2-2-pthread-rwlock-tryrdlock"><a href="#2-2-pthread-rwlock-tryrdlock" class="headerlink" title="2.2 pthread_rwlock_tryrdlock() "></a><font size=3>2.2 pthread_rwlock_tryrdlock() </font></h3><h4 id="2-2-1-函数说明"><a href="#2-2-1-函数说明" class="headerlink" title="2.2.1 函数说明"></a><font size=3>2.2.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_rwlock_tryrdlock</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_rwlock_tryrdlock</span><span class="params">(<span class="type">pthread_rwlock_t</span> *rwlock)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数以读模式对读写锁上锁，也就是获取读锁（获取不到时，不会阻塞等待，会直接返回）。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>mutex</code>：<code>pthread_rwlock_t *</code>类型，指向已经初始化过的读写锁对象。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码；如果目标读写锁已经被其它线程锁住，则调用失败并返回，一般返回的错误码为<code>EBUSY</code>。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line">pthread_rwlock_tryrdlock(&amp;rwlock);<span class="comment">/* 具体看定义的方式，是变量还是指针变量，指针变量则不需要&amp;符号。*/</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong>在任何情况下，<code>pthread_rwlock_tryrdlock()</code>函数都不能被阻塞；它总是要么获得锁，要么失败并立即返回。</p>
+<h4 id="2-2-2-使用实例"><a href="#2-2-2-使用实例" class="headerlink" title="2.2.2 使用实例"></a><font size=3>2.2.2 使用实例</font></h4><p>暂无。</p>
+<h3 id="2-3-pthread-rwlock-wrlock"><a href="#2-3-pthread-rwlock-wrlock" class="headerlink" title="2.3 pthread_rwlock_wrlock() "></a><font size=3>2.3 pthread_rwlock_wrlock() </font></h3><h4 id="2-3-1-函数说明"><a href="#2-3-1-函数说明" class="headerlink" title="2.3.1 函数说明"></a><font size=3>2.3.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_rwlock_wrlock</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_rwlock_wrlock</span><span class="params">(<span class="type">pthread_rwlock_t</span> *rwlock)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数以写模式对读写锁上锁，也就是获取写锁（获取不到时，会阻塞等待）。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>rwlock</code>：<code>pthread_rwlock_t *</code>类型，指向已经初始化过的读写锁对象。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">pthread_rwlock_t</span> rwlock; <span class="comment">/* 定义全局变量 */</span></span><br><span class="line">pthread_rwlock_init(&amp;rwlock, <span class="literal">NULL</span>);<span class="comment">/* 初始化读写锁 */</span></span><br><span class="line">pthread_rwlock_wrlock(&amp;rwlock);<span class="comment">/* 获取写锁 */</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong></p>
+<p>（1）读写锁处于读模式加锁状态时，其它线程调用<code>pthread_rwlock_rdlock()</code>函数可以成功获取到锁，如果调用<code>pthread_rwlock_wrlock()</code>函数则不能获取到锁，从而陷入阻塞等待状态。</p>
+<p>（2）当读写锁处于写模式加锁状态时，其它线程调用<code>pthread_rwlock_rdlock()</code>或<code>pthread_rwlock_wrlock()</code>函数均会获取锁失败，从而陷入阻塞等待状态。</p>
+<h4 id="2-3-2-使用实例"><a href="#2-3-2-使用实例" class="headerlink" title="2.3.2 使用实例"></a><font size=3>2.3.2 使用实例</font></h4><p>暂无。</p>
+<h3 id="2-4-pthread-rwlock-trywrlock"><a href="#2-4-pthread-rwlock-trywrlock" class="headerlink" title="2.4 pthread_rwlock_trywrlock() "></a><font size=3>2.4 pthread_rwlock_trywrlock() </font></h3><h4 id="2-4-1-函数说明"><a href="#2-4-1-函数说明" class="headerlink" title="2.4.1 函数说明"></a><font size=3>2.4.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_rwlock_trywrlock</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_rwlock_trywrlock</span><span class="params">(<span class="type">pthread_rwlock_t</span> *rwlock)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数以写模式对读写锁上锁，也就是获取写锁（获取不到时不会阻塞等待，会直接返回）。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>mutex</code>：<code>pthread_rwlock_t *</code>类型，指向已经初始化过的读写锁对象。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码；如果目标读写锁已经被其它线程锁住，则调用失败并返回，一般返回的错误码为<code>EBUSY</code>。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line">pthread_rwlock_trywrlock(&amp;rwlock);<span class="comment">/* 具体看定义的方式，是变量还是指针变量，指针变量则不需要&amp;符号。*/</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong>在任何情况下，<code>pthread_rwlock_trywrlock()</code>函数都不能被阻塞；它总是要么获得锁，要么失败并立即返回。</p>
+<h4 id="2-4-2-使用实例"><a href="#2-4-2-使用实例" class="headerlink" title="2.4.2 使用实例"></a><font size=3>2.4.2 使用实例</font></h4><p>暂无。</p>
+<h3 id="2-5-pthread-rwlock-unlock"><a href="#2-5-pthread-rwlock-unlock" class="headerlink" title="2.5 pthread_rwlock_unlock() "></a><font size=3>2.5 pthread_rwlock_unlock() </font></h3><h4 id="2-5-1-函数说明"><a href="#2-5-1-函数说明" class="headerlink" title="2.5.1 函数说明"></a><font size=3>2.5.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_rwlock_unlock</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_rwlock_unlock</span><span class="params">(<span class="type">pthread_rwlock_t</span> *rwlock)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于对读写锁解锁、释放读写锁（读锁或者写锁均可以由此函数释放）。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>mutex</code>：<code>pthread_mutex_t *</code>类型，指向已经初始化过的读写对象。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line">pthread_rwlock_unlock(&amp;rwlock);<span class="comment">/* 具体看定义的方式，是变量还是指针变量，指针变量则不需要&amp;符号。*/</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h4 id="2-5-2-使用实例"><a href="#2-5-2-使用实例" class="headerlink" title="2.5.2 使用实例"></a><font size=3>2.5.2 使用实例</font></h4><p>暂无。</p>
+<h2 id="3-销毁读写锁"><a href="#3-销毁读写锁" class="headerlink" title="3. 销毁读写锁"></a><font size=3>3. 销毁读写锁</font></h2><p>定义了读写锁之后，当不再需要读写锁时，应该将其销毁。</p>
+<h3 id="3-1-pthread-rwlock-destroy"><a href="#3-1-pthread-rwlock-destroy" class="headerlink" title="3.1 pthread_rwlock_destroy() "></a><font size=3>3.1 pthread_rwlock_destroy() </font></h3><h4 id="3-1-1-函数说明"><a href="#3-1-1-函数说明" class="headerlink" title="3.1.1 函数说明"></a><font size=3>3.1.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_rwlock_destroy</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_rwlock_destroy</span><span class="params">(<span class="type">pthread_rwlock_t</span> *rwlock)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于销毁一个不再使用的读写锁。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>mutex</code>：<code>pthread_rwlock_t *</code>类型，指向已经初始化过的读写锁对象。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line">pthread_rwlock_destroy(&amp;rwlock);<span class="comment">/* 具体看定义的方式，是变量还是指针变量，指针变量则不需要&amp;符号。*/</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h4 id="3-1-2-使用实例"><a href="#3-1-2-使用实例" class="headerlink" title="3.1.2 使用实例"></a><font size=3>3.1.2 使用实例</font></h4><p>暂无。</p>
+<h2 id="4-读写锁使用实例"><a href="#4-读写锁使用实例" class="headerlink" title="4. 读写锁使用实例"></a><font size=3>4. 读写锁使用实例</font></h2><p>前边终于把需要使用的函数学习完了，接下来就是一个实例啦。</p>
+<details class="folding-tag" blue><summary> 点击查看实例 </summary>
+              <div class='content'>
+              <figure class="highlight c"><figcaption><span>test.c</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span>  <span class="comment">/* fopen fputc*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span><span class="comment">/* pthread_create pthread_exit */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span> <span class="comment">/* sleep */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span> <span class="comment">/* strlen */</span></span></span><br><span class="line"></span><br><span class="line">FILE *fp;<span class="comment">/* 定义一个文件指针变量 */</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> macro_rwlock 1 <span class="comment">/* 0,不使用读写锁；1,函数初始化读写锁；2,宏初始化读写锁 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> macro_rwlock == 1</span></span><br><span class="line"><span class="type">pthread_rwlock_t</span> rwlock;</span><br><span class="line"><span class="meta">#<span class="keyword">elif</span> macro_rwlock == 2</span></span><br><span class="line"><span class="type">pthread_rwlock_t</span> rwlock = PTHREAD_RWLOCK_INITIALIZER;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadRead</span><span class="params">(<span class="type">void</span> *arg)</span>;</span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadWrite1</span><span class="params">(<span class="type">void</span> *arg)</span>;</span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadWrite2</span><span class="params">(<span class="type">void</span> *arg)</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> ret;</span><br><span class="line">	<span class="type">pthread_t</span> tid1, tid2, tid3, tid4;</span><br><span class="line">	<span class="comment">/* 动态创建读写锁 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> macro_rwlock == 1</span></span><br><span class="line">	pthread_rwlock_init(&amp;rwlock, <span class="literal">NULL</span>);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="comment">/* 1. 以追加读写的方式使用标准IO打开一个文件 */</span></span><br><span class="line">	fp = fopen(<span class="string">&quot;test.txt&quot;</span>, <span class="string">&quot;a+&quot;</span>);</span><br><span class="line">	<span class="comment">/* 2. 判断是否打开成功 */</span></span><br><span class="line">	<span class="keyword">if</span>(fp == <span class="literal">NULL</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;open error&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 3. 创建四个线程 */</span></span><br><span class="line">	ret = pthread_create(&amp;tid1, <span class="literal">NULL</span>, threadRead, (<span class="type">void</span> *)<span class="number">1</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is threadRead thread create,ret=%d,tid1=%lu\n&quot;</span>, ret, tid1);</span><br><span class="line">	ret = pthread_create(&amp;tid2, <span class="literal">NULL</span>, threadRead, (<span class="type">void</span> *)<span class="number">2</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is threadRead thread create,ret=%d,tid2=%lu\n&quot;</span>, ret, tid2);</span><br><span class="line"></span><br><span class="line">	ret = pthread_create(&amp;tid3, <span class="literal">NULL</span>, threadWrite1, <span class="literal">NULL</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is threadWrite1 thread create,ret=%d,tid3=%lu\n&quot;</span>, ret, tid3);</span><br><span class="line">	ret = pthread_create(&amp;tid4, <span class="literal">NULL</span>, threadWrite2, <span class="literal">NULL</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is threadWrite2 thread create,ret=%d,tid4=%lu\n&quot;</span>, ret, tid4);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		sleep(<span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	fclose(fp);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadRead</span><span class="params">(<span class="type">void</span> *arg)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">char</span> buf[<span class="number">32</span>]= &#123;<span class="number">0</span>&#125;;</span><br><span class="line">	<span class="comment">/* 设置线程分离，结束后自动回收 */</span></span><br><span class="line">	pthread_detach(pthread_self());</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is a threadRead test!\n&quot;</span>);</span><br><span class="line">	<span class="comment">/* 按行读取文件 */</span></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> macro_rwlock == 1 || macro_rwlock == 2</span></span><br><span class="line">		pthread_rwlock_rdlock(&amp;rwlock);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">		<span class="keyword">while</span>(fgets(buf,<span class="number">32</span>,fp)!=<span class="literal">NULL</span>)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="built_in">printf</span>(<span class="string">&quot;%d,rd=%s\n&quot;</span>,(<span class="type">int</span>)arg, buf);</span><br><span class="line">			usleep(<span class="number">1000</span>);</span><br><span class="line">		&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> macro_rwlock == 1 || macro_rwlock == 2</span></span><br><span class="line">		pthread_rwlock_unlock(&amp;rwlock);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">		usleep(<span class="number">500</span>*<span class="number">1000</span>);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	pthread_exit(<span class="string">&quot;threadRead exit!&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadWrite1</span><span class="params">(<span class="type">void</span> *arg)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">	<span class="type">char</span> str[]=<span class="string">&quot;I write threadWrite1 line\n&quot;</span>;</span><br><span class="line">	<span class="comment">/* 设置线程分离，结束后自动回收 */</span></span><br><span class="line">	pthread_detach(pthread_self());</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is a threadWrite1 test!\n&quot;</span>);</span><br><span class="line">	<span class="comment">/* 按字符将字符串写入文件 */</span></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> macro_rwlock == 1 || macro_rwlock == 2</span></span><br><span class="line">		pthread_rwlock_wrlock(&amp;rwlock);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">		<span class="keyword">for</span>(i = <span class="number">0</span>; i&lt;<span class="built_in">strlen</span>(str); i++)</span><br><span class="line">		&#123;</span><br><span class="line">			fputc(str[i], fp);</span><br><span class="line">			usleep(<span class="number">100</span>);<span class="comment">/* us级休眠 */</span></span><br><span class="line">		&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> macro_rwlock == 1 || macro_rwlock == 2</span></span><br><span class="line">		pthread_rwlock_unlock(&amp;rwlock);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">		sleep(<span class="number">1</span>);<span class="comment">/* us级休眠 */</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	pthread_exit(<span class="string">&quot;threadWrite1 exit!&quot;</span>);</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadWrite2</span><span class="params">(<span class="type">void</span> *arg)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">	<span class="type">char</span> str[]=<span class="string">&quot;I write threadWrite2 line\n&quot;</span>;</span><br><span class="line">	<span class="comment">/* 设置线程分离，结束后自动回收 */</span></span><br><span class="line">	pthread_detach(pthread_self());</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is a threadWrite2 test!\n&quot;</span>);</span><br><span class="line">	<span class="comment">/* 按字符将字符串写入文件 */</span></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> macro_rwlock == 1 || macro_rwlock == 2</span></span><br><span class="line">		pthread_rwlock_wrlock(&amp;rwlock);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">		<span class="keyword">for</span>(i = <span class="number">0</span>; i&lt;<span class="built_in">strlen</span>(str); i++)</span><br><span class="line">		&#123;</span><br><span class="line">			fputc(str[i], fp);</span><br><span class="line">			usleep(<span class="number">100</span>);<span class="comment">/* us级休眠 */</span></span><br><span class="line">		&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> macro_rwlock == 1 || macro_rwlock == 2</span></span><br><span class="line">		pthread_rwlock_unlock(&amp;rwlock);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">		sleep(<span class="number">1</span>);<span class="comment">/* us级休眠 */</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	pthread_exit(<span class="string">&quot;threadWrite2 exit!&quot;</span>);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>程序中的宏<code>macro_rwlock</code>用于决定是否初始化读写锁，若初始化的话，用什么方式初始化。</p><ul><li>若<code>macro_rwlock</code>为<code>0</code>，则不使用读写锁。</li><li>若<code>macro_rwlock</code>为<code>1</code>，则使用函数<code>pthread_rwlock_init()</code>初始化读写锁。</li><li>若<code>macro_rwlock</code>为<code>2</code>，则使用宏<code>PTHREAD_RWLOCK_INITIALIZER</code>初始化读写锁。</li></ul><div class="tabs" id="tabname3"><ul class="nav-tabs"><li class="tab active"><a href="#tabname3-1">macro_mutex == 0</a></li><li class="tab"><a href="#tabname3-2">macro_mutex== 1</a></li><li class="tab"><a href="#tabname3-3">macro_mutex== 2</a></li></ul><div class="tab-content"><div class="tab-pane active" id="tabname3-1"><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -Wall -l pthread # 生成可执行文件 a.out </span><br><span class="line">./a.out # 执行可执行程序</span><br></pre></td></tr></table></figure><p>然后，终端会有以下信息显示：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">This is threadRead thread create,ret=0,tid1=139888351057472</span><br><span class="line">This is a threadRead test!</span><br><span class="line">This is threadRead thread create,ret=0,tid2=139888342664768</span><br><span class="line">This is threadWrite1 thread create,ret=0,tid3=139888334272064</span><br><span class="line">This is threadWrite2 thread create,ret=0,tid4=139888325879360</span><br><span class="line">This is a threadWrite1 test!</span><br><span class="line">This is a threadRead test!</span><br><span class="line">This is a threadWrite2 test!</span><br></pre></td></tr></table></figure><p>然后我们打开<code>test.txt</code>文件，查看文件内容如下：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">II  wwrirtite eth rthreeaadWdWrirtiete12  lilinnee</span><br><span class="line"></span><br><span class="line">I Iw rwirtie tet hrtheraedaWrdWirtie1te 2l ilnien</span><br><span class="line">e</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">后边的省略 ......</span></span><br></pre></td></tr></table></figure><p>该文件被四个线程共享，两个线程都是写入，未保护共享文件，导致文件写入出错。</p></div><div class="tab-pane" id="tabname3-2"><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -Wall -l pthread # 生成可执行文件 a.out </span><br><span class="line">./a.out # 执行可执行程序</span><br></pre></td></tr></table></figure><p>然后，终端会有以下信息显示：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">This is threadRead thread create,ret=0,tid1=140066570966592</span><br><span class="line">This is threadRead thread create,ret=0,tid2=140066562573888</span><br><span class="line">This is a threadRead test!</span><br><span class="line">This is threadWrite1 thread create,ret=0,tid3=140066554181184</span><br><span class="line">This is a threadWrite2 test!</span><br><span class="line">This is threadWrite2 thread create,ret=0,tid4=140066545788480</span><br><span class="line">This is a threadWrite1 test!</span><br><span class="line">This is a threadRead test!</span><br><span class="line">1,rd=I write threadWrite1 line</span><br><span class="line"></span><br><span class="line">2,rd=I write threadWrite2 line</span><br><span class="line"></span><br><span class="line">1,rd=I write threadWrite1 line</span><br><span class="line"></span><br></pre></td></tr></table></figure><p>然后我们打开<code>test.txt</code>文件，查看文件内容如下：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">I write threadWrite1 line</span><br><span class="line">I write threadWrite2 line</span><br><span class="line">I write threadWrite1 line</span><br><span class="line">I write threadWrite2 line</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">后边的省略 ......</span></span><br></pre></td></tr></table></figure><p>该文件被两个线程共享，两个线程都是写入，使用读写锁保护共享文件，文件写入正常。但是呢，这里其实是有一个问题的，就是我们测试文件为空时，运行程序，程序写线程都会正常写入，但是读线程可能是不会运行的，即便是第二次再运行，读线程可能只会读一部分，然后停止读取，这是为什么呢？还记得前边介绍的读写哪个优先一节把，这就出现了写锁优先的情况，导致读线程一直被阻塞，写线程一直写入的情况，不过这里仅为测试读写锁，暂时不关心这个问题。</p></div><div class="tab-pane" id="tabname3-3"><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -Wall -l pthread # 生成可执行文件 a.out </span><br><span class="line">./a.out # 执行可执行程序</span><br></pre></td></tr></table></figure><p>然后，终端会有以下信息显示：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">This is threadRead thread create,ret=0,tid1=139988447561280</span><br><span class="line">This is a threadRead test!</span><br><span class="line">This is threadRead thread create,ret=0,tid2=139988439168576</span><br><span class="line">This is threadWrite1 thread create,ret=0,tid3=139988430775872</span><br><span class="line">This is threadWrite2 thread create,ret=0,tid4=139988352104000</span><br><span class="line">This is a threadWrite1 test!</span><br><span class="line">1,rd=I write threadWrite1 line</span><br><span class="line"></span><br><span class="line">This is a threadWrite2 test!</span><br><span class="line">This is a threadRead test!</span><br><span class="line">2,rd=I write threadWrite2 line</span><br><span class="line"></span><br><span class="line">1,rd=I write threadWrite1 line</span><br></pre></td></tr></table></figure><p>然后我们打开<code>test.txt</code>文件，查看文件内容如下：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">I write threadWrite1 line</span><br><span class="line">I write threadWrite2 line</span><br><span class="line">I write threadWrite1 line</span><br><span class="line">I write threadWrite1 line</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">后边的省略 ......</span></span><br></pre></td></tr></table></figure><p>该文件被四个线程共享，两个线程都是写入，使用读写锁保护共享文件，文件写入正常。但是呢，这里其实是有一个问题的，就是我们测试文件为空时，运行程序，程序写线程都会正常写入，但是读线程可能是不会运行的，即便是第二次再运行，读线程可能只会读一部分，然后停止读取，这是为什么呢？还记得前边介绍的读写哪个优先一节把，这就出现了写锁优先的情况，导致读线程一直被阻塞，写线程一直写入的情况，不过这里仅为测试读写锁，暂时不关心这个问题。</p></div></div></div>
+              </div>
+            </details>
+
+<h1 id="三、读写锁属性"><a href="#三、读写锁属性" class="headerlink" title="三、读写锁属性"></a><font size=3>三、读写锁属性</font></h1><p>读写锁与互斥锁类似，也是有属性的。使用<code>pthread_rwlock_init()</code>函数初始化读写锁时可以设置互斥锁的属性，通过参数<code>attr</code>指定。如果将参数<code>attr</code>设置为<code>NULL</code>，则表示将互斥锁属性设置为默认值。如果不使用默认属性，在调用<code>pthread_rwlock_init()</code>函数时，参数<code>attr</code>必须要指向一个<code>pthread_rwlockattr_t</code>对象，而不能使用<code>NULL</code>。</p>
+<h2 id="1-属性对象初始化"><a href="#1-属性对象初始化" class="headerlink" title="1. 属性对象初始化"></a><font size=3>1. 属性对象初始化</font></h2><h3 id="1-1-pthread-rwlockattr-init"><a href="#1-1-pthread-rwlockattr-init" class="headerlink" title="1.1 pthread_rwlockattr_init() "></a><font size=3>1.1 pthread_rwlockattr_init() </font></h3><h4 id="1-1-1-函数说明-1"><a href="#1-1-1-函数说明-1" class="headerlink" title="1.1.1 函数说明"></a><font size=3>1.1.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_rwlockattr_init</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_rwlockattr_init</span><span class="params">(<span class="type">pthread_rwlockattr_t</span> *attr)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数初始化一个读写锁的<strong>属性对象</strong>（就是自定义创建的读写锁的各个默认属性）。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>attr</code>：<code>pthread_rwlockattr_t *</code>类型，指向需要初始化的<strong>读写锁属性对象</strong>。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">pthread_rwlock_t</span> rwlock; <span class="comment">/* 定义读写锁(全局变量) */</span></span><br><span class="line"><span class="type">pthread_rwlockattr_t</span> attr; <span class="comment">/* 定义读写锁属性(可以是局部变量) */</span></span><br><span class="line"><span class="comment">/* 初始化*/</span></span><br><span class="line">pthread_rwlockattr_init(&amp;attr);   <span class="comment">/* 初始化读写锁属性对象 */</span></span><br><span class="line">pthread_rwlock_init(&amp;rwlock, &amp;attr);<span class="comment">/* 初始化读写锁 */</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h4 id="1-1-2-使用实例-1"><a href="#1-1-2-使用实例-1" class="headerlink" title="1.1.2 使用实例"></a><font size=3>1.1.2 使用实例</font></h4><p>暂无。</p>
+<h2 id="2-属性对象销毁"><a href="#2-属性对象销毁" class="headerlink" title="2. 属性对象销毁"></a><font size=3>2. 属性对象销毁</font></h2><h3 id="2-1-pthread-rwlockattr-destroy"><a href="#2-1-pthread-rwlockattr-destroy" class="headerlink" title="2.1 pthread_rwlockattr_destroy() "></a><font size=3>2.1 pthread_rwlockattr_destroy() </font></h3><h4 id="2-1-1-函数说明-1"><a href="#2-1-1-函数说明-1" class="headerlink" title="2.1.1 函数说明"></a><font size=3>2.1.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_rwlockattr_destroy</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_rwlockattr_destroy</span><span class="params">(<span class="type">pthread_rwlockattr_t</span> *attr)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于销毁一个不再使用的读写锁属性对象。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>attr</code>：<code>pthread_rwlockattr_t *</code>类型，指向已经初始化过且不需要再使用的<strong>读写锁属性对象</strong>。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">pthread_rwlock_t</span> rwlock; <span class="comment">/* 定义读写锁(全局变量) */</span></span><br><span class="line"><span class="type">pthread_rwlockattr_t</span> attr; <span class="comment">/* 定义读写锁属性(可以是局部变量) */</span></span><br><span class="line"><span class="comment">/* 初始化*/</span></span><br><span class="line">pthread_rwlockattr_init(&amp;attr);   <span class="comment">/* 初始化读写锁属性对象 */</span></span><br><span class="line">pthread_rwlock_init(&amp;rwlock, &amp;attr);<span class="comment">/* 初始化读写锁 */</span></span><br><span class="line"><span class="comment">/* 销毁 */</span> </span><br><span class="line">pthread_rwlock_destroy(&amp;rwlock); <span class="comment">/* 销毁读写锁 */</span></span><br><span class="line">pthread_rwlockattr_destroy(&amp;attr); <span class="comment">/* 销毁读写锁属性对象 */</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h4 id="2-1-2-使用实例-1"><a href="#2-1-2-使用实例-1" class="headerlink" title="2.1.2 使用实例"></a><font size=3>2.1.2 使用实例</font></h4><p>暂无。</p>
+<h2 id="3-共享属性"><a href="#3-共享属性" class="headerlink" title="3. 共享属性"></a><font size=3>3. 共享属性</font></h2><h3 id="3-1-pthread-rwlockattr-getpshared"><a href="#3-1-pthread-rwlockattr-getpshared" class="headerlink" title="3.1 pthread_rwlockattr_getpshared() "></a><font size=3>3.1 pthread_rwlockattr_getpshared() </font></h3><h4 id="3-1-1-函数说明-1"><a href="#3-1-1-函数说明-1" class="headerlink" title="3.1.1 函数说明"></a><font size=3>3.1.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_rwlockattr_getpshared</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="comment">/* man 手册函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_rwlockattr_getpshared</span><span class="params">(<span class="type">const</span> <span class="type">pthread_rwlockattr_t</span> *<span class="keyword">restrict</span> attr, <span class="type">int</span> *<span class="keyword">restrict</span> pshared)</span>;</span><br><span class="line"><span class="comment">/* 一些资料中的声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_rwlockattr_getpshared</span><span class="params">(<span class="type">const</span> <span class="type">pthread_rwlockattr_t</span> *attr, <span class="type">int</span> *pshared)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>额……，😥又是这样声明的一个函数，使用另一种声明吧，好理解一些。</p>
+<p><strong>【函数说明】</strong>该函数获取一个读写锁的共享属性。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>attr</code>：<code>const pthread_rwlockattr_t *</code>类型，指向已经初始化过的<strong>读写锁属性对象</strong>。</li>
+<li><code>pshared</code>：<code>int *</code>类型，将获取的读写锁共享属性保存在参数<code>pshared</code>所指向的内存中。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">int</span> pshared;</span><br><span class="line"><span class="type">pthread_rwlockattr_t</span> attr;</span><br><span class="line"><span class="comment">/* 初始化*/</span></span><br><span class="line">pthread_rwlockattr_init(&amp;attr);   <span class="comment">/* 初始化读写锁属性对象 */</span></span><br><span class="line">pthread_rwlockattr_getpshared(&amp;attr, &amp;pshared);<span class="comment">/* 获取读写锁的共享属性 */</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h4 id="3-1-2-使用实例-1"><a href="#3-1-2-使用实例-1" class="headerlink" title="3.1.2 使用实例"></a><font size=3>3.1.2 使用实例</font></h4><p>暂无。</p>
+<h3 id="3-2-pthread-rwlockattr-setpshared"><a href="#3-2-pthread-rwlockattr-setpshared" class="headerlink" title="3.2 pthread_rwlockattr_setpshared() "></a><font size=3>3.2 pthread_rwlockattr_setpshared() </font></h3><h4 id="3-2-1-函数说明"><a href="#3-2-1-函数说明" class="headerlink" title="3.2.1 函数说明"></a><font size=3>3.2.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_rwlockattr_setpshared</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_rwlockattr_setpshared</span><span class="params">(<span class="type">pthread_rwlockattr_t</span> *attr, <span class="type">int</span> pshared)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数设置一个读写锁的共享属性。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>attr</code>：<code>const pthread_rwlockattr_t *</code>类型，指向已经初始化过的<strong>读写锁属性对象</strong>。</li>
+<li><code>pshared</code>：<code>int </code>类型，将读写锁共享属性设置为参数<code>pshared</code>所指向的内存中的值。</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看 pshared 可取的值 </summary>
+              <div class='content'>
+              <table>    <tr><td align="left" width=150px>PTHREAD_PROCESS_SHARED</td><td align="left">共享读写锁。该读写锁可以在多个进程中的线程之间共享；</td></tr>    <tr><td align="left" width=150px>PTHREAD_PROCESS_PRIVATE</td><td align="left">私有读写锁。只有本进程内的线程才能够使用该读写锁，这是读写锁共享属性的默认值。</td></tr></table>
+              </div>
+            </details>
+
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">int</span> pshared;</span><br><span class="line"><span class="type">pthread_rwlockattr_t</span> attr;</span><br><span class="line"><span class="comment">/* 初始化*/</span></span><br><span class="line">pthread_rwlockattr_init(&amp;attr);   <span class="comment">/* 初始化读写锁属性对象 */</span></span><br><span class="line">pthread_rwlockattr_setpshared(&amp;attr, PTHREAD_PROCESS_SHARED);<span class="comment">/* 设置读写锁的共享属性 */</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h4 id="3-2-2-使用实例"><a href="#3-2-2-使用实例" class="headerlink" title="3.2.2 使用实例"></a><font size=3>3.2.2 使用实例</font></h4><p>暂无。</p>
+<h3 id="3-3共享属性设置实例"><a href="#3-3共享属性设置实例" class="headerlink" title="3.3共享属性设置实例"></a><font size=3>3.3共享属性设置实例</font></h3><details class="folding-tag" blue><summary> 点击查看实例 </summary>
+              <div class='content'>
+              <figure class="highlight c"><figcaption><span>test.c</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">pthread_rwlock_t</span> rwlock; <span class="comment">/* 定义读写锁(全局变量) */</span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> pshared;</span><br><span class="line">	<span class="type">pthread_rwlockattr_t</span> attr; <span class="comment">/* 定义读写锁属性(可以是局部变量) */</span></span><br><span class="line">	<span class="comment">/* 初始化读写锁属性对象 */</span></span><br><span class="line">	pthread_rwlockattr_init(&amp;attr);</span><br><span class="line">	<span class="comment">/* 获取读写锁类型 */</span></span><br><span class="line">	pthread_rwlockattr_getpshared(&amp;attr, &amp;pshared);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;rwlock pshared:%d\n&quot;</span>, pshared);</span><br><span class="line">	<span class="comment">/* 设置读写锁类型 */</span></span><br><span class="line">	pthread_rwlockattr_setpshared(&amp;attr, PTHREAD_PROCESS_SHARED);</span><br><span class="line">	pthread_rwlockattr_getpshared(&amp;attr, &amp;pshared);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;rwlock pshared:%d\n&quot;</span>, pshared);</span><br><span class="line">	<span class="comment">/* 初始化读写锁 */</span></span><br><span class="line">	pthread_rwlock_init(&amp;rwlock, &amp;attr);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 销毁读写锁属性对象和读写锁对象 */</span></span><br><span class="line">	pthread_rwlockattr_destroy(&amp;attr);</span><br><span class="line">	pthread_rwlock_destroy(&amp;rwlock);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -Wall -lpthread # 生成可执行文件 a.out</span><br><span class="line">./a.out # 执行可执行文件</span><br></pre></td></tr></table></figure><p>然后，终端会有以下信息显示：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">rwlock pshared:0</span><br><span class="line">rwlock pshared:1</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/ea6738ea.html">LV05-03-线程同步-04-读写锁</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年07月02日 - 21:52</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/ea6738ea.html" title="LV05-03-线程同步-04-读写锁">https://sumumm.github.io/post/ea6738ea.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" rel="tag"><i class="fa fa-tag"></i> LV05-操作系统</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/799a0b6f.html" rel="prev" title="LV05-03-线程同步-05-条件变量">
+                  <i class="fa fa-angle-left"></i> LV05-03-线程同步-05-条件变量
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/9629078.html" rel="next" title="LV05-03-线程同步-03-自旋锁">
+                  LV05-03-线程同步-03-自旋锁 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

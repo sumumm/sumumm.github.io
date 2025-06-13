@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是platform——平台总线驱动基础知识的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV10-10-platform-01-platform驱动基础">
+<meta property="og:url" content="https://sumumm.github.io/post/684dbf90.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是platform——平台总线驱动基础知识的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-10-platform-01-platform%E9%A9%B1%E5%8A%A8%E5%9F%BA%E7%A1%80/img/image-20220902122116722.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-10-platform-01-platform%E9%A9%B1%E5%8A%A8%E5%9F%BA%E7%A1%80/img/image-20220902122621641.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-10-platform-01-platform%E9%A9%B1%E5%8A%A8%E5%9F%BA%E7%A1%80/img/image-20220902123155397.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-10-platform-01-platform%E9%A9%B1%E5%8A%A8%E5%9F%BA%E7%A1%80/img/image-20220902123555631.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-10-platform-01-platform%E9%A9%B1%E5%8A%A8%E5%9F%BA%E7%A1%80/img/image-20220902135400211.png">
+<meta property="article:published_time" content="2023-07-08T10:58:33.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.004Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV10-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-10-platform-01-platform%E9%A9%B1%E5%8A%A8%E5%9F%BA%E7%A1%80/img/image-20220902122116722.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/684dbf90.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/684dbf90.html","path":"post/684dbf90.html","title":"LV10-10-platform-01-platform驱动基础"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV10-10-platform-01-platform驱动基础 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81platform%E7%AE%80%E4%BB%8B"><span class="nav-text">一、platform简介</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81platform%E6%80%BB%E7%BA%BF%E7%90%86%E8%A7%A3"><span class="nav-text">二、platform总线理解</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E9%A9%B1%E5%8A%A8%E7%9A%84%E5%88%86%E9%9A%94%E4%B8%8E%E5%88%86%E7%A6%BB"><span class="nav-text">1. 驱动的分隔与分离</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E8%AE%BE%E5%A4%87%E3%80%81%E9%A9%B1%E5%8A%A8%E5%92%8C%E6%80%BB%E7%BA%BF"><span class="nav-text">2. 设备、驱动和总线</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E9%A9%B1%E5%8A%A8%E7%9A%84%E5%88%86%E5%B1%82"><span class="nav-text">3. 驱动的分层</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-platform%E5%B9%B3%E5%8F%B0%E9%A9%B1%E5%8A%A8%E6%A8%A1%E5%9E%8B"><span class="nav-text">4. platform平台驱动模型</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81platform%E6%80%BB%E7%BA%BF%E6%9C%BA%E5%88%B6"><span class="nav-text">三、platform总线机制</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%9C%A8%E7%B3%BB%E7%BB%9F%E4%B8%AD%E7%9A%84%E4%BD%93%E7%8E%B0"><span class="nav-text">1. 在系统中的体现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%AE%A1%E7%90%86%E4%B8%8E%E5%8C%B9%E9%85%8D%E6%9C%BA%E5%88%B6"><span class="nav-text">2. 管理与匹配机制</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B"><span class="nav-text">四、基本数据类型</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-struct-bus-type"><span class="nav-text">1. struct bus_type</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-platform%E6%80%BB%E7%BA%BF%E7%9B%B8%E5%85%B3%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">2. platform总线相关结构体</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E6%80%BB%E7%BA%BF%E5%AE%9A%E4%B9%89"><span class="nav-text">2.1 总线定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%8C%B9%E9%85%8D%E5%87%BD%E6%95%B0"><span class="nav-text">2.2 匹配函数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-platform%E9%A9%B1%E5%8A%A8%E7%9B%B8%E5%85%B3%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">3. platform驱动相关结构体</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-struct-platform-driver"><span class="nav-text">3.1 struct platform_driver</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-struct-device-driver"><span class="nav-text">3.2 struct device_driver</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-struct-platform-device-id"><span class="nav-text">3.3 struct platform_device_id</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-struct-of-device-id"><span class="nav-text">3.4 struct of_device_id</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-platform%E8%AE%BE%E5%A4%87%E7%9B%B8%E5%85%B3%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">4. platform设备相关结构体</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-struct-platform-device"><span class="nav-text">4.1 struct platform_device</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-struct-device"><span class="nav-text">4.2 struct device</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-struct-resource"><span class="nav-text">4.3 struct resource</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-struct-platform-device-id"><span class="nav-text">4.4 struct platform_device_id</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E5%9F%BA%E6%9C%AC%E5%87%BD%E6%95%B0"><span class="nav-text">五、基本函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-platform%E9%A9%B1%E5%8A%A8%E7%9B%B8%E5%85%B3%E5%87%BD%E6%95%B0"><span class="nav-text">1. platform驱动相关函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-platform-driver-register"><span class="nav-text">1.1 platform_driver_register()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-platform-driver-unregister"><span class="nav-text">1.2 platform_driver_unregister()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-platform-get-resource"><span class="nav-text">1.3 platform_get_resource()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-of-match-ptr"><span class="nav-text">1.4 of_match_ptr()</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-platform%E8%AE%BE%E5%A4%87%E7%9B%B8%E5%85%B3%E5%87%BD%E6%95%B0"><span class="nav-text">2. platform设备相关函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-platform-device-register"><span class="nav-text">2.1 platform_device_register()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-platform-device-unregister"><span class="nav-text">2.2 platform_device_unregister()</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/684dbf90.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV10-10-platform-01-platform驱动基础 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV10-10-platform-01-platform驱动基础
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-07-08 18:58:33" itemprop="dateCreated datePublished" datetime="2023-07-08T18:58:33+08:00">2023-07-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV10-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>8.9k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>32 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是platform——平台总线驱动基础知识的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-10-platform-01-platform%E9%A9%B1%E5%8A%A8%E5%9F%BA%E7%A1%80/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center" width=150>Linux开发板</td>        <td align="left">华清远见 底板: FS4412_DEV_V5 核心板: FS4412 V2</td>      </tr>    <tr>        <td align="center" width=150>u-boot</td>        <td align="left">2013.01</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向</td><td align="center">参考原文</td></tr>    <tr><td align="left">驱动开发指南</td><td align="left"><a href="http://47.111.11.73/docs/boards/arm-linux/zdyz-i.mx6ull.html#i-mx6ull-linux" target="_blank">i.MX6ULL Linux阿尔法开发板资料 <i class="fa fa-external-link-alt"></i> </a></td></tr>    <tr><td align="left">华清远见课程</td><td align="left"><a href="http://47.111.11.73/docs/boards/arm-linux/zdyz-i.mx6ull.html#i-mx6ull-linux" target="_blank">华清远见课程 <i class="fa fa-external-link-alt"></i> </a></td></tr>    <tr><td align="left">platform驱动模型</td><td align="left"><a href="https://www.cnblogs.com/linfeng-learning/p/9334853.html" target="_blank">Linux platform驱动模型 - LinFeng-Learning - 博客园 (cnblogs.com) <i class="fa fa-external-link-alt"></i> </a></td></tr>    <tr><td align="left">platform驱动模型详解</td><td align="left"><a href="https://www.cnblogs.com/biaohc/p/6667529.html" target="_blank">platform驱动模型详解，以及基于platform驱动模型的led驱动 - biaohc - 博客园 (cnblogs.com) <i class="fa fa-external-link-alt"></i> </a></td></tr>    <tr><td align="left">Linux Platform驱动模型(一)</td><td align="left"><a href="https://www.cnblogs.com/xiaojiang1025/p/6367061.html" target="_blank">Linux Platform驱动模型(一) _设备信息 - Abnor - 博客园 (cnblogs.com) <i class="fa fa-external-link-alt"></i> </a></td></tr>    <tr><td align="left">Linux Platform驱动模型(二)</td><td align="left"><a href="https://www.cnblogs.com/xiaojiang1025/p/6367910.html" target="_blank">Linux Platform驱动模型(二) _驱动方法 - Abnor - 博客园 (cnblogs.com) <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">文件</td><td align="center">下载链接</td></tr>    <tr><td align="left">---</td><td align="left"><a href="https://wwz.lanzouy.com/iH1vO09jxavi" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+
+
+<h1 id="一、platform简介"><a href="#一、platform简介" class="headerlink" title="一、platform简介"></a><font size=3>一、<code>platform</code>简介</font></h1><p>在我们之前学习的字符设备驱动模型中，只要应用程序调用<code>open()</code>打开了相应的设备文件，就可以使用<code>ioctl</code>通过驱动程序来控制我们的硬件，这种模型很直观，但是从软件设计的角度看，却是一种十分糟糕的方式，它有一个致命的问题，就是<strong>设备信息和驱动代码冗余在一起，一旦硬件信息发生改变甚至设备已经不在了，就必须要修改驱动源码</strong>，非常的麻烦。</p>
+<p>为了解决这种驱动代码和设备信息耦合的问题，<code>Linux</code>提出了<code>platform bus</code>(<strong>平台总线</strong>)的概念，即使用虚拟总线将<strong>设备信息和驱动程序进行分离</strong>，设备树的提出就是进一步深化这种思想，将设备信息进行更好的整理。</p>
+<p>在<code>Linux2.6</code>以后的设备驱动模型，<code>Linux</code>内核中的总线主要负责管理挂接在该总线下的设备与驱动，平台总线会<strong>维护两条链表，分别管理设备和驱动</strong>，将设备信息与驱动程序分类管理，可以提高驱动程序的可移植性。在系统每注册一个设备的时候，会寻找与之匹配的驱动；相同地，在系统每注册一个驱动的时候，会寻找与之匹配的设备，而<strong>匹配由总线</strong>完成。 相对于<code>USB</code>、<code>PCI</code>、<code>I2C</code>、<code>SPI</code>等物理总线来说，<code>platform</code>总线是一种虚拟、抽象出来的总线，实际中并不存在这样的总线。 这种<strong>虚拟的总线仅用来管理设备和驱动（最核心的作用之一就是完成设备和驱动的匹配）</strong>。</p>
+<p>设备主要提供硬件资源，驱动主要气功驱动代码，而总线则是完成设备和驱动匹配的媒介。</p>
+<h1 id="二、platform总线理解"><a href="#二、platform总线理解" class="headerlink" title="二、platform总线理解"></a><font size=3>二、<code>platform</code>总线理解</font></h1><p>上边仅仅是做了一个简介，我感觉并不能很好的帮助我理解<code>platform</code>平台总线模型。这一部分笔记是来自于正点原子的驱动开发手册，详细的可以查看手册原文，这里做一个笔记，加深自己的理解。</p>
+<h2 id="1-驱动的分隔与分离"><a href="#1-驱动的分隔与分离" class="headerlink" title="1. 驱动的分隔与分离"></a><font size=3>1. 驱动的分隔与分离</font></h2><p>对于 <code>Linux</code> 这样一个成熟、庞大、复杂的操作系统，代码的重用性非常重要，否则的话就会在 <code>Linux</code> 内核中存在大量无意义的重复代码。尤其是驱动程序，因为驱动程序占用了 <code>Linux</code>内核代码量的大头，如果不对驱动程序加以管理，任由重复的代码肆意增加，那么用不了多久<code>Linux</code> 内核的文件数量就庞大到无法接受的地步。</p>
+<p>假如现在有三个平台 <code>A</code>、 <code>B</code>和 <code>C</code>，这三个平台（这里的平台说的是 <code>SOC</code>）上都有<code>MPU6050</code> 这个<code>I2C</code>接口的六轴传感器，按照我们写裸机<code>I2C</code>驱动的时候的思路，每个平台都有一个<code>MPU6050</code>的驱动，因此编写出来的最简单的驱动框架如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-10-platform-01-platform%E9%A9%B1%E5%8A%A8%E5%9F%BA%E7%A1%80/img/image-20220902122116722.png" alt="image-20220902122116722" style="zoom:43%;" />
+
+<p>可以看出，每种平台下都有一个主机驱动和设备驱动，主机驱动肯定是必须要的，毕竟不同的平台其 <code>I2C</code> 控制器不同。但是右侧的设备驱动就没必要每个平台都写一个，因为不管对于那个 <code>SOC</code> 来说， <code>MPU6050</code> 都是一样，通过 <code>I2C</code> 接口读写数据就行了，只需要一个<code>MPU6050</code> 的驱动程序即可。</p>
+<p>如果再来几个 <code>I2C</code> 设备，比如 <code>AT24C02</code>、 <code>FT5206</code>(电容触摸屏)等，若都按照上图的写法，那么设备端的驱动将会重复的编写好几次。显然在 <code>Linux</code>驱动程序中这种写法是不推荐的，最好的做法就是每个平台的 <code>I2C</code> 控制器都提供一个统一的接口(也叫做主机驱动)，每个设备的话也只提供一个驱动程序(设备驱动)，每个设备通过统一的<code> I2C</code>接口驱动来访问，这样就可以大大简化驱动文件，比如<code>A</code>、<code>B</code>和<code>C</code>三种平台下的 <code>MPU6050</code> 驱动框架就可以简化为下图的形式：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-10-platform-01-platform%E9%A9%B1%E5%8A%A8%E5%9F%BA%E7%A1%80/img/image-20220902122621641.png" alt="image-20220902122621641" style="zoom:43%;" />
+
+<p>实际的 <code>I2C</code> 驱动设备肯定有很多种，不止 <code>MPU6050</code> 这一个，那么实际的驱动架构就如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-10-platform-01-platform%E9%A9%B1%E5%8A%A8%E5%9F%BA%E7%A1%80/img/image-20220902123155397.png" alt="image-20220902123155397" style="zoom:43%;" />
+
+<p>这个就是<strong>驱动的分隔</strong>，也就是将主机驱动和设备驱动分隔开来，比如<code>I2C</code>、<code>SPI</code> 等等都会采用驱动分隔的方式来简化驱动的开发。在实际的驱动开发中，一般<code>I2C</code>主机控制器驱动已经由半导体厂家编写好了，而设备驱动一般也由设备器件的厂家编写好了，我们只需要提供设备信息即可，比如<code>I2C</code>设备的话提供设备连接到了哪个<code> I2C</code>接口上， <code>I2C</code> 的速度是多少等等。相当于将设备信息从设备驱动中剥离开来，驱动使用标准方法去获取到设备信息(比如从设备树中获取到设备信息)，然后根据获取到的设备信息来初始化设备。 这样就相当于驱动只负责驱动，设备只负责设备，想办法将两者进行匹配即可。</p>
+<h2 id="2-设备、驱动和总线"><a href="#2-设备、驱动和总线" class="headerlink" title="2. 设备、驱动和总线"></a><font size=3>2. 设备、驱动和总线</font></h2><p>驱动进行分隔和分离后，在<code>linux</code>中就形成了总线（<code>bus</code>）、驱动（<code>driver</code>）和设备（<code>device</code>）模型，也就是常说的<strong>驱动分离</strong>。总线就是驱动和设备信息的月老，负责给两者牵线搭桥。所以<code>linux</code>中的设备、驱动和总线的模式如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-10-platform-01-platform%E9%A9%B1%E5%8A%A8%E5%9F%BA%E7%A1%80/img/image-20220902123555631.png" alt="image-20220902123555631" style="zoom:43%;" />
+
+<p>当我们向系统注册一个驱动的时候，总线就会在右侧的设备中查找，看看有没有与之匹配的设备，如果有的话就将两者联系起来。同样的，当向系统中注册一个设备的时候，总线就会在左侧的驱动中查找看有没有与之匹配的设备，有的话也联系起来。 <code>Linux</code> 内核中大量的驱动程序都采用总线、驱动和设备模式。  </p>
+<h2 id="3-驱动的分层"><a href="#3-驱动的分层" class="headerlink" title="3. 驱动的分层"></a><font size=3>3. 驱动的分层</font></h2><p><code>Linux</code> 下的驱动往往也是分层的，分层的目的也是为了在不同的层处理不同的内容。以常常使用到的<code>input</code>(输入子系统，后边会学习到)为例，简单介绍一下驱动的分层。</p>
+<p><code> input</code> 子系统负责管理所有跟输入有关的驱动，包括键盘、鼠标、触摸等，最底层的就是设备原始驱动，负责获取输入设备的原始值，获取到的输入事件上报给 <code>input</code> 核心层。 <code>input</code> 核心层会处理各种 <code>IO</code> 模型，并且提供 <code>file_operations</code> 操作集合。我们在编写输入设备驱动的时候只需要处理好输入事件的上报即可，至于如何处理这些上报的输入事件那是上层去考虑的，我们不用关心。</p>
+<p>可以看出借助分层模型可以极大的简化我们的驱动编写，对于驱动编写来说非常的友好。  </p>
+<h2 id="4-platform平台驱动模型"><a href="#4-platform平台驱动模型" class="headerlink" title="4. platform平台驱动模型"></a><font size=3>4. <code>platform</code>平台驱动模型</font></h2><p>我们上边学习了设备驱动的分离，并且引出了总线（<code>bus</code>）、驱动（<code>driver</code>）和设备（<code>device</code>）模型，比如 <code>I2C</code>、 <code>SPI</code>、 <code>USB</code> 等总线。但是在 <code>SOC</code> 中有些外设是没有总线这个概念的，但是又要使用总线、驱动和设备模型该怎么办呢？</p>
+<p>为了解决此问题， <code>Linux</code> 提出了 <code>platform</code> 这个虚拟总线，相应的就有 <code>platform_driver</code> 和 <code>platform_device</code>。  </p>
+<h1 id="三、platform总线机制"><a href="#三、platform总线机制" class="headerlink" title="三、platform总线机制"></a><font size=3>三、<code>platform</code>总线机制</font></h1><h2 id="1-在系统中的体现"><a href="#1-在系统中的体现" class="headerlink" title="1. 在系统中的体现"></a><font size=3>1. 在系统中的体现</font></h2><p><code>platform</code>总线在根文件系统下的目录为<code>/sys/bus/platform</code>，该目录下有两个子目录和相关的<code>platform</code>属性文件：</p>
+<ul>
+<li><p><code>devices</code>目录下存放的是<code>platform</code>总线下的所有设备。</p>
+</li>
+<li><p><code>drivers</code>目录下存放的是<code>platform</code>总线下的所有驱动程序。</p>
+</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">[root@farsight]#</span><span class="language-bash"><span class="built_in">ls</span> /sys/bus/platform/ -lh</span></span><br><span class="line">total 0</span><br><span class="line">drwxr-xr-x    2 0        0              0 Jan  1 04:06 devices</span><br><span class="line">drwxr-xr-x   37 0        0              0 Jan  1 04:06 drivers</span><br><span class="line">-rw-r--r--    1 0        0           4.0K Jan  1 04:06 drivers_autoprobe</span><br><span class="line">--w-------    1 0        0           4.0K Jan  1 04:06 drivers_probe</span><br><span class="line">--w-------    1 0        0           4.0K Jan  1 04:06 ueven</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-管理与匹配机制"><a href="#2-管理与匹配机制" class="headerlink" title="2. 管理与匹配机制"></a><font size=3>2. 管理与匹配机制</font></h2><p><code>platform</code>总线的驱动与设备的管理与匹配机制如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-10-platform-01-platform%E9%A9%B1%E5%8A%A8%E5%9F%BA%E7%A1%80/img/image-20220902135400211.png" alt="image-20220902135400211" style="zoom:43%;" />
+
+<h1 id="四、基本数据类型"><a href="#四、基本数据类型" class="headerlink" title="四、基本数据类型"></a><font size=3>四、基本数据类型</font></h1><p>上边描述<code>platform</code>总线的管理与匹配机制的时候出现了几种数据结构，这一部分主要是介绍一下这些重要的数据结构。</p>
+<h2 id="1-struct-bus-type"><a href="#1-struct-bus-type" class="headerlink" title="1. struct bus_type"></a><font size=3>1. <code>struct bus_type</code></font></h2><p><code>Linux</code>系统内核使用<code>bus_type</code>结构体表示总线，这个结构体定义在<code>linux</code>内核源码的下边这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/device.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，找到<code>struct bus_type</code>结构体如下：</p>
+<details class="folding-tag" blue><summary> 点击查看源码中对该结构体的注释说明 </summary>
+              <div class='content'>
+              <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * struct bus_type - The bus type of the device</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * @name:       The name of the bus.</span></span><br><span class="line"><span class="comment"> * @dev_name:   Used for subsystems to enumerate devices like (&quot;foo%u&quot;, dev-&gt;id).</span></span><br><span class="line"><span class="comment"> * @dev_root:   Default device to use as the parent.</span></span><br><span class="line"><span class="comment"> * @dev_attrs:  Default attributes of the devices on the bus.</span></span><br><span class="line"><span class="comment"> * @bus_groups: Default attributes of the bus.</span></span><br><span class="line"><span class="comment"> * @dev_groups: Default attributes of the devices on the bus.</span></span><br><span class="line"><span class="comment"> * @drv_groups: Default attributes of the device drivers on the bus.</span></span><br><span class="line"><span class="comment"> * @match:      Called, perhaps multiple times, whenever a new device or driver</span></span><br><span class="line"><span class="comment"> *              is added for this bus. It should return a nonzero value if the</span></span><br><span class="line"><span class="comment"> *              given device can be handled by the given driver.</span></span><br><span class="line"><span class="comment"> * @uevent:     Called when a device is added, removed, or a few other things</span></span><br><span class="line"><span class="comment"> *              that generate uevents to add the environment variables.</span></span><br><span class="line"><span class="comment"> * @probe:      Called when a new device or driver add to this bus, and callback</span></span><br><span class="line"><span class="comment"> *              the specific driver&#x27;s probe to initial the matched device.</span></span><br><span class="line"><span class="comment"> * @remove:     Called when a device removed from this bus.</span></span><br><span class="line"><span class="comment"> * @shutdown:   Called at shut-down time to quiesce the device.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * @online:     Called to put the device back online (after offlining it).</span></span><br><span class="line"><span class="comment"> * @offline:    Called to put the device offline for hot-removal. May fail.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * @suspend:    Called when a device on this bus wants to go to sleep mode.</span></span><br><span class="line"><span class="comment"> * @resume:     Called to bring a device on this bus out of sleep mode.</span></span><br><span class="line"><span class="comment"> * @pm:         Power management operations of this bus, callback the specific</span></span><br><span class="line"><span class="comment"> *              device driver&#x27;s pm-ops.</span></span><br><span class="line"><span class="comment"> * @iommu_ops:  IOMMU specific operations for this bus, used to attach IOMMU</span></span><br><span class="line"><span class="comment"> *              driver implementations to a bus and allow the driver to do</span></span><br><span class="line"><span class="comment"> *              bus-specific setup</span></span><br><span class="line"><span class="comment"> * @p:          The private data of the driver core, only the driver core can</span></span><br><span class="line"><span class="comment"> *              touch this.</span></span><br><span class="line"><span class="comment"> * @lock_key:   Lock class key for use by the lock validator</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * A bus is a channel between the processor and one or more devices. For the</span></span><br><span class="line"><span class="comment"> * purposes of the device model, all devices are connected via a bus, even if</span></span><br><span class="line"><span class="comment"> * it is an internal, virtual, &quot;platform&quot; bus. Buses can plug into each other.</span></span><br><span class="line"><span class="comment"> * A USB controller is usually a PCI device, for example. The device model</span></span><br><span class="line"><span class="comment"> * represents the actual connections between buses and the devices they control.</span></span><br><span class="line"><span class="comment"> * A bus is represented by the bus_type structure. It contains the name, the</span></span><br><span class="line"><span class="comment"> * default attributes, the bus&#x27; methods, PM operations, and the driver core&#x27;s</span></span><br><span class="line"><span class="comment"> * private data.</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">bus_type</span> &#123;</span></span><br><span class="line">        <span class="type">const</span> <span class="type">char</span>              *name;</span><br><span class="line">        <span class="type">const</span> <span class="type">char</span>              *dev_name;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">device</span>           *<span class="title">dev_root</span>;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">device_attribute</span> *<span class="title">dev_attrs</span>;</span>     <span class="comment">/* use dev_groups instead */</span></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">attribute_group</span> **<span class="title">bus_groups</span>;</span></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">attribute_group</span> **<span class="title">dev_groups</span>;</span></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">attribute_group</span> **<span class="title">drv_groups</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="type">int</span> (*match)(<span class="keyword">struct</span> device *dev, <span class="keyword">struct</span> device_driver *drv);</span><br><span class="line">        <span class="type">int</span> (*uevent)(<span class="keyword">struct</span> device *dev, <span class="keyword">struct</span> kobj_uevent_env *env);</span><br><span class="line">        <span class="type">int</span> (*probe)(<span class="keyword">struct</span> device *dev);</span><br><span class="line">        <span class="type">int</span> (*remove)(<span class="keyword">struct</span> device *dev);</span><br><span class="line">        <span class="type">void</span> (*shutdown)(<span class="keyword">struct</span> device *dev);</span><br><span class="line"></span><br><span class="line">        <span class="type">int</span> (*online)(<span class="keyword">struct</span> device *dev);</span><br><span class="line">        <span class="type">int</span> (*offline)(<span class="keyword">struct</span> device *dev);</span><br><span class="line"></span><br><span class="line">        <span class="type">int</span> (*suspend)(<span class="keyword">struct</span> device *dev, <span class="type">pm_message_t</span> state);</span><br><span class="line">        <span class="type">int</span> (*resume)(<span class="keyword">struct</span> device *dev);</span><br><span class="line"></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">dev_pm_ops</span> *<span class="title">pm</span>;</span> </span><br><span class="line"></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">iommu_ops</span> *<span class="title">iommu_ops</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">subsys_private</span> *<span class="title">p</span>;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">lock_class_key</span> <span class="title">lock_key</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>成员中<code>match</code>指向的函数很重要，此函数指针指向的函数就是完成设备和驱动之间匹配的，总线就是使用<code>match</code>函数来根据注册的设备来查找对应的驱动，或者根据注册的驱动来查找相应的设备，因此<strong>每一条总线都必须实现此函数</strong>。 <code>match</code> 函数有两个参数： <code>dev</code> 和 <code>drv</code>，这两个参数分别为 <code>device</code> 和 <code>device_driver</code>类型，也就是设备和驱动。  </p>
+<h2 id="2-platform总线相关结构体"><a href="#2-platform总线相关结构体" class="headerlink" title="2. platform总线相关结构体"></a><font size=3>2. <code>platform</code>总线相关结构体</font></h2><h3 id="2-1-总线定义"><a href="#2-1-总线定义" class="headerlink" title="2.1 总线定义"></a><font size=3>2.1 总线定义</font></h3><p><code>platform</code> 总线是 <code>bus_type</code> 的一个具体实例，定义在<code>linux</code>内核源码中的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">drivers/base/platform.c</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到 <code>platform</code> 总线定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">bus_type</span> <span class="title">platform_bus_type</span> =</span> &#123;</span><br><span class="line">        .name           = <span class="string">&quot;platform&quot;</span>,</span><br><span class="line">        .dev_groups     = platform_dev_groups,</span><br><span class="line">        .match          = platform_match,</span><br><span class="line">        .uevent         = platform_uevent,</span><br><span class="line">        .pm             = &amp;platform_dev_pm_ops,</span><br><span class="line">&#125;;</span><br><span class="line">EXPORT_SYMBOL_GPL(platform_bus_type);</span><br></pre></td></tr></table></figure>
+
+<p>  其中，<code>platform_match</code>就是匹配函数。</p>
+<h3 id="2-2-匹配函数"><a href="#2-2-匹配函数" class="headerlink" title="2.2 匹配函数"></a><font size=3>2.2 匹配函数</font></h3><p><code>platform</code>匹配函数定义在<code>linux</code>内核源码的下边这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">drivers/base/platform.c</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这文件可以看到这个函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * platform_match - bind platform device to platform driver.</span></span><br><span class="line"><span class="comment"> * @dev: device.</span></span><br><span class="line"><span class="comment"> * @drv: driver.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Platform device IDs are assumed to be encoded like this:</span></span><br><span class="line"><span class="comment"> * &quot;&lt;name&gt;&lt;instance&gt;&quot;, where &lt;name&gt; is a short description of the type of</span></span><br><span class="line"><span class="comment"> * device, like &quot;pci&quot; or &quot;floppy&quot;, and &lt;instance&gt; is the enumerated</span></span><br><span class="line"><span class="comment"> * instance of the device, like &#x27;0&#x27; or &#x27;42&#x27;.  Driver IDs are simply</span></span><br><span class="line"><span class="comment"> * &quot;&lt;name&gt;&quot;.  So, extract the &lt;name&gt; from the platform_device structure,</span></span><br><span class="line"><span class="comment"> * and compare it against the name of the driver. Return whether they match</span></span><br><span class="line"><span class="comment"> * or not.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">platform_match</span><span class="params">(<span class="keyword">struct</span> device *dev, <span class="keyword">struct</span> device_driver *drv)</span></span><br><span class="line">&#123;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">platform_device</span> *<span class="title">pdev</span> =</span> to_platform_device(dev);</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">platform_driver</span> *<span class="title">pdrv</span> =</span> to_platform_driver(drv);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Attempt an OF style match first */</span></span><br><span class="line">        <span class="keyword">if</span> (of_driver_match_device(dev, drv))</span><br><span class="line">                <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Then try ACPI style match */</span></span><br><span class="line">        <span class="keyword">if</span> (acpi_driver_match_device(dev, drv))</span><br><span class="line">                <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Then try to match against the id table */</span></span><br><span class="line">        <span class="keyword">if</span> (pdrv-&gt;id_table)</span><br><span class="line">                <span class="keyword">return</span> platform_match_id(pdrv-&gt;id_table, pdev) != <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* fall-back to driver name match */</span></span><br><span class="line">        <span class="keyword">return</span> (<span class="built_in">strcmp</span>(pdev-&gt;name, drv-&gt;name) == <span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>从函数视实现中，我们可以看到，驱动和设备的匹配有四种方法  ：</p>
+<ul>
+<li><code>OF</code> 类型的匹配，也就是设备树采用的匹配方式</li>
+</ul>
+<p><code>of_driver_match_device</code>函数定义在<code>linux</code>内核源码的下边这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/of_device.h</span><br></pre></td></tr></table></figure>
+
+<p><code>device_driver</code> 结构体（表示设备驱动）中有个名为<code>of_match_table</code>的成员变量，此成员变量保存着驱动的<code>compatible</code>匹配表，设备树中的每个设备节点的<code>compatible</code>属性会和<code>of_match_table</code>表中的所有成员比较，查看是否有相同的条目，如果有的话就表示设备和此驱动匹配，设备和驱动匹配成功以后 <code>probe</code> 函数就会执行。 </p>
+<ul>
+<li><code>ACPI</code> 匹配方式</li>
+</ul>
+<p><code>Advanced Configuration and Power Management Interface</code> 高级配置和电源管理接口，是<code>PC</code>机平台采用的一种硬件配置接口没怎么使用过，后续使用了再补充笔记。</p>
+<ul>
+<li><code>id_table</code> 匹配</li>
+</ul>
+<p>每个 <code>platform_driver</code> 结构体有一个<code>id_table</code>成员变量，它里边保存了很多<code>id</code>信息。这些<code>id</code>信息存放着这个<code> platform</code>驱动所支持的驱动类型。  </p>
+<ul>
+<li>名称匹配</li>
+</ul>
+<p>这是第四种匹配方式，如果第三种匹配方式的 <code>id_table</code> 不存在的话就直接比较驱动和设备的 <code>name</code> 字段，看看是不是相等，如果相等的话就匹配成功。  </p>
+<p>对于支持设备树的<code> Linux</code> 版本号，一般设备驱动为了兼容性都支持设备树和无设备树两种匹配方式。也就是第一种匹配方式一般都会存在，第三种和第四种只要存在一种就可以，一般用的最多的还是第四种，毕竟名称匹配是最简单的。 </p>
+<blockquote>
+<p>【匹配优先级】</p>
+<p>从匹配函数中可以看出，不考虑第二种<code>ACPI</code>匹配方式的情况下，匹配的优先级为：</p>
+<p>设备树匹配 &gt; ID匹配 &gt; 名称匹配</p>
+</blockquote>
+<h2 id="3-platform驱动相关结构体"><a href="#3-platform驱动相关结构体" class="headerlink" title="3. platform驱动相关结构体"></a><font size=3>3. <code>platform</code>驱动相关结构体</font></h2><h3 id="3-1-struct-platform-driver"><a href="#3-1-struct-platform-driver" class="headerlink" title="3.1 struct platform_driver"></a><font size=3>3.1 <code>struct platform_driver</code></font></h3><p><code>platform_driver</code>结构体表示<code>platform</code>驱动，这个结构体定义在<code>linux</code>内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/platform_device.h </span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到这个结构体及其成员定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">platform_driver</span> &#123;</span></span><br><span class="line">        <span class="type">int</span> (*probe)(<span class="keyword">struct</span> platform_device *);</span><br><span class="line">        <span class="type">int</span> (*remove)(<span class="keyword">struct</span> platform_device *);</span><br><span class="line">        <span class="type">void</span> (*shutdown)(<span class="keyword">struct</span> platform_device *);</span><br><span class="line">        <span class="type">int</span> (*suspend)(<span class="keyword">struct</span> platform_device *, <span class="type">pm_message_t</span> state);</span><br><span class="line">        <span class="type">int</span> (*resume)(<span class="keyword">struct</span> platform_device *);</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">device_driver</span> <span class="title">driver</span>;</span></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">platform_device_id</span> *<span class="title">id_table</span>;</span></span><br><span class="line">        <span class="type">bool</span> prevent_deferred_probe;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员说明】</strong></p>
+<ul>
+<li><code>probe</code>：函数指针，指向一个<code>probe</code> 函数，当驱动与设备匹配成功以后 <code>probe</code> 函数就会执行，一般驱动的提供者会编写，如果自己要编写一个全新的驱动，那么<code>probe</code> 就需要自行实现。  </li>
+<li><code>remove</code>：函数指针，指向一个<code>remove</code>函数，设备卸载了的时候会调用该函数。</li>
+<li><code>driver</code>：<code> struct device_driver</code>类型（后边会介绍该结构体），<code>Linux</code> 内核里面大量使用到了面向对象的思维， <code>device_driver</code> 相当于基类，提供了最基础的驱动框架。 <code>plaform_driver</code> 继承了这个基类，然后在此基础上又添加了一些特有的成员变量。<strong>内核里所有的驱动必须包含该结构体</strong>。  </li>
+<li><code>id_table</code>：<code>struct platform_device_id *</code>类型（后便会介绍该结构体），指向<code>id_table</code> 表，<code>platform</code> 总线匹配驱动和设备的时候采用的第三种方法， <code>id_table</code> 是个表(也就是数组)，每个元素的类型为 <code>platform_device_id</code>。</li>
+</ul>
+<p><strong>【定义实例】</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** 定义platform平台驱动 */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">platform_driver</span> <span class="title">hello_driver</span> =</span> &#123;</span><br><span class="line">    .driver = &#123;</span><br><span class="line">        .name = MODULE_NAME,       <span class="comment">/* 必须初始化 name 成员 */</span></span><br><span class="line">    &#125;,</span><br><span class="line">    .probe = hello_driver_probe,   <span class="comment">/* 设备和驱动匹配成功之后的调用函数 */</span></span><br><span class="line">    .remove = hello_driver_remove, <span class="comment">/* 卸载设备 */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="3-2-struct-device-driver"><a href="#3-2-struct-device-driver" class="headerlink" title="3.2 struct device_driver"></a><font size=3>3.2 <code>struct device_driver</code></font></h3><p><code>device_driver</code>结构体定义在<code>linux</code>内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/device.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到这个结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">device_driver</span> &#123;</span></span><br><span class="line">        <span class="type">const</span> <span class="type">char</span>              *name;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">bus_type</span>         *<span class="title">bus</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">module</span>           *<span class="title">owner</span>;</span></span><br><span class="line">        <span class="type">const</span> <span class="type">char</span>              *mod_name;      <span class="comment">/* used for built-in modules */</span></span><br><span class="line"></span><br><span class="line">        <span class="type">bool</span> suppress_bind_attrs;       <span class="comment">/* disables bind/unbind via sysfs */</span></span><br><span class="line"></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">of_device_id</span>       *<span class="title">of_match_table</span>;</span></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">acpi_device_id</span>     *<span class="title">acpi_match_table</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="type">int</span> (*probe) (<span class="keyword">struct</span> device *dev);</span><br><span class="line">        <span class="type">int</span> (*remove) (<span class="keyword">struct</span> device *dev);</span><br><span class="line">        <span class="type">void</span> (*shutdown) (<span class="keyword">struct</span> device *dev);</span><br><span class="line">        <span class="type">int</span> (*suspend) (<span class="keyword">struct</span> device *dev, <span class="type">pm_message_t</span> state);</span><br><span class="line">        <span class="type">int</span> (*resume) (<span class="keyword">struct</span> device *dev);</span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">attribute_group</span> **<span class="title">groups</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">dev_pm_ops</span> *<span class="title">pm</span>;</span> </span><br><span class="line"></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">driver_private</span> *<span class="title">p</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员说明】</strong></p>
+<ul>
+<li><code>name</code>：<code>char *</code>类型，驱动名称，使用名称匹配的时候匹配<code>device</code>用，最后一个成员是<strong>必须要初始化</strong>的。</li>
+<li><code>bus</code>：<code>struct bus_type *</code>类型，总线类型。</li>
+<li><code>owner</code>：<code>struct module *</code>类型，一般填<code>THIS_MODULE</code>。</li>
+<li><code>of_match_table</code>：<code>struct of_device_id *</code>类型（后边会介绍），用于设备树匹配 <code>of_match_ptr</code>(某<code>struct of_device_id</code>对象地址) 。<code>of_match_table</code> 就是采用设备树的时候驱动使用的匹配表，同样是数组，每个匹配项都为 <code>of_device_id</code> 结构体类型。</li>
+</ul>
+<h3 id="3-3-struct-platform-device-id"><a href="#3-3-struct-platform-device-id" class="headerlink" title="3.3 struct platform_device_id"></a><font size=3>3.3 <code>struct platform_device_id</code></font></h3><p>在使用<code>ID</code>匹配的时候，这个结构体类型在设备和驱动中都会用到。在驱动中，需要用该结构体对象定义一个结构体数组，而在驱动中，只需要定义一个变量即可。这个结构体定义在<code>linux</code>内核源码的下边这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/mod_devicetable.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，会看到这个结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> PLATFORM_NAME_SIZE      20</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PLATFORM_MODULE_PREFIX  <span class="string">&quot;platform:&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">platform_device_id</span> &#123;</span></span><br><span class="line">        <span class="type">char</span> name[PLATFORM_NAME_SIZE];</span><br><span class="line">        <span class="type">kernel_ulong_t</span> driver_data;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员说明】</strong></p>
+<ul>
+<li><code>name</code>：<code>char</code>类型，表示匹配用的名称（按我自己的理解这个名称就是匹配的时候用的<code>ID</code>）。</li>
+<li><code>driver_data</code>：<code>kernel_ulong_t</code>类型，需要向驱动传输的其它数据。</li>
+</ul>
+<p><strong>【注意事项】</strong>一般是定义在驱动中，定义的是一个结构体数组，一般不指定大小，初始化时最后加<code>&#123;&#125;</code>表示数组结束，在设备程序中只需要定义一个变量即可。</p>
+<p><strong>【定义实例】</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** </span></span><br><span class="line"><span class="comment"> *  定义匹配ID数组 </span></span><br><span class="line"><span class="comment"> *  与数组中含有的名称相同的设备都可以匹配到该驱动</span></span><br><span class="line"><span class="comment"> *  结构体变量名赋值给 struct platform_driver 结构体的 .id_table 成员</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">platform_device_id</span> <span class="title">hello_driver_ids</span>[] =</span> </span><br><span class="line">&#123;</span><br><span class="line">	[<span class="number">0</span>] = &#123;.name = <span class="string">&quot;hello_dev&quot;</span>&#125;,</span><br><span class="line">	[<span class="number">1</span>] = &#123;.name = <span class="string">&quot;a&quot;</span>&#125;,</span><br><span class="line">	[<span class="number">2</span>] = &#123;&#125;                   <span class="comment">/* means ending */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="3-4-struct-of-device-id"><a href="#3-4-struct-of-device-id" class="headerlink" title="3.4 struct of_device_id"></a><font size=3>3.4 <code>struct of_device_id</code></font></h3><p>上边提到<code>of_match_table</code> 就是采用设备树的时候驱动使用的匹配表，同样是数组，每个匹配项都为<code>of_device_id</code>结构体类型，此结构体定义在<code>linux</code>内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/mod_devicetable.h</span><br></pre></td></tr></table></figure>
+
+<p>  我们打开这个文件，可以看到这结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Struct used for matching a device</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">of_device_id</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">        <span class="type">char</span>    name[<span class="number">32</span>];</span><br><span class="line">        <span class="type">char</span>    type[<span class="number">32</span>];</span><br><span class="line">        <span class="type">char</span>    compatible[<span class="number">128</span>];</span><br><span class="line">        <span class="type">const</span> <span class="type">void</span> *data;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员说明】</strong></p>
+<ul>
+<li><code>name</code>：<code>char</code>类型数组，设备名。</li>
+<li><code>type</code>：<code>char</code>类型数组，设备类型。</li>
+<li><code>compatible</code>：<code>char</code>类型数组，对于设备树而言，通过设备节点的 <code>compatible</code> 属性值和 <code>of_match_table</code> 中每个项目的 <code>compatible</code> 成员变量进行比较，如果有相等的就表示设备和此驱动匹配成功。</li>
+</ul>
+<p><strong>【注意事项】</strong>一般是定义在驱动中，定义的是一个结构体数组，一般不指定大小，初始化时最后加<code>&#123;&#125;</code>表示数组结束。</p>
+<p><strong>【定义实例】</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** </span></span><br><span class="line"><span class="comment"> *  定义匹配设备树数组</span></span><br><span class="line"><span class="comment"> *  与数组中含有的名称相同的设备都可以匹配到该驱动</span></span><br><span class="line"><span class="comment"> *  结构体变量名赋值给 struct platform_driver 结构体的 .driver.of_match_table 成员</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">of_device_id</span> <span class="title">hello_driver_dt_ids</span>[] =</span> &#123;</span><br><span class="line">    [<span class="number">0</span>] = &#123;.compatible = <span class="string">&quot;fs4412,hello-dt&quot;</span>&#125;,  <span class="comment">/* 设备树中 compatible 的名称 */</span></span><br><span class="line">    [<span class="number">1</span>] = &#123;.compatible = <span class="string">&quot;origen4412,hello-dt&quot;</span>&#125;,</span><br><span class="line">    [<span class="number">2</span>] = &#123;&#125;                               <span class="comment">/* means ending */</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/** 定义platform平台驱动 */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">platform_driver</span> <span class="title">hello_driver</span> =</span> &#123;</span><br><span class="line">    .driver = &#123;</span><br><span class="line">        .name = MODULE_NAME,       <span class="comment">/* 必须初始化 name 成员 */</span></span><br><span class="line">        .of_match_table = hello_driver_dt_ids,</span><br><span class="line">    &#125;,</span><br><span class="line">    .probe = hello_driver_probe,   <span class="comment">/* 设备和驱动匹配成功之后的调用函数 */</span></span><br><span class="line">    .remove = hello_driver_remove, <span class="comment">/* 卸载设备 */</span></span><br><span class="line">    <span class="comment">// .id_table = hello_driver_ids,  /* 可匹配的设备ID数组 */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-platform设备相关结构体"><a href="#4-platform设备相关结构体" class="headerlink" title="4. platform设备相关结构体"></a><font size=3>4. <code>platform</code>设备相关结构体</font></h2><h3 id="4-1-struct-platform-device"><a href="#4-1-struct-platform-device" class="headerlink" title="4.1 struct platform_device"></a><font size=3>4.1 <code>struct platform_device</code></font></h3><p><code>platform_device</code> 这个结构体表示 <code>platform</code> 设备，要注意，如果内核支持设备树的话就不要再使用<code>platform_device</code>来描述设备了，因为改用设备树去描述了。当然了，如果一定要用<code>platform_device</code>来描述设备信息的话也是可以的。这个结构体定义在<code>linux</code>内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/platform_device.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">platform_device</span> &#123;</span></span><br><span class="line">        <span class="type">const</span> <span class="type">char</span>      *name;</span><br><span class="line">        <span class="type">int</span>             id;</span><br><span class="line">        <span class="type">bool</span>            id_auto;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">device</span>   <span class="title">dev</span>;</span></span><br><span class="line">        u32             num_resources;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">resource</span> *<span class="title">resource</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">platform_device_id</span> *<span class="title">id_entry</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">/* MFD cell pointer */</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">mfd_cell</span> *<span class="title">mfd_cell</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">/* arch specific additions */</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">pdev_archdata</span>    <span class="title">archdata</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员说明】</strong></p>
+<ul>
+<li><p><code>name</code>：<code>char *</code>类型， 表示设备名字，要和所使用的 <code>platform</code> 驱动的 <code>name</code> 字段相同，否则的话设备就无法匹配到对应的驱动。比如对应的 <code>platform</code> 驱动的 <code>name</code> 字段为<code>xxx-gpio</code>，那么此 <code>name</code>字段也要设置为<code>xxx-gpio</code>。  <strong>必须要进行初始化</strong>。</p>
+</li>
+<li><p><code>id</code>：<code>int</code>类型，设备<code>id</code>，用于在该总线上同名的设备进行编号，如果只有一个设备，则为<code>-1</code>。</p>
+</li>
+<li><p><code>dev</code>：<code>struct device</code>类型（后边会说明），设备模块必须包含该结构体。</p>
+</li>
+<li><p><code>num_resources</code>：<code>u32</code>类型，表示资源数量，一般为<code>resource</code>成员（一般是一个数组）资源的个数 。</p>
+</li>
+<li><p><code>resource</code>：<code>struct resource *</code>类型（后边会说明），指向资源数组，表示资源，也就是设备信息，比如外设寄存器等。</p>
+</li>
+</ul>
+<p><strong>【定义实例】</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** 定义platform平台设备 */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">platform_device</span> <span class="title">hello_device</span> =</span> &#123;</span><br><span class="line">    .name = MODULE_NAME,                 <span class="comment">/* 必须初始化 name 成员 */</span></span><br><span class="line">    .dev.release = hello_device_release, <span class="comment">/* 删除设备 */</span></span><br><span class="line">    .resource = hello_device_res,        <span class="comment">/* 资源数组 */</span></span><br><span class="line">    .num_resources = ARRAY_SIZE(hello_device_res), <span class="comment">/* 资源数组元素个数 */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="4-2-struct-device"><a href="#4-2-struct-device" class="headerlink" title="4.2 struct device"></a><font size=3>4.2 <code>struct device</code></font></h3><p><code>device</code>结构体定义在<code>linux</code>内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/device.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到这个结构体定义如下（成员很多，这里只写了几个可能用到的）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">device</span> &#123;</span></span><br><span class="line">    <span class="comment">//... ...</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">bus_type</span>	*<span class="title">bus</span>;</span>		  <span class="comment">/* type of bus device is on */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device_driver</span> *<span class="title">driver</span>;</span> <span class="comment">/* which driver has allocated this device */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device_node</span>	*<span class="title">of_node</span>;</span> <span class="comment">/* associated device tree node */</span></span><br><span class="line">    <span class="type">dev_t</span>			devt;	      <span class="comment">/* dev_t, creates the sysfs &quot;dev&quot; */</span></span><br><span class="line">	<span class="type">void</span>	(*release)(<span class="keyword">struct</span> device *dev);</span><br><span class="line">    <span class="comment">// ... ...</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员说明】</strong></p>
+<ul>
+<li><code>bus</code>：<code>struct bus_type *</code>类型，总线类型。</li>
+<li><code>devt</code>：<code>dev_t</code>类型，表示设备号。</li>
+<li><code>driver</code>：<code>struct device_driver *</code>类型，设备驱动。</li>
+<li><code>of_node</code>：<code>struct device_node *</code>类型，驱动和设备匹配成功后，这里将指向匹配成功的设备在设备树中的节点省去获取节点的过程。</li>
+<li><code>release</code>：函数指针，指向一个删除设备函数。</li>
+</ul>
+<p><strong>【使用实例】</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">hello_driver_probe</span><span class="params">(<span class="keyword">struct</span> platform_device *p_pltdev)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/* 0.相关变量定义 */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">device_node</span> *<span class="title">pnode</span> =</span> <span class="literal">NULL</span>; <span class="comment">/* 存储设备树节点 */</span></span><br><span class="line">    <span class="type">const</span> <span class="type">char</span> *str = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="comment">/* 1.获取设备树节点 */</span></span><br><span class="line">    pnode = p_pltdev-&gt;dev.of_node;</span><br><span class="line">    <span class="comment">/* 2.获取设备树reg数据 */</span></span><br><span class="line">    printk(<span class="string">&quot;=====================================================\n&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span>(of_property_read_string(pnode, <span class="string">&quot;my-name&quot;</span>, &amp;str) &lt; <span class="number">0</span>)</span><br><span class="line">        printk(<span class="string">&quot;of_property_read_string failed!\n&quot;</span>);</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        printk(<span class="string">&quot;name=%s\n&quot;</span>, str);</span><br><span class="line">    printk(<span class="string">&quot;=====================================================\n&quot;</span>);</span><br><span class="line">    <span class="comment">/* 打印提示信息 */</span></span><br><span class="line">    printk(<span class="string">&quot;[INFO]hello_driver_probe is called!\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="4-3-struct-resource"><a href="#4-3-struct-resource" class="headerlink" title="4.3 struct resource"></a><font size=3>4.3 <code>struct resource</code></font></h3><p><code>Linux</code> 内核使用 <code>resource</code>结构体表示资源 ，该结构体定义在<code>linux</code>内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/ioport.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Resources are tree-like, allowing</span></span><br><span class="line"><span class="comment"> * nesting etc..</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">resource</span> &#123;</span></span><br><span class="line">        <span class="type">resource_size_t</span> start;</span><br><span class="line">        <span class="type">resource_size_t</span> end;</span><br><span class="line">        <span class="type">const</span> <span class="type">char</span> *name;</span><br><span class="line">        <span class="type">unsigned</span> <span class="type">long</span> flags;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">resource</span> *<span class="title">parent</span>, *<span class="title">sibling</span>, *<span class="title">child</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员说明】</strong></p>
+<ul>
+<li><code>start</code>：<code>resource_size_t</code>类型， 表示资源的起始信息，对于内存类的资源，就表示内存起始地址。</li>
+<li><code>end</code> ：<code>resource_size_t</code>类型，表示资源的终止信息，对于内存类的资源，就表示内存终止地址。</li>
+<li><code>name</code> <code>char *</code>类型，表示资源名字。</li>
+<li><code>flags</code> ：<code>unsigned long</code>类型，表示资源类型，可选的资源类型都定义在了文件<code>include/linux/ioport.h</code> 里面。我们常用的是 <code>IORESOURCE_MEM</code>、<code>IORESOURCE_IRQ</code>  这两种。start 和 end 的含义会随着 flags而变更。</li>
+</ul>
+<p><code>flags</code>为<code>IORESOURCE_MEM</code>时，<code>start</code> 、<code>end </code>分别表示该<code>platform_device</code>占据的内存的开始地址和结束值；注意不同<code>MEM</code>的地址值<strong>不能重叠</strong>，重叠的话可能会报下边的错误：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">failed to claim resource 2/3/4/5</span><br></pre></td></tr></table></figure>
+
+<p><code>flags</code>为 <code>IORESOURCE_IRQ</code>   时，<code>start</code> 、<code>end</code>分别表示该<code>platform_device</code>使用的中断号的开始地址和结束值。</p>
+<p><strong>【定义实例】</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** </span></span><br><span class="line"><span class="comment"> *  定义资源数组(注意不能有重叠区域，否则会报错：failed to claim resource 2/3/4/5)</span></span><br><span class="line"><span class="comment"> *  结构体变量名赋值给 struct platform_device 结构体的 .resource 成员</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">resource</span> <span class="title">hello_device_res</span>[] =</span> &#123;</span><br><span class="line">    [<span class="number">0</span>] = &#123;.start = <span class="number">0x1000</span>, .end = <span class="number">0x1003</span>, .name = <span class="string">&quot;reg1&quot;</span>, .flags = IORESOURCE_MEM&#125;,</span><br><span class="line">    [<span class="number">1</span>] = &#123;.start = <span class="number">0x2000</span>, .end = <span class="number">0x2003</span>, .name = <span class="string">&quot;reg2&quot;</span>, .flags = IORESOURCE_MEM&#125;,</span><br><span class="line">    [<span class="number">2</span>] = &#123;.start =     <span class="number">10</span>, .end =     <span class="number">10</span>, .name = <span class="string">&quot;irq1&quot;</span>, .flags = IORESOURCE_IRQ&#125;,</span><br><span class="line">    [<span class="number">3</span>] = &#123;.start = <span class="number">0x3000</span>, .end = <span class="number">0x3003</span>, .name = <span class="string">&quot;reg3&quot;</span>, .flags = IORESOURCE_MEM&#125;,</span><br><span class="line">    [<span class="number">4</span>] = &#123;.start =    <span class="number">100</span>, .end =    <span class="number">100</span>, .name = <span class="string">&quot;irq2&quot;</span>, .flags = IORESOURCE_IRQ&#125;,</span><br><span class="line">    [<span class="number">5</span>] = &#123;.start =     <span class="number">62</span>, .end =     <span class="number">62</span>, .name = <span class="string">&quot;irq3&quot;</span>, .flags = IORESOURCE_IRQ&#125;,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="4-4-struct-platform-device-id"><a href="#4-4-struct-platform-device-id" class="headerlink" title="4.4 struct platform_device_id"></a><font size=3>4.4 <code>struct platform_device_id</code></font></h3><p>在使用<code>ID</code>匹配的时候，这个结构体类型在设备和驱动中都会用到。在驱动中，需要用该结构体对象定义一个结构体数组，而在驱动中，只需要定义一个变量即可。这个结构体定义在<code>linux</code>内核源码的下边这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/mod_devicetable.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，会看到这个结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> PLATFORM_NAME_SIZE      20</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PLATFORM_MODULE_PREFIX  <span class="string">&quot;platform:&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">platform_device_id</span> &#123;</span></span><br><span class="line">        <span class="type">char</span> name[PLATFORM_NAME_SIZE];</span><br><span class="line">        <span class="type">kernel_ulong_t</span> driver_data;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员说明】</strong></p>
+<ul>
+<li><code>name</code>：<code>char</code>类型，表示匹配用的名称（按我自己的理解这个名称就是匹配的时候用的<code>ID</code>）。</li>
+<li><code>driver_data</code>：<code>kernel_ulong_t</code>类型，需要向驱动传输的其它数据。</li>
+</ul>
+<p><strong>【注意事项】</strong>一般是定义在驱动中，定义的是一个结构体数组，一般不指定大小，初始化时最后加<code>&#123;&#125;</code>表示数组结束，在设备程序中只需要定义一个变量即可。</p>
+<p><strong>【定义实例】</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** </span></span><br><span class="line"><span class="comment"> *  定义ID匹配数组 </span></span><br><span class="line"><span class="comment"> *  结构体变量名赋值给 struct platform_device 结构体的 .id_entry 成员</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">platform_device_id</span> <span class="title">hello_id</span> =</span> &#123;</span><br><span class="line">	.name = MODULE_NAME,                 <span class="comment">/* 这里要与 struct platform_device 结构体中 name 成员相同 */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h1 id="五、基本函数"><a href="#五、基本函数" class="headerlink" title="五、基本函数"></a><font size=3>五、基本函数</font></h1><h2 id="1-platform驱动相关函数"><a href="#1-platform驱动相关函数" class="headerlink" title="1. platform驱动相关函数"></a><font size=3>1. <code>platform</code>驱动相关函数</font></h2><h3 id="1-1-platform-driver-register"><a href="#1-1-platform-driver-register" class="headerlink" title="1.1 platform_driver_register()"></a><font size=3>1.1 <code>platform_driver_register()</code></font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep platform_driver_register -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/platform_device.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">platform_driver_register</span><span class="params">(<span class="keyword">struct</span> platform_driver *driver)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数向 <code>Linux</code> 内核注册一个 <code>platform</code> 驱动。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>driver</code>：<code>struct platform_driver *</code>类型，要注册的 <code>platform</code> 驱动。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，成功返回<code>0</code>，失败返回 一个负数，负数的绝对值表示错误码。</p>
+<p><strong>【使用格式】</strong><code>none</code></p>
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h3 id="1-2-platform-driver-unregister"><a href="#1-2-platform-driver-unregister" class="headerlink" title="1.2 platform_driver_unregister()"></a><font size=3>1.2 <code>platform_driver_unregister()</code></font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep platform_driver_unregister -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/platform_device.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">platform_driver_unregister</span><span class="params">(<span class="keyword">struct</span> platform_driver *drv)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数从 <code>Linux</code> 内核卸载一个 <code>platform</code> 驱动。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>drv</code>：<code>struct platform_driver *</code>类型，要卸载的 <code>platform</code> 驱动。</li>
+</ul>
+<p><strong>【返回值】</strong><code>none</code></p>
+<p><strong>【使用格式】</strong><code>none</code></p>
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h3 id="1-3-platform-get-resource"><a href="#1-3-platform-get-resource" class="headerlink" title="1.3 platform_get_resource()"></a><font size=3>1.3 <code>platform_get_resource()</code></font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep platform_get_resource -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/platform_device.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">struct</span> resource *<span class="title function_">platform_get_resource</span><span class="params">(<span class="keyword">struct</span> platform_device *dev, <span class="type">unsigned</span> <span class="type">int</span> type, <span class="type">unsigned</span> <span class="type">int</span> num)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于获取设备资源，用在<code>platform</code>驱动中。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>dev</code>：<code>struct platform_device *</code>类型，资源所在的设备。</li>
+<li><code>type</code>：<code>unsigned int</code>类型，获取的资源类型。</li>
+<li><code>num</code>：<code>unsigned int</code>类型，对应类型资源的序号（如第<code>0</code>个<code>MEM</code>、第<code>2</code>个<code>IRQ</code>等，不是数组下标，而是同类资源的序号）。</li>
+</ul>
+<p><strong>【返回值】</strong><code>struct resource *</code>类型，成功则返回资源结构体首地址，失败则返回<code>NULL</code>。</p>
+<p><strong>【使用格式】</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 设备树节点部分 */</span></span><br><span class="line">fs4412-adc&#123;  </span><br><span class="line">    compatible = <span class="string">&quot;fs4412,adc&quot;</span>;  </span><br><span class="line">    reg = &lt;<span class="number">0x126C0000</span> <span class="number">0x20</span>&gt;;  </span><br><span class="line">    interrupt-parent = &lt;&amp;combiner&gt;;  </span><br><span class="line">    interrupts = &lt;<span class="number">10</span> <span class="number">3</span>&gt;;  </span><br><span class="line">&#125;; </span><br><span class="line"><span class="comment">/* 获取资源 */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">resource</span> *<span class="title">res1</span>;</span>   <span class="comment">/* 保存中断信息地址 */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">resource</span> *<span class="title">res2</span>;</span>   <span class="comment">/* 保存寄存器基地址信息地址 */</span></span><br><span class="line"></span><br><span class="line">res1 = platform_get_resource(p_pltdev, IORESOURCE_IRQ, <span class="number">0</span>); <span class="comment">/* 中断信息 */</span></span><br><span class="line">res2 = platform_get_resource(p_pltdev, IORESOURCE_MEM, <span class="number">0</span>); <span class="comment">/* 寄存器基地址 */</span></span><br><span class="line">printk(<span class="string">&quot;[INFO ]res1-&gt;start :%d.\n&quot;</span>, res1-&gt;start);</span><br><span class="line">printk(<span class="string">&quot;[INFO ]res2-&gt;start=%#x,res2-&gt;end - res2-&gt;start :%#x.\n&quot;</span>,res2-&gt;start, res2-&gt;end - res2-&gt;start);</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h3 id="1-4-of-match-ptr"><a href="#1-4-of-match-ptr" class="headerlink" title="1.4 of_match_ptr()"></a><font size=3>1.4 <code>of_match_ptr()</code></font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep of_match_ptr -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/of.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 文件结构如下 */</span></span><br><span class="line"><span class="comment">// ... ...</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_OF</span></span><br><span class="line"><span class="comment">// ... ...</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> of_match_ptr(_ptr)      (_ptr)</span></span><br><span class="line"><span class="comment">// ... ...</span></span><br><span class="line"><span class="meta">#<span class="keyword">else</span> <span class="comment">/* CONFIG_OF */</span></span></span><br><span class="line"><span class="comment">// ... ...</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> of_match_ptr(_ptr)	NULL</span></span><br><span class="line"><span class="comment">// ... ...</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">/* CONFIG_OF */</span></span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数是一个宏，表示当使用设备树时，使用<code>_ptr</code>进行匹配，否则其为空。</p>
+<details class="folding-tag" blue><summary> 点击查看说明 </summary>
+              <div class='content'>
+              <p>在内核还没有引进设备树的时候，设备和驱动的匹配工作是由<code>driver.name</code>或者<code>id_table</code>来完成的，自从引进设备树之后（就有了<code>CONFIG_OF</code>）这个宏，匹配规则中就多了<code>of_match_table</code>这种通过<code>compatible</code>方式来匹配的方式。同时为了兼容老的匹配方式，定义了宏<code>of_match_ptr</code>。</p><ul><li>当有设备树的时候（定义了<code>CONFIG_OF</code>），那么<code>of_match_table</code>就有值。</li></ul><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">.of_match_table = of_match_ptr(adc_driver_dt_ids)</span><br></pre></td></tr></table></figure><p>宏替换之后就是 </p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">.of_match_table = (adc_driver_dt_ids)</span><br></pre></td></tr></table></figure><p>这样就会使用设备树的方式进行匹配。</p><ul><li>当没有设备树的时候（没有定义<code>CONFIG_OF</code>），那么<code>of_match_table</code>就没值。</li></ul><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">.of_match_table = of_match_ptr(adc_driver_dt_ids)</span><br></pre></td></tr></table></figure><p>宏替换之后就是</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">.of_match_table = NULL</span><br></pre></td></tr></table></figure><p>这样就就会使用传统方式匹配。</p>
+              </div>
+            </details>
+
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>_ptr</code>：<code>struct of_device_id</code>类型的一个数组，表示设备树匹配的<code>compatible</code>表。</li>
+</ul>
+<p><strong>【返回值】</strong><code>none</code></p>
+<p><strong>【使用格式】</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** 定义匹配设备树数组</span></span><br><span class="line"><span class="comment"> *  与数组中含有的名称相同的设备都可以匹配到该驱动</span></span><br><span class="line"><span class="comment"> *  结构体变量名赋值给 struct platform_driver 结构体的 ..driver.of_match_table 成员</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">of_device_id</span> <span class="title">adc_driver_dt_ids</span>[] =</span> &#123;</span><br><span class="line">    [<span class="number">0</span>] = &#123;.compatible = <span class="string">&quot;fs4412,adc&quot;</span> &#125;,</span><br><span class="line">    [<span class="number">1</span>] = &#123;&#125;, <span class="comment">/* means ending */</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/** 定义platform平台驱动 */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">platform_driver</span> <span class="title">adc_driver</span> =</span> &#123;</span><br><span class="line">    .driver = &#123;</span><br><span class="line">        .name = MODULE_NAME, <span class="comment">/* 必须初始化 name 成员 */</span></span><br><span class="line">        <span class="comment">// .of_match_table = adc_driver_dt_ids,</span></span><br><span class="line">        .of_match_table = of_match_ptr(adc_driver_dt_ids), <span class="comment">/* 直接使用的话，加载驱动报错，暂未研究 */</span></span><br><span class="line">    &#125;,</span><br><span class="line">    .probe = adc_driver_probe,   <span class="comment">/* 设备和驱动匹配成功之后的调用函数 */</span></span><br><span class="line">    .remove = adc_driver_remove, <span class="comment">/* 卸载设备 */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong>其实原本没用过这个宏，直接使用数组名就也完成了匹配，但是后便在编写一个驱动的时候，使用<code>platform_get_resource</code>获从设备树获取资源的话，这里不用这个宏的话，在加载模块的时候就会报错，目前还没有仔细研究，所以这里先注意一下，后边搞懂了再补充。</p>
+<h2 id="2-platform设备相关函数"><a href="#2-platform设备相关函数" class="headerlink" title="2. platform设备相关函数"></a><font size=3>2. <code>platform</code>设备相关函数</font></h2><h3 id="2-1-platform-device-register"><a href="#2-1-platform-device-register" class="headerlink" title="2.1 platform_device_register()"></a><font size=3>2.1 <code>platform_device_register()</code></font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep platform_device_register -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/platform_device.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">platform_device_register</span><span class="params">(<span class="keyword">struct</span> platform_device *pdev)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数设备信息注册到 <code>Linux</code> 内核中，把指定设备添加到内核中平台总线的设备列表，等待匹配，匹配成功则回调驱动中<code>probe</code>指向的函数。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>pdev</code>：<code>struct platform_device *</code>类型，要注册的 <code>platform</code> 设备。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，成功返回<code>0</code>，失败返回 一个负数，负数的绝对值表示错误码。</p>
+<p><strong>【使用格式】</strong><code>none</code></p>
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h3 id="2-2-platform-device-unregister"><a href="#2-2-platform-device-unregister" class="headerlink" title="2.2 platform_device_unregister()"></a><font size=3>2.2 <code>platform_device_unregister()</code></font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep platform_device_unregister -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/platform_device.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">platform_device_unregister</span><span class="params">(<span class="keyword">struct</span> platform_device *pdev)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数从 <code>Linux</code> 内核注销一个 <code>platform</code> 设备，如果驱动已匹配则回调驱动方法和设备信息中的<code>release</code>指向的函数 。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>pdev</code>：<code>struct platform_device *</code>类型，要注销的 <code>platform</code> 设备。</li>
+</ul>
+<p><strong>【返回值】</strong><code>none</code></p>
+<p><strong>【使用格式】</strong><code>none</code></p>
+<p><strong>【注意事项】</strong><code>none</code></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/684dbf90.html">LV10-10-platform-01-platform驱动基础</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年07月08日 - 18:58</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/684dbf90.html" title="LV10-10-platform-01-platform驱动基础">https://sumumm.github.io/post/684dbf90.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV10-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/61f6cfe4.html" rel="prev" title="LV10-10-platform-02-三种匹配方式">
+                  <i class="fa fa-angle-left"></i> LV10-10-platform-02-三种匹配方式
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/2a3d5ad0.html" rel="next" title="LV10-09-sysfs-01-sysfs简介">
+                  LV10-09-sysfs-01-sysfs简介 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是网络编程——多路复用IO中的select的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-03-网络编程-07-多路复用IO-01-select">
+<meta property="og:url" content="https://sumumm.github.io/post/a85de2e8.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是网络编程——多路复用IO中的select的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-01-select/img/image-20220702183118035.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-01-select/img/image-20220702182401571.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-01-select/img/image-20220703112747780.png">
+<meta property="article:published_time" content="2024-10-27T03:49:50.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:56.999Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-网络编程">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-01-select/img/image-20220702183118035.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/a85de2e8.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/a85de2e8.html","path":"post/a85de2e8.html","title":"LV06-03-网络编程-07-多路复用IO-01-select"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-03-网络编程-07-多路复用IO-01-select | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81select%E7%9B%B8%E5%85%B3%E5%87%BD%E6%95%B0"><span class="nav-text">一、select相关函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-select"><span class="nav-text">1. select()</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">1.1 函数说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">1.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-pselect"><span class="nav-text">2. pselect()</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.1 函数说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-sigmask%E5%8F%82%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.2 sigmask参数说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E4%B8%8Eselect-%E7%9A%84%E4%B8%8D%E5%90%8C"><span class="nav-text">2.3 与select()的不同</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81select%E4%BD%BF%E7%94%A8%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="nav-text">二、select使用流程图</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6%E9%9B%86%E6%93%8D%E4%BD%9C%E5%87%BD%E6%95%B0"><span class="nav-text">三、文件描述符集操作函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B%EF%BC%9Afd-set"><span class="nav-text">1. 数据类型：fd_set</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-FD-CLR"><span class="nav-text">2. FD_CLR()</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E-1"><span class="nav-text">2.1 函数说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-FD-ISSET"><span class="nav-text">3. FD_ISSET()</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">3.1 函数说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">3.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-FD-SET"><span class="nav-text">4. FD_SET()</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">4.1 函数说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">4.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-FD-ZERO"><span class="nav-text">5. FD_ZERO()</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">5.1 函数说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">5.2 使用实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81select-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">四、select()使用实例</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-server%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%AB%AF"><span class="nav-text">1. server服务器端</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-client%E5%AE%A2%E6%88%B7%E7%AB%AF"><span class="nav-text">2. client客户端</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-Makefile"><span class="nav-text">3. Makefile</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E6%B5%8B%E8%AF%95%E7%BB%93%E6%9E%9C"><span class="nav-text">4. 测试结果</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/a85de2e8.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-03-网络编程-07-多路复用IO-01-select | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-03-网络编程-07-多路复用IO-01-select
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-10-27 11:49:50" itemprop="dateCreated datePublished" datetime="2024-10-27T11:49:50+08:00">2024-10-27</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">LV06-网络编程</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>7.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>28 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是网络编程——多路复用IO中的select的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-01-select/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="center">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">---</td>        <td align="left">--- <a href="" target="_blank">  <i class="fa fa-external-link-alt"></i></a></td>      </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、select相关函数"><a href="#一、select相关函数" class="headerlink" title="一、select相关函数"></a><font size=3>一、select相关函数</font></h1><h2 id="1-select"><a href="#1-select" class="headerlink" title="1. select()"></a><font size=3>1. <code>select()</code></font></h2><h3 id="1-1-函数说明"><a href="#1-1-函数说明" class="headerlink" title="1.1 函数说明"></a><font size=3>1.1 函数说明</font></h3><p>在<code>linux</code>下可以使用<code>man 2 select</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">select</span><span class="params">(<span class="type">int</span> nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, <span class="keyword">struct</span> timeval *timeout)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于执行<code>I/O</code>多路复用操作，能够监视我们需要监视的文件描述符的变化情况——读写或是异常。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><p><code>nfds</code>：<code>int</code>类型，通常表示需要监视的最大文件描述符编号值加<code>1</code>。</p>
+</li>
+<li><p><code>readfds</code>：<code>fd_set</code>类型指针变量，指向一个文件描述符集合，用来检测这个文件描述符集合中的文件描述符<strong>读是否就绪</strong>（是否可读）。<code>select()</code>返回后，<code>readfds</code>将清除除准备读取的文件描述符外的所有文件描述符。</p>
+</li>
+<li><p><code>writefds</code>：<code>fd_set</code>类型指针变量，指向一个文件描述符集合，用来检测这个文件描述符集合中的文件描述符<strong>写是否就绪</strong>（是否可写）。<code>select()</code>返回后，<code>writefds</code>将清除除准备写入的文件描述符外的所有文件描述符。</p>
+</li>
+<li><p><code>exceptfds</code>：<code>fd_set</code>类型指针变量，指向一个文件描述符集合，用来检测这个文件描述符集合中的文件描述符是否出现异常，需要注意异常情况并不是在文件描述符上出现了一些错误。<code>select()</code>返回后，<code>exceptfds</code>将清除除了发生异常条件的文件描述符以外的所有文件描述符。</p>
+</li>
+<li><p><code>timeout</code>：<code>struct timeval</code>类型结构体指针变量，用于设定<code>select()</code>阻塞的时间上限，控制<code>select</code>的阻塞行为。</p>
+</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看 timeout 参数说明 </summary>
+              <div class='content'>
+              <p>在使用<code>man</code>手册的时候，会有该结构体的说明，该结构体的成员如下：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">timeval</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="type">time_t</span>      tv_sec;         <span class="comment">/* seconds */</span></span><br><span class="line">	<span class="type">suseconds_t</span> tv_usec;        <span class="comment">/* microseconds */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure><p>（1）我们可将<code>timeout</code>参数设置为<code>NULL</code>，表示<code>select()</code>将会一直阻塞、直到某一个或多个文件描述符成为就绪态；</p><p>（2）如果参数<code>timeout</code>指向一个<code>struct timeval</code>结构体对象，并且这个结构体对象中的两个成员变量都为<code>0</code>，那么此时<code>select()</code>函数不会阻塞，它只是简单地轮训指定的文件描述符集合，看看其中是否有就绪的文件描述符并立刻返回。</p><p>（3）若参数<code>timeout</code>将为<code>select()</code>指定一个等待（阻塞）时间的上限值，如果在阻塞期间内，文件描述符集合中的某一个或多个文件描述符成为就绪态，将会结束阻塞并返回；如果超过了阻塞时间的上限值，<code>select()</code>函数将会返回。</p>
+              </div>
+            </details>
+
+<p><strong>【返回值】</strong><code>int</code>类型，返回值可能会有以下三种情况：</p>
+<ul>
+<li>返回<code>-1</code>：表示有错误发生，并且会设置<code>errno</code>。可能的错误码包括<code>EBADF</code>、<code>EINTR</code>、<code>EINVAL</code>、<code>EINVAL</code>以及<code>ENOMEM</code>，其中<code>EBADF</code>表示<code>readfds</code>、<code>writefds</code>或<code>exceptfds</code>中有一个文件描述符是非法的；<code>EINTR</code>表示该函数被信号处理函数中断了，其他更详细的我们可以使用<code>man</code>命令查看帮助手册去详细了解。</li>
+<li>返回<code>0</code>：表示在任何文件描述符成为就绪态之前<code>select()</code>调用已经超时，在这种情况下，<code>readfds</code>，<code>writefds</code>以及<code>exceptfds</code>所指向的文件描述符集合都会被清空。</li>
+<li>返回正整数：表示有一个或多个文件描述符已达到就绪态。返回值表示处于就绪态的文件描述符的个数，在这种情况下，每个返回的文件描述符集合都需要检查，通过<code>FD_ISSET()</code>宏进行检查，以此查找发生的<code>I/O</code>事件是什么。如果同一个文件描述符在<code>readfds</code>，<code>writefds</code>以及<code>exceptfds</code>中同时被指定，且它有多个<code>I/O</code>事件都处于就绪态的话，那么这个文件描述符就会被统计多次，换句话说，也就是说<code>select()</code>返回三个集合中被标记为就绪态的文件描述符的总数。</li>
+</ul>
+<p><strong>【使用格式】</strong>后边还有几个知识点，到最后查看使用实例即可。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要的一些头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"><span class="comment">/* 需要的一些语句步骤 */</span></span><br><span class="line">fd_set rset;</span><br><span class="line"><span class="type">int</span> maxfd = <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">timeval</span> <span class="title">tout</span>;</span></span><br><span class="line"></span><br><span class="line">fd = socket ( ...);</span><br><span class="line">bind (fd, ...);</span><br><span class="line">listen (fd, ...);</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> (<span class="number">1</span>)</span><br><span class="line">&#123;</span><br><span class="line">	maxfd = fd;</span><br><span class="line">	FD_ZERO (&amp;rset);</span><br><span class="line"></span><br><span class="line">	FD_SET (fd, &amp;rset);</span><br><span class="line">	<span class="comment">//依次把已经建立好连接fd加入到集合中,记录下来最大的文件描述符maxfd</span></span><br><span class="line">	<span class="comment">//...FIXME!!</span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> 0</span></span><br><span class="line">	select (maxfd + <span class="number">1</span>, &amp;rset, <span class="literal">NULL</span>, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line">	tout.tv_sec = <span class="number">5</span>;</span><br><span class="line">	tout.tv_usec = <span class="number">0</span>;</span><br><span class="line">	select (maxfd + <span class="number">1</span>, &amp;rset, <span class="literal">NULL</span>, <span class="literal">NULL</span>, &amp;tout);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="keyword">if</span> (FD_ISSET (fd, &amp;rset))</span><br><span class="line">	&#123;</span><br><span class="line">		newfd = accept (fd, ....);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//依次判断已建立连接的客户端是否有数据</span></span><br><span class="line">	<span class="comment">//...FIXME!</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong></p>
+<p>（1）<code>select()</code>函数将阻塞直到有以下事情发生：</p>
+<ul>
+<li><code>readfds</code>、<code>writefds</code>或<code>exceptfds</code>指定的文件描述符中至少有一个成为就绪态（变为可读、可写或者发生了异常）。</li>
+<li>该调用被信号处理函数中断。</li>
+<li>参数<code>timeout</code>中指定的时间上限已经超时。</li>
+</ul>
+<p>（2）理论上说，<code>nfds</code>参数应该不会超过<code>1025</code>，对于我现在使用的<code>Ubuntu</code>来说，之前有查询过一个进程最多可以打开<code>1024</code>个文件描述符，所以这里应该不会超过<code>1025</code>。</p>
+<p>（3）一般情况，我们会使用读集合。写集合填<code>NULL</code>，这是因为我们写的时候一般都是读取完时候后给到一个反馈，然后会写入数据，所以这里写集合我们一般不怎么关心。异常集合一般也是是填<code>NULL</code>，有些特殊的情况可能会用到，但是吧，我还没遇到过，就先这样吧，后边遇到了再补充。</p>
+<p>（4） <code>select()</code>函数里面的各个文件描述符<code>fd_set</code>集合的参数在<code>select()</code>前后发生了变化：</p>
+<ul>
+<li><p>前：表示关心的文件描述符集合。</p>
+</li>
+<li><p>后：有数据的集合（如不是在超时还回情况下）。谁改变了这个集合？答案是<code>kernel</code>，就是内核。</p>
+</li>
+</ul>
+<p>（5）调用<code>select()</code>函数之后，<code>select()</code>函数会清空它所检测的<code>socket</code>描述符集合，导致每次调用<code>select()</code>之前都必须把<code>socket</code>描述符重新加入到待检测的集合中。</p>
+<h3 id="1-2-使用实例"><a href="#1-2-使用实例" class="headerlink" title="1.2 使用实例"></a><font size=3>1.2 使用实例</font></h3><p>暂无。</p>
+<h2 id="2-pselect"><a href="#2-pselect" class="headerlink" title="2. pselect()"></a><font size=3>2. <code>pselect()</code></font></h2><p>在我们使用<code>man</code>手册查询<code>select()</code>函数相关用法的时候，一定看到过这个函数，下边是这个函数的一些相关笔记。</p>
+<h3 id="2-1-函数说明"><a href="#2-1-函数说明" class="headerlink" title="2.1 函数说明"></a><font size=3>2.1 函数说明</font></h3><p>在<code>linux</code>下可以使用<code>man 2 pselect</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pselect</span><span class="params">(<span class="type">int</span> nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, <span class="type">const</span> <span class="keyword">struct</span> timespec *timeout, <span class="type">const</span> <span class="type">sigset_t</span> *sigmask)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于执行<code>I/O</code>多路复用操作，该函数是一个 <strong>防止信号干扰的增强型</strong> <code>select()</code>函数，它也能够监视我们需要监视的文件描述符的变化情况——读写或是异常。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><p><code>nfds</code>：<code>int</code>类型，通常表示需要监视的最大文件描述符编号值加<code>1</code>。</p>
+</li>
+<li><p><code>readfds</code>：<code>fd_set</code>类型指针变量，指向一个文件描述符集合，用来检测这个文件描述符集合中的文件描述符<strong>读是否就绪</strong>（是否可读）。<code>select()</code>返回后，<code>readfds</code>将清除除准备读取的文件描述符外的所有文件描述符。</p>
+</li>
+<li><p><code>writefds</code>：<code>fd_set</code>类型指针变量，指向一个文件描述符集合，用来检测这个文件描述符集合中的文件描述符<strong>写是否就绪</strong>（是否可写）。<code>select()</code>返回后，<code>writefds</code>将清除除准备写入的文件描述符外的所有文件描述符。</p>
+</li>
+<li><p><code>exceptfds</code>：<code>fd_set</code>类型指针变量，指向一个文件描述符集合，用来检测这个文件描述符集合中的文件描述符是否出现异常，需要注意异常情况并不是在文件描述符上出现了一些错误。<code>select()</code>返回后，<code>exceptfds</code>将清除除了发生异常条件的文件描述符以外的所有文件描述符。</p>
+</li>
+<li><p><code>timeout</code>：<code>struct timespec</code>类型结构体指针变量，用于设定<code>pselect()</code>阻塞的时间上限，与<code>select()</code>函数的<code>timeout</code>参数作用相同，只是时间精度不同。</p>
+</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看 timeout 参数说明 </summary>
+              <div class='content'>
+              <p>在使用<code>man</code>手册的时候，会有该结构体的说明，该结构体的成员如下：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">timespec</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="type">time_t</span>      tv_sec;         <span class="comment">/* seconds */</span></span><br><span class="line">	<span class="type">long</span>        tv_nsec;        <span class="comment">/* nanoseconds */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure><p>这个参数与<code>select()</code>的<code>timeout</code>参数作用相同，只是<code>pselect()</code>函数使用的是<code>struct timespec</code>结构体，可以指定超时时间到纳秒级</p>
+              </div>
+            </details>
+
+<ul>
+<li><code>sigmask</code>：<code>sigset_t</code>类型指针变量，表示信号掩码，指定一个需要屏蔽的信号集。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，返回值与<code>select()</code>函数相同，可能会有以下三种情况：</p>
+<ul>
+<li>返回<code>-1</code>：表示有错误发生，并且会设置<code>errno</code>。可能的错误码包括<code>EBADF</code>、<code>EINTR</code>、<code>EINVAL</code>、<code>EINVAL</code>以及<code>ENOMEM</code>，其中<code>EBADF</code>表示<code>readfds</code>、<code>writefds</code>或<code>exceptfds</code>中有一个文件描述符是非法的；<code>EINTR</code>表示该函数被信号处理函数中断了，其他更详细的我们可以使用<code>man</code>命令查看帮助手册去详细了解。</li>
+<li>返回<code>0</code>：表示在任何文件描述符成为就绪态之前<code>select()</code>调用已经超时，在这种情况下，<code>readfds</code>，<code>writefds</code>以及<code>exceptfds</code>所指向的文件描述符集合都会被清空。</li>
+<li>返回正整数：表示有一个或多个文件描述符已达到就绪态。返回值表示处于就绪态的文件描述符的个数，在这种情况下，每个返回的文件描述符集合都需要检查，通过<code>FD_ISSET()</code>宏进行检查，以此查找发生的<code>I/O</code>事件是什么。如果同一个文件描述符在<code>readfds</code>，<code>writefds</code>以及<code>exceptfds</code>中同时被指定，且它有多个<code>I/O</code>事件都处于就绪态的话，那么这个文件描述符就会被统计多次，换句话说，也就是说<code>select()</code>返回三个集合中被标记为就绪态的文件描述符的总数。</li>
+</ul>
+<p><strong>【使用格式】</strong>暂时还没有用到过，后边遇到了再补充。</p>
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h3 id="2-2-sigmask参数说明"><a href="#2-2-sigmask参数说明" class="headerlink" title="2.2 sigmask参数说明"></a><font size=3>2.2 <code>sigmask</code>参数说明</font></h3><p><code>sigmask</code>参数指定了一个应该在<code>pselect()</code>函数调用期间被阻塞的信号的集合，它会在调用期间覆盖当前的信号掩码，当函数返回后恢复之前的信号掩码。如果<code>sigmask</code>为<code>NULL</code>，信号掩码在<code>pselect()</code>调用期间不会被修改。（信号掩码是啥？进程通信部分里边关于信号阻塞的部分内容）。在<code>man</code>手册中，有以下与使用<code>select()</code>等价的写法：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">ready = pselect(nfds, &amp;readfds, &amp;writefds, &amp;exceptfds, timeout, &amp;sigmask);</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 相当于下边的写法 */</span></span><br><span class="line"><span class="type">sigset_t</span> origmask;</span><br><span class="line">pthread_sigmask(SIG_SETMASK, &amp;sigmask, &amp;origmask);</span><br><span class="line">ready = select(nfds, &amp;readfds, &amp;writefds, &amp;exceptfds, timeout);</span><br><span class="line">pthread_sigmask(SIG_SETMASK, &amp;origmask, <span class="literal">NULL</span>);</span><br></pre></td></tr></table></figure>
+
+<p>首先，我们在前边的学习中知道在<code>Linux</code>下按下<code>Ctrl+C</code>会产生<code>SIGINT</code>信号，该信号的编号为<code>2</code>。所以我们以该信号为例，下进行一个说明：</p>
+<blockquote>
+<p>（1）我们定义了一个信号集 origmask ，目前还没有向里边添加任何需要被阻塞的信号，这个时候不会有信号被阻塞；</p>
+<p>（2）我们将 SIGINT 信号添加到这个信号集中去，这个时候这个信号就会在某种情况下被阻塞，也就是该信号不会被传递给进程；</p>
+<p>（3）我们调用了 pselect() 函数，在该函数调用期间，SIGINT 信号将会一直被则色，该信号无法被传递给当前进程；</p>
+<p>（4）当pselect()函数返回后，会恢复之前的信号掩码，SIGINT 阻塞状态被取消，此时我们按下 Ctrl + C 便可以正常向进程传递 SIGINT 信号了。</p>
+</blockquote>
+<h3 id="2-3-与select-的不同"><a href="#2-3-与select-的不同" class="headerlink" title="2.3 与select()的不同"></a><font size=3>2.3 与<code>select()</code>的不同</font></h3><p>使用<code>man</code>手册的时候，我们会看到以下说明：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"> The operation of select() and pselect() is identical, other than these three differences:</span><br><span class="line"></span><br><span class="line">• select()  uses  a timeout that is a struct timeval (with seconds and microseconds), while pselect() uses a struct timespec (with seconds and nanoseconds).</span><br><span class="line"></span><br><span class="line">• select() may update the timeout argument to indicate how much time was left.  pselect() does not change this argument.</span><br><span class="line"></span><br><span class="line">• select() has no sigmask argument, and behaves as pselect() called with NULL sigmask.</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>意思就是，<code>select()</code>和<code>pselect()</code>的操作是相同的，但会有以下三个不同的地方：</p>
+<ul>
+<li><code>select()</code>使用<code>timeval</code>结构(带有秒和微秒)的超时，而<code>pselect()</code>使用<code>timepec</code>结构(带有秒和纳秒)。</li>
+<li><code>select()</code>可以更新<code>timeout</code>参数来表示剩余时间，而<code>pselect()</code>不会改变这个参数。</li>
+<li><code>select()</code>没有<code>sigmask</code>参数，在<code>pselect()</code>调用时，若将<code>sigmask</code>设为<code>NULL</code>，此时这两个函数是等价的。</li>
+</ul>
+<h1 id="二、select使用流程图"><a href="#二、select使用流程图" class="headerlink" title="二、select使用流程图"></a><font size=3>二、<code>select</code>使用流程图</font></h1><p>需要读取数据时，大概的流程如下：</p>
+<ul>
+<li>（1）把关心的文件描述符添加到文件描述符集合中；</li>
+<li>（2）调用<code>select()/poll()</code>函数来监控文件描述符集合，然后会阻塞等待集合中一个或者多个文件描述符有数据；</li>
+<li>（3）当有数据时，函数返回；</li>
+<li>（4）依次判断哪个文件描述符有数据；</li>
+<li>（5）依次处理有数据的文件描述符的数据。</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-01-select/img/image-20220702183118035.png" alt="image-20220702183118035" style="zoom:50%;" />
+
+<h1 id="三、文件描述符集操作函数"><a href="#三、文件描述符集操作函数" class="headerlink" title="三、文件描述符集操作函数"></a><font size=3>三、文件描述符集操作函数</font></h1><h2 id="1-数据类型：fd-set"><a href="#1-数据类型：fd-set" class="headerlink" title="1. 数据类型：fd_set"></a><font size=3>1. 数据类型：<code>fd_set</code></font></h2><p>上边，我们介绍了<code>select()</code>函数的各个参数，下边来了解一些这个文件描述符集，也就是这个<code>fd_set</code>类型的数据。这个数据类型定义在<code>sys/select.h</code>文件中，关于这个数据类型的定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* fd_set for select and pselect.  */</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="comment">/* XPG4.2 requires this member name.  Otherwise avoid the name</span></span><br><span class="line"><span class="comment">	   from the global namespace.  */</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> __USE_XOPEN</span></span><br><span class="line">	__fd_mask fds_bits[__FD_SETSIZE / __NFDBITS];</span><br><span class="line"><span class="meta"># <span class="keyword">define</span> __FDS_BITS(set) ((set)-&gt;fds_bits)</span></span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line">	__fd_mask __fds_bits[__FD_SETSIZE / __NFDBITS];</span><br><span class="line"><span class="meta"># <span class="keyword">define</span> __FDS_BITS(set) ((set)-&gt;__fds_bits)</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">&#125; fd_set;</span><br></pre></td></tr></table></figure>
+
+<p>会发现，<code>fd_set</code>是一个结构体，它的成员是一个<code>__fd_mask</code>类型的数组，数组的大小为<code>__FD_SETSIZE / __NFDBITS</code>。</p>
+<p>还是在这个文件中，我们会找到如下定义：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* The fd_set member is required to be an array of longs.  */</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="type">long</span> <span class="type">int</span> __fd_mask;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Maximum number of file descriptors in `fd_set&#x27;.  */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> FD_SETSIZE              __FD_SETSIZE</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> __USE_MISC</span></span><br><span class="line"><span class="comment">/* Sometimes the fd_set member is assumed to have this type.  */</span></span><br><span class="line"><span class="keyword">typedef</span> __fd_mask fd_mask;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Number of bits per word of `fd_set&#x27; (some code assumes this is 32).  */</span></span><br><span class="line"><span class="meta"># <span class="keyword">define</span> NFDBITS                __NFDBITS</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+
+<p>从这里我们知道<code>__fd_mask</code>实际上为<code>long int</code>类型，在<code>Ubuntu21.04</code>的<code>64</code>位版中，该类型占<code>8</code>个字节。</p>
+<details class="folding-tag" blue><summary> 点击查看常见有关 int 的数据类型所占字节数 </summary>
+              <div class='content'>
+              <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">                      (<span class="type">short</span> <span class="type">int</span>)    (<span class="type">int</span>)    (<span class="type">long</span>)    (<span class="type">long</span> <span class="type">long</span>)</span><br><span class="line"> <span class="number">8</span>位系统/编译器:</span><br><span class="line"><span class="number">16</span>位系统/编译器:          <span class="number">2</span>            <span class="number">2</span>        <span class="number">4</span></span><br><span class="line"><span class="number">32</span>位系统/编译器:          <span class="number">2</span>            <span class="number">4</span>        <span class="number">4</span>           <span class="number">8</span></span><br><span class="line"><span class="number">64</span>位系统/编译器:          <span class="number">2</span>            <span class="number">4</span>        <span class="number">8</span>           <span class="number">8</span></span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<p><code>__FD_SETSIZE / __NFDBITS</code>是多少呢？我自己是没有找到这两个到底是定义在哪里，后边找到了再补充到这里把。</p>
+<p>总之来说，<strong>fd_set就是一个long类型数组，数组中所有元素按照二进制位排列，每一位都对应一个文件描述符）</strong>。大概就是下图这个样子，集合的每一个元素代表了一个文件描述符的状态，准备好了就置<code>1</code>。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-01-select/img/image-20220702182401571.png" alt="image-20220702182401571" style="zoom:50%;" />
+
+<p>在使用<code>select()</code>函数之前，需要先了解一下文件描述符的相关操作，这里一共有四个函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">FD_CLR</span><span class="params">(<span class="type">int</span> fd, fd_set *<span class="built_in">set</span>)</span>;</span><br><span class="line"><span class="type">int</span>  <span class="title function_">FD_ISSET</span><span class="params">(<span class="type">int</span> fd, fd_set *<span class="built_in">set</span>)</span>;</span><br><span class="line"><span class="type">void</span> <span class="title function_">FD_SET</span><span class="params">(<span class="type">int</span> fd, fd_set *<span class="built_in">set</span>)</span>;</span><br><span class="line"><span class="type">void</span> <span class="title function_">FD_ZERO</span><span class="params">(fd_set *<span class="built_in">set</span>)</span>;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-FD-CLR"><a href="#2-FD-CLR" class="headerlink" title="2. FD_CLR()"></a><font size=3>2. <code>FD_CLR()</code></font></h2><h3 id="2-1-函数说明-1"><a href="#2-1-函数说明-1" class="headerlink" title="2.1 函数说明"></a><font size=3>2.1 函数说明</font></h3><p>在<code>linux</code>下可以使用<code>man 2 FD_CLR</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">FD_CLR</span><span class="params">(<span class="type">int</span> fd, fd_set *<span class="built_in">set</span>)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于从文件描述符集中移除一个文件描述符。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>fd</code>：<code>int</code>类型，表示要移除的文件描述符。</li>
+<li><code>set</code>：<code>fd_set</code>类型，表示已经定义好的文件描述符集。</li>
+</ul>
+<p><strong>【返回值】</strong><code>none</code></p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line">fd_set fset</span><br><span class="line"><span class="title function_">FD_CLR</span><span class="params">(fd, &amp;fset)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h3 id="2-2-使用实例"><a href="#2-2-使用实例" class="headerlink" title="2.2 使用实例"></a><font size=3>2.2 使用实例</font></h3><p>暂无。</p>
+<h2 id="3-FD-ISSET"><a href="#3-FD-ISSET" class="headerlink" title="3. FD_ISSET()"></a><font size=3>3. <code>FD_ISSET()</code></font></h2><h3 id="3-1-函数说明"><a href="#3-1-函数说明" class="headerlink" title="3.1 函数说明"></a><font size=3>3.1 函数说明</font></h3><p>在<code>linux</code>下可以使用<code>man 2 FD_ISSET</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span>  <span class="title function_">FD_ISSET</span><span class="params">(<span class="type">int</span> fd, fd_set *<span class="built_in">set</span>)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于测试指定的文件描述符是否还存在于指定的文件描述符集。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>fd</code>：<code>int</code>类型，表示要测试的文件描述符。</li>
+<li><code>set</code>：<code>fd_set</code>类型，表示已经定义好的文件描述符集。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，文件描述符<code>fd</code>在<code>set</code>中存在，<code>FD_ISSET()</code>返回非<code>0</code>值，如果不存在则返回<code>0</code>。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line">fd_set fset</span><br><span class="line"><span class="title function_">if</span><span class="params">(FD_ISSET(<span class="number">0</span>, &amp;rset))</span></span><br><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h3 id="3-2-使用实例"><a href="#3-2-使用实例" class="headerlink" title="3.2 使用实例"></a><font size=3>3.2 使用实例</font></h3><p>暂无。</p>
+<h2 id="4-FD-SET"><a href="#4-FD-SET" class="headerlink" title="4. FD_SET()"></a><font size=3>4. <code>FD_SET()</code></font></h2><h3 id="4-1-函数说明"><a href="#4-1-函数说明" class="headerlink" title="4.1 函数说明"></a><font size=3>4.1 函数说明</font></h3><p>在<code>linux</code>下可以使用<code>man 2 FD_SET</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">FD_SET</span><span class="params">(<span class="type">int</span> fd, fd_set *<span class="built_in">set</span>)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于向文件描述符集中添加一个我们关心的文件描述符。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>fd</code>：<code>int</code>类型，表示要添加的文件描述符。</li>
+<li><code>set</code>：<code>fd_set</code>类型，表示已经定义好的文件描述符集。</li>
+</ul>
+<p><strong>【返回值】</strong><code>none</code></p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line">fd_set fset</span><br><span class="line"><span class="title function_">FD_SET</span><span class="params">(fd, &amp;fset)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h3 id="4-2-使用实例"><a href="#4-2-使用实例" class="headerlink" title="4.2 使用实例"></a><font size=3>4.2 使用实例</font></h3><p>暂无。</p>
+<h2 id="5-FD-ZERO"><a href="#5-FD-ZERO" class="headerlink" title="5. FD_ZERO()"></a><font size=3>5. <code>FD_ZERO()</code></font></h2><h3 id="5-1-函数说明"><a href="#5-1-函数说明" class="headerlink" title="5.1 函数说明"></a><font size=3>5.1 函数说明</font></h3><p>在<code>linux</code>下可以使用<code>man 2 FD_ZERO</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">FD_ZERO</span><span class="params">(fd_set *<span class="built_in">set</span>)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于将一个文件描述符集合初始化为空。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>set</code>：<code>fd_set</code>类型，表示需要初始化为空的文件描述符集。</li>
+</ul>
+<p><strong>【返回值】</strong><code>none</code></p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line">fd_set fset</span><br><span class="line"><span class="title function_">FD_ZERO</span><span class="params">(&amp;fset)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h3 id="5-2-使用实例"><a href="#5-2-使用实例" class="headerlink" title="5.2 使用实例"></a><font size=3>5.2 使用实例</font></h3><p>暂无。</p>
+<h1 id="四、select-使用实例"><a href="#四、select-使用实例" class="headerlink" title="四、select()使用实例"></a><font size=3>四、<code>select()</code>使用实例</font></h1><p>在下边的实例中，我们使用<code>TCP</code>协议的客户端和服务器端进行测试，在下边的测试源码中，我们的客户端和服务器端接收的数据打印的时候都没有换行，其实看前边的几篇笔记中的一些例子就会发现，我们打印出来的数据间隔大部分都是两行左右，间距太大了，这是因为从标准输入的时候将<code>enter</code>也一起读取了，所以发送出去的数据本身就有一个换行符。</p>
+<h2 id="1-server服务器端"><a href="#1-server服务器端" class="headerlink" title="1. server服务器端"></a><font size=3>1. <code>server</code>服务器端</font></h2><details class="folding-tag" blue><summary> 点击查看实例 </summary>
+              <div class='content'>
+              <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** =====================================================</span></span><br><span class="line"><span class="comment"> * Copyright © hk. 2022-2022. All rights reserved.</span></span><br><span class="line"><span class="comment"> * File name: server.c</span></span><br><span class="line"><span class="comment"> * Author   : fanhua</span></span><br><span class="line"><span class="comment"> * Description: server服务器端——select(TCP)</span></span><br><span class="line"><span class="comment"> * ======================================================</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="comment">/* 头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span>      <span class="comment">/* perror */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span>     <span class="comment">/* exit atoi */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;errno.h&gt;</span>      <span class="comment">/* errno号 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span>  <span class="comment">/* socket           bind listen accept send */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/socket.h&gt;</span> <span class="comment">/* socket inet_addr bind listen accept send */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;strings.h&gt;</span>    <span class="comment">/* bzero */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;arpa/inet.h&gt;</span>  <span class="comment">/* htons  inet_addr inet_pton */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;netinet/in.h&gt;</span> <span class="comment">/* ntohs  inet_addr inet_ntop*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span>     <span class="comment">/* close */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span>     <span class="comment">/* strlen strcat*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/select.h&gt;</span> <span class="comment">/* select */</span></span></span><br><span class="line"><span class="type">void</span> <span class="title function_">usage</span><span class="params">(<span class="type">char</span> *str)</span>; <span class="comment">/* 提示信息打印函数 */</span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">/* 参数判断及端口号处理 */</span></span><br><span class="line">	<span class="type">int</span> port = <span class="number">-1</span>;</span><br><span class="line">	<span class="keyword">if</span> (argc != <span class="number">3</span>)<span class="comment">/* 参数数量不对时打印提示信息 */</span></span><br><span class="line">	&#123;</span><br><span class="line">		usage(argv[<span class="number">0</span>]);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	port = atoi(argv[<span class="number">2</span>]);<span class="comment">/* 字符串转数字 */</span></span><br><span class="line">	<span class="keyword">if</span> (port &lt; <span class="number">5000</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		usage(argv[<span class="number">0</span>]);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 1.创建套接字，得到socket描述符 */</span></span><br><span class="line">	<span class="type">int</span> socket_fd = <span class="number">-1</span>; <span class="comment">/* 接收服务器端socket描述符 */</span></span><br><span class="line">	<span class="keyword">if</span>((socket_fd = socket(AF_INET, SOCK_STREAM, <span class="number">0</span>)) &lt; <span class="number">0</span>)<span class="comment">/* SOCK_STREAM,使用TCP协议 */</span></span><br><span class="line">	&#123;</span><br><span class="line">		perror (<span class="string">&quot;socket&quot;</span>);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 允许绑定地址快速重用 */</span></span><br><span class="line">	<span class="type">int</span> b_reuse = <span class="number">1</span>;</span><br><span class="line">	setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &amp;b_reuse, <span class="keyword">sizeof</span> (<span class="type">int</span>));</span><br><span class="line">	<span class="comment">/* 2.将套接字与指定端口号和IP进行绑定 */</span></span><br><span class="line">	<span class="comment">/* 2.1填充struct sockaddr_in结构体变量 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> <span class="title">sin</span>;</span></span><br><span class="line">	bzero (&amp;<span class="built_in">sin</span>, <span class="keyword">sizeof</span> (<span class="built_in">sin</span>));  <span class="comment">/* 将内存块（字符串）的前n个字节清零 */</span></span><br><span class="line">	<span class="built_in">sin</span>.sin_family = AF_INET;    <span class="comment">/* 协议族, IPv4 */</span></span><br><span class="line">	<span class="built_in">sin</span>.sin_port = htons(port);  <span class="comment">/* 网络字节序的端口号 */</span></span><br><span class="line">	<span class="keyword">if</span>(inet_pton(AF_INET, argv[<span class="number">1</span>], (<span class="type">void</span> *)&amp;<span class="built_in">sin</span>.sin_addr) != <span class="number">1</span>)<span class="comment">/* 填充IP地址,INADDR_ANY表示允许监听任意IP,但是它其实是(in_addr_t) 0x00000000 */</span></span><br><span class="line">	&#123;</span><br><span class="line">		perror (<span class="string">&quot;inet_pton&quot;</span>);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 2.2绑定 */</span></span><br><span class="line">	<span class="keyword">if</span>(bind(socket_fd, (<span class="keyword">struct</span> sockaddr *)&amp;<span class="built_in">sin</span>, <span class="keyword">sizeof</span>(<span class="built_in">sin</span>)) &lt; <span class="number">0</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;bind&quot;</span>);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/*3.调用listen()把主动套接字变成被动套接字 */</span></span><br><span class="line">	<span class="keyword">if</span> (listen(socket_fd, <span class="number">5</span>) &lt; <span class="number">0</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;listen&quot;</span>);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">printf</span> (<span class="string">&quot;Server starting....OK!\n&quot;</span>);</span><br><span class="line">	<span class="comment">/*4.阻塞等待客户端连接请求相关变量定义 */</span></span><br><span class="line">	<span class="type">int</span> newfd = <span class="number">-1</span>;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> <span class="title">cin</span>;</span>          <span class="comment">/* 用于存储成功连接的客户端的IP信息 */</span></span><br><span class="line">	<span class="type">socklen_t</span> addrlen = <span class="keyword">sizeof</span>(<span class="built_in">cin</span>);</span><br><span class="line">	<span class="comment">/* 5.打印成功连接的客户端的信息相关变量定义 */</span></span><br><span class="line">	<span class="type">char</span> ipv4_addr[<span class="number">16</span>];</span><br><span class="line">	<span class="comment">/* 6.数据读写相关变量定义 */</span></span><br><span class="line">	<span class="type">int</span> ret = <span class="number">-1</span>;</span><br><span class="line">	<span class="type">char</span> buf[BUFSIZ]; <span class="comment">/* BUFSIZ是在stdio.h中定义的一个宏，值为8192 */</span></span><br><span class="line">	<span class="type">char</span> replay[BUFSIZ];</span><br><span class="line">	<span class="comment">/* 7.select实现多路复用相关变量定义 */</span></span><br><span class="line">	<span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">	fd_set rset, cpy_rset;   <span class="comment">/* 用于检测读状态的文件描述符集 */</span></span><br><span class="line">	<span class="type">int</span> maxfd = <span class="number">-1</span>;<span class="comment">/* 最大文件描述符编号 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">timeval</span> <span class="title">tout</span>;</span><span class="comment">/* 超时时间结构体变量 */</span></span><br><span class="line">	tout.tv_sec = <span class="number">5</span>;    <span class="comment">/* 超时时间秒数 */</span></span><br><span class="line">	tout.tv_usec = <span class="number">0</span>;   <span class="comment">/* 超时时间微秒数 */</span></span><br><span class="line">	FD_ZERO(&amp;rset);     <span class="comment">/* 初始化文件描述符集 */</span></span><br><span class="line">	FD_SET(socket_fd, &amp;rset);</span><br><span class="line">	maxfd = socket_fd;</span><br><span class="line">	<span class="comment">/* 8.数据处理 */</span></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		FD_ZERO(&amp;cpy_rset);</span><br><span class="line">		cpy_rset = rset;</span><br><span class="line">		<span class="comment">/* 8.1调用select开始检测文件描述符 */</span></span><br><span class="line">		ret = select(maxfd + <span class="number">1</span>, &amp;cpy_rset, <span class="literal">NULL</span>, <span class="literal">NULL</span>, &amp;tout);</span><br><span class="line">		<span class="keyword">if</span>(ret &lt; <span class="number">0</span>)</span><br><span class="line">		&#123;</span><br><span class="line">			perror(<span class="string">&quot;select&quot;</span>);</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">/* 8.2遍历返回后的文件描述符集 */</span></span><br><span class="line">		<span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; maxfd + <span class="number">1</span>; i++)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="keyword">if</span>(FD_ISSET(i, &amp;cpy_rset))</span><br><span class="line">			&#123;</span><br><span class="line">				<span class="comment">/* 有新的连接请求时的处理 */</span></span><br><span class="line">				<span class="keyword">if</span>(i == socket_fd)</span><br><span class="line">				&#123;</span><br><span class="line">					<span class="keyword">if</span> ((newfd = accept(socket_fd, (<span class="keyword">struct</span> sockaddr *)&amp;<span class="built_in">cin</span>, &amp;addrlen)) &lt; <span class="number">0</span>)</span><br><span class="line">					&#123;</span><br><span class="line">						perror(<span class="string">&quot;accept&quot;</span>);</span><br><span class="line">						<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">					&#125;</span><br><span class="line">					FD_SET(newfd, &amp;rset);<span class="comment">/* 添加到文件描述符集 */</span></span><br><span class="line">					<span class="keyword">if</span>(maxfd &lt; newfd) maxfd = newfd;<span class="comment">/* 更新maxfd */</span></span><br><span class="line">					<span class="keyword">if</span> (!inet_ntop(AF_INET, (<span class="type">void</span> *)&amp;<span class="built_in">cin</span>.sin_addr, ipv4_addr, <span class="keyword">sizeof</span>(<span class="built_in">cin</span>)))</span><br><span class="line">					&#123;</span><br><span class="line">						perror (<span class="string">&quot;inet_ntop&quot;</span>);</span><br><span class="line">						<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="built_in">printf</span> (<span class="string">&quot;Clinet(%s:%d) is connected successfully![newfd=%d]\n&quot;</span>, ipv4_addr, ntohs(<span class="built_in">cin</span>.sin_port), newfd);</span><br><span class="line"></span><br><span class="line">				&#125;</span><br><span class="line">				<span class="keyword">else</span> <span class="comment">/* 读取数据并返回 */</span></span><br><span class="line">				&#123;</span><br><span class="line">					bzero(buf, BUFSIZ);</span><br><span class="line">					bzero(replay, BUFSIZ);</span><br><span class="line">					<span class="keyword">do</span>&#123;</span><br><span class="line">						ret = read(i, buf, BUFSIZ - <span class="number">1</span>);</span><br><span class="line">					&#125;<span class="keyword">while</span>(ret &lt; <span class="number">0</span> &amp;&amp; EINTR == errno);</span><br><span class="line">					<span class="keyword">if</span>(ret &lt; <span class="number">0</span>)</span><br><span class="line">					&#123;</span><br><span class="line">						perror(<span class="string">&quot;read&quot;</span>);</span><br><span class="line">						<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="keyword">if</span>(!ret) <span class="comment">/* 对方已经关闭 */</span></span><br><span class="line">					&#123;</span><br><span class="line">						FD_CLR(i, &amp;rset);</span><br><span class="line">						close(i);</span><br><span class="line">						<span class="built_in">printf</span>(<span class="string">&quot;closed client: %d \n&quot;</span>, i);</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="keyword">else</span></span><br><span class="line">					&#123;</span><br><span class="line">						<span class="built_in">printf</span>(<span class="string">&quot;Receive data[client_fd=%d]: %s&quot;</span>, i, buf);</span><br><span class="line">						<span class="built_in">strcat</span>(replay, buf);</span><br><span class="line">						ret = send(i, replay, <span class="built_in">strlen</span>(replay), <span class="number">0</span>);</span><br><span class="line">						<span class="keyword">if</span>(ret &lt; <span class="number">0</span>)</span><br><span class="line">						&#123;</span><br><span class="line">							perror(<span class="string">&quot;send&quot;</span>);</span><br><span class="line">							<span class="keyword">continue</span>;</span><br><span class="line">						&#125;</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125; </span><br><span class="line">	<span class="comment">/* 9.关闭文件描述符 */</span></span><br><span class="line">	close(socket_fd);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @Function: usage</span></span><br><span class="line"><span class="comment"> * @Description: 用户提示信息打印函数</span></span><br><span class="line"><span class="comment"> * @param str : 当前应用程序命令字符串，一般是./app</span></span><br><span class="line"><span class="comment"> * @return  : none</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">usage</span><span class="params">(<span class="type">char</span> *str)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="built_in">printf</span> (<span class="string">&quot;\n%s serv_ip serv_port&quot;</span>, str);</span><br><span class="line">	<span class="built_in">printf</span> (<span class="string">&quot;\n\t serv_ip: server ip address&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span> (<span class="string">&quot;\n\t serv_port: server port(&gt;5000)\n\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span> (<span class="string">&quot;\n\t Attention: The IP address must be the IP address of the local nic or 0.0.0.0 \n\n&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<h2 id="2-client客户端"><a href="#2-client客户端" class="headerlink" title="2. client客户端"></a><font size=3>2. <code>client</code>客户端</font></h2><details class="folding-tag" blue><summary> 点击查看实例 </summary>
+              <div class='content'>
+              <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** =====================================================</span></span><br><span class="line"><span class="comment"> * Copyright © hk. 2022-2022. All rights reserved.</span></span><br><span class="line"><span class="comment"> * File name: cilent.c</span></span><br><span class="line"><span class="comment"> * Author   : fanhua</span></span><br><span class="line"><span class="comment"> * Description: client客户端程序——select(TCP)</span></span><br><span class="line"><span class="comment"> * ======================================================</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="comment">/* 头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span>     <span class="comment">/* perror fgets */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span>    <span class="comment">/* exit atoi*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;errno.h&gt;</span>     <span class="comment">/* errno号 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span>    <span class="comment">/* write close */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span> <span class="comment">/* socket           connect send */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/socket.h&gt;</span><span class="comment">/* socket inet_addr connect send */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;netinet/in.h&gt;</span><span class="comment">/* inet_addr */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;arpa/inet.h&gt;</span> <span class="comment">/* inet_addr inet_pton htonl*/</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span>   <span class="comment">/* bzero strncasecmp strlen */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/select.h&gt;</span> <span class="comment">/* select */</span></span></span><br><span class="line"><span class="type">void</span> <span class="title function_">usage</span><span class="params">(<span class="type">char</span> *str)</span>; <span class="comment">/* 提示信息打印函数 */</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 主函数 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">/* 参数判断及端口号处理 */</span></span><br><span class="line">	<span class="type">int</span> port = <span class="number">-1</span>;</span><br><span class="line">	<span class="type">int</span> portClient = <span class="number">-1</span>;</span><br><span class="line">	<span class="keyword">if</span> (argc != <span class="number">4</span>)<span class="comment">/* 参数数量不对时打印提示信息 */</span></span><br><span class="line">	&#123;</span><br><span class="line">		usage(argv[<span class="number">0</span>]);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	port = atoi(argv[<span class="number">2</span>]);<span class="comment">/* 字符串转数字 */</span></span><br><span class="line">	portClient = atoi(argv[<span class="number">3</span>]);</span><br><span class="line">	<span class="keyword">if</span> (port &lt; <span class="number">5000</span> || portClient &lt; <span class="number">5000</span> || (port == portClient))</span><br><span class="line">	&#123;</span><br><span class="line">		usage(argv[<span class="number">0</span>]);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 1.打开套接字，得到套接字描述符 */</span></span><br><span class="line">	<span class="type">int</span> socket_fd = <span class="number">-1</span>; <span class="comment">/* 接收服务器端socket描述符 */</span></span><br><span class="line">	<span class="keyword">if</span> ((socket_fd = socket(AF_INET, SOCK_STREAM, <span class="number">0</span>)) &lt; <span class="number">0</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror (<span class="string">&quot;socket&quot;</span>);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 允许绑定地址快速重用 */</span></span><br><span class="line">	<span class="type">int</span> b_reuse = <span class="number">1</span>;</span><br><span class="line">	setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &amp;b_reuse, <span class="keyword">sizeof</span> (<span class="type">int</span>));</span><br><span class="line">	<span class="comment">/* 2.连接服务器 */</span></span><br><span class="line">	<span class="comment">/* 2.1填充struct sockaddr_in结构体变量 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> <span class="title">sin</span>;</span></span><br><span class="line">	bzero (&amp;<span class="built_in">sin</span>, <span class="keyword">sizeof</span> (<span class="built_in">sin</span>)); <span class="comment">/* 将内存块（字符串）的前n个字节清零 */</span></span><br><span class="line">	<span class="built_in">sin</span>.sin_family = AF_INET;   <span class="comment">/* 协议族 */</span></span><br><span class="line">	<span class="built_in">sin</span>.sin_port = htons(port); <span class="comment">/* 网络字节序的端口号 */</span></span><br><span class="line">	<span class="comment">/* 客户端的 argv[1] 需要与系统的IP一致 */</span></span><br><span class="line">	<span class="keyword">if</span>(inet_pton(AF_INET, argv[<span class="number">1</span>], (<span class="type">void</span> *)&amp;<span class="built_in">sin</span>.sin_addr) != <span class="number">1</span>)<span class="comment">/* IP地址 */</span></span><br><span class="line">	&#123;</span><br><span class="line">		perror (<span class="string">&quot;inet_pton&quot;</span>);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 绑定固定的IP 和 端口号 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> <span class="title">sinClient</span>;</span></span><br><span class="line">	bzero(&amp;sinClient, <span class="keyword">sizeof</span> (sinClient)); <span class="comment">/* 将内存块（字符串）的前n个字节清零 */</span></span><br><span class="line">	sinClient.sin_family = AF_INET;   <span class="comment">/* 协议族 */</span></span><br><span class="line">	sinClient.sin_port = htons(portClient); <span class="comment">/* 网络字节序的端口号 */</span></span><br><span class="line">	<span class="keyword">if</span>(inet_pton(AF_INET, argv[<span class="number">1</span>], (<span class="type">void</span> *)&amp;sinClient.sin_addr) != <span class="number">1</span>)<span class="comment">/* IP地址 */</span></span><br><span class="line">	&#123;</span><br><span class="line">		perror (<span class="string">&quot;inet_pton&quot;</span>);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span>(bind(socket_fd, (<span class="keyword">struct</span> sockaddr *)&amp;sinClient, <span class="keyword">sizeof</span>(sinClient)) &lt; <span class="number">0</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;bind&quot;</span>);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 2.2连接 */</span></span><br><span class="line">	<span class="keyword">if</span>(connect(socket_fd, (<span class="keyword">struct</span> sockaddr *)&amp;<span class="built_in">sin</span>, <span class="keyword">sizeof</span>(<span class="built_in">sin</span>)) &lt; <span class="number">0</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;connect&quot;</span>);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;Client staring...OK!\n&quot;</span>);</span><br><span class="line">	<span class="comment">/* 3.数据读写相关变量定义 */</span></span><br><span class="line">	<span class="type">int</span> ret = <span class="number">-1</span>;</span><br><span class="line">	<span class="type">char</span> buf[BUFSIZ]; <span class="comment">/* BUFSIZ是在stdio.h中定义的一个宏，值为8192 */</span></span><br><span class="line">	<span class="type">char</span> replay[BUFSIZ];</span><br><span class="line">	<span class="comment">/* 4.select实现多路复用相关变量定义 */</span></span><br><span class="line">	fd_set rset;   <span class="comment">/* 用于检测读状态的文件描述符集 */</span></span><br><span class="line">	<span class="type">int</span> maxfd = <span class="number">-1</span>;<span class="comment">/* 最大文件描述符编号 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">timeval</span> <span class="title">tout</span>;</span><span class="comment">/* 超时时间结构体变量 */</span></span><br><span class="line">	tout.tv_sec = <span class="number">5</span>;   <span class="comment">/* 设置超时时间秒数 */</span></span><br><span class="line">	tout.tv_usec = <span class="number">0</span>;  <span class="comment">/* 设置超时时间微秒数 */</span></span><br><span class="line">	<span class="comment">/* 5.开始数据传输 */</span></span><br><span class="line">	<span class="keyword">while</span> (<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		FD_ZERO(&amp;rset);    <span class="comment">/* 清空文件描述符集 */</span></span><br><span class="line">		FD_SET(<span class="number">0</span>, &amp;rset);  <span class="comment">/* 将文件描述符0(标准输入)添加到文件描述符集 */</span></span><br><span class="line">		FD_SET(socket_fd, &amp;rset); <span class="comment">/* 将用于监听的socket套接字添加到文件描述符集 */</span></span><br><span class="line">		maxfd = socket_fd;        <span class="comment">/* 重置最大文件描述符集大小 */</span></span><br><span class="line">		<span class="comment">/* 5.1开始检测文件描述符 */</span></span><br><span class="line">		ret = select(maxfd + <span class="number">1</span>, &amp;rset, <span class="literal">NULL</span>, <span class="literal">NULL</span>, &amp;tout);</span><br><span class="line">		<span class="keyword">if</span>(ret &lt; <span class="number">0</span>)</span><br><span class="line">		&#123;</span><br><span class="line">			perror(<span class="string">&quot;select&quot;</span>);</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">/* 5.2标准键盘文件描述符就绪时的处理 */</span></span><br><span class="line">		<span class="keyword">if</span>(FD_ISSET(<span class="number">0</span>, &amp;rset))</span><br><span class="line">		&#123;</span><br><span class="line">			bzero(buf, BUFSIZ);<span class="comment">/* 清空buf */</span></span><br><span class="line">			<span class="keyword">do</span>&#123;</span><br><span class="line">				ret = read(<span class="number">0</span>, buf, BUFSIZ - <span class="number">1</span>);<span class="comment">/* 从标准输入获取数据 */</span></span><br><span class="line">			&#125;<span class="keyword">while</span>(ret &lt; <span class="number">0</span> &amp;&amp; EINTR == errno);</span><br><span class="line">			<span class="keyword">if</span> (ret &lt; <span class="number">0</span>)<span class="comment">/* 获取数据失败 */</span></span><br><span class="line">			&#123;</span><br><span class="line">				perror (<span class="string">&quot;read() from stdin&quot;</span>);</span><br><span class="line">				<span class="keyword">continue</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">/* 获取数据成功，但是标准输入中没有数据，不需要写入，继续循环即可 */</span></span><br><span class="line">			<span class="keyword">if</span> (!ret) <span class="keyword">continue</span>;</span><br><span class="line">			<span class="comment">/* 向服务器发送数据 */</span></span><br><span class="line">			<span class="keyword">if</span>(write(socket_fd, buf, <span class="built_in">strlen</span>(buf)) &lt; <span class="number">0</span>)<span class="comment">/* 将从标准输入获取的数据写入到socket 网络套接字中 */</span></span><br><span class="line">			&#123;</span><br><span class="line">				perror (<span class="string">&quot;write to socket error&quot;</span>);</span><br><span class="line">				<span class="keyword">continue</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">/* 判断是否需要退出 */</span></span><br><span class="line">			<span class="keyword">if</span> (!strncasecmp(buf, <span class="string">&quot;quit&quot;</span>, <span class="built_in">strlen</span> (<span class="string">&quot;quit&quot;</span>)))  	<span class="comment">//用户输入了quit字符</span></span><br><span class="line">			&#123;</span><br><span class="line">				<span class="built_in">printf</span> (<span class="string">&quot;Client is exiting!\n&quot;</span>);</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">/* 5.3socket文件描述符就绪时的处理(服务器有数据发送过来) */</span></span><br><span class="line">		<span class="keyword">if</span>(FD_ISSET(socket_fd, &amp;rset))</span><br><span class="line">		&#123;</span><br><span class="line">			bzero (replay, BUFSIZ);</span><br><span class="line">			<span class="keyword">do</span>&#123;</span><br><span class="line">				ret = recv(socket_fd, replay, BUFSIZ, <span class="number">0</span>);</span><br><span class="line">			&#125;<span class="keyword">while</span> (ret &lt; <span class="number">0</span> &amp;&amp; EINTR == errno);</span><br><span class="line">			<span class="keyword">if</span>(ret &lt; <span class="number">0</span>)</span><br><span class="line">			&#123;</span><br><span class="line">				perror(<span class="string">&quot;recv&quot;</span>);</span><br><span class="line">				<span class="keyword">continue</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">/* 若服务器已关闭，则直接退出客户端 */</span></span><br><span class="line">			<span class="keyword">if</span> (ret == <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">			<span class="built_in">printf</span>(<span class="string">&quot;server replay:%s&quot;</span>, replay);</span><br><span class="line">			<span class="keyword">if</span> (!strncasecmp(buf, <span class="string">&quot;quit&quot;</span>, <span class="built_in">strlen</span>(<span class="string">&quot;quit&quot;</span>)))</span><br><span class="line">			&#123;</span><br><span class="line">				<span class="built_in">printf</span> (<span class="string">&quot;Sender Client is exiting... ...!\n&quot;</span>);</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 6.关闭文件描述符 */</span></span><br><span class="line">	close(socket_fd);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @Function: usage</span></span><br><span class="line"><span class="comment"> * @Description: 用户提示信息打印函数</span></span><br><span class="line"><span class="comment"> * @param str : 当前应用程序命令字符串，一般是./app</span></span><br><span class="line"><span class="comment"> * @return  : none</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">usage</span><span class="params">(<span class="type">char</span> *str)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="built_in">printf</span> (<span class="string">&quot;\n%s serv_ip serv_port&quot;</span>, str);</span><br><span class="line">	<span class="built_in">printf</span> (<span class="string">&quot;\n\t serv_ip: server ip address&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span> (<span class="string">&quot;\n\t serv_port: server port(&gt;5000)\n\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span> (<span class="string">&quot;\n\t client_port: client portClient(&gt;5000 &amp;&amp; !=port )\n\n&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<h2 id="3-Makefile"><a href="#3-Makefile" class="headerlink" title="3. Makefile"></a><font size=3>3. <code>Makefile</code></font></h2><p>由于需要生成两个可执行程序，自己输命令有些繁琐，这里使用<code>make</code>来进行。</p>
+<details class="folding-tag" blue><summary> 点击查看 Makefile 文件 </summary>
+              <div class='content'>
+              <figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## =====================================================</span></span><br><span class="line"><span class="comment"># Copyright © hk. 2022-2022. All rights reserved.</span></span><br><span class="line"><span class="comment"># File name: Makefile</span></span><br><span class="line"><span class="comment"># Author   : fanhua</span></span><br><span class="line"><span class="comment"># Description: Makefile文件</span></span><br><span class="line"><span class="comment">## ======================================================</span></span><br><span class="line"><span class="comment"># </span></span><br><span class="line">CC = gcc</span><br><span class="line"></span><br><span class="line">DEBUG = -g -O2 -Wall</span><br><span class="line">CFLAGS += <span class="variable">$(DEBUG)</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 所有.c文件去掉后缀</span></span><br><span class="line">TARGET_LIST = $&#123;patsubst %.c, %, $&#123;wildcard *.c&#125;&#125; </span><br><span class="line">all : <span class="variable">$(TARGET_LIST)</span></span><br><span class="line"></span><br><span class="line">%.o : %.c</span><br><span class="line">	<span class="variable">$(CC)</span> <span class="variable">$(CFLAGS)</span> -c <span class="variable">$&lt;</span> -o <span class="variable">$@</span></span><br><span class="line"></span><br><span class="line"><span class="meta"><span class="keyword">.PHONY</span>: all clean clean_o clean_out</span></span><br><span class="line">clean : clean_o clean_out</span><br><span class="line">	@rm -vf <span class="variable">$(TARGET_LIST)</span> </span><br><span class="line">	</span><br><span class="line">clean_o :</span><br><span class="line">	@rm -vf *.o</span><br><span class="line">	</span><br><span class="line">clean_out :</span><br><span class="line">	@rm -vf *.out</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<h2 id="4-测试结果"><a href="#4-测试结果" class="headerlink" title="4. 测试结果"></a><font size=3>4. 测试结果</font></h2><p>我们执行以下命令编译链接程序，生成两个可执行文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make</span><br></pre></td></tr></table></figure>
+
+<p>然后会有如下提示，并生成两个可执行文件吗，分别为服务器端程序<code>server</code>和客户端程序<code>client</code>：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc -g -O2 -Wall    client.c   -o client</span><br><span class="line">gcc -g -O2 -Wall    server.c   -o server</span><br></pre></td></tr></table></figure>
+
+<p>对于服务器端，我们执行以下命令启动服务器进程：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./server 0.0.0.0 5001 # 允许监听所有网卡IP及端口</span><br></pre></td></tr></table></figure>
+
+<p>对于客户端，我们执行以下命令启动客户端进程：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">./client 192.168.10.101 5001 5002 # 连接到本地一块网卡的IP，并设置客户端向外发送数据的端口为5002</span><br><span class="line">./client 192.168.10.101 5001 5003 # 连接到本地一块网卡的IP，并设置客户端向外发送数据的端口为5003</span><br></pre></td></tr></table></figure>
+
+<p>然后我们就会看到如下现象：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-01-select/img/image-20220703112747780.png" alt="image-20220703112747780" style="zoom:50%;" />
+
+<p>可以发现我们发送的数据，在客户端都被打印了出来，说明客户端与服务器端可以进行正常通信。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/a85de2e8.html">LV06-03-网络编程-07-多路复用IO-01-select</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年10月27日 - 11:49</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/a85de2e8.html" title="LV06-03-网络编程-07-多路复用IO-01-select">https://sumumm.github.io/post/a85de2e8.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" rel="tag"><i class="fa fa-tag"></i> LV06-网络编程</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/d65955f.html" rel="prev" title="LV06-03-网络编程-07-多路复用IO-02-poll">
+                  <i class="fa fa-angle-left"></i> LV06-03-网络编程-07-多路复用IO-02-poll
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/f31b1be0.html" rel="next" title="LV06-03-网络编程-06-网络IO模型">
+                  LV06-03-网络编程-06-网络IO模型 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

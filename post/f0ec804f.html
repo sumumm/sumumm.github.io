@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="在linux中如何使用中断？基本流程是怎样的？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-13-中断-02-中断的申请流程">
+<meta property="og:url" content="https://sumumm.github.io/post/f0ec804f.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="在linux中如何使用中断？基本流程是怎样的？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250323100809900.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250322222306438.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250322222543265.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250322223249063.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250322222720633.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250322222817637.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250317154008608.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250317154800714.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250317172230937.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250317202410518.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250317202625200.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250317154800714.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250318085547111.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250317210527344.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250317210628880.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250318091821501.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250318092001841.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250220093228164.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250318093808546.png">
+<meta property="article:published_time" content="2025-03-23T10:41:52.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.056Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250323100809900.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/f0ec804f.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/f0ec804f.html","path":"post/f0ec804f.html","title":"LV06-13-中断-02-中断的申请流程"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-13-中断-02-中断的申请流程 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%B8%AD%E6%96%AD%E7%9B%B8%E5%85%B3API"><span class="nav-text">一、中断相关API</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%B8%AD%E6%96%AD%E7%94%B3%E8%AF%B7%E5%87%BD%E6%95%B0"><span class="nav-text">1. 中断申请函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-request-irq"><span class="nav-text">1.1 request_irq()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-free-irq"><span class="nav-text">1.2 free_irq() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E6%9C%80%E5%90%8E%E4%B8%80%E4%B8%AA%E5%8F%82%E6%95%B0%E4%BA%A7%E7%94%9F%E7%9A%84%E5%B4%A9%E6%BA%83"><span class="nav-text">1.3 最后一个参数产生的崩溃</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%B8%AD%E6%96%AD%E5%8F%B7%E8%8E%B7%E5%8F%96"><span class="nav-text">2. 中断号获取</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-gpio-to-irq"><span class="nav-text">2.1 gpio_to_irq()</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-%E6%80%8E%E4%B9%88%E7%9F%A5%E9%81%93%E6%98%A0%E5%B0%84%E5%88%B0%E5%93%AA%E4%B8%AA%E4%B8%AD%E6%96%AD%EF%BC%9F"><span class="nav-text">2.1.2 怎么知道映射到哪个中断？</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-irq-of-parse-and-map"><span class="nav-text">2.2 irq_of_parse_and_map()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-of-irq-get"><span class="nav-text">2.3 of_irq_get()</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%B8%AD%E6%96%AD%E6%9C%8D%E5%8A%A1%E5%87%BD%E6%95%B0"><span class="nav-text">3. 中断服务函数  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%B8%AD%E6%96%AD%E4%BD%BF%E8%83%BD%E4%B8%8E%E7%A6%81%E6%AD%A2%E5%87%BD%E6%95%B0"><span class="nav-text">4. 中断使能与禁止函数  </span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E4%B8%AD%E6%96%AD%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90"><span class="nav-text">二、中断申请流程分析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-request-irq"><span class="nav-text">1. request_irq()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-request-threaded-irq"><span class="nav-text">2. request_threaded_irq()</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.1 函数说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E6%80%BB%E7%BB%93"><span class="nav-text">2.2 总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%B8%AD%E6%96%AD%E7%94%B3%E8%AF%B7demo"><span class="nav-text">3. 中断申请demo</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-demo%E6%BA%90%E7%A0%81"><span class="nav-text">3.1 demo源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E9%AA%8C%E8%AF%81"><span class="nav-text">3.2 开发板验证</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E9%87%8D%E8%A6%81%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="nav-text">三、重要数据结构</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-struct-irq-desc"><span class="nav-text">1. struct irq_desc</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E7%BB%93%E6%9E%84%E4%BD%93%E8%AF%B4%E6%98%8E"><span class="nav-text">1.1 结构体说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E6%80%BB%E7%BB%93"><span class="nav-text">1.2 总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-struct-irqaction"><span class="nav-text">2. struct irqaction</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E7%BB%93%E6%9E%84%E4%BD%93%E8%AF%B4%E6%98%8E"><span class="nav-text">2.1 结构体说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E6%80%BB%E7%BB%93-1"><span class="nav-text">2.2 总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-struct-irq-data"><span class="nav-text">3. struct irq_data</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-struct-irq-domain"><span class="nav-text">4. struct irq_domain</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-struct-irq-chip"><span class="nav-text">5. struct irq_chip</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E4%B8%AD%E6%96%AD%E5%9C%A8%E8%AE%BE%E5%A4%87%E6%A0%91%E4%B8%AD%E7%9A%84%E5%86%99%E6%B3%95"><span class="nav-text">四、中断在设备树中的写法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BE%E5%A4%87%E6%A0%91%E9%87%8C%E7%9A%84%E4%B8%AD%E6%96%AD%E6%8E%A7%E5%88%B6%E5%99%A8"><span class="nav-text">1. 设备树里的中断控制器  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E8%AE%BE%E5%A4%87%E6%A0%91%E9%87%8C%E4%BD%BF%E7%94%A8%E4%B8%AD%E6%96%AD"><span class="nav-text">2. 设备树里使用中断  </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E7%9B%B8%E5%85%B3%E5%B1%9E%E6%80%A7"><span class="nav-text">2.1 相关属性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E6%80%BB%E7%BB%93-2"><span class="nav-text">2.2 总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%AE%BE%E5%A4%87%E6%A0%91%E9%87%8C%E4%B8%AD%E6%96%AD%E8%8A%82%E7%82%B9%E7%9A%84%E7%A4%BA%E4%BE%8B"><span class="nav-text">3. 设备树里中断节点的示例  </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E7%A4%BA%E4%BE%8B1"><span class="nav-text">3.1 示例1</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E7%A4%BA%E4%BE%8B2"><span class="nav-text">3.2 示例2</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E7%A4%BA%E4%BE%8B3"><span class="nav-text">3.3 示例3</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-alpha%E5%BC%80%E5%8F%91%E6%9D%BF%E4%B8%AD%E7%9A%84%E6%8C%89%E9%94%AE%E4%B8%AD%E6%96%AD"><span class="nav-text">3.4 alpha开发板中的按键中断</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-4-1-%E7%A1%AC%E4%BB%B6%E5%8E%9F%E7%90%86%E5%9B%BE"><span class="nav-text">3.4.1 硬件原理图</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-4-2-%E4%B8%AD%E6%96%AD%E5%8F%B7"><span class="nav-text">3.4.2 中断号</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-4-3-%E8%A7%A6%E5%8F%91%E6%96%B9%E5%BC%8F"><span class="nav-text">3.4.3 触发方式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-4-4-%E4%B8%AD%E6%96%AD%E8%8A%82%E7%82%B9"><span class="nav-text">3.4.4 中断节点</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%9C%A8%E4%BB%A3%E7%A0%81%E4%B8%AD%E8%8E%B7%E5%BE%97%E4%B8%AD%E6%96%AD"><span class="nav-text">4. 在代码中获得中断  </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%AF%B9%E4%BA%8E-platform-device"><span class="nav-text">4.1 对于 platform_device  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%AF%B9%E4%BA%8E-I2C-%E8%AE%BE%E5%A4%87%E3%80%81-SPI-%E8%AE%BE%E5%A4%87"><span class="nav-text">4.2 对于 I2C 设备、 SPI 设备  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E8%B0%83%E7%94%A8-of-irq-get-%E8%8E%B7%E5%BE%97%E4%B8%AD%E6%96%AD%E5%8F%B7"><span class="nav-text">4.3 调用 of_irq_get() 获得中断号  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E5%AF%B9%E4%BA%8E-GPIO"><span class="nav-text">4.4 对于 GPIO  </span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/f0ec804f.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-13-中断-02-中断的申请流程 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-13-中断-02-中断的申请流程
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-03-23 18:41:52" itemprop="dateCreated datePublished" datetime="2025-03-23T18:41:52+08:00">2025-03-23</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>13k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>49 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>在linux中如何使用中断？基本流程是怎样的？若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="3">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4" target="_blank">kernel/git/stable/linux.git - Linux kernel stable tree</a></td>        <td align="left">linux kernel源码(官网,tag 4.19.71)</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、中断相关API"><a href="#一、中断相关API" class="headerlink" title="一、中断相关API"></a><font size=3>一、中断相关API</font></h1><h2 id="1-中断申请函数"><a href="#1-中断申请函数" class="headerlink" title="1. 中断申请函数"></a><font size=3>1. 中断申请函数</font></h2><h3 id="1-1-request-irq"><a href="#1-1-request-irq" class="headerlink" title="1.1 request_irq()"></a><font size=3>1.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L144">request_irq()</a></font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// #include &lt;linux/interrupt.h&gt;</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">int</span> __must_check</span><br><span class="line"><span class="title function_">request_irq</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> irq, <span class="type">irq_handler_t</span> handler, <span class="type">unsigned</span> <span class="type">long</span> flags,</span></span><br><span class="line"><span class="params">	    <span class="type">const</span> <span class="type">char</span> *name, <span class="type">void</span> *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> request_threaded_irq(irq, handler, <span class="literal">NULL</span>, flags, name, dev);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L144">request_irq()</a> 函数的主要功能是请求一个中断号， 并将一个中断处理程序与该中断号关联起来。 当中断事件发生时， 与该中断号关联的中断处理程序会被调用执行。<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L144">request_irq()</a> 函数可能会导致睡眠，因此不能在中断上下半部或者其他禁止睡眠的代码段中使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L144">request_irq()</a> 函数。<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L144">request_irq()</a> 函数会激活(使能)中断，所以不需要我们手动去使能中断。</p>
+<p><strong>参数说明：</strong></p>
+<ul>
+<li>irq： 要请求的中断号（IRQ number） 。中断号需要通过 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/gpio.h#L79">gpio_to_irq()</a> 函数映射 GPIO 引脚来获得。</li>
+<li>handler： <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L92">irq_handler_t</a> 类型，指向中断处理程序的函数指针。中断处理程序是在中断事件发生时调用的函数， 用于处理中断事件 。</li>
+<li>flags： 标志位， 用于指定中断处理程序的行为和属性， 如中断触发方式、 中断共享等。可以看这里：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L39">interrupt.h - include&#x2F;linux&#x2F;interrupt.h</a></li>
+</ul>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">IRQF_TRIGGER_NONE   ： 无触发方式， 表示中断不会被触发。</span><br><span class="line">IRQF_TRIGGER_RISING ： 上升沿触发方式， 表示中断在信号上升沿时触发。</span><br><span class="line">IRQF_TRIGGER_FALLING： 下降沿触发方式， 表示中断在信号下降沿时触发。</span><br><span class="line">IRQF_TRIGGER_HIGH   ： 高电平触发方式， 表示中断在信号为高电平时触发。</span><br><span class="line">IRQF_TRIGGER_LOW    ： 低电平触发方式， 表示中断在信号为低电平时触发。</span><br><span class="line">IRQF_SHARED         ： 中断共享方式， 表示中断可以被多个设备共享使用。</span><br></pre></td></tr></table></figure>
+
+<p>比如 I.MX6U-ALPHA 开发板上的 KEY0 使用 GPIO1_IO18，按下 KEY0 以后为低电平，因此可以设置为下降沿触发，也就是将 flags 设置为 IRQF_TRIGGER_FALLING。  </p>
+<ul>
+<li>name： 中断的名称， 用于标识该中断，设置以后可以在&#x2F;proc&#x2F;interrupts 文件中看到对应的中断名字。</li>
+<li>dev：如果将 flags 设置为 IRQF_SHARED 的话， dev 用来区分不同的中断，一般情况下将dev 设置为设备结构体， dev 会传递给中断处理函数 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L92">irq_handler_t</a> 的第二个参数。</li>
+</ul>
+<p><strong>返回值：</strong>成功： 0 或正数， 表示中断请求成功。失败： 负数， 表示中断请求失败， 返回的负数值表示错误代码，如果返回-EBUSY 的话表示中断已经被申请了。</p>
+<h3 id="1-2-free-irq"><a href="#1-2-free-irq" class="headerlink" title="1.2 free_irq() "></a><font size=3>1.2 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/irq/manage.c#L1759">free_irq()</a> </font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/irq/manage.c#L1759">free_irq()</a> 函数用于释放之前通过 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L144">request_irq()</a> 函数注册的中断处理程序。 它的作用是取消对中断的注册并释放相关的系统资源，包括中断号、 中断处理程序和设备标识等。  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//#include &lt;linux/interrupt.h&gt;</span></span><br><span class="line"><span class="type">const</span> <span class="type">void</span> *<span class="title function_">free_irq</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> irq, <span class="type">void</span> *dev_id)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irq_desc</span> *<span class="title">desc</span> =</span> irq_to_desc(irq);</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irqaction</span> *<span class="title">action</span>;</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span> *devname;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	action = __free_irq(desc, dev_id);</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	kfree(action);</span><br><span class="line">	<span class="keyword">return</span> devname;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(free_irq);</span><br></pre></td></tr></table></figure>
+
+<p><strong>参数说明：</strong></p>
+<ul>
+<li>irq： 要释放的中断号。</li>
+<li>dev_id： 设备标识， 用于区分不同的中断请求。 它通常是在 request_irq 函数中传递的设备特定数据指针。（如果中断设置为共享(IRQF_SHARED)的话，此参数用来区分具体的中断。共享中断只有在释放最后中断处理函数的时候才会被禁止掉。）</li>
+</ul>
+<p><strong>返回值：</strong>无</p>
+<h3 id="1-3-最后一个参数产生的崩溃"><a href="#1-3-最后一个参数产生的崩溃" class="headerlink" title="1.3 最后一个参数产生的崩溃"></a><font size=3>1.3 最后一个参数产生的崩溃</font></h3><p>后面测试的过程中出现崩溃：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250323100809900.png" alt="image-20250323100809900" />
+
+<p>这里分析一下原因，中断申请函数request_irq()与中断释放函数free_irq()的最后一个参数（void *dev 设备结构体）要保持一致，必须是同一个指针。我们可以看一下释放函数<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/irq/manage.c#L1775">free_irq()</a>的源码：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">const</span> <span class="type">void</span> *<span class="title function_">free_irq</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> irq, <span class="type">void</span> *dev_id)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irq_desc</span> *<span class="title">desc</span> =</span> irq_to_desc(irq);</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irqaction</span> *<span class="title">action</span>;</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span> *devname;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!desc || WARN_ON(irq_settings_is_per_cpu_devid(desc)))</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	action = __free_irq(desc, dev_id);</span><br><span class="line">	<span class="keyword">if</span> (!action)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">	devname = action-&gt;name;</span><br><span class="line">	kfree(action);</span><br><span class="line">	<span class="keyword">return</span> devname;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>再来看这个 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/irq/manage.c#L1607">__free_irq()</a> ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">irqaction</span> *__<span class="title">free_irq</span>(<span class="keyword">struct</span> <span class="title">irq_desc</span> *<span class="title">desc</span>, <span class="title">void</span> *<span class="title">dev_id</span>)</span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * There can be multiple actions per IRQ descriptor, find the right</span></span><br><span class="line"><span class="comment">	 * one based on the dev_id:</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	action_ptr = &amp;desc-&gt;action;</span><br><span class="line">	<span class="keyword">for</span> (;;) &#123;</span><br><span class="line">		action = *action_ptr;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (!action) &#123;</span><br><span class="line">			WARN(<span class="number">1</span>, <span class="string">&quot;Trying to free already-free IRQ %d\n&quot;</span>, irq);</span><br><span class="line">			raw_spin_unlock_irqrestore(&amp;desc-&gt;lock, flags);</span><br><span class="line">			chip_bus_sync_unlock(desc);</span><br><span class="line">			mutex_unlock(&amp;desc-&gt;request_mutex);</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (action-&gt;dev_id == dev_id)</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		action_ptr = &amp;action-&gt;next;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，这里会判断<code>request_irq </code>填入的 <code>dev_id </code>和 <code>free_irq </code>的<code>dev_id </code>(也就是第二个参数），如果一致，才会退出循环。</p>
+<h2 id="2-中断号获取"><a href="#2-中断号获取" class="headerlink" title="2. 中断号获取"></a><font size=3>2. 中断号获取</font></h2><h3 id="2-1-gpio-to-irq"><a href="#2-1-gpio-to-irq" class="headerlink" title="2.1 gpio_to_irq()"></a><font size=3>2.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/arch/arm/include/asm/gpio.h#L23">gpio_to_irq()</a></font></h3><h4 id="2-1-1-函数说明"><a href="#2-1-1-函数说明" class="headerlink" title="2.1.1 函数说明"></a><font size=3>2.1.1 函数说明</font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/arch/arm/include/asm/gpio.h#L23">gpio_to_irq()</a>  是一个宏，使用的时候需要包含<code> &lt;linux/gpio.h&gt;</code>，会定义成<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/asm-generic/gpio.h#L112">__gpio_to_irq()</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">int</span> __gpio_to_irq(<span class="type">unsigned</span> gpio)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> gpiod_to_irq(gpio_to_desc(gpio));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>该函数是一个用于将 GPIO 引脚映射到对应中断号的函数。 它的作用是根据给定的 GPIO 引脚号， 获取与之关联的中断号。  </p>
+<p><strong>参数说明：</strong></p>
+<ul>
+<li>gpio： 要映射的 GPIO 引脚号。</li>
+</ul>
+<p><strong>返回值：</strong>成功，返回值为该 GPIO 引脚所对应的中断号。失败，返回值为负数， 表示映射失败或无效的 GPIO 引脚号。    </p>
+<h4 id="2-1-2-怎么知道映射到哪个中断？"><a href="#2-1-2-怎么知道映射到哪个中断？" class="headerlink" title="2.1.2 怎么知道映射到哪个中断？"></a><font size=3>2.1.2 怎么知道映射到哪个中断？</font></h4><p>我们看一下<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/gpio/gpiolib.c#L3254">gpiod_to_irq()</a>，这个函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">gpiod_to_irq</span><span class="params">(<span class="type">const</span> <span class="keyword">struct</span> gpio_desc *desc)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">gpio_chip</span> *<span class="title">chip</span>;</span></span><br><span class="line">	<span class="type">int</span> offset;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Cannot VALIDATE_DESC() here as gpiod_to_irq() consumer semantics</span></span><br><span class="line"><span class="comment">	 * requires this function to not return zero on an invalid descriptor</span></span><br><span class="line"><span class="comment">	 * but rather a negative error number.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (!desc || IS_ERR(desc) || !desc-&gt;gdev || !desc-&gt;gdev-&gt;chip)</span><br><span class="line">		<span class="keyword">return</span> -EINVAL;</span><br><span class="line"></span><br><span class="line">	chip = desc-&gt;gdev-&gt;chip;</span><br><span class="line">	offset = gpio_chip_hwgpio(desc);</span><br><span class="line">	<span class="keyword">if</span> (chip-&gt;to_irq) &#123;</span><br><span class="line">		<span class="type">int</span> retirq = chip-&gt;to_irq(chip, offset);</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* Zero means NO_IRQ */</span></span><br><span class="line">		<span class="keyword">if</span> (!retirq)</span><br><span class="line">			<span class="keyword">return</span> -ENXIO;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">return</span> retirq;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> -ENXIO;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(gpiod_to_irq);</span><br></pre></td></tr></table></figure>
+
+<p>感觉有点复杂，目前的学习重点不在这里，以后有需要再补充。</p>
+<h3 id="2-2-irq-of-parse-and-map"><a href="#2-2-irq-of-parse-and-map" class="headerlink" title="2.2 irq_of_parse_and_map()"></a><font size=3>2.2 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/irq.c#L29">irq_of_parse_and_map()</a></font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * irq_of_parse_and_map - Parse and map an interrupt into linux virq space</span></span><br><span class="line"><span class="comment"> * @dev: Device node of the device whose interrupt is to be mapped</span></span><br><span class="line"><span class="comment"> * @index: Index of the interrupt to map</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This function is a wrapper that chains of_irq_parse_one() and</span></span><br><span class="line"><span class="comment"> * irq_create_of_mapping() to make things easier to callers</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">unsigned</span> <span class="type">int</span> <span class="title function_">irq_of_parse_and_map</span><span class="params">(<span class="keyword">struct</span> device_node *dev, <span class="type">int</span> index)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">of_phandle_args</span> <span class="title">oirq</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (of_irq_parse_one(dev, index, &amp;oirq))</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> irq_create_of_mapping(&amp;oirq);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(irq_of_parse_and_map);</span><br></pre></td></tr></table></figure>
+
+<p>当中断信息写在设备树中的时候，可以通过此函数从 interupts 属性中提取到对应的设备号。</p>
+<p><strong>参数说明：</strong></p>
+<ul>
+<li>dev： 设备节点。</li>
+<li>index：索引号， interrupts 属性可能包含多条中断信息，通过 index 指定要获取的信息。返回值：中断号。</li>
+</ul>
+<p><strong>返回值：</strong>成功，返回值为该 GPIO 引脚所对应的中断号。失败，返回值为负数， 表示映射失败或无效的 GPIO 引脚号。    </p>
+<h3 id="2-3-of-irq-get"><a href="#2-3-of-irq-get" class="headerlink" title="2.3 of_irq_get()"></a><font size=3>2.3 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/irq.c#L379">of_irq_get()</a></font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">of_irq_get</span><span class="params">(<span class="keyword">struct</span> device_node *dev, <span class="type">int</span> index)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> rc;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">of_phandle_args</span> <span class="title">oirq</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irq_domain</span> *<span class="title">domain</span>;</span></span><br><span class="line"></span><br><span class="line">	rc = of_irq_parse_one(dev, index, &amp;oirq);</span><br><span class="line">	<span class="keyword">if</span> (rc)</span><br><span class="line">		<span class="keyword">return</span> rc;</span><br><span class="line"></span><br><span class="line">	domain = irq_find_host(oirq.np);</span><br><span class="line">	<span class="keyword">if</span> (!domain)</span><br><span class="line">		<span class="keyword">return</span> -EPROBE_DEFER;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> irq_create_of_mapping(&amp;oirq);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="3-中断服务函数"><a href="#3-中断服务函数" class="headerlink" title="3. 中断服务函数  "></a><font size=3>3. 中断服务函数  </font></h2><p>中断处理程序是在中断事件发生时自动调用的函数。 它负责处理与中断相关的操作， 例如读取数据、 清除中断标志、 更新状态等。中断服务函数的函数类型如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="title function_">irqreturn_t</span> <span class="params">(*<span class="type">irq_handler_t</span>)</span><span class="params">(<span class="type">int</span>, <span class="type">void</span> *)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以定义一个中断服务函数如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">irqreturn_t</span> <span class="title function_">handler</span><span class="params">(<span class="type">int</span> irq, <span class="type">void</span> *dev_id)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>handler 函数是一个中断服务函数， 用于处理特定中断事件。 它在中断事件发生时被操作系统或硬件调用， 执行必要的操作来响应和处理中断请求。  </p>
+<p><strong>参数说明：</strong></p>
+<ul>
+<li><p>irq： 表示中断号或中断源的标识符。 它指示引发中断的硬件设备或中断控制器。</p>
+</li>
+<li><p>dev_id： 是一个 void 类型的指针， 用于传递设备特定的数据或标识符。需要与 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L144">request_irq()</a> 函数的 dev 参数保持一致。用于区分共享中断的不同设备， dev 也可以指向设备数据结构。</p>
+</li>
+</ul>
+<p><strong>返回值：</strong><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irqreturn.h#L17">irqreturn_t</a> 类型，是一个特定类型的枚举值， 用于表示中断服务函数的返回状态。它可以有以下几种取值：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * enum irqreturn</span></span><br><span class="line"><span class="comment"> * @IRQ_NONE		interrupt was not from this device or was not handled</span></span><br><span class="line"><span class="comment"> * @IRQ_HANDLED		interrupt was handled by this device</span></span><br><span class="line"><span class="comment"> * @IRQ_WAKE_THREAD	handler requests to wake the handler thread</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">enum</span> <span class="title">irqreturn</span> &#123;</span></span><br><span class="line">    <span class="comment">// IRQ_NONE： 表示中断服务函数未处理该中断， 中断控制器可以继续处理其他中断请求。</span></span><br><span class="line">	IRQ_NONE		= (<span class="number">0</span> &lt;&lt; <span class="number">0</span>),</span><br><span class="line">    <span class="comment">// IRQ_HANDLED： 表示中断服务函数已成功处理该中断， 中断控制器无需进一步处理。</span></span><br><span class="line">	IRQ_HANDLED		= (<span class="number">1</span> &lt;&lt; <span class="number">0</span>),</span><br><span class="line">    <span class="comment">// IRQ_WAKE_THREAD： 表示中断服务函数已处理该中断， 并且请求唤醒一个内核线程来继续执行进一步的处理。 这在一些需要长时间处理的中断情况下使用。</span></span><br><span class="line">	IRQ_WAKE_THREAD		= (<span class="number">1</span> &lt;&lt; <span class="number">1</span>),</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>一般中断服务函数返回值使用如下形式：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> IRQ_RETVAL(IRQ_HANDLED)</span><br></pre></td></tr></table></figure>
+
+<p>在处理程序中， 通常需要注意以下几个方面：  </p>
+<p>（1） 处理程序应该尽可能地快速执行， 以避免中断丢失或过多占用 CPU 时间。</p>
+<p>（2） 如果中断源是共享的， 处理程序需要处理多个设备共享同一个中断的情况。</p>
+<p>（3） 处理程序可能需要与其他部分的代码进行同步， 例如访问共享数据结构或使用同步机制来保护临界区域。</p>
+<p>（4） 处理程序可能需要与其他线程或进程进行通信， 例如唤醒等待的线程或发送信号给其他进程。</p>
+<h2 id="4-中断使能与禁止函数"><a href="#4-中断使能与禁止函数" class="headerlink" title="4. 中断使能与禁止函数  "></a><font size=3>4. 中断使能与禁止函数  </font></h2><p>常用的中断使用和禁止函数如下所示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">enable_irq</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> irq)</span>;</span><br><span class="line"><span class="type">void</span> <span class="title function_">disable_irq</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> irq)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/irq/manage.c#L612">enable_irq()</a>和<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/irq/manage.c#L539">disable_irq()</a> 用于使能和禁止指定的中断， irq 就是要使能&#x2F;禁止的中断号。 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/irq/manage.c#L539">disable_irq()</a> 函数要等到当前正在执行的中断处理函数执行完才返回，因此使用者需要保证不会产生新的中断，并且确保所有已经开始执行的中断处理程序已经全部退出。在这种情况下，可以使用另外一个中断禁止函数 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/irq/manage.c#L522">disable_irq_nosync()</a> ：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">disable_irq_nosync</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> irq)</span></span><br></pre></td></tr></table></figure>
+
+<p> <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/irq/manage.c#L522">disable_irq_nosync()</a> 函数调用以后立即返回，不会等待当前中断处理程序执行完毕。上面三个函数都是使能或者禁止某一个中断，有时候我们需要关闭当前处理器的整个中断系统，也就是常说的关闭全局中断，这个时候可以使用如下两个函数：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">local_irq_enable()</span><br><span class="line">local_irq_disable()</span><br><span class="line">    </span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_TRACE_IRQFLAGS</span></span><br><span class="line">    </span><br><span class="line"><span class="meta">#<span class="keyword">define</span> local_irq_enable() \</span></span><br><span class="line"><span class="meta">	do &#123; trace_hardirqs_on(); raw_local_irq_enable(); &#125; while (0)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> local_irq_disable() \</span></span><br><span class="line"><span class="meta">	do &#123; raw_local_irq_disable(); trace_hardirqs_off(); &#125; while (0)</span></span><br><span class="line"><span class="comment">// ......</span></span><br><span class="line"><span class="meta">#<span class="keyword">else</span> <span class="comment">/* !CONFIG_TRACE_IRQFLAGS */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> local_irq_enable()	do &#123; raw_local_irq_enable(); &#125; while (0)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> local_irq_disable()	do &#123; raw_local_irq_disable(); &#125; while (0)</span></span><br><span class="line"><span class="comment">// ......</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">/* CONFIG_TRACE_IRQFLAGS */</span></span></span><br></pre></td></tr></table></figure>
+
+<p>这两个函数定义在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irqflags.h">irqflags.h - include&#x2F;linux&#x2F;irqflags.h</a> 中。local_irq_enable 用于使能当前处理器中断系统， local_irq_disable 用于禁止当前处理器中断系统。假如 A 任务调用 local_irq_disable 关闭全局中断 10S，当关闭了 2S 的时候 B 任务开始运行， B 任务也调用 local_irq_disable 关闭全局中断 3S， 3 秒以后 B 任务调用 local_irq_enable 函数将全局中断打开了。此时才过去 2+3&#x3D;5 秒的时间，然后全局中断就被打开了，此时 A 任务要关闭 10S 全局中断的愿望就破灭了，然后 A 任务就“生气了”，结果很严重，可能系统都要被A 任务整崩溃。为了解决这个问题， B 任务不能直接简单粗暴的通过 local_irq_enable 函数来打开全局中断，而是将中断状态恢复到以前的状态，要考虑到别的任务的感受，此时就要用到下面两个函数（定义在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irqflags.h">irqflags.h - include&#x2F;linux&#x2F;irqflags.h</a> 中）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">local_irq_save(flags);</span><br><span class="line">local_irq_restore(flags);</span><br></pre></td></tr></table></figure>
+
+<p>这两个函数是一对， local_irq_save 函数用于禁止中断，并且将中断状态保存在 flags 中。local_irq_restore 用于恢复中断，将中断到 flags 状态。  </p>
+<h1 id="二、中断申请流程分析"><a href="#二、中断申请流程分析" class="headerlink" title="二、中断申请流程分析"></a><font size=3>二、中断申请流程分析</font></h1><p>接下来我们看一下中断申请函数，来了解一下中断的申请的大概流程。</p>
+<h2 id="1-request-irq"><a href="#1-request-irq" class="headerlink" title="1. request_irq()"></a><font size=3>1. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L144">request_irq()</a></font></h2><p>中断申请使用的是 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L144">request_irq()</a> 函数， 它用于请求一个中断号（IRQ number） 并将一个中断处理程序与该中断关联起来：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">int</span> __must_check</span><br><span class="line"><span class="title function_">request_irq</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> irq, <span class="type">irq_handler_t</span> handler, <span class="type">unsigned</span> <span class="type">long</span> flags,</span></span><br><span class="line"><span class="params">	    <span class="type">const</span> <span class="type">char</span> *name, <span class="type">void</span> *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> request_threaded_irq(irq, handler, <span class="literal">NULL</span>, flags, name, dev);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从上面的内容可以得到 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L144">request_irq()</a> 函数实际上是调用了<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/irq/manage.c#L1800">request_threaded_irq()</a>函数来完成中断申请的过程。 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/irq/manage.c#L1800">request_threaded_irq()</a>函数提供了线程化的中断处理方式， 可以在中断上下文中执行中断处理函数。  </p>
+<h2 id="2-request-threaded-irq"><a href="#2-request-threaded-irq" class="headerlink" title="2. request_threaded_irq()"></a><font size=3>2. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/irq/manage.c#L1800">request_threaded_irq()</a></font></h2><h3 id="2-1-函数说明"><a href="#2-1-函数说明" class="headerlink" title="2.1 函数说明"></a><font size=3>2.1 函数说明</font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/irq/manage.c#L1800">request_threaded_irq()</a>函数是 Linux 内核提供的一个功能强大的函数， 用于请求分配一个中断， 并将中断处理程序与该中断关联起来。 该函数的主要作用是在系统中注册中断处理函数，以响应对应中断的发生。函数定义如下：</p>
+ <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">request_threaded_irq</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> irq, <span class="type">irq_handler_t</span> handler,</span></span><br><span class="line"><span class="params">			 <span class="type">irq_handler_t</span> thread_fn, <span class="type">unsigned</span> <span class="type">long</span> irqflags,</span></span><br><span class="line"><span class="params">			 <span class="type">const</span> <span class="type">char</span> *devname, <span class="type">void</span> *dev_id)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">//（1） 声明变量和初始化</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irqaction</span> *<span class="title">action</span>;</span> <span class="comment">// 中断动作结构体指针</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irq_desc</span> *<span class="title">desc</span>;</span>    <span class="comment">// 中断描述符指针</span></span><br><span class="line">	<span class="type">int</span> retval;               <span class="comment">// 返回值</span></span><br><span class="line">	<span class="comment">//（2） 参数检查：检查中断号是否为未连接状态</span></span><br><span class="line">	<span class="keyword">if</span> (irq == IRQ_NOTCONNECTED)</span><br><span class="line">		<span class="keyword">return</span> -ENOTCONN;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Sanity-check: shared interrupts must pass in a real dev-ID,</span></span><br><span class="line"><span class="comment">	 * otherwise we&#x27;ll have trouble later trying to figure out</span></span><br><span class="line"><span class="comment">	 * which interrupt is which (messes up the interrupt freeing</span></span><br><span class="line"><span class="comment">	 * logic etc).</span></span><br><span class="line"><span class="comment">	 *</span></span><br><span class="line"><span class="comment">	 * Also IRQF_COND_SUSPEND only makes sense for shared interrupts and</span></span><br><span class="line"><span class="comment">	 * it cannot be set along with IRQF_NO_SUSPEND.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">    <span class="comment">// 检查中断标志的有效性， 包括共享标志与设备 ID 的关联性， 条件挂起标志的有效性， 以及无挂起标志与条件挂起标志的关联性。</span></span><br><span class="line">	<span class="keyword">if</span> (((irqflags &amp; IRQF_SHARED) &amp;&amp; !dev_id) ||</span><br><span class="line">	    (!(irqflags &amp; IRQF_SHARED) &amp;&amp; (irqflags &amp; IRQF_COND_SUSPEND)) ||</span><br><span class="line">	    ((irqflags &amp; IRQF_NO_SUSPEND) &amp;&amp; (irqflags &amp; IRQF_COND_SUSPEND)))</span><br><span class="line">		<span class="keyword">return</span> -EINVAL;</span><br><span class="line">    <span class="comment">//（3） 获取中断描述符：根据中断号获取中断描述符</span></span><br><span class="line">	desc = irq_to_desc(irq);</span><br><span class="line">	<span class="keyword">if</span> (!desc)</span><br><span class="line">		<span class="keyword">return</span> -EINVAL;</span><br><span class="line">    <span class="comment">//（4） 检查中断设置：检查中断设置是否可以进行中断请求， 以及是否为每个 CPU 分配唯一设备 ID</span></span><br><span class="line">	<span class="keyword">if</span> (!irq_settings_can_request(desc) ||</span><br><span class="line">	    WARN_ON(irq_settings_is_per_cpu_devid(desc)))</span><br><span class="line">		<span class="keyword">return</span> -EINVAL;</span><br><span class="line">	<span class="comment">//（5） 处理中断处理函数和线程处理函数：如果未指定中断处理函数， 则使用默认的主处理函数</span></span><br><span class="line">	<span class="keyword">if</span> (!handler) &#123;</span><br><span class="line">		<span class="keyword">if</span> (!thread_fn)</span><br><span class="line">			<span class="keyword">return</span> -EINVAL;</span><br><span class="line">		handler = irq_default_primary_handler;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//（6） 分配并初始化中断动作数据结构</span></span><br><span class="line">	action = kzalloc(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> irqaction), GFP_KERNEL);</span><br><span class="line">	<span class="keyword">if</span> (!action)</span><br><span class="line">		<span class="keyword">return</span> -ENOMEM;</span><br><span class="line"></span><br><span class="line">	action-&gt;handler = handler;    <span class="comment">// 中断处理函数</span></span><br><span class="line">	action-&gt;thread_fn = thread_fn;<span class="comment">// 线程处理函数</span></span><br><span class="line">	action-&gt;flags = irqflags;     <span class="comment">// 中断标志</span></span><br><span class="line">	action-&gt;name = devname;       <span class="comment">// 设备名称</span></span><br><span class="line">	action-&gt;dev_id = dev_id;      <span class="comment">// 设备 ID</span></span><br><span class="line">	<span class="comment">//（7）获取中断的电源管理引用计数</span></span><br><span class="line">	retval = irq_chip_pm_get(&amp;desc-&gt;irq_data);</span><br><span class="line">	<span class="keyword">if</span> (retval &lt; <span class="number">0</span>) &#123;</span><br><span class="line">		kfree(action);</span><br><span class="line">		<span class="keyword">return</span> retval;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//（8）设置中断并将中断动作与中断描述符关联</span></span><br><span class="line">	retval = __setup_irq(irq, desc, action);</span><br><span class="line">	<span class="comment">// 处理中断设置失败的情况</span></span><br><span class="line">	<span class="keyword">if</span> (retval) &#123;</span><br><span class="line">		irq_chip_pm_put(&amp;desc-&gt;irq_data);</span><br><span class="line">		kfree(action-&gt;secondary);</span><br><span class="line">		kfree(action);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//（9）可选的共享中断处理</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_DEBUG_SHIRQ_FIXME</span></span><br><span class="line">    <span class="comment">// 如果设置中断成功且中断标志中包含共享标志（IRQF_SHARED）</span></span><br><span class="line">	<span class="keyword">if</span> (!retval &amp;&amp; (irqflags &amp; IRQF_SHARED)) &#123;</span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * It&#x27;s a shared IRQ -- the driver ought to be prepared for it</span></span><br><span class="line"><span class="comment">		 * to happen immediately, so let&#x27;s make sure....</span></span><br><span class="line"><span class="comment">		 * We disable the irq to make sure that a &#x27;real&#x27; IRQ doesn&#x27;t</span></span><br><span class="line"><span class="comment">		 * run in parallel with our fake.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="type">unsigned</span> <span class="type">long</span> flags;</span><br><span class="line"></span><br><span class="line">		disable_irq(irq);      <span class="comment">// 禁用中断。</span></span><br><span class="line">		local_irq_save(flags); <span class="comment">// 保存当前中断状态并禁用本地中断。</span></span><br><span class="line"></span><br><span class="line">		handler(irq, dev_id);  <span class="comment">// 调用主处理函数处理中断。</span></span><br><span class="line"></span><br><span class="line">		local_irq_restore(flags);<span class="comment">// 恢复中断状态。</span></span><br><span class="line">		enable_irq(irq); <span class="comment">// 重新使能中断。</span></span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="keyword">return</span> retval; <span class="comment">// 返回设置中断的结果</span></span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(request_threaded_irq);</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-总结"><a href="#2-2-总结" class="headerlink" title="2.2 总结"></a><font size=3>2.2 总结</font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/irq/manage.c#L1800">request_threaded_irq()</a>函数主要功能和作用如下：</p>
+<p>（1） 中断请求： request_threaded_irq 函数用于请求一个中断。 它会向内核注册对应中断号的中断处理函数， 并为该中断分配必要的资源。 中断号是标识特定硬件中断的唯一标识符。</p>
+<p>（2） 中断处理函数关联： 通过 handler 参数， 将中断处理函数与中断号关联起来。 中断处理函数是一个预定义的函数， 用于处理中断事件。 当中断发生时， 内核将调用该函数来处理中断事件。</p>
+<p>（3） 线程化中断处理： request_threaded_irq 函数还支持使用线程化中断处理函数。 通过指定 thread_fn 参数， 可以在一个内核线程上下文中异步执行较长时间的中断处理或延迟敏感的工作。 这有助于避免在中断上下文中阻塞时间过长。</p>
+<p>（4） 中断属性设置： 通过 irqflags 参数， 可以设置中断处理的各种属性和标志。 例如， 可以指定中断触发方式（上升沿、 下降沿、 边沿触发等） 、 中断类型（边沿触发中断、 电平触发中断等） 以及其他特定的中断行为。</p>
+<p>（5） 设备标识关联： 通过 dev_id 参数， 可以将中断处理与特定设备关联起来。 这样可以在中断处理函数中访问与设备相关的数据。 设备标识符可以是指向设备结构体或其他与设备相关的数据的指针。</p>
+<p>（6） 错误处理： request_threaded_irq 函数会返回一个整数值， 用于指示中断请求的结果。如果中断请求成功， 返回值为 0； 如果中断请求失败， 则返回一个负数错误代码， 表示失败的原因。</p>
+<h2 id="3-中断申请demo"><a href="#3-中断申请demo" class="headerlink" title="3. 中断申请demo"></a><font size=3>3. 中断申请demo</font></h2><h3 id="3-1-demo源码"><a href="#3-1-demo源码" class="headerlink" title="3.1 demo源码"></a><font size=3>3.1 demo源码</font></h3><p>demo源码可以看这里：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/13_interrupt/04_int_gpio">13_interrupt&#x2F;04_int_gpio · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a>。在这个demo源码中，不需要像之前一样自己获取gpio的地址，然后映射，也不需要在设备树添加什么东西，就直接通过GPIO的编号申请中断：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">gpio_irq_init</span><span class="params">(_CHAR_DEVICE *p_chrdev)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> irq_num = <span class="number">-1</span>;</span><br><span class="line">    <span class="comment">// 将GPIO引脚映射到中断号</span></span><br><span class="line">    irq_num = gpio_to_irq(GPIO_PIN);</span><br><span class="line">    PRT(<span class="string">&quot;GPIO %d mapped to IRQ %d\n&quot;</span>, GPIO_PIN, irq_num);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 请求中断</span></span><br><span class="line">    <span class="keyword">if</span> (request_irq(irq_num, gpio_irq_handler, IRQF_TRIGGER_RISING, <span class="string">&quot;irq_test&quot;</span>, <span class="literal">NULL</span>) != <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;Failed to request IRQ %d\n&quot;</span>, irq_num);</span><br><span class="line">        <span class="comment">// 请求中断失败，释放GPIO引脚</span></span><br><span class="line">        gpio_free(GPIO_PIN);</span><br><span class="line">        <span class="keyword">return</span> -ENODEV;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>怎么计算GPIO编号</strong>？</li>
+</ul>
+<p>i.MX6ULL的GPIO引脚被组织成多个Bank，每个Bank包含32个GPIO引脚。这个我们可以看数据手册过着参考手册，我这里看的数据手册：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250322222306438.png" alt="image-20250322222306438" />
+
+<p>GPIO引脚的编号通常以<code>GPIOx_y</code>的形式表示，其中<code>x</code>表示Bank编号，<code>y</code>表示该Bank中的引脚编号。例如：</p>
+<ul>
+<li><code>GPIO1_0</code> 表示Bank 1的第0个引脚。</li>
+<li><code>GPIO2_15</code> 表示Bank 2的第15个引脚。</li>
+</ul>
+<p>那么，i.MX6ULL的GPIO编号可以通过以下公式计算：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GPIO编号 = (Bank编号 - 1) * 32 + 引脚编号</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-开发板验证"><a href="#3-2-开发板验证" class="headerlink" title="3.2 开发板验证"></a><font size=3>3.2 开发板验证</font></h3><p>我们编译后拷贝到开发板，加载驱动：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">insmod sdriver_demo.ko</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250322222543265.png" alt="image-20250322222543265" />
+
+<p>可以看到这里申请到的中断号是79。我这里其实有个疑问，就是之前裸机开发的时候，计算过GPIO1_IO18的中断号，应该是67+32&#x3D;99，在NXP官方提供的库文件中也是这样的：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250322223249063.png" alt="image-20250322223249063" />
+
+<p>但是linux申请这里是79，具体可能是有什么映射关系，这里没有深究了，后面有机会再补充吧。驱动加载成功以后可以通过查看&#x2F;proc&#x2F;interrupts 文件来检查一下对应的中断有没有被注册上，输入如下命令：  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /proc/interrupts</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250322222720633.png" alt="image-20250322222720633" />
+
+<p>然后我们按下按键，然后抬起，会看到中断服务函数被执行了：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250322222817637.png" alt="image-20250322222817637" />
+
+<h1 id="三、重要数据结构"><a href="#三、重要数据结构" class="headerlink" title="三、重要数据结构"></a><font size=3>三、重要数据结构</font></h1><p>大概会有以下几个相关的数据结构：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250317154008608.png" alt="image-20250317154008608"  />
+
+<p>最核心的结构体是 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irqdesc.h#L20">struct irq_desc</a>，之前为了易于理解，我们说在 Linux 内核中有一个中断数组，对于每一个硬件中断，都有一个数组项，这个数组就是irq_desc 数组。注意：如果内核配置了 CONFIG_SPARSE_IRQ，那么它就会用基数树(radix tree)来代替 irq_desc 数组。 SPARSE 的意思是“稀疏”，假设大小为 1000 的数组中只用到 2 个数组项，那不是浪费嘛？所以在中断比较“稀疏”的情况下可以用基数树来代替数组。</p>
+<h2 id="1-struct-irq-desc"><a href="#1-struct-irq-desc" class="headerlink" title="1. struct irq_desc"></a><font size=3>1. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irqdesc.h#L20">struct irq_desc</a></font></h2><h3 id="1-1-结构体说明"><a href="#1-1-结构体说明" class="headerlink" title="1.1 结构体说明"></a><font size=3>1.1 结构体说明</font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irqdesc.h#L20">struct irq_desc</a>定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">irq_desc</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irq_common_data</span>	<span class="title">irq_common_data</span>;</span> <span class="comment">/* 通用中断数据 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irq_data</span>		<span class="title">irq_data</span>;</span>            <span class="comment">/* 中断数据 */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span> __percpu	*kstat_irqs;     <span class="comment">/* 中断统计信息 */</span></span><br><span class="line">	<span class="type">irq_flow_handler_t</span>	handle_irq;          <span class="comment">/* 中断处理函数 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_IRQ_PREFLOW_FASTEOI</span></span><br><span class="line">	<span class="type">irq_preflow_handler_t</span>	preflow_handler; <span class="comment">/* 预处理中断处理函数 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irqaction</span>	*<span class="title">action</span>;</span>	<span class="comment">/* IRQ action list */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>		status_use_accessors;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>		core_internal_state__do_not_mess_with_it;<span class="comment">/* 内核内部状态标志位， 请勿修改 */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>		depth;		<span class="comment">/* 嵌套中断禁用计数 */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>		wake_depth;	<span class="comment">/* 嵌套唤醒使能计数 */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>		tot_count;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>		irq_count;	<span class="comment">/* 用于检测损坏的 IRQ 计数 */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span>		last_unhandled;	<span class="comment">/* 未处理计数的老化计时器 */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>		irqs_unhandled; <span class="comment">/* 未处理的中断计数 */</span></span><br><span class="line">	<span class="type">atomic_t</span>		threads_handled;    <span class="comment">/* 处理中断的线程计数 */</span></span><br><span class="line">	<span class="type">int</span>			threads_handled_last;</span><br><span class="line">	<span class="type">raw_spinlock_t</span>		lock;           <span class="comment">/* 自旋锁 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cpumask</span>		*<span class="title">percpu_enabled</span>;</span><span class="comment">/* 指向每个 CPU 的使能掩码 */</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cpumask</span>	*<span class="title">percpu_affinity</span>;</span><span class="comment">/* 指向每个 CPU 亲和性掩码 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_SMP</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cpumask</span>	*<span class="title">affinity_hint</span>;</span>     <span class="comment">/* CPU 亲和性提示 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irq_affinity_notify</span> *<span class="title">affinity_notify</span>;</span><span class="comment">/* CPU 亲和性变化通知 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_GENERIC_PENDING_IRQ</span></span><br><span class="line">	<span class="type">cpumask_var_t</span>		pending_mask;           <span class="comment">/* 等待处理的中断掩码 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span>		threads_oneshot;</span><br><span class="line">	<span class="type">atomic_t</span>		threads_active;             <span class="comment">/* 活动中的线程计数 */</span></span><br><span class="line">	<span class="type">wait_queue_head_t</span>       wait_for_threads;   <span class="comment">/* 等待线程的等待队列头 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_PM_SLEEP</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>		nr_actions;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>		no_suspend_depth;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>		cond_suspend_depth;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>		force_resume_depth;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_PROC_FS</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">proc_dir_entry</span>	*<span class="title">dir</span>;</span><span class="comment">/* proc 文件系统目录项 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_GENERIC_IRQ_DEBUGFS</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">dentry</span>		*<span class="title">debugfs_file</span>;</span><span class="comment">/* 调试文件系统文件 */</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span>		*dev_name;   <span class="comment">/* 设备名称 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_SPARSE_IRQ</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rcu_head</span>		<span class="title">rcu</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kobject</span>		<span class="title">kobj</span>;</span>    <span class="comment">/* 内核对象 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mutex</span>		<span class="title">request_mutex</span>;</span> <span class="comment">/* 请求互斥锁 */</span></span><br><span class="line">	<span class="type">int</span>			parent_irq;            <span class="comment">/* 父中断号 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">module</span>		*<span class="title">owner</span>;</span>        <span class="comment">/* 模块拥有者 */</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span>		*name;             <span class="comment">/* 中断名称 */</span></span><br><span class="line">&#125; ____cacheline_internodealigned_in_smp;</span><br></pre></td></tr></table></figure>
+
+<p>每一个 irq_desc 数组项中都有一个函数： <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irqdesc.h#L59">irq_desc</a>.<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irqhandler.h#L12">handle_irq</a>，还有一个 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irqdesc.h#L63">irq_desc</a>.<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L110">action</a>链表。要理解它们，需要先看中断结构图：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250317154800714.png" alt="image-20250317154800714" style="zoom: 50%;" />
+
+<p>外部设备 1、外部设备 n 共享一个 GPIO 中断 B，多个 GPIO 中断汇聚到GIC(通用中断控制器)的 A 号中断， GIC 再去中断 CPU。那么软件处理时就是反过来，先读取 GIC 获得中断号 A，再细分出 GPIO 中断 B，最后判断是哪一个外部芯片发生了中断。所以，中断的处理函数来源有三：  </p>
+<ul>
+<li>（1）GIC 的处理函数</li>
+</ul>
+<p>假设 irq_desc[A].handle_irq 是 XXX_gpio_irq_handler(XXX 指厂家)，这个函数需要读取芯片的 GPIO 控制器，细分发生的是哪一个 GPIO 中断(假设是B)，再去调用 irq_desc[B]. handle_irq。  </p>
+<p>注意 ： irq_desc[A].handle_irq 细分出中断后B ， 调用对应的irq_desc[B].handle_irq。  </p>
+<p>显然中断 A 是 CPU 感受到的顶层的中断， GIC 中断 CPU 时， CPU 读取 GIC 状态得到中断 A。  </p>
+<ul>
+<li>（2）模块的中断处理函数</li>
+</ul>
+<p>比如对于GPIO模块向GIC发出的中断B，它的处理函数是irq_desc[B].handle_irq。</p>
+<p>BSP 开发人员会设置对应的处理函数，一般是 handle_level_irq 或handle_edge_irq，从名字上看是用来处理电平触发的中断、边沿触发的中断。    </p>
+<p>注意：导致 GPIO 中断 B 发生的原因很多，可能是外部设备 1，可能是外部设备n，可能只是某一个设备，也可能是多个设备。所以 irq_desc[B].handle_irq会调用某个链表里的函数，这些函数由外部设备提供。这些函数自行判断该中断是否自己产生，若是则处理。  </p>
+<ul>
+<li>（3）外部设备提供的处理函数</li>
+</ul>
+<p>这里说的“外部设备”可能是芯片，也可能总是简单的按键。它们的处理函数由自己驱动程序提供，这是最熟悉这个设备的“人”：它知道如何判断设备是否发生了中断，如何处理中断。  </p>
+<p>对于共享中断，比如 GPIO 中断 B，它的中断来源可能有多个，每个中断源对应一个中断处理函数。所以 irq_desc[B]中应该有一个链表，存放着多个中断源的处理函数。  </p>
+<p>一旦程序确定发生了 GPIO 中断 B，那么就会从链表里把那些函数取出来，一一执行。这个链表就是 action 链表。  </p>
+<p>对于我们举的这个例子来说， irq_desc 数组如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250317172230937.png" alt="image-20250317172230937"  />
+
+<h3 id="1-2-总结"><a href="#1-2-总结" class="headerlink" title="1.2 总结"></a><font size=3>1.2 总结</font></h3><p>以下是 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irqdesc.h#L20">struct irq_desc</a> 结构体的主要作用和功能：  </p>
+<p>（1） 中断处理函数管理： irq_desc 结构体中的 handle_irq 字段保存中断处理函数的指针。当硬件触发中断时， 内核会调用该函数来处理中断事件。</p>
+<p>（2） 中断行为管理： irq_desc 结构体中的 action 字段是一个指向中断行为列表的指针。中断行为是一组回调函数， 用于注册、 注销和处理与中断相关的事件。</p>
+<p>（3） 中断统计信息： irq_desc 结构体中的 kstat_irqs 字段是一个指向中断统计信息的指针。该信息用于记录中断事件的发生次数和处理情况， 可以帮助分析中断的性能和行为。</p>
+<p>（4） 中断数据管理： irq_desc 结构体中的 irq_data 字段保存了与中断相关的数据， 如中断号、 中断类型等。 这些数据用于识别和管理中断。</p>
+<p>（5） 通用中断数据管理： irq_desc 结构体中的 irq_common_data 字段保存了与中断处理相关的通用数据， 如中断控制器、 中断屏蔽等。 这些数据用于处理和控制中断的行为。</p>
+<p>（ 6） 中断状态管理： irq_desc 结构体中的其他字段用于管理中断的状态， 如嵌套中断禁用计数、 唤醒使能计数等。 这些状态信息帮助内核跟踪和管理中断的状态变化。</p>
+<p>通过使用 irq_desc 结构体， 内核可以有效地管理和处理系统中的硬件中断。 它提供了一个统一的接口， 用于注册和处理中断处理函数、 管理中断行为， 并提供了必要的信息和数据结构来监视和控制中断的行为和状态。</p>
+<h2 id="2-struct-irqaction"><a href="#2-struct-irqaction" class="headerlink" title="2. struct irqaction"></a><font size=3>2. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L94">struct irqaction</a></font></h2><h3 id="2-1-结构体说明"><a href="#2-1-结构体说明" class="headerlink" title="2.1 结构体说明"></a><font size=3>2.1 结构体说明</font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L94">struct irqaction</a> 是 Linux 内核中用于描述中断行为的数据结构之一。 它用于定义中断处理过程中的回调函数和相关属性。 irqaction 结构体的主要功能是管理与特定中断相关的行为和处理函数。  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">irqaction</span> &#123;</span></span><br><span class="line">	<span class="type">irq_handler_t</span>		handler; <span class="comment">// 中断处理函数</span></span><br><span class="line">	<span class="type">void</span>			    *dev_id; <span class="comment">// 设备 ID</span></span><br><span class="line">	<span class="type">void</span> __percpu		*percpu_dev_id;<span class="comment">// 每个 CPU 的设备 ID</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irqaction</span>	*<span class="title">next</span>;</span>   <span class="comment">// 下一个中断动作结构体</span></span><br><span class="line">	<span class="type">irq_handler_t</span>		thread_fn;<span class="comment">// 线程处理函数</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span>	*<span class="title">thread</span>;</span>  <span class="comment">// 线程结构体指针</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irqaction</span>	*<span class="title">secondary</span>;</span><span class="comment">// 次要中断动作结构体</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>		irq;       <span class="comment">// 中断号</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>		flags;     <span class="comment">// 中断标志</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span>		thread_flags;<span class="comment">// 线程标志</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span>		thread_mask; <span class="comment">// 线程掩码</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span>		*name;           <span class="comment">// 设备名称</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">proc_dir_entry</span>	*<span class="title">dir</span>;</span>    <span class="comment">// proc 文件系统目录项指针</span></span><br><span class="line">&#125; ____cacheline_internodealigned_in_smp;</span><br></pre></td></tr></table></figure>
+
+<p>当调用 request_irq、 request_threaded_irq 注册中断处理函数时，内核就会构造一个 irqaction 结构体。在里面保存 name、 dev_id 等，最重要的是 handler、 thread_fn、 thread。  </p>
+<ul>
+<li>handler 是中断处理的上半部函数，用来处理紧急的事情。</li>
+<li>thread_fn 对应一个内核线程 thread，当 handler 执行完毕， Linux 内核会唤醒对应的内核线程。在内核线程里，会调用 thread_fn 函数。</li>
+</ul>
+<blockquote>
+<p>可以提供 handler 而不提供 thread_fn，就退化为一般的 request_irq 函数。可以不提供 handler 只提供 thread_fn，完全由内核线程来处理中断。也可以既提供 handler 也提供 thread_fn，这就是中断上半部、下半部。  </p>
+</blockquote>
+<p>在 reqeust_irq 时可以传入 dev_id，为何需要 dev_id？  </p>
+<p>（1）中断处理函数执行时，可以使用 dev_id 。</p>
+<p>（2）卸载中断时要传入 dev_id，这样才能在 action 链表中根据 dev_id 找到对应项。</p>
+<p>所以在共享中断中必须提供 dev_id，非共享中断可以不提供。  </p>
+<h3 id="2-2-总结-1"><a href="#2-2-总结-1" class="headerlink" title="2.2 总结"></a><font size=3>2.2 总结</font></h3><p>以下是 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/interrupt.h#L94">struct irqaction</a> 结构体的主要作用和功能：  </p>
+<p>（1） 中断处理函数管理： irqaction 结构体中的 handler 字段保存中断处理函数的指针。 该函数在中断发生时被调用， 用于处理中断事件。</p>
+<p>（2） 中断处理标志管理： irqaction 结构体中的 flags 字段用于指定中断处理的各种属性和标志。 这些标志控制中断处理的行为， 例如触发方式、 中断类型等。</p>
+<p>（3） 设备标识符管理： irqaction 结构体中的 dev_id 字段用于保存与中断处理相关的设备标识符。 它可以是指向设备结构体或其他与设备相关的数据的指针， 用于将中断处理与特定设备关联起来。</p>
+<p>（4） 中断行为链表管理： irqaction 结构体中的 next 字段是一个指向下一个 irqaction 结构体的指针， 用于构建中断行为的链表。 这样可以将多个中断处理函数链接在一起， 以便在中断发生时按顺序调用它们。</p>
+<p>通过使用 irqaction 结构体， 内核可以灵活地定义和管理与特定中断相关的行为和处理函数。 它提供了一个统一的接口， 用于注册和注销中断处理函数， 并提供了必要的属性和数据结构来控制中断处理的行为和顺序。</p>
+<h2 id="3-struct-irq-data"><a href="#3-struct-irq-data" class="headerlink" title="3. struct irq_data"></a><font size=3>3. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irq.h#L158">struct irq_data</a></font></h2><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irq.h#L158">struct irq_data</a>主要内容如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250317202410518.png" alt="image-20250317202410518"  />
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">irq_data</span> &#123;</span></span><br><span class="line">	u32			mask;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>		irq;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span>		hwirq;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irq_common_data</span>	*<span class="title">common</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irq_chip</span>		*<span class="title">chip</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irq_domain</span>	*<span class="title">domain</span>;</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span>	CONFIG_IRQ_DOMAIN_HIERARCHY</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">irq_data</span>		*<span class="title">parent_data</span>;</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="type">void</span>			*chip_data;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>它就是个中转站，里面有 irq_chip 指针 irq_domain 指针，都是指向别的结构体。其中的 irq、 hwirq， irq 是软件中断号， hwirq 是硬件中断号。比如上面我们举的例子，在 GPIO 中断 B 是软件中断号，可以找到 irq_desc[B]这个数组项； GPIO 里的第 x 号中断，这就是 hwirq。  </p>
+<p>谁来建立 irq、 hwirq 之间的联系呢？由 irq_domain 来建立。 irq_domain会把本地的 hwirq 映射为全局的 irq，什么意思？比如 GPIO 控制器里有第 1 号中断， UART 模块里也有第 1 号中断，这两个“第 1 号中断”是不一样的，它们属于不同的“域”——irq_domain。  </p>
+<h2 id="4-struct-irq-domain"><a href="#4-struct-irq-domain" class="headerlink" title="4. struct irq_domain"></a><font size=3>4. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irqdomain.h#L131">struct irq_domain</a></font></h2><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irqdomain.h#L131">struct irq_domain</a>主要内容如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250317202625200.png" alt="image-20250317202625200"  />
+
+<p>当我们后面学习如何在设备树中指定中断，设备树的中断如何被转换为 irq 时， irq_domain 将会起到极大的作为。这里先简单了解一下，在设备树中会看到这样的属性：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">interrupt-parent = &lt;&amp;gpio1&gt;;</span><br><span class="line">interrupts = &lt;<span class="number">5</span> IRQ_TYPE_EDGE_RISING&gt;;</span><br></pre></td></tr></table></figure>
+
+<p>它表示要使用 gpio1 里的第 5 号中断， hwirq 就是 5。但是我们在驱动中会使用 request_irq(irq, handler)这样的函数来注册中断， irq 是什么？它是软件中断号，它应该从“ gpio1 的第 5 号中断”转换得来  </p>
+<p>谁把 hwirq 转换为 irq？由 gpio1 的相关数据结构，就是 gpio1 对应的irq_domain 结构体。irq_domain 结构体中有一个 irq_domain_ops 结构体，里面有各种操作函数，主要是：    </p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irqdomain.h#L160">irq_domain</a>.<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irqdomain.h#L107">xlate</a>：用来解析设备树的中断属性，提取出 hwirq、 type 等信息。  </li>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irqdomain.h#L160">irq_domain</a>.<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irqdomain.h#L105">map</a>：把 hwirq 转换为 irq。</li>
+</ul>
+<h2 id="5-struct-irq-chip"><a href="#5-struct-irq-chip" class="headerlink" title="5. struct irq_chip"></a><font size=3>5. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irq.h#L399">struct irq_chip</a></font></h2><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/irq.h#L399">struct irq_chip</a> 主要内容如下 ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">irq_chip</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device</span>	*<span class="title">parent_device</span>;</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span>	*name;</span><br><span class="line">	<span class="type">unsigned</span> <span class="title function_">int</span>	<span class="params">(*irq_startup)</span><span class="params">(<span class="keyword">struct</span> irq_data *data)</span>;</span><br><span class="line">	<span class="type">void</span>		(*irq_shutdown)(<span class="keyword">struct</span> irq_data *data);</span><br><span class="line">	<span class="type">void</span>		(*irq_enable)(<span class="keyword">struct</span> irq_data *data);</span><br><span class="line">	<span class="type">void</span>		(*irq_disable)(<span class="keyword">struct</span> irq_data *data);</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>这个结构体跟“ chip”即芯片相关，里面各成员的作用在头文件中也列得很清楚：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">* @parent_device:	pointer to parent device <span class="keyword">for</span> irqchip</span><br><span class="line">* @name:		name <span class="keyword">for</span> /proc/interrupts</span><br><span class="line">* @irq_startup:	start up the <span class="title function_">interrupt</span> <span class="params">(defaults to -&gt;enable <span class="keyword">if</span> <span class="literal">NULL</span>)</span></span><br><span class="line">* @irq_shutdown:	shut down the <span class="title function_">interrupt</span> <span class="params">(defaults to -&gt;disable <span class="keyword">if</span> <span class="literal">NULL</span>)</span></span><br><span class="line">* @irq_enable:		enable the <span class="title function_">interrupt</span> <span class="params">(defaults to chip-&gt;unmask <span class="keyword">if</span> <span class="literal">NULL</span>)</span></span><br><span class="line">* @irq_disable:	disable the interrupt</span><br><span class="line">* @irq_ack:		start of a new interrupt</span><br><span class="line">* @irq_mask:		mask an interrupt source</span><br><span class="line">* @irq_mask_ack:	ack and mask an interrupt source</span><br><span class="line">* @irq_unmask:		unmask an interrupt source</span><br><span class="line">* @irq_eoi:		end of interrupt</span><br><span class="line">* @irq_set_affinity:	Set the CPU affinity on SMP machines. If the force</span><br><span class="line">*			argument is <span class="literal">true</span>, it tells the driver to</span><br><span class="line">*			unconditionally apply the affinity setting. Sanity</span><br><span class="line">*			checks against the supplied affinity mask are not</span><br><span class="line">*			required. This is used <span class="keyword">for</span> CPU hotplug where the</span><br><span class="line">*			target CPU is not yet <span class="built_in">set</span> in the cpu_online_mask.</span><br></pre></td></tr></table></figure>
+
+<p>我们在 request_irq 后，并不需要手工去使能中断，原因就是系统调用对应的 irq_chip 里的函数帮我们使能了中断。我们提供的中断处理函数中，也不需要执行主芯片相关的清中断操作，也是系统帮我们调用 irq_chip 中的相关函数。    </p>
+<p>但是对于外部设备相关的清中断操作，还是需要我们自己做的。就像上面图里的“外部设备 1“、“外部设备 n”，外设备千变万化，内核里可没有对应的清除中断操作。    </p>
+<h1 id="四、中断在设备树中的写法"><a href="#四、中断在设备树中的写法" class="headerlink" title="四、中断在设备树中的写法"></a><font size=3>四、中断在设备树中的写法</font></h1><p>参考文档可以看这里：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/Documentation/devicetree/bindings/interrupt-controller/interrupts.txt">interrupts.txt - Documentation&#x2F;devicetree&#x2F;bindings&#x2F;interrupt-controller&#x2F;interrupts.txt - Linux source code v4.19.7</a></p>
+<h2 id="1-设备树里的中断控制器"><a href="#1-设备树里的中断控制器" class="headerlink" title="1. 设备树里的中断控制器  "></a><font size=3>1. 设备树里的中断控制器  </font></h2><p>中断 硬件框图如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250317154800714.png" alt="image-20250317154800714" style="zoom: 50%;" />
+
+<p>在硬件上，“中断控制器”只有 GIC 这一个，但是我们在软件上也可以把上图中的“ GPIO”称为“中断控制器”。很多芯片有多个 GPIO 模块，比如 GPIO1、GPIO2 等等。所以软件上的“中断控制器”就有很多个： GIC、 GPIO1、 GPIO2 等等  </p>
+<p>GPIO1 连接到 GIC， GPIO2 连接到 GIC，所以 GPIO1 的父亲是 GIC， GPIO2的父亲是 GIC。假设 GPIO1 有 32 个中断源，但是它把其中的 16 个汇聚起来向 GIC 发出一个中断，把另外 16 个汇聚起来向 GIC 发出另一个中断。这就意味着 GPIO1 会用到 GIC 的两个中断，会涉及 GIC 里的 2 个 hwirq。    </p>
+<p>这些层级关系、中断号(hwirq)，都会在设备树中有所体现。</p>
+<p>在设备树中，中断控制器节点中必须有一个属性： interrupt-controller，表明它是“中断控制器”。还必须有一个属性： #interrupt-cells，表明引用这个中断控制器的话需要多少个 cell。  #interrupt-cells 的值一般有如下取值：  </p>
+<p>（1）#interrupt-cells&#x3D;&lt;1&gt;  ：别的节点要使用这个中断控制器时，只需要一个 cell 来表明使用“哪一个中断”。  </p>
+<p>（2）#interrupt-cells&#x3D;&lt;2&gt;  ：别的节点要使用这个中断控制器时，需要一个 cell 来表明使用“哪一个中断”；还需要另一个 cell 来描述中断，一般是表明触发类型（trigger type and level flags）：    </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 第 2 个 cell 的 bits[3:0]</span></span><br><span class="line"><span class="number">1</span> = low-to-high edge triggered，上升沿触发</span><br><span class="line"><span class="number">2</span> = high-to-low edge triggered，下降沿触发</span><br><span class="line"><span class="number">4</span> = active high level-sensitive，高电平触发</span><br><span class="line"><span class="number">8</span> = active low level-sensitive，低电平触发</span><br></pre></td></tr></table></figure>
+
+<p>示例如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">vic: intc@<span class="number">10140000</span> &#123;</span><br><span class="line">    compatible = <span class="string">&quot;arm,versatile-vic&quot;</span>;</span><br><span class="line">    interrupt-controller;</span><br><span class="line">    <span class="meta">#interrupt-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">    reg = &lt;<span class="number">0x10140000</span> <span class="number">0x1000</span>&gt;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>如果中断控制器有级联关系，下级的中断控制器还需要表明它的“ interrupt-parent ” 是谁，用了 interrupt-parent ” 中的哪一个“ interrupts”  </p>
+</blockquote>
+<h2 id="2-设备树里使用中断"><a href="#2-设备树里使用中断" class="headerlink" title="2. 设备树里使用中断  "></a><font size=3>2. 设备树里使用中断  </font></h2><p>一个外设，它的中断信号接到哪个“中断控制器”的哪个“中断引脚”，这个中断的触发方式是怎样的？这 3 个问题，在设备树里使用中断时，都要有所体现。  </p>
+<h3 id="2-1-相关属性"><a href="#2-1-相关属性" class="headerlink" title="2.1 相关属性"></a><font size=3>2.1 相关属性</font></h3><ul>
+<li>要用哪一个中断控制器里的中断？</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">interrupt-parent=&lt;&amp;XXXX&gt;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>要用哪一个中断？</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">interrupts=&lt;&gt;;</span><br></pre></td></tr></table></figure>
+
+<p>Interrupts 里要用几个 cell？这个是由 interrupt-parent 对应的中断控制器决定。在中断控制器里有“ #interrupt-cells”属性，它指明了要用几个 cell来描述中断。比如：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">i2c@<span class="number">7000</span>c000 &#123;</span><br><span class="line">    gpioext: gpio-adnp@<span class="number">41</span> &#123;</span><br><span class="line">        compatible = <span class="string">&quot;ad,gpio-adnp&quot;</span>;</span><br><span class="line">        interrupt-parent = &lt;&amp;gpio&gt;;</span><br><span class="line">        interrupts = &lt;<span class="number">160</span> <span class="number">1</span>&gt;;</span><br><span class="line">        gpio-controller;</span><br><span class="line">        <span class="meta">#gpio-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">        interrupt-controller;</span><br><span class="line">        <span class="meta">#interrupt-cells = <span class="string">&lt;2&gt;</span>;</span></span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="comment">//......</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>新的写法：interrupts-extended</li>
+</ul>
+<p>一个“ interrupts-extended”属性就可以既指定“ interrupt-parent”，也指定“ interrupts”，比如：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">interrupts-extended = &lt;&amp;intc1 <span class="number">5</span> <span class="number">1</span>&gt;, &lt;&amp;intc2 <span class="number">1</span> <span class="number">0</span>&gt;;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-总结-2"><a href="#2-2-总结-2" class="headerlink" title="2.2 总结"></a><font size=3>2.2 总结</font></h3><p>简单总结一下与中断有关的设备树属性信息：</p>
+<p>①、 #interrupt-cells，指定中断源的信息 cells 个数。</p>
+<p>②、 interrupt-controller，表示当前节点为中断控制器。</p>
+<p>③、 interrupts，指定中断号，触发方式等。</p>
+<p>④、 interrupt-parent，指定父中断，也就是中断控制器。</p>
+<h2 id="3-设备树里中断节点的示例"><a href="#3-设备树里中断节点的示例" class="headerlink" title="3. 设备树里中断节点的示例  "></a><font size=3>3. 设备树里中断节点的示例  </font></h2><h3 id="3-1-示例1"><a href="#3-1-示例1" class="headerlink" title="3.1 示例1"></a><font size=3>3.1 示例1</font></h3><p>我们看一下 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/arch/arm/boot/dts/imx6ul.dtsi#L95">imx6ul.dtsi - arch&#x2F;arm&#x2F;boot&#x2F;dts&#x2F;imx6ul.dtsi</a> ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">intc: interrupt-controller@a01000 &#123;</span><br><span class="line">	compatible = <span class="string">&quot;arm,gic-400&quot;</span>, <span class="string">&quot;arm,cortex-a7-gic&quot;</span>;</span><br><span class="line">	interrupts = &lt;GIC_PPI <span class="number">9</span> (GIC_CPU_MASK_SIMPLE(<span class="number">4</span>) | IRQ_TYPE_LEVEL_HIGH)&gt;;</span><br><span class="line">	<span class="meta">#interrupt-cells = <span class="string">&lt;3&gt;</span>;</span></span><br><span class="line">	interrupt-controller;</span><br><span class="line">	interrupt-parent = &lt;&amp;intc&gt;;</span><br><span class="line">	reg = &lt;<span class="number">0x00a01000</span> <span class="number">0x1000</span>&gt;,</span><br><span class="line">	      &lt;<span class="number">0x00a02000</span> <span class="number">0x2000</span>&gt;,</span><br><span class="line">	      &lt;<span class="number">0x00a04000</span> <span class="number">0x2000</span>&gt;,</span><br><span class="line">	      &lt;<span class="number">0x00a06000</span> <span class="number">0x2000</span>&gt;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>第 2 行， compatible 属性值为“arm,cortex-a7-gic”在 Linux 内核源码中搜索“arm,cortex-a7- gic”即可找到 GIC 中断控制器驱动文件。  </p>
+<p>第 3 行， #interrupt-cells 和#address-cells、 #size-cells 一样。表示此中断控制器下设备的 cells大小，对于设备而言，会使用 interrupts 属性描述中断信息， #interrupt-cells 描述了 interrupts 属性的 cells 大小，也就是一条信息有几个 cells。每个 cells 都是 32 位整形值，对于 ARM 处理的GIC 来说，一共有 3 个 cells，这三个 cells 的含义如下：    </p>
+<p>第一个 cells：中断类型， 0 表示 SPI 中断， 1 表示 PPI 中断。第二个 cells：中断号，对于 SPI 中断来说中断号的范围为 0~987，对于 PPI 中断来说中断号的范围为 0~15。第三个 cells：标志， bit[3:0]表示中断触发类型，为 1 的时候表示上升沿触发，为 2 的时候表示下降沿触发，为 4 的时候表示高电平触发，为 8 的时候表示低电平触发。 bit[15:8]为 PPI 中断的 CPU 掩码。     </p>
+<p> 第 4 行， interrupt-controller 节点为空，表示当前节点是中断控制器。  </p>
+<h3 id="3-2-示例2"><a href="#3-2-示例2" class="headerlink" title="3.2 示例2"></a><font size=3>3.2 示例2</font></h3><p>对于 gpio 来说， gpio 节点也可以作为中断控制器，比如 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/arch/arm/boot/dts/imx6ul.dtsi#L485">imx6ul.dtsi</a> 文件中的 gpio5 节点内容如下所示：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">gpio5: gpio@<span class="number">20</span>ac000 &#123;</span><br><span class="line">	compatible = <span class="string">&quot;fsl,imx6ul-gpio&quot;</span>, <span class="string">&quot;fsl,imx35-gpio&quot;</span>;</span><br><span class="line">	reg = &lt;<span class="number">0x020ac000</span> <span class="number">0x4000</span>&gt;;</span><br><span class="line">	interrupts = &lt;GIC_SPI <span class="number">74</span> IRQ_TYPE_LEVEL_HIGH&gt;,</span><br><span class="line">		     &lt;GIC_SPI <span class="number">75</span> IRQ_TYPE_LEVEL_HIGH&gt;;</span><br><span class="line">	clocks = &lt;&amp;clks IMX6UL_CLK_GPIO5&gt;;</span><br><span class="line">	gpio-controller;</span><br><span class="line">	<span class="meta">#gpio-cells = <span class="string">&lt;2&gt;</span>;</span></span><br><span class="line">	interrupt-controller;</span><br><span class="line">	<span class="meta">#interrupt-cells = <span class="string">&lt;2&gt;</span>;</span></span><br><span class="line">	gpio-ranges = &lt;&amp;iomuxc <span class="number">0</span> <span class="number">7</span> <span class="number">10</span>&gt;, &lt;&amp;iomuxc <span class="number">10</span> <span class="number">5</span> <span class="number">2</span>&gt;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>在这段代码的第 4 行， interrupts 描述中断源信息，对于 gpio5 来说一共有两条信息，中断类型都是 SPI，触发电平都是 IRQ_TYPE_LEVEL_HIGH。不同之处在于中断源，一个是 74，一个是 75，打开可以打开《IMX6ULL 参考手册》的“Chapter 3 Interrupts and DMA Events”章节，找到表 3-1，有  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250318085547111.png" alt="image-20250318085547111"  />
+
+<p>可以看出， GPIO5 一共用了 2 个中断号，一个是 74，一个是 75。其中 74 对应 GPIO5_IO00~GPIO5_IO15 这低 16 个 IO， 75 对应 GPIO5_IO16~GPIOI5_IO31 这高 16 位 IO。  </p>
+<p>第 8 行， interrupt-controller 表明了 gpio5 节点也是个中断控制器，用于控制 gpio5 所有 IO的中断。  </p>
+<p>第 9 行，将#interrupt-cells 修改为 2。</p>
+<p>怎么引用这个GPIO节点的中断控制器？应该是在NXP维护的4.1.15版本内核中有 arch&#x2F;arm&#x2F;boot&#x2F;dts&#x2F;imx6ull-14x14-evk.dts 设备树文件，上面有这样一个节点：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">fxls8471@<span class="number">1</span>e &#123;</span><br><span class="line">    compatible = <span class="string">&quot;fsl,fxls8471&quot;</span>;</span><br><span class="line">    reg = &lt;<span class="number">0x1e</span>&gt;;</span><br><span class="line">    position = &lt;<span class="number">0</span>&gt;;</span><br><span class="line">    interrupt-parent = &lt;&amp;gpio5&gt;;</span><br><span class="line">    interrupts = &lt;<span class="number">0</span> <span class="number">8</span>&gt;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>fxls8471 是 NXP 官方的 6ULL 开发板上的一个磁力计芯片， fxls8471 有一个中断引脚链接到了 I.MX6ULL 的 SNVS_TAMPER0 因脚上，这个引脚可以复用为 GPIO5_IO00。  </p>
+<p>第 5 行， interrupt-parent 属性设置中断控制器，这里使用 gpio5 作为中断控制器。  </p>
+<p>第 6 行， interrupts 设置中断信息， 0 表示 GPIO5_IO00， 8 表示低电平触发。  </p>
+<h3 id="3-3-示例3"><a href="#3-3-示例3" class="headerlink" title="3.3 示例3"></a><font size=3>3.3 示例3</font></h3><p>这里参考的是伟东山的嵌入式教程，所以以 100ASK_IMX6ULL 开发板为例，在 arch&#x2F;arm&#x2F;boot&#x2F;dts 目录下可以看到2 个文件： imx6ull.dtsi、 100ask_imx6ull-14x14.dts 。我们把里面有关中断的部分内容抽取出来。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250317210527344.png" alt="image-20250317210527344"  />
+
+<p> 从设备树反推 IMX6ULL 的中断体系，如下，比之前的框图多了一个“ GPC INTC”：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250317210628880.png" alt="image-20250317210628880"  />
+
+<p>GPC INTC 的 英 文 是 ： General Power Controller, Interrupt Controller。它提供中断屏蔽、中断状态查询功能，实际上这些功能在 GIC 里也实现了，觉得有点多余。除此之外，它还提供唤醒功能，这才是保留它的原因。  </p>
+<h3 id="3-4-alpha开发板中的按键中断"><a href="#3-4-alpha开发板中的按键中断" class="headerlink" title="3.4 alpha开发板中的按键中断"></a><font size=3>3.4 alpha开发板中的按键中断</font></h3><h4 id="3-4-1-硬件原理图"><a href="#3-4-1-硬件原理图" class="headerlink" title="3.4.1 硬件原理图"></a><font size=3>3.4.1 硬件原理图</font></h4><p>开发板上有一个按键，原理图如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250318091821501.png" alt="image-20250318091821501" style="zoom: 33%;" />
+
+<p>按键 KEY0 是连接到 I.MX6U 的 UART1_CTS 这个 IO 上的， KEY0接了一个 10K 的上拉电阻，因此 KEY0 没有按下的时候 UART1_CTS 应该是高电平，当 KEY0按下以后 UART1_CTS 就是低电平。搜一下参考手册就会发现，这个引脚是GPIO1_IO18：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250318092001841.png" alt="image-20250318092001841"  />
+
+<h4 id="3-4-2-中断号"><a href="#3-4-2-中断号" class="headerlink" title="3.4.2 中断号"></a><font size=3>3.4.2 中断号</font></h4><p>可以看这个笔记《<a href="https://sumumm.github.io/post/b3d7ec66.html#2-%E5%A6%82%E4%BD%95%E7%A1%AE%E8%AE%A4%E4%B8%AD%E6%96%AD%E5%8F%B7">LV04-07-中断与异常-05-IMX6ULL按键中断实例 | 苏木</a>》这里再简单了解一下。我们前边知道了按键接在了GPIO1_IO18上边，我们可以查看《I.MX6UL参考手册》的3.2 Cortex A7 interrupts一节，找到这个GPIO管脚对应的中断号：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250220093228164.png"  />
+
+<p>可以看到GPIO1的0 -15管脚使用的是66，16 - 31使用的是67，这里只是IRQ的编号，对应到 GIC 的 SPI中断号需要在此编号基础上加上 32，所以这里的按键中断号实际为99（67+32）。但是其实在linux中开发的时候，会有函数（例如 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/arch/arm/include/asm/gpio.h#L23">gpio_to_irq()</a>）自动帮我们计算，我们只需要知道是哪个引脚就可以了。</p>
+<h4 id="3-4-3-触发方式"><a href="#3-4-3-触发方式" class="headerlink" title="3.4.3 触发方式"></a><font size=3>3.4.3 触发方式</font></h4><p>触发方式就可以看这个<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/dt-bindings/interrupt-controller/irq.h">irq.h - include&#x2F;dt-bindings&#x2F;interrupt-controller&#x2F;irq.h</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> IRQ_TYPE_NONE 0 		<span class="comment">// 无中断触发类型</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> IRQ_TYPE_EDGE_RISING 1  <span class="comment">// 上升沿触发</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> IRQ_TYPE_EDGE_FALLING 2 <span class="comment">// 下降沿触发</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> IRQ_TYPE_EDGE_BOTH (IRQ_TYPE_EDGE_FALLING | IRQ_TYPE_EDGE_RISING)<span class="comment">// 双边沿触发</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> IRQ_TYPE_LEVEL_HIGH 4 	<span class="comment">// 高电平触发</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> IRQ_TYPE_LEVEL_LOW 8 	<span class="comment">// 低电平触发</span></span></span><br></pre></td></tr></table></figure>
+
+<h4 id="3-4-4-中断节点"><a href="#3-4-4-中断节点" class="headerlink" title="3.4.4 中断节点"></a><font size=3>3.4.4 中断节点</font></h4><p>按键 KEY0 使用中断模式，需要在“key”节点下添加中断相关属性，添加完成以后的“key”节点内容如下所示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">sdev_key &#123;</span><br><span class="line">    <span class="meta">#address-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">    <span class="meta">#size-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">    compatible = <span class="string">&quot;sdev_key&quot;</span>;</span><br><span class="line">    pinctrl-names = <span class="string">&quot;default&quot;</span>;</span><br><span class="line">    pinctrl<span class="number">-0</span> = &lt;&amp;pinctrl_key&gt;;</span><br><span class="line">    key-gpio = &lt;&amp;gpio1 <span class="number">18</span> GPIO_ACTIVE_LOW&gt;; <span class="comment">/* KEY0 */</span></span><br><span class="line">    interrupt-parent = &lt;&amp;gpio1&gt;;</span><br><span class="line">    interrupts = &lt;<span class="number">18</span> IRQ_TYPE_EDGE_BOTH&gt;; <span class="comment">/* FALLING RISING */</span></span><br><span class="line">    status = <span class="string">&quot;okay&quot;</span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>第 8 行，设置 interrupt-parent 属性值为“gpio1”，因为 KEY0 所使用的 GPIO 为GPIO1_IO18，也就是设置 KEY0 的 GPIO 中断控制器为 gpio1。</p>
+<p>第 9 行，设置 interrupts 属性，也就是设置中断源，第一个 cells 的 18 表示 GPIO1 组的 18号 IO。</p>
+<p>其中这个gpio1是在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/arch/arm/boot/dts/imx6ul.dtsi#L432">imx6ul.dtsi</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">gpio1: gpio@<span class="number">209</span>c000 &#123;</span><br><span class="line">    compatible = <span class="string">&quot;fsl,imx6ul-gpio&quot;</span>, <span class="string">&quot;fsl,imx35-gpio&quot;</span>;</span><br><span class="line">    reg = &lt;<span class="number">0x0209c000</span> <span class="number">0x4000</span>&gt;;</span><br><span class="line">    interrupts = &lt;GIC_SPI <span class="number">66</span> IRQ_TYPE_LEVEL_HIGH&gt;,</span><br><span class="line">    &lt;GIC_SPI <span class="number">67</span> IRQ_TYPE_LEVEL_HIGH&gt;;</span><br><span class="line">    clocks = &lt;&amp;clks IMX6UL_CLK_GPIO1&gt;;</span><br><span class="line">    gpio-controller;</span><br><span class="line">    <span class="meta">#gpio-cells = <span class="string">&lt;2&gt;</span>;</span></span><br><span class="line">    interrupt-controller;</span><br><span class="line">    <span class="meta">#interrupt-cells = <span class="string">&lt;2&gt;</span>;</span></span><br><span class="line">    gpio-ranges = &lt;&amp;iomuxc  <span class="number">0</span> <span class="number">23</span> <span class="number">10</span>&gt;, &lt;&amp;iomuxc <span class="number">10</span> <span class="number">17</span> <span class="number">6</span>&gt;,</span><br><span class="line">    &lt;&amp;iomuxc <span class="number">16</span> <span class="number">33</span> <span class="number">16</span>&gt;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-在代码中获得中断"><a href="#4-在代码中获得中断" class="headerlink" title="4. 在代码中获得中断  "></a><font size=3>4. 在代码中获得中断  </font></h2><p>之前我们学习设备树的时候 ， 知道设备树中的节点有些能被转换为内核里的platform_device，有些不能：</p>
+<p>（1）根节点下含有 compatile 属性的子节点，会转换为 platform_device</p>
+<p>（2）含有特定 compatile 属性的节点的子节点，会转换为 platform_device如果一个节点的 compatile 属性，它的值是这 4 者之一： “simplebus”,”simple-mfd”,”isa”,”arm,amba-bus”，那么它的子结点(需含 compatile 属性)也可以转换为 platform_device。</p>
+<p>（3）总线 I2C、 SPI 节点下的子节点： 不转换为 platform_device某个总线下到子节点， 应该交给对应的总线驱动程序来处理, 它们不应该被转换为 platform_device。</p>
+<h3 id="4-1-对于-platform-device"><a href="#4-1-对于-platform-device" class="headerlink" title="4.1 对于 platform_device  "></a><font size=3>4.1 对于 platform_device  </font></h3><p>一个节点能被转换为 platform_device，如果它的设备树里指定了中断属性，那么可以从 platform_device 中获得“中断资源”，函数如下，可以使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L60">platform_get_resource()</a> 函数获得 IORESOURCE_IRQ 资源，即中断号：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * platform_get_resource - get a resource for a device</span></span><br><span class="line"><span class="comment"> * @dev: platform device</span></span><br><span class="line"><span class="comment"> * @type: resource type 取哪类资源？ IORESOURCE_MEM、 IORESOURCE_REG、IORESOURCE_IRQ 等</span></span><br><span class="line"><span class="comment"> * @num: resource index 这类资源中的哪一个？</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">struct</span> resource *<span class="title function_">platform_get_resource</span><span class="params">(<span class="keyword">struct</span> platform_device *dev,</span></span><br><span class="line"><span class="params">				       <span class="type">unsigned</span> <span class="type">int</span> type, <span class="type">unsigned</span> <span class="type">int</span> num)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-对于-I2C-设备、-SPI-设备"><a href="#4-2-对于-I2C-设备、-SPI-设备" class="headerlink" title="4.2 对于 I2C 设备、 SPI 设备  "></a><font size=3>4.2 对于 I2C 设备、 SPI 设备  </font></h3><p>对于 I2C 设备节点， I2C 总线驱动在处理设备树里的 I2C 子节点时，也会处理其中的中断信息。一个 I2C 设备会被转换为一个 i2c_client 结构体，中断号会保存在 i2c_client 的 irq 成员里，代码如下(<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/i2c/i2c-core-base.c#L314">i2c-core-base.c - drivers&#x2F;i2c&#x2F;i2c-core-base.c</a>)：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">i2c_device_probe</span><span class="params">(<span class="keyword">struct</span> device *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="keyword">if</span> (!client-&gt;irq &amp;&amp; !driver-&gt;disable_i2c_core_irq_mapping) &#123;</span><br><span class="line">		<span class="type">int</span> irq = -ENOENT;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (client-&gt;flags &amp; I2C_CLIENT_HOST_NOTIFY) &#123;</span><br><span class="line">			<span class="comment">//......</span></span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> (dev-&gt;of_node) &#123;</span><br><span class="line">			irq = of_irq_get_byname(dev-&gt;of_node, <span class="string">&quot;irq&quot;</span>);</span><br><span class="line">			<span class="keyword">if</span> (irq == -EINVAL || irq == -ENODATA)</span><br><span class="line">				irq = of_irq_get(dev-&gt;of_node, <span class="number">0</span>); <span class="comment">//从设备树解析出中断号</span></span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> (ACPI_COMPANION(dev)) &#123;</span><br><span class="line">			irq = acpi_dev_gpio_irq_get(ACPI_COMPANION(dev), <span class="number">0</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//......</span></span><br><span class="line">        client-&gt;irq = irq;</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">//......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对于 SPI 设备节点， SPI 总线驱动在处理设备树里的 SPI 子节点时，也会处理其中的中断信息。一个 SPI 设备会被转换为一个 spi_device 结构体，中断号会保存在 spi_device 的 irq 成员里 ，代码如下（<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/spi/spi.c#L343">spi.c - drivers&#x2F;spi&#x2F;spi.c</a>）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">spi_drv_probe</span><span class="params">(<span class="keyword">struct</span> device *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="keyword">if</span> (dev-&gt;of_node) &#123;</span><br><span class="line">		spi-&gt;irq = of_irq_get(dev-&gt;of_node, <span class="number">0</span>);<span class="comment">//从设备树解析出中断号</span></span><br><span class="line">		<span class="comment">//......</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-调用-of-irq-get-获得中断号"><a href="#4-3-调用-of-irq-get-获得中断号" class="headerlink" title="4.3 调用 of_irq_get() 获得中断号  "></a><font size=3>4.3 调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/irq.c#L379">of_irq_get()</a> 获得中断号  </font></h3><p>如果设备节点既不能转换为 platform_device，它也不是 I2C 设备，不是 SPI 设备，那么在驱动程序中可以自行调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/irq.c#L379">of_irq_get()</a> 函数去解析设备树，得到中断号。  </p>
+<h3 id="4-4-对于-GPIO"><a href="#4-4-对于-GPIO" class="headerlink" title="4.4 对于 GPIO  "></a><font size=3>4.4 对于 GPIO  </font></h3><p>可以使用<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/arch/arm/include/asm/gpio.h#L23">gpio_to_irq()</a> 或者 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/gpio/gpiolib.c#L3254">gpiod_to_irq()</a>获得中断号。例如<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/input/keyboard/gpio_keys.c">gpio_keys.c - drivers&#x2F;input&#x2F;keyboard&#x2F;gpio_keys.c</a>中第<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/input/keyboard/gpio_keys.c#L559">559</a>行：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-13-%E4%B8%AD%E6%96%AD-02-%E4%B8%AD%E6%96%AD%E7%9A%84%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B/img/image-20250318093808546.png" alt="image-20250318093808546" style="zoom: 80%;" />
+
+<p>假设在设备树中有如下节点：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">gpio-keys &#123;</span><br><span class="line">    compatible = <span class="string">&quot;gpio-keys&quot;</span>;</span><br><span class="line">    pinctrl-names = <span class="string">&quot;default&quot;</span>;</span><br><span class="line">    user &#123;</span><br><span class="line">        label = <span class="string">&quot;User Button&quot;</span>;</span><br><span class="line">        gpios = &lt;&amp;gpio5 <span class="number">1</span> GPIO_ACTIVE_HIGH&gt;;</span><br><span class="line">        gpio-key,wakeup;</span><br><span class="line">        linux,code = &lt;KEY_1&gt;;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>那么可以使用下面的函数获得引脚和 flag：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">button-&gt;gpio = of_get_gpio_flags(pp, <span class="number">0</span>, &amp;flags);</span><br><span class="line">bdata-&gt;gpiod = gpio_to_desc(button-&gt;gpio);</span><br></pre></td></tr></table></figure>
+
+<p>再去使用 gpiod_to_irq 获得中断号：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">irq = gpiod_to_irq(bdata-&gt;gpiod);</span><br></pre></td></tr></table></figure>
+
+
+
+<blockquote>
+<p>参考资料：</p>
+<p><a target="_blank" rel="noopener" href="https://web.git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3aa551c9b4c40018f0e261a178e3d25478dc04a9">genirq: add threaded interrupt handler support - kernel&#x2F;git&#x2F;torvalds&#x2F;linux.git - Linux kernel source tree</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/arnoldlu/p/8659981.html">Linux中断管理 (1)Linux中断管理机制 - ArnoldLu - 博客园</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/gdut_liujiangyi/article/details/139885853">Linux 卸载驱动时，提示：Trying to free already-free IRQ-CSDN博客</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/Guet_Kite/article/details/97261350">嵌入式Linux驱动笔记(二十七)——中断子系统框架分析_irq: type mismatch-CSDN博客</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/f0ec804f.html">LV06-13-中断-02-中断的申请流程</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2025年03月23日 - 18:41</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/f0ec804f.html" title="LV06-13-中断-02-中断的申请流程">https://sumumm.github.io/post/f0ec804f.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/fce0a478.html" rel="prev" title="LV08-01-I2C子系统-01-I2C协议">
+                  <i class="fa fa-angle-left"></i> LV08-01-I2C子系统-01-I2C协议
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/1551cbe5.html" rel="next" title="LV06-13-中断-01-中断基础">
+                  LV06-13-中断-01-中断基础 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

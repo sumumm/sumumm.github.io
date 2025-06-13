@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是内核模块——内核模块的工作机制的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-02-内核模块-04-内核模块的工作机制">
+<meta property="og:url" content="https://sumumm.github.io/post/549b1511.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是内核模块——内核模块的工作机制的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-04-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/img/module_theory002.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-04-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/img/image-20241117211654101.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-04-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/img/image-20241117213614990.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-04-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/img/image-20241117213750265.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-04-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/img/image-20241117213950755.png">
+<meta property="article:published_time" content="2024-11-25T16:02:06.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.048Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-04-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/img/module_theory002.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/549b1511.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/549b1511.html","path":"post/549b1511.html","title":"LV06-02-内核模块-04-内核模块的工作机制"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-02-内核模块-04-内核模块的工作机制 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81ko%E6%96%87%E4%BB%B6%E7%9A%84%E6%A0%BC%E5%BC%8F"><span class="nav-text">一、ko文件的格式</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F"><span class="nav-text">1. ELF文件格式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%A4%B4%E9%83%A8%E4%BF%A1%E6%81%AF"><span class="nav-text">2. 头部信息</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%8A%82%E5%8C%BA"><span class="nav-text">3. 节区</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E9%87%8D%E5%AE%9A%E4%BD%8D%E8%A1%A8"><span class="nav-text">3.1 重定位表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E5%AD%97%E7%AC%A6%E4%B8%B2%E8%A1%A8"><span class="nav-text">3.2 字符串表</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E5%8A%A0%E8%BD%BD%E4%B8%8E%E5%8D%B8%E8%BD%BD"><span class="nav-text">二、内核模块加载与卸载</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B"><span class="nav-text">1. 加载过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-sys-init-module"><span class="nav-text">1.1 sys_init_module() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-load-module"><span class="nav-text">1.2 load_module()</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%8D%B8%E8%BD%BD%E8%BF%87%E7%A8%8B"><span class="nav-text">2. 卸载过程</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E5%86%85%E6%A0%B8%E6%98%AF%E5%A6%82%E4%BD%95%E5%AF%BC%E5%87%BA%E7%AC%A6%E5%8F%B7%E7%9A%84"><span class="nav-text">三、内核是如何导出符号的</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%A8%A1%E5%9D%97%E5%B1%82%E5%8F%A0"><span class="nav-text">1. 模块层叠</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%80%8E%E4%B9%88%E5%AF%BC%E5%87%BA%E7%AC%A6%E5%8F%B7%EF%BC%9F"><span class="nav-text">2. 怎么导出符号？</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/549b1511.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-02-内核模块-04-内核模块的工作机制 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-02-内核模块-04-内核模块的工作机制
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-11-26 00:02:06" itemprop="dateCreated datePublished" datetime="2024-11-26T00:02:06+08:00">2024-11-26</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4.8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>17 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是内核模块——内核模块的工作机制的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-04-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="2">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<p>这一节我们来了解一下内核模块的工作机制。</p>
+<h1 id="一、ko文件的格式"><a href="#一、ko文件的格式" class="headerlink" title="一、ko文件的格式"></a><font size=3>一、ko文件的格式</font></h1><h2 id="1-ELF文件格式"><a href="#1-ELF文件格式" class="headerlink" title="1. ELF文件格式"></a><font size=3>1. ELF文件格式</font></h2><p>ko文件在数据组织形式上是ELF(Excutable And Linking Format)格式，是一种普通的可重定位目标文件。 这类文件包含了代码和数据，可以被用来链接成可执行文件或共享目标文件，静态链接库也可以归为这一类。ELF 文件格式的可能布局如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-04-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/img/module_theory002.png" alt="ELF 文件格式的可能布局" />
+
+<p>文件开始处是一个ELF头部(ELF Header)，用来描述整个文件的组织，这些信息独立于处理器， 也独立于文件中的其余内容。详细分析可以看这里：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/raw/master/02_module_load/elf_file/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F%E5%88%86%E6%9E%90.pdf">ELF文件格式分析 (gitee.com)</a></p>
+<h2 id="2-头部信息"><a href="#2-头部信息" class="headerlink" title="2. 头部信息"></a><font size=3>2. 头部信息</font></h2><p>我们在ubuntu中可使用readelf工具查看elf文件的头部信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">readelf -h hello_world_demo.ko</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-04-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/img/image-20241117211654101.png" alt="image-20241117211654101" />
+
+<p>程序头部表(Program Header Table)是个数组结构，它的每一个元素的数据结构如下每个数组元素表示：</p>
+<ul>
+<li>一个”段”：包含一个或者多个”节区”，程序头部仅对于可执行文件和共享目标文件有意义</li>
+<li>其他信息：系统准备程序执行所必需的其它信息”</li>
+</ul>
+<p>节区头部表&#x2F;段表(Section Heade Table) ELF文件中有很多各种各样的段，这个段表(Section Header Table)就是保存这些段的基本属性的结构， ELF文件的段结构就是由段表决定的，编译器、链接器、装载器都是依靠段表来定位和访问各个段的属性的 包含了描述文件节区的信息。</p>
+<p>ELF头部中：</p>
+<ul>
+<li>e_shoff：给出从文件头到节区头部表格的偏移字节数，</li>
+<li>e_shnum：给出表格中条目数目，</li>
+<li>e_shentsize： 给出每个项目的字节数。</li>
+</ul>
+<h2 id="3-节区"><a href="#3-节区" class="headerlink" title="3. 节区"></a><font size=3>3. 节区</font></h2><p>从上面哪些信息中可以确切地定位节区的具体位置、长度和程序头部表一样， 每一项节区在节区头部表格中都存在着一项元素与它对应，因此可知，这个节区头部表格为一连续的空间， 每一项元素为一结构体(思考这节开头的那张节区和节区头部的示意图)。我们可以加上-S参数读取elf文件的节区头部表的详细信息。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">readelf -S hello_world_demo.ko</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-04-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/img/image-20241117213614990.png" alt="image-20241117213614990" />
+
+<p>节区头部表中又包含了很多子表的信息，我们简单的来看两个。</p>
+<h3 id="3-1-重定位表"><a href="#3-1-重定位表" class="headerlink" title="3.1 重定位表"></a><font size=3>3.1 重定位表</font></h3><p>重定位表(“.rel.text”)位于段表之后，它的类型为(sh_type)为”SHT_REL”，即重定位表(Relocation Table) 链接器在处理目标文件时，必须要对目标文件中某些部位进行重定位，即代码段和数据段中那些对绝对地址的引用的位置， 这些重定位信息都记录在ELF文件的重定位表里面，对于每个须要重定位的代码段或者数据段，都会有一个相应的重定位表 一个重定位表同时也是ELF的一个段，这个段的类型(sh_type)就是”SHT_REL”：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">readelf -r hello_world_demo.ko</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-04-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/img/image-20241117213750265.png" alt="image-20241117213750265" />
+
+<h3 id="3-2-字符串表"><a href="#3-2-字符串表" class="headerlink" title="3.2 字符串表"></a><font size=3>3.2 字符串表</font></h3><p>ELF文件中用到了很多字符串，比如段名、变量名等。因为字符串的长度往往是不定的， 所以用固定的结构来表示比较困难，一种常见的做法是把字符串集中起来存放到一个表，然后使用字符串在表中的偏移来引用字符串。 一般字符串表在ELF文件中也以段的形式保存，常见的段名为”.strtab”(String Table 字符串表)或者”.shstrtab”(Section Header String Table 段字符串表)</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">readelf -p 21 hello_world_demo.ko # 前面.shstrtab在节头中显示是21</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97-04-%E5%86%85%E6%A0%B8%E6%A8%A1%E5%9D%97%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6/img/image-20241117213950755.png" alt="image-20241117213950755" />
+
+<p>反正我是没咋看懂，就先这样吧，大概了解一下，详细的就看这篇文档：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/raw/master/02_module_load/elf_file/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F%E5%88%86%E6%9E%90.pdf">ELF文件格式分析 (gitee.com)</a></p>
+<h1 id="二、内核模块加载与卸载"><a href="#二、内核模块加载与卸载" class="headerlink" title="二、内核模块加载与卸载"></a><font size=3>二、内核模块加载与卸载</font></h1><p>在前面我们了解了ko内核模块文件的一些格式内容之后， 我们可以知道内核模块其实也是一段经过特殊加工的代码， 那么既然是加工过的代码，内核就可以利用到加工时留在内核模块里的信息， 对内核模块进行利用。所以我们就可以接着了解内核模块的加载过程和卸载过程了。</p>
+<h2 id="1-加载过程"><a href="#1-加载过程" class="headerlink" title="1. 加载过程"></a><font size=3>1. 加载过程</font></h2><h3 id="1-1-sys-init-module"><a href="#1-1-sys-init-module" class="headerlink" title="1.1 sys_init_module() "></a><font size=3>1.1 sys_init_module() </font></h3><p>首先 <code>insmod</code> 会通过文件系统将 <code>.ko</code> 模块读到用户空间的一块内存中， 然后执行系统调用 <code>sys_init_module()</code> 解析模组,这时，内核在vmalloc区分配与ko文件大小相同的内存来暂存ko文件， 暂存好之后解析ko文件，将文件中的各个section分配到init 段和core 段，在modules区为init段和core段分配内存， 并把对应的section copy到modules区最终的运行地址，经过relocate函数地址等操作后，就可以执行ko的init操作了， 这样一个ko的加载流程就结束了。 同时，init段会被释放掉，仅留下core段来运行。</p>
+<p><code>sys_init_module()</code>函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/module.c#L3845">module.c - kernel&#x2F;module.c</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">SYSCALL_DEFINE3(init_module, <span class="type">void</span> __user *, umod,</span><br><span class="line">		<span class="type">unsigned</span> <span class="type">long</span>, len, <span class="type">const</span> <span class="type">char</span> __user *, uargs)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> err;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">load_info</span> <span class="title">info</span> =</span> &#123; &#125;;</span><br><span class="line"></span><br><span class="line">	err = may_init_module();</span><br><span class="line">	<span class="keyword">if</span> (err)</span><br><span class="line">		<span class="keyword">return</span> err;</span><br><span class="line"></span><br><span class="line">	pr_debug(<span class="string">&quot;init_module: umod=%p, len=%lu, uargs=%p\n&quot;</span>,</span><br><span class="line">	       umod, len, uargs);</span><br><span class="line"></span><br><span class="line">	err = copy_module_from_user(umod, len, &amp;info);</span><br><span class="line">	<span class="keyword">if</span> (err)</span><br><span class="line">		<span class="keyword">return</span> err;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> load_module(&amp;info, uargs, <span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第14行：通过vmalloc在vmalloc区分配内存空间，将内核模块copy到此空间，info&rarr;hdr 直接指向此空间首地址，也就是ko的elf header 。</li>
+<li>第18行：然后通过load_module()进行模块加载的核心处理，在这里完成了模块的搬移，重定向等过程。</li>
+</ul>
+<h3 id="1-2-load-module"><a href="#1-2-load-module" class="headerlink" title="1.2 load_module()"></a><font size=3>1.2 load_module()</font></h3><p>load_module()函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/module.c#L3647">module.c - kernel&#x2F;module.c</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 分配并加载模块 */</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">load_module</span><span class="params">(<span class="keyword">struct</span> load_info *info, <span class="type">const</span> <span class="type">char</span> __user *uargs,</span></span><br><span class="line"><span class="params">            <span class="type">int</span> flags)</span></span><br><span class="line">&#123;</span><br><span class="line">   <span class="class"><span class="keyword">struct</span> <span class="title">module</span> *<span class="title">mod</span>;</span></span><br><span class="line">   <span class="type">long</span> err = <span class="number">0</span>;</span><br><span class="line">   <span class="type">char</span> *after_dashes;</span><br><span class="line">   <span class="comment">//...</span></span><br><span class="line">   err = setup_load_info(info, flags);</span><br><span class="line">   <span class="comment">//...</span></span><br><span class="line">   mod = layout_and_allocate(info, flags);</span><br><span class="line">   <span class="comment">//...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第9行：setup_load_info()加载struct load_info 和 struct module, rewrite_section_headers，将每个section的sh_addr修改为当前镜像所在的内存地址， section 名称字符串表地址的获取方式是从ELF头中的e_shstrndx获取到节区头部字符串表的标号，找到对应section在ELF文件中的偏移，再加上ELF文件起始地址就得到了字符串表在内存中的地址。</li>
+<li>第11行：在layout_and_allocate()中，layout_sections() 负责将section 归类为core和init这两大类,为ko的第二次搬移做准备。move_module()把ko搬移到最终的运行地址。内核模块加载代码搬运过程到此就结束了。</li>
+</ul>
+<h2 id="2-卸载过程"><a href="#2-卸载过程" class="headerlink" title="2. 卸载过程"></a><font size=3>2. 卸载过程</font></h2><p>卸载过程相对加载比较简单，我们输入指令rmmod，最终在系统内核中需要调用sys_delete_module进行实现。这个函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/module.c#L960">module.c - kernel&#x2F;module.c</a>。</p>
+<p>具体过程如下：先从用户空间传入需要卸载的模块名称，根据名称找到要卸载的模块指针， 确保我们要卸载的模块没有被其他模块依赖，然后找到模块本身的exit函数实现卸载。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br></pre></td><td class="code"><pre><span class="line">SYSCALL_DEFINE2(delete_module, <span class="type">const</span> <span class="type">char</span> __user *, name_user,</span><br><span class="line">		<span class="type">unsigned</span> <span class="type">int</span>, flags)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">module</span> *<span class="title">mod</span>;</span></span><br><span class="line">	<span class="type">char</span> name[MODULE_NAME_LEN];</span><br><span class="line">	<span class="type">int</span> ret, forced = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!capable(CAP_SYS_MODULE) || modules_disabled)</span><br><span class="line">		<span class="keyword">return</span> -EPERM;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (strncpy_from_user(name, name_user, MODULE_NAME_LEN<span class="number">-1</span>) &lt; <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">return</span> -EFAULT;</span><br><span class="line">	name[MODULE_NAME_LEN<span class="number">-1</span>] = <span class="string">&#x27;\0&#x27;</span>;</span><br><span class="line"></span><br><span class="line">	audit_log_kern_module(name);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (mutex_lock_interruptible(&amp;module_mutex) != <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">return</span> -EINTR;</span><br><span class="line"></span><br><span class="line">	mod = find_module(name);</span><br><span class="line">	<span class="keyword">if</span> (!mod) &#123;</span><br><span class="line">		ret = -ENOENT;</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!list_empty(&amp;mod-&gt;source_list)) &#123;</span><br><span class="line">		<span class="comment">/* Other modules depend on us: get rid of them first. */</span></span><br><span class="line">		ret = -EWOULDBLOCK;</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Doing init or already dying? */</span></span><br><span class="line">	<span class="keyword">if</span> (mod-&gt;state != MODULE_STATE_LIVE) &#123;</span><br><span class="line">		<span class="comment">/* <span class="doctag">FIXME:</span> if (force), slam module count damn the torpedoes */</span></span><br><span class="line">		pr_debug(<span class="string">&quot;%s already dying\n&quot;</span>, mod-&gt;name);</span><br><span class="line">		ret = -EBUSY;</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* If it has an init func, it must have an exit func to unload */</span></span><br><span class="line">	<span class="keyword">if</span> (mod-&gt;init &amp;&amp; !mod-&gt;<span class="built_in">exit</span>) &#123;</span><br><span class="line">		forced = try_force_unload(flags);</span><br><span class="line">		<span class="keyword">if</span> (!forced) &#123;</span><br><span class="line">			<span class="comment">/* This module can&#x27;t be removed */</span></span><br><span class="line">			ret = -EBUSY;</span><br><span class="line">			<span class="keyword">goto</span> out;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Stop the machine so refcounts can&#x27;t move and disable module. */</span></span><br><span class="line">	ret = try_stop_module(mod, flags, &amp;forced);</span><br><span class="line">	<span class="keyword">if</span> (ret != <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line"></span><br><span class="line">	mutex_unlock(&amp;module_mutex);</span><br><span class="line">	<span class="comment">/* Final destruction now no one is using it. */</span></span><br><span class="line">	<span class="keyword">if</span> (mod-&gt;<span class="built_in">exit</span> != <span class="literal">NULL</span>)</span><br><span class="line">		mod-&gt;<span class="built_in">exit</span>();</span><br><span class="line">	blocking_notifier_call_chain(&amp;module_notify_list,</span><br><span class="line">				     MODULE_STATE_GOING, mod);</span><br><span class="line">	klp_module_going(mod);</span><br><span class="line">	ftrace_release_mod(mod);</span><br><span class="line"></span><br><span class="line">	async_synchronize_full();</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Store the name of the last unloaded module for diagnostic purposes */</span></span><br><span class="line">	strlcpy(last_unloaded_module, mod-&gt;name, <span class="keyword">sizeof</span>(last_unloaded_module));</span><br><span class="line"></span><br><span class="line">	free_module(mod);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">out:</span><br><span class="line">	mutex_unlock(&amp;module_mutex);</span><br><span class="line">	<span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第8行：确保有插入和删除模块不受限制的权利，并且模块没有被禁止插入或删除</li>
+<li>第11行：获得模块名字。</li>
+<li>第20行：找到要卸载的模块指针。</li>
+<li>第26行：有依赖的模块，需要先卸载它们。</li>
+<li>第41行：检查模块的退出函数。</li>
+<li>第51行：停止机器，使参考计数不能移动并禁用模块。</li>
+<li>第59行：告诉通知链module_notify_list上的监听者，模块状态 变为 MODULE_STATE_GOING。</li>
+<li>第64行：等待所有异步函数调用完成。</li>
+</ul>
+<h1 id="三、内核是如何导出符号的"><a href="#三、内核是如何导出符号的" class="headerlink" title="三、内核是如何导出符号的"></a><font size=3>三、内核是如何导出符号的</font></h1><h2 id="1-模块层叠"><a href="#1-模块层叠" class="headerlink" title="1. 模块层叠"></a><font size=3>1. 模块层叠</font></h2><p>符号是什么东西？我们为什么需要导出符号呢？内核模块如何导出符号呢？其他模块又是如何找到这些符号的呢？</p>
+<p>实际上，符号指的就是内核模块中使用EXPORT_SYMBOL 声明的函数和变量。 当模块被装入内核后，它所导出的符号都会记录在公共内核符号表中。 在使用命令insmod加载模块后，模块就被连接到了内核，因此可以访问内核的共用符号。</p>
+<p>通常情况下我们无需导出任何符号，但是如果其他模块想要从我们这个模块中获取某些方便的时候， 就可以考虑使用导出符号为其提供服务。这被称为<strong>模块层叠技术</strong>。 例如msdos文件系统依赖于由fat模块导出的符号；USB输入设备模块层叠在usbcore和input模块之上。 也就是我们可以将模块分为多个层，通过简化每一层来实现复杂的项目。</p>
+<p>modprobe是一个处理层叠模块的工具，它的功能相当于多次使用insmod， 除了装入指定模块外还同时装入指定模块所依赖的其他模块。</p>
+<h2 id="2-怎么导出符号？"><a href="#2-怎么导出符号？" class="headerlink" title="2. 怎么导出符号？"></a><font size=3>2. 怎么导出符号？</font></h2><p>当我们要导出模块的时候，可以使用下面的宏:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">EXPORT_SYMBOL(name)</span><br><span class="line">EXPORT_SYMBOL_GPL(name) <span class="comment">//name为我们要导出的标志</span></span><br></pre></td></tr></table></figure>
+
+<p>符号必须在模块文件的全局部分导出，不能在函数中使用，_GPL使得导出的模块只能被GPL许可的模块使用。 编译我们的模块时，这两个宏会被拓展为一个特殊变量的声明，存放在ELF文件中。 具体也就是存放在ELF文件的符号表中：</p>
+<ul>
+<li>st_name： 是符号名称在符号名称字符串表中的索引值</li>
+<li>st_value： 是符号所在的内存地址</li>
+<li>st_size： 是符号大小</li>
+<li>st_info： 是符号类型和绑定信息</li>
+<li>st_shndx： 表示符号所在section</li>
+</ul>
+<p>当ELF的符号表被加载到内核后，会执行simplify_symbols来遍历整个ELF文件符号表。 根据st_shndx找到符号所在的section和st_value中符号在section中的偏移得到真正的内存地址。 并最终将符号内存地址，符号名称指针存储到内核符号表中。simplify_symbols()函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/module.c#L2242">module.c - kernel&#x2F;module.c </a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Change all symbols so that st_value encodes the pointer directly. */</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">simplify_symbols</span><span class="params">(<span class="keyword">struct</span> module *mod, <span class="type">const</span> <span class="keyword">struct</span> load_info *info)</span></span><br><span class="line">&#123;</span><br><span class="line">	Elf_Shdr *symsec = &amp;info-&gt;sechdrs[info-&gt;index.sym];</span><br><span class="line">	Elf_Sym *sym = (<span class="type">void</span> *)symsec-&gt;sh_addr;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> secbase;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span> i;</span><br><span class="line">	<span class="type">int</span> ret = <span class="number">0</span>;</span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">kernel_symbol</span> *<span class="title">ksym</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (i = <span class="number">1</span>; i &lt; symsec-&gt;sh_size / <span class="keyword">sizeof</span>(Elf_Sym); i++) &#123;</span><br><span class="line">		<span class="type">const</span> <span class="type">char</span> *name = info-&gt;strtab + sym[i].st_name;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">switch</span> (sym[i].st_shndx) &#123;</span><br><span class="line">		<span class="comment">//......</span></span><br><span class="line">		<span class="keyword">case</span> SHN_UNDEF:</span><br><span class="line">			ksym = resolve_symbol_wait(mod, info, name);</span><br><span class="line">			<span class="comment">/* Ok if resolved.  */</span></span><br><span class="line">			<span class="keyword">if</span> (ksym &amp;&amp; !IS_ERR(ksym)) &#123;</span><br><span class="line">				sym[i].st_value = kernel_symbol_value(ksym);</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="comment">/* Ok if weak.  */</span></span><br><span class="line">			<span class="keyword">if</span> (!ksym &amp;&amp; ELF_ST_BIND(sym[i].st_info) == STB_WEAK)</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">			ret = PTR_ERR(ksym) ?: -ENOENT;</span><br><span class="line">			pr_warn(<span class="string">&quot;%s: Unknown symbol %s (err %d)\n&quot;</span>,</span><br><span class="line">				mod-&gt;name, name, ret);</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">			<span class="comment">/* Divert to percpu allocation if a percpu var. */</span></span><br><span class="line">			<span class="keyword">if</span> (sym[i].st_shndx == info-&gt;index.pcpu)</span><br><span class="line">				secbase = (<span class="type">unsigned</span> <span class="type">long</span>)mod_percpu(mod);</span><br><span class="line">			<span class="keyword">else</span></span><br><span class="line">				secbase = info-&gt;sechdrs[sym[i].st_shndx].sh_addr;</span><br><span class="line">			sym[i].st_value += secbase;</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>内核导出的符号表结构有两个字段，一个是符号在内存中的地址，一个是符号名称指针， 符号名称被放在了__ksymtab_strings这个section中， 以EXPORT_SYMBOL举例，符号会被放到名为__ksymtab的section中。 这个结构体我们要注意，它构成的表是导出符号表而不是通常意义上的符号表 。</p>
+<p>我们来看一下这个kernel_symbol结构体，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/export.h#L71">export.h - include&#x2F;linux&#x2F;export.h </a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kernel_symbol</span> &#123;</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> value; <span class="comment">// 符号在内存中的地址</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span> *name;    <span class="comment">// 符号名称</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>其他的内核模块在寻找符号的时候会调用resolve_symbol_wait去内核和其他模块中通过符号名称寻址目标符号，resolve_symbol_wait会调用resolve_symbol，进而调用 find_symbol。 找到了符号之后，把符号的实际地址赋值给符号表 sym[i].st_value &#x3D; ksym&rarr;value。find_symbol()函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/kernel/module.c#L576">module.c - kernel&#x2F;module.c</a>:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Find a symbol and return it, along with, (optional) crc and</span></span><br><span class="line"><span class="comment"> * (optional) module which owns it.  Needs preempt disabled or module_mutex. */</span></span><br><span class="line"><span class="comment">/* 找到一个符号并将其连同（可选）crc和（可选）拥有它的模块一起返回。需要禁用抢占或模块互斥。 */</span></span><br><span class="line"><span class="type">const</span> <span class="keyword">struct</span> kernel_symbol *<span class="title function_">find_symbol</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *name,</span></span><br><span class="line"><span class="params">					<span class="keyword">struct</span> module **owner,</span></span><br><span class="line"><span class="params">					<span class="type">const</span> s32 **crc,</span></span><br><span class="line"><span class="params">					<span class="type">bool</span> gplok,</span></span><br><span class="line"><span class="params">					<span class="type">bool</span> warn)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">find_symbol_arg</span> <span class="title">fsa</span>;</span></span><br><span class="line"></span><br><span class="line">	fsa.name = name;</span><br><span class="line">	fsa.gplok = gplok;</span><br><span class="line">	fsa.warn = warn;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (each_symbol_section(find_symbol_in_section, &amp;fsa)) &#123;</span><br><span class="line">		<span class="keyword">if</span> (owner)</span><br><span class="line">			*owner = fsa.owner;</span><br><span class="line">		<span class="keyword">if</span> (crc)</span><br><span class="line">			*crc = fsa.crc;</span><br><span class="line">		<span class="keyword">return</span> fsa.sym;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	pr_debug(<span class="string">&quot;Failed to find symbol %s\n&quot;</span>, name);</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(find_symbol);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第16行：在each_symbol_section中，去查找了两个地方，一个是内核的导出符号表，即我们在将内核符号是如何导出的时候定义的全局变量，一个是遍历已经加载的内核模块，查找动作是在each_symbol_in_section中完成的。</li>
+<li>第27行：导出符号标志.</li>
+</ul>
+<p>至此符号查找完毕，最后将所有section借助ELF文件的重定向表进行重定向，就能使用该符号了。</p>
+<blockquote>
+<p>参考资料</p>
+<p><a target="_blank" rel="noopener" href="https://ctf-wiki.org/executable/elf/structure/basic-info/">ELF 文件 - CTF Wiki (ctf-wiki.org)</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/pingxiaozhao/article/details/109239221">ELF文件格式的详解_.elf-CSDN博客</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/549b1511.html">LV06-02-内核模块-04-内核模块的工作机制</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年11月26日 - 00:02</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/549b1511.html" title="LV06-02-内核模块-04-内核模块的工作机制">https://sumumm.github.io/post/549b1511.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/c40ea93.html" rel="prev" title="LV06-02-内核模块-05-内核模块框架解析">
+                  <i class="fa fa-angle-left"></i> LV06-02-内核模块-05-内核模块框架解析
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/f68c951e.html" rel="next" title="LV05-02-U-Boot-07-uboot编译时间与版本">
+                  LV05-02-U-Boot-07-uboot编译时间与版本 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

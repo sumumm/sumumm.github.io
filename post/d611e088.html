@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是线程同步——互斥锁的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV05-03-线程同步-02-互斥锁">
+<meta property="og:url" content="https://sumumm.github.io/post/d611e088.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是线程同步——互斥锁的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-02-%E4%BA%92%E6%96%A5%E9%94%81/img/image-20220525192302303.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-02-%E4%BA%92%E6%96%A5%E9%94%81/img/image-20220525192312305.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-02-%E4%BA%92%E6%96%A5%E9%94%81/img/image-20220525195411645.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-02-%E4%BA%92%E6%96%A5%E9%94%81/img/image-20220525204903020.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-02-%E4%BA%92%E6%96%A5%E9%94%81/img/image-20220525205314854.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-02-%E4%BA%92%E6%96%A5%E9%94%81/img/image-20220525205842280.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-02-%E4%BA%92%E6%96%A5%E9%94%81/img/image-20220526072940980.png">
+<meta property="article:published_time" content="2023-07-02T13:52:10.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:56.994Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV05-操作系统">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-02-%E4%BA%92%E6%96%A5%E9%94%81/img/image-20220525192302303.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/d611e088.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/d611e088.html","path":"post/d611e088.html","title":"LV05-03-线程同步-02-互斥锁"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV05-03-线程同步-02-互斥锁 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%BA%92%E6%96%A5%E9%94%81%E7%9A%84%E6%A6%82%E5%BF%B5"><span class="nav-text">一、互斥锁的概念</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E4%B8%8E%E7%89%B9%E6%80%A7"><span class="nav-text">1. 基本概念与特性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-text">2. 应用场景</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C"><span class="nav-text">二、基本操作</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BA%92%E6%96%A5%E9%94%81%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-text">1. 互斥锁初始化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-pthread-mutex-init"><span class="nav-text">1.1 pthread_mutex_init()</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">1.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">1.1.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-PTHREAD-MUTEX-INITIALIZER"><span class="nav-text">1.2 PTHREAD_MUTEX_INITIALIZER </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">1.2.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">1.2.2 使用实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%8A%A0%E9%94%81%E5%92%8C%E8%A7%A3%E9%94%81"><span class="nav-text">2. 加锁和解锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-pthread-mutex-lock"><span class="nav-text">2.1 pthread_mutex_lock() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.1.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-pthread-mutex-trylock"><span class="nav-text">2.2 pthread_mutex_trylock() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.2.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.2.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-pthread-mutex-unlock"><span class="nav-text">2.3 pthread_mutex_unlock() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.3.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.3.2 使用实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E9%94%80%E6%AF%81%E4%BA%92%E6%96%A5%E9%94%81"><span class="nav-text">3. 销毁互斥锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-pthread-mutex-destroy"><span class="nav-text">3.1 pthread_mutex_destroy() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">3.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">3.1.2 使用实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%BA%92%E6%96%A5%E9%94%81%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">4. 互斥锁使用实例</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E4%BA%92%E6%96%A5%E9%94%81%E5%B1%9E%E6%80%A7"><span class="nav-text">三、互斥锁属性</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%B1%9E%E6%80%A7%E5%AF%B9%E8%B1%A1%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-text">1. 属性对象初始化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-pthread-mutexattr-init"><span class="nav-text">1.1 pthread_mutexattr_init() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E-1"><span class="nav-text">1.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B-1"><span class="nav-text">1.1.2 使用实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%B1%9E%E6%80%A7%E5%AF%B9%E8%B1%A1%E9%94%80%E6%AF%81"><span class="nav-text">2. 属性对象销毁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-pthread-mutexattr-destroy"><span class="nav-text">2.1 pthread_mutexattr_destroy() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E-1"><span class="nav-text">2.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B-1"><span class="nav-text">2.1.2 使用实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%B1%BB%E5%9E%8B%E5%B1%9E%E6%80%A7"><span class="nav-text">3. 类型属性</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-pthread-mutexattr-gettype"><span class="nav-text">3.1 pthread_mutexattr_gettype() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E-1"><span class="nav-text">3.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B-1"><span class="nav-text">3.1.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-pthread-mutexattr-settype"><span class="nav-text">3.2 pthread_mutexattr_settype() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">3.2.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">3.2.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E7%B1%BB%E5%9E%8B%E8%AE%BE%E7%BD%AE%E5%AE%9E%E4%BE%8B"><span class="nav-text">3.3 类型设置实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E4%BA%92%E6%96%A5%E9%94%81%E6%AD%BB%E9%94%81"><span class="nav-text">四、互斥锁死锁</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%AD%BB%E9%94%81%E7%9A%84%E6%A6%82%E5%BF%B5"><span class="nav-text">1. 死锁的概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%AD%BB%E9%94%81%E5%8F%91%E7%94%9F%E7%9A%84%E6%9D%A1%E4%BB%B6"><span class="nav-text">2. 死锁发生的条件</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E4%BA%92%E6%96%A5%E6%9D%A1%E4%BB%B6"><span class="nav-text">2.1 互斥条件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E6%8C%81%E6%9C%89%E5%B9%B6%E7%AD%89%E5%BE%85%E6%9D%A1%E4%BB%B6"><span class="nav-text">2.2 持有并等待条件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E4%B8%8D%E5%8F%AF%E5%89%A5%E5%A4%BA%E6%9D%A1%E4%BB%B6"><span class="nav-text">2.3 不可剥夺条件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E7%8E%AF%E8%B7%AF%E7%AD%89%E5%BE%85%E6%9D%A1%E4%BB%B6"><span class="nav-text">2.4 环路等待条件</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%AD%BB%E9%94%81%E4%BA%A7%E7%94%9F%E5%AE%9E%E4%BE%8B"><span class="nav-text">3. 死锁产生实例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%A6%82%E4%BD%95%E6%8E%92%E6%9F%A5%E6%AD%BB%E9%94%81%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">4. 如何排查死锁问题？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-pstack-%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="nav-text">4.1 pstack 的使用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-GDB-%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="nav-text">4.2 GDB 的使用</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E9%81%BF%E5%85%8D%E6%AD%BB%E9%94%81"><span class="nav-text">5. 避免死锁</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/d611e088.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV05-03-线程同步-02-互斥锁 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV05-03-线程同步-02-互斥锁
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-07-02 21:52:10" itemprop="dateCreated datePublished" datetime="2023-07-02T21:52:10+08:00">2023-07-02</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" itemprop="url" rel="index"><span itemprop="name">LV05-操作系统</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>10k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>38 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是线程同步——互斥锁的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-02-%E4%BA%92%E6%96%A5%E9%94%81/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150>---</td>        <td align="left"><a href="" target="_blank">---<i class="fa fa-external-link-alt"></i> </a></td>      </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、互斥锁的概念"><a href="#一、互斥锁的概念" class="headerlink" title="一、互斥锁的概念"></a><font size=3>一、互斥锁的概念</font></h1><h2 id="1-基本概念与特性"><a href="#1-基本概念与特性" class="headerlink" title="1. 基本概念与特性"></a><font size=3>1. 基本概念与特性</font></h2><p>互斥锁（<code>mutex</code>）又叫互斥量，从本质上说是一把锁，在访问共享资源之前对互斥锁进行上锁，在访问完成后释放互斥锁（解锁）；对互斥锁进行<strong>上锁之后</strong>，<strong>任何其它试图再次对互斥锁进行加锁的线程都会被阻塞</strong>，<strong>直到当前线程释放互斥锁</strong>。如果释放互斥锁时有一个以上的线程阻塞，那么这些阻塞的线程会被唤醒，它们都会尝试对互斥锁进行加锁，当有一个线程成功对互斥锁上锁之后，其它线程就不能再次上锁了，只能再次陷入阻塞，等待下一次解锁。<br>在我们的程序设计当中，只有将所有线程访问共享资源都设计成相同的数据访问规则，互斥锁才能正常工作。如果允许其中的某个线程在没有得到锁的情况下也可以访问共享资源，那么即使其它的线程在使用共享资源前都申请锁，也还是会出现数据不一致的问题。</p>
+<h2 id="2-应用场景"><a href="#2-应用场景" class="headerlink" title="2. 应用场景"></a><font size=3>2. 应用场景</font></h2><p>当线程 <code>1</code>加锁成功后，此时互斥锁已经被线程 <code>1</code> 独占了，只要线程 <code>1</code>没有释放手中的锁，线程 <code>2</code> 加锁就会失败，于是线程<code>2</code>就会释放 <code>CPU</code> 让给其他线程，既然线程 <code>2</code> 释放掉了 <code>CPU</code>，自然线程 <code>2</code> 加锁的代码就会被阻塞。</p>
+<p>对于互斥锁加锁失败而阻塞的现象，是由操作系统内核实现的。当加锁失败时，内核会将线程置为睡眠状态，等到锁被释放后，内核会在合适的时机唤醒线程，当这个线程成功获取到锁后，于是就可以继续执行。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-02-%E4%BA%92%E6%96%A5%E9%94%81/img/image-20220525192302303.png" alt="image-20220525192302303" style="zoom:50%;" />
+
+<p>互斥锁加锁失败时，会从用户态陷入到内核态，让内核帮我们切换线程，虽然简化了使用锁的难度，但是存在一定的性能开销成本。这个成本来自于两次线程上下文切换。</p>
+<ul>
+<li>当线程加锁失败时，内核会把线程的状态从运行状态设置为睡眠状态，然后把 <code>CPU</code> 切换给其他线程运行；</li>
+<li>当锁被释放时，之前睡眠状态的线程会变为就绪状态，然后内核会在合适的时间，把 <code>CPU</code>切换给该线程运行。</li>
+</ul>
+<p>前边我们知道当两个线程是属于同一个进程，因为虚拟内存是共享的，所以在线程上下文切换时，虚拟内存这些资源就保持不动，只需要切换线程的私有数据、寄存器等不共享的数据。上下切换的耗时有大佬统计过，大概在几十纳秒到几微秒之间，如果我们锁住的代码执行时间比较短，那可能上下文切换的时间都比锁住的代码执行时间还要长。所以，如果我们能确定被锁住的代码执行时间很短，就不应该用互斥锁，而应该选用自旋锁（后边介绍），否则使用互斥锁。</p>
+<h1 id="二、基本操作"><a href="#二、基本操作" class="headerlink" title="二、基本操作"></a><font size=3>二、基本操作</font></h1><h2 id="1-互斥锁初始化"><a href="#1-互斥锁初始化" class="headerlink" title="1. 互斥锁初始化"></a><font size=3>1. 互斥锁初始化</font></h2><p>互斥锁的初始化有两种方式，一种是动态方式，即通过<code>pthread_mutex_init()</code>函数完成初始化；另一种是静态方式，通过宏进行初始化。</p>
+<h3 id="1-1-pthread-mutex-init"><a href="#1-1-pthread-mutex-init" class="headerlink" title="1.1 pthread_mutex_init()"></a><font size=3>1.1 pthread_mutex_init()</font></h3><h4 id="1-1-1-函数说明"><a href="#1-1-1-函数说明" class="headerlink" title="1.1.1 函数说明"></a><font size=3>1.1.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_mutex_init</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="comment">/* man 手册中的声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_mutex_init</span><span class="params">(<span class="type">pthread_mutex_t</span> *<span class="keyword">restrict</span> mutex, <span class="type">const</span> <span class="type">pthread_mutexattr_t</span> *<span class="keyword">restrict</span> attr)</span>;</span><br><span class="line"><span class="comment">/* 一些资料中的声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_mutex_init</span><span class="params">(<span class="type">pthread_mutex_t</span> *mutex, <span class="type">const</span> <span class="type">pthread_mutexattr_t</span> *attr)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>额……，😥属实没看懂<code>man</code>手册里边的哪个声明，不过网上以及一些教材似乎更多的是下边的声明形式，虽然没看懂，但是把，他们的变量类型时一样的，就按第二种声明的形式来理解可能更好些。</p>
+<p><strong>【函数说明】</strong>该函数是以动态方式初始化一个互斥锁。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>mutex</code>：<code>pthread_mutex_t *</code>类型，指向需要进行初始化操作的<strong>互斥锁对象</strong>。</li>
+<li><code>attr</code>：<code>pthread_mutexattr_t *</code>类型，指向一个<code>pthread_mutexattr_t</code>类型对象，该对象用于定义互斥锁的属性，若将参数<code>attr</code>设置为<code>NULL</code>，则表示将互斥锁的属性设置为默认值，在这种情况下其实就等价于<code>PTHREAD_MUTEX_INITIALIZER</code>这种方式初始化，而不同之处在于，使用宏不进行错误检查。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，成功返回<code>0</code>；失败将返回一个非<code>0</code>的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">pthread_mutex_t</span> mutex;<span class="comment">/* 定义全局变量 */</span></span><br><span class="line">pthread_mutex_init(&amp;mutex, <span class="literal">NULL</span>);<span class="comment">/* 初始化互斥锁 */</span></span><br><span class="line"><span class="comment">/* 或者 */</span></span><br><span class="line"><span class="type">pthread_mutex_t</span> *mutex = <span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(<span class="type">pthread_mutex_t</span>)); <span class="comment">/* 定义为全局指针变量 */</span></span><br><span class="line">pthread_mutex_init(mutex, <span class="literal">NULL</span>);</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong>当在<code>Ubuntu</code>系统下执行<code>man 3 pthread_mutex_init</code>命令时提示找不到该函数，并不是<code>Linux</code>下没有这个函数，而是该函数相关的<code>man</code>手册帮助信息没有被安装，这时我们只需执行以下命令安装即可：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install manpages-posix-dev</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-1-2-使用实例"><a href="#1-1-2-使用实例" class="headerlink" title="1.1.2 使用实例"></a><font size=3>1.1.2 使用实例</font></h4><p>暂无。</p>
+<h3 id="1-2-PTHREAD-MUTEX-INITIALIZER"><a href="#1-2-PTHREAD-MUTEX-INITIALIZER" class="headerlink" title="1.2 PTHREAD_MUTEX_INITIALIZER "></a><font size=3>1.2 PTHREAD_MUTEX_INITIALIZER </font></h3><h4 id="1-2-1-函数说明"><a href="#1-2-1-函数说明" class="headerlink" title="1.2.1 函数说明"></a><font size=3>1.2.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man 3 pthread_mutex_init</code>命令查看该宏的定义格式。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">pthread_mutex_t</span> mutex = PTHREAD_MUTEX_INITIALIZER; <span class="comment">/* mutex为互斥锁名称，符合变量标识符定义规则即可。*/</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该宏用于使用默认属性初始化一个互斥锁。</p>
+<p><strong>【定义原型】</strong>该宏定义在<code>pthread.h</code>文件中，可以在终端中使用以下命令查看<code>pthread.h</code>文件位置：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">locate pthread.h # 若出现locate 命令未安装之类的，按照提示安装即可</span><br></pre></td></tr></table></figure>
+
+<p>定义形式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"># <span class="keyword">define</span> PTHREAD_MUTEX_INITIALIZER \</span></span><br><span class="line"><span class="meta">  &#123; &#123; 0, 0, 0, 0, 0, &#123; __PTHREAD_SPINS &#125; &#125; &#125;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【返回值】</strong><code>none</code></p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">pthread_mutex_t</span> mutex = PTHREAD_MUTEX_INITIALIZER; </span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong></p>
+<p>（1）<code>PTHREAD_MUTEX_INITIALIZER</code>宏已经携带了互斥锁的默认属性。</p>
+<p>（2）只适用于在定义的时候就直接进行初始化，对于其它情况则不能使用这种方式，例如先定义互斥锁，后再进行初始化，或者在堆中动态分配的互斥锁，使用<code>malloc()</code>函数申请分配的互斥锁对象等情况还是要使用<code>pthread_mutex_init()</code>函数完成。</p>
+<h4 id="1-2-2-使用实例"><a href="#1-2-2-使用实例" class="headerlink" title="1.2.2 使用实例"></a><font size=3>1.2.2 使用实例</font></h4><p>暂无。</p>
+<h2 id="2-加锁和解锁"><a href="#2-加锁和解锁" class="headerlink" title="2. 加锁和解锁"></a><font size=3>2. 加锁和解锁</font></h2><p>定义了互斥锁之后，后边肯定就是使用互斥锁啦。使用的时候有加锁和解锁两个过程，或者说是获取锁和释放锁两个过程。</p>
+<h3 id="2-1-pthread-mutex-lock"><a href="#2-1-pthread-mutex-lock" class="headerlink" title="2.1 pthread_mutex_lock() "></a><font size=3>2.1 pthread_mutex_lock() </font></h3><h4 id="2-1-1-函数说明"><a href="#2-1-1-函数说明" class="headerlink" title="2.1.1 函数说明"></a><font size=3>2.1.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_mutex_lock</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_mutex_lock</span><span class="params">(<span class="type">pthread_mutex_t</span> *mutex)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于以<strong>阻塞</strong>方式对互斥锁加锁、获取互斥锁。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>mutex</code>：<code>pthread_mutex_t *</code>类型，指向已经初始化过的互斥锁对象。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line">pthread_mutex_lock(&amp;mutex);<span class="comment">/* 具体看定义的方式，是变量还是指针变量，指针变量则不需要&amp;符号。*/</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong>调用<code>pthread_mutex_lock()</code>函数对互斥锁进行上锁，如果互斥锁处于未锁定状态，则此次调用会上锁成功，函数调用将立马返回；如果互斥锁此时已经被其它线程锁定了，那么调用<code>pthread_mutex_lock()</code>会一直阻塞，直到该互斥锁被解锁，到那时，调用将锁定互斥锁并返回。</p>
+<h4 id="2-1-2-使用实例"><a href="#2-1-2-使用实例" class="headerlink" title="2.1.2 使用实例"></a><font size=3>2.1.2 使用实例</font></h4><p>暂无。</p>
+<h3 id="2-2-pthread-mutex-trylock"><a href="#2-2-pthread-mutex-trylock" class="headerlink" title="2.2 pthread_mutex_trylock() "></a><font size=3>2.2 pthread_mutex_trylock() </font></h3><h4 id="2-2-1-函数说明"><a href="#2-2-1-函数说明" class="headerlink" title="2.2.1 函数说明"></a><font size=3>2.2.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_mutex_trylock</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_mutex_trylock</span><span class="params">(<span class="type">pthread_mutex_t</span> *mutex)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于以<strong>非阻塞</strong>的方式对互斥锁加锁、申请互斥锁。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>mutex</code>：<code>pthread_mutex_t *</code>类型，指向已经初始化过的互斥锁对象。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码；如果目标互斥锁已经被其它线程锁住，则调用失败返回错误码<code>EBUSY</code>。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line">pthread_mutex_trylock(&amp;mutex);<span class="comment">/* 具体看定义的方式，是变量还是指针变量，指针变量则不需要&amp;符号。*/</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong>调用<code>pthread_mutex_trylock()</code>函数尝试对互斥锁进行加锁，如果互斥锁处于未锁住状态，那么调用<code>pthread_mutex_trylock()</code>将会锁住互斥锁并立马返回，如果互斥锁已经被其它线程锁住，调用<code>pthread_mutex_trylock()</code>加锁失败，但不会阻塞，而是返回错误码<code>EBUSY</code>。</p>
+<h4 id="2-2-2-使用实例"><a href="#2-2-2-使用实例" class="headerlink" title="2.2.2 使用实例"></a><font size=3>2.2.2 使用实例</font></h4><p>暂无。</p>
+<h3 id="2-3-pthread-mutex-unlock"><a href="#2-3-pthread-mutex-unlock" class="headerlink" title="2.3 pthread_mutex_unlock() "></a><font size=3>2.3 pthread_mutex_unlock() </font></h3><h4 id="2-3-1-函数说明"><a href="#2-3-1-函数说明" class="headerlink" title="2.3.1 函数说明"></a><font size=3>2.3.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_mutex_lock</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_mutex_unlock</span><span class="params">(<span class="type">pthread_mutex_t</span> *mutex)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于对互斥锁解锁、释放互斥锁。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>mutex</code>：<code>pthread_mutex_t *</code>类型，指向已经初始化过的互斥锁对象。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line">pthread_mutex_unlock(&amp;mutex);<span class="comment">/* 具体看定义的方式，是变量还是指针变量，指针变量则不需要&amp;符号。*/</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong></p>
+<p>（1）调用<code>pthread_mutex_unlock()</code>函数将已经处于锁定状态的互斥锁进行解锁。以下行为均属错误：</p>
+<ul>
+<li>对处于未锁定状态的互斥锁进行解锁操作。</li>
+<li>解锁由其它线程锁定的互斥锁。</li>
+</ul>
+<p>（2）如果有多个线程处于阻塞状态等待互斥锁被解锁，当互斥锁被当前锁定它的线程调用<code>pthread_mutex_unlock()</code>函数解锁后，这些等待着的线程都会有机会对互斥锁上锁，但无法判断究竟哪个线程会获取互斥锁。</p>
+<p>（3）若有多把锁，解锁时与上锁时顺序相反，就是最后上的锁要先解开，这样可以减少一些其他线程申请共享资源而等待的时间。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">pthread_mutex_lock(&amp;mutex1);</span><br><span class="line">pthread_mutex_lock(&amp;mutex2);</span><br><span class="line"><span class="comment">/* 中间为共享资源的访问操作 */</span></span><br><span class="line">pthread_mutex_unlock(&amp;mutex2);</span><br><span class="line">pthread_mutex_unlock(&amp;mutex1);</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-3-2-使用实例"><a href="#2-3-2-使用实例" class="headerlink" title="2.3.2 使用实例"></a><font size=3>2.3.2 使用实例</font></h4><p>暂无。</p>
+<h2 id="3-销毁互斥锁"><a href="#3-销毁互斥锁" class="headerlink" title="3. 销毁互斥锁"></a><font size=3>3. 销毁互斥锁</font></h2><p>定义了互斥锁之后，当不再需要互斥锁时，应该将其销毁。</p>
+<h3 id="3-1-pthread-mutex-destroy"><a href="#3-1-pthread-mutex-destroy" class="headerlink" title="3.1 pthread_mutex_destroy() "></a><font size=3>3.1 pthread_mutex_destroy() </font></h3><h4 id="3-1-1-函数说明"><a href="#3-1-1-函数说明" class="headerlink" title="3.1.1 函数说明"></a><font size=3>3.1.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_mutex_destroy</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_mutex_destroy</span><span class="params">(<span class="type">pthread_mutex_t</span> *mutex)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于销毁一个不再使用的互斥锁。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>mutex</code>：<code>pthread_mutex_t *</code>类型，指向已经初始化过的互斥锁对象。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line">pthread_mutex_destroy(&amp;mutex);<span class="comment">/* 具体看定义的方式，是变量还是指针变量，指针变量则不需要&amp;符号。*/</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong></p>
+<p>（1）不能销毁还没有解锁的互斥锁，否则将会出现错误。<br>（2） 没有初始化的互斥锁也不能销毁。</p>
+<h4 id="3-1-2-使用实例"><a href="#3-1-2-使用实例" class="headerlink" title="3.1.2 使用实例"></a><font size=3>3.1.2 使用实例</font></h4><p>暂无。</p>
+<h2 id="4-互斥锁使用实例"><a href="#4-互斥锁使用实例" class="headerlink" title="4. 互斥锁使用实例"></a><font size=3>4. 互斥锁使用实例</font></h2><p>前边终于把需要使用的函数学习完了，接下来就是一个实例啦。</p>
+<details class="folding-tag" blue><summary> 点击查看实例 </summary>
+              <div class='content'>
+              <figure class="highlight c"><figcaption><span>test.c</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span>  <span class="comment">/* fopen fputc*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span><span class="comment">/* pthread_create pthread_exit */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span> <span class="comment">/* sleep */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span> <span class="comment">/* strlen */</span></span></span><br><span class="line"></span><br><span class="line">FILE *fp;<span class="comment">/* 定义一个文件指针变量 */</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> macro_mutex 2 <span class="comment">/* 0,不使用互斥锁；1,函数初始化互斥锁；2,宏初始化互斥锁 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> macro_mutex == 1</span></span><br><span class="line"><span class="type">pthread_mutex_t</span> mutex;</span><br><span class="line"><span class="meta">#<span class="keyword">elif</span> macro_mutex == 2</span></span><br><span class="line"><span class="type">pthread_mutex_t</span> mutex = PTHREAD_MUTEX_INITIALIZER;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadMutex1</span><span class="params">(<span class="type">void</span> *arg)</span>;</span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadMutex2</span><span class="params">(<span class="type">void</span> *arg)</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> ret;</span><br><span class="line">	<span class="type">pthread_t</span> tid1, tid2;</span><br><span class="line">	<span class="comment">/* 动态创建互斥锁 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> macro_mutex == 1</span></span><br><span class="line">	pthread_mutex_init(&amp;mutex, <span class="literal">NULL</span>);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="comment">/* 1. 以追加读写的方式使用标准IO打开一个文件 */</span></span><br><span class="line">	fp = fopen(<span class="string">&quot;test.txt&quot;</span>, <span class="string">&quot;a+&quot;</span>);</span><br><span class="line">	<span class="comment">/* 2. 判断是否打开成功 */</span></span><br><span class="line">	<span class="keyword">if</span>(fp == <span class="literal">NULL</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;open error&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 3. 创建两个线程 */</span></span><br><span class="line">	ret = pthread_create(&amp;tid1, <span class="literal">NULL</span>, threadMutex1, <span class="literal">NULL</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is threadMutex1 thread create,ret=%d,tid1=%lu\n&quot;</span>, ret, tid1);</span><br><span class="line">	ret = pthread_create(&amp;tid2, <span class="literal">NULL</span>, threadMutex2, <span class="literal">NULL</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is threadMutex2 thread create,ret=%d,tid2=%lu\n&quot;</span>, ret, tid2);</span><br><span class="line">	<span class="comment">/* 4. 等待回收线程(设置线程分离) */</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		sleep(<span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadMutex1</span><span class="params">(<span class="type">void</span> *arg)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">	<span class="type">char</span> str[]=<span class="string">&quot;I write threadMutex1 line\n&quot;</span>;</span><br><span class="line">	<span class="comment">/* 设置线程分离，结束后自动回收 */</span></span><br><span class="line">	pthread_detach(pthread_self());</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is a threadMutex1 thread!\n&quot;</span>);</span><br><span class="line">	<span class="comment">/* 按字符将字符串写入文件 */</span></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> macro_mutex == 1 || macro_mutex == 2</span></span><br><span class="line">		pthread_mutex_lock(&amp;mutex);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">		<span class="keyword">for</span>(i = <span class="number">0</span>; i&lt;<span class="built_in">strlen</span>(str); i++)</span><br><span class="line">		&#123;</span><br><span class="line">			fputc(str[i], fp);</span><br><span class="line">			usleep(<span class="number">100</span>);<span class="comment">/* us级休眠 */</span></span><br><span class="line">		&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> macro_mutex == 1 || macro_mutex == 2</span></span><br><span class="line">		pthread_mutex_unlock(&amp;mutex);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">		usleep(<span class="number">1000</span>);<span class="comment">/* us级休眠 */</span></span><br><span class="line">	&#125;</span><br><span class="line">	pthread_exit(<span class="string">&quot;threadMutex1 exit!&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadMutex1</span><span class="params">(<span class="type">void</span> *arg)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">	<span class="type">char</span> str[]=<span class="string">&quot;I write threadMutex1 line\n&quot;</span>;</span><br><span class="line">	<span class="comment">/* 设置线程分离，结束后自动回收 */</span></span><br><span class="line">	pthread_detach(pthread_self());</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is a threadMutex1 test!\n&quot;</span>);</span><br><span class="line">	<span class="comment">/* 按字符将字符串写入文件 */</span></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> macro_mutex == 1 || macro_mutex == 2</span></span><br><span class="line">		pthread_mutex_lock(&amp;mutex);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">		<span class="keyword">for</span>(i = <span class="number">0</span>; i&lt;<span class="built_in">strlen</span>(str); i++)</span><br><span class="line">		&#123;</span><br><span class="line">			fputc(str[i], fp);</span><br><span class="line">			usleep(<span class="number">100</span>);<span class="comment">/* us级休眠 */</span></span><br><span class="line">		&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> macro_mutex == 1 || macro_mutex == 2</span></span><br><span class="line">		pthread_mutex_unlock(&amp;mutex);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">		usleep(<span class="number">1000</span>);<span class="comment">/* us级休眠 */</span></span><br><span class="line">	&#125;</span><br><span class="line">	pthread_exit(<span class="string">&quot;threadMutex1 exit!&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>程序中的宏<code>macro_mutex</code>用于决定是否初始化互斥锁，若初始化的话，用什么方式初始化。</p><ul><li>若<code>macro_mutex</code>为<code>0</code>，则不使用互斥锁。</li><li>若<code>macro_mutex</code>为<code>1</code>，则使用函数<code>pthread_mutex_init()</code>初始化互斥锁。</li><li>若<code>macro_mutex</code>为<code>2</code>，则使用宏<code>PTHREAD_MUTEX_INITIALIZER</code>初始化互斥锁。</li></ul><div class="tabs" id="tabname1"><ul class="nav-tabs"><li class="tab active"><a href="#tabname1-1">macro_mutex == 0</a></li><li class="tab"><a href="#tabname1-2">macro_mutex== 1</a></li><li class="tab"><a href="#tabname1-3">macro_mutex== 2</a></li></ul><div class="tab-content"><div class="tab-pane active" id="tabname1-1"><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -Wall -l pthread # 生成可执行文件 a.out </span><br><span class="line">./a.out # 执行可执行程序</span><br></pre></td></tr></table></figure><p>然后，终端会有以下信息显示：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">This is threadMutex1 thread create,ret=0,tid1=139994152797760</span><br><span class="line">This is threadMutex2 thread create,ret=0,tid2=139994144405056</span><br><span class="line">This is a threadMutex2 test!</span><br><span class="line">This is a threadMutex1 thread!</span><br></pre></td></tr></table></figure><p>然后我们打开<code>test.txt</code>文件，查看文件内容如下：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">II  wwrriittee  tthhrreeaaddMMuutteexx21  lliinnee</span><br><span class="line"></span><br><span class="line">II  wwrriittee  tthhrreeaaddMMuutteexx12  lliinnee</span><br><span class="line"></span><br><span class="line">II  wwrriittee  tthhrreeaaddMMuutteexx21  lliinnee</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">后边的省略 ......</span></span><br></pre></td></tr></table></figure><p>该文件被两个线程共享，两个线程都是写入，未保护共享文件，导致文件写入出错。</p></div><div class="tab-pane" id="tabname1-2"><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -Wall -l pthread # 生成可执行文件 a.out </span><br><span class="line">./a.out # 执行可执行程序</span><br></pre></td></tr></table></figure><p>然后，终端会有以下信息显示：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">This is threadMutex1 thread create,ret=0,tid1=140036714059328</span><br><span class="line">This is threadMutex2 thread create,ret=0,tid2=140036705666624</span><br><span class="line">This is a threadMutex2 test!</span><br><span class="line">This is a threadMutex1 thread!</span><br></pre></td></tr></table></figure><p>然后我们打开<code>test.txt</code>文件，查看文件内容如下：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">I write threadMutex2 line</span><br><span class="line">I write threadMutex1 line</span><br><span class="line">I write threadMutex2 line</span><br><span class="line">I write threadMutex1 line</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">后边的省略 ......</span></span><br></pre></td></tr></table></figure><p>该文件被两个线程共享，两个线程都是写入，使用互斥锁保护共享文件，文件写入正常。</p></div><div class="tab-pane" id="tabname1-3"><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -Wall -l pthread # 生成可执行文件 a.out </span><br><span class="line">./a.out # 执行可执行程序</span><br></pre></td></tr></table></figure><p>然后，终端会有以下信息显示：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">This is threadMutex1 thread create,ret=0,tid1=140367502612032</span><br><span class="line">This is threadMutex2 thread create,ret=0,tid2=140367494219328</span><br><span class="line">This is a threadMutex1 thread!</span><br><span class="line">This is a threadMutex2 test!</span><br></pre></td></tr></table></figure><p>然后我们打开<code>test.txt</code>文件，查看文件内容如下：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">I write threadMutex1 line</span><br><span class="line">I write threadMutex2 line</span><br><span class="line">I write threadMutex1 line</span><br><span class="line">I write threadMutex2 line</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">后边的省略 ......</span></span><br></pre></td></tr></table></figure><p>该文件被两个线程共享，两个线程都是写入，使用互斥锁保护共享文件，文件写入正常。</p></div></div></div>
+              </div>
+            </details>
+
+<h1 id="三、互斥锁属性"><a href="#三、互斥锁属性" class="headerlink" title="三、互斥锁属性"></a><font size=3>三、互斥锁属性</font></h1><p>使用<code>pthread_mutex_init()</code>函数初始化互斥锁时可以设置互斥锁的属性，通过参数<code>attr</code>指定。如果将参数<code>attr</code>设置为<code>NULL</code>，则表示将互斥锁属性设置为默认值。如果不使用默认属性，在调用<code>pthread_mutex_init()</code>函数时，参数<code>attr</code>必须要指向一个<code>pthread_mutexattr_t</code>对象，而不能使用<code>NULL</code>。关于互斥锁的属性比较多，例如进程共享属性、健壮属性、类型属性等等，后边用到的会再补充在这篇笔记中。</p>
+<h2 id="1-属性对象初始化"><a href="#1-属性对象初始化" class="headerlink" title="1. 属性对象初始化"></a><font size=3>1. 属性对象初始化</font></h2><h3 id="1-1-pthread-mutexattr-init"><a href="#1-1-pthread-mutexattr-init" class="headerlink" title="1.1 pthread_mutexattr_init() "></a><font size=3>1.1 pthread_mutexattr_init() </font></h3><h4 id="1-1-1-函数说明-1"><a href="#1-1-1-函数说明-1" class="headerlink" title="1.1.1 函数说明"></a><font size=3>1.1.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_mutexattr_init</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_mutexattr_init</span><span class="params">(<span class="type">pthread_mutexattr_t</span> *attr)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数初始化一个互斥锁的<strong>属性对象</strong>（就是自定义创建的互斥锁的各个默认属性）。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>attr</code>：<code>pthread_mutexattr_t *</code>类型，指向需要初始化的<strong>互斥锁属性对象</strong>。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">pthread_mutex_t</span> mutex; <span class="comment">/* 全局变量定义*/</span> </span><br><span class="line"><span class="type">pthread_mutexattr_t</span> attr;<span class="comment">/* 可以是局部变量*/</span></span><br><span class="line"></span><br><span class="line">pthread_mutexattr_init(&amp;attr);   <span class="comment">/* 初始化互斥锁属性对象 */</span></span><br><span class="line">pthread_mutex_init(mutex, &amp;attr);<span class="comment">/* 初始化互斥锁 */</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h4 id="1-1-2-使用实例-1"><a href="#1-1-2-使用实例-1" class="headerlink" title="1.1.2 使用实例"></a><font size=3>1.1.2 使用实例</font></h4><p>暂无。</p>
+<h2 id="2-属性对象销毁"><a href="#2-属性对象销毁" class="headerlink" title="2. 属性对象销毁"></a><font size=3>2. 属性对象销毁</font></h2><h3 id="2-1-pthread-mutexattr-destroy"><a href="#2-1-pthread-mutexattr-destroy" class="headerlink" title="2.1 pthread_mutexattr_destroy() "></a><font size=3>2.1 pthread_mutexattr_destroy() </font></h3><h4 id="2-1-1-函数说明-1"><a href="#2-1-1-函数说明-1" class="headerlink" title="2.1.1 函数说明"></a><font size=3>2.1.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_mutexattr_destroy</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_mutexattr_destroy</span><span class="params">(<span class="type">pthread_mutexattr_t</span> *attr)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于销毁一个不再使用的互斥锁属性对象。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>attr</code>：<code>pthread_mutexattr_t *</code>类型，指向已经初始化过且不需要再使用的<strong>互斥锁属性对象</strong>。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">pthread_mutex_t</span> mutex; <span class="comment">/* 全局变量定义*/</span></span><br><span class="line"><span class="type">pthread_mutexattr_t</span> attr;<span class="comment">/* 可以是局部变量*/</span></span><br><span class="line"><span class="comment">/* 初始化*/</span></span><br><span class="line">pthread_mutexattr_init(&amp;attr);   <span class="comment">/* 初始化互斥锁属性对象 */</span></span><br><span class="line">pthread_mutex_init(mutex, &amp;attr);<span class="comment">/* 初始化互斥锁 */</span></span><br><span class="line"><span class="comment">/* 销毁 */</span> </span><br><span class="line">pthread_mutexattr_destroy(&amp;attr); <span class="comment">/* 销毁互斥锁属性对象 */</span></span><br><span class="line">pthread_mutex_destroy(&amp;mutex);    <span class="comment">/* 销毁互斥锁 */</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h4 id="2-1-2-使用实例-1"><a href="#2-1-2-使用实例-1" class="headerlink" title="2.1.2 使用实例"></a><font size=3>2.1.2 使用实例</font></h4><p>暂无。</p>
+<h2 id="3-类型属性"><a href="#3-类型属性" class="headerlink" title="3. 类型属性"></a><font size=3>3. 类型属性</font></h2><h3 id="3-1-pthread-mutexattr-gettype"><a href="#3-1-pthread-mutexattr-gettype" class="headerlink" title="3.1 pthread_mutexattr_gettype() "></a><font size=3>3.1 pthread_mutexattr_gettype() </font></h3><h4 id="3-1-1-函数说明-1"><a href="#3-1-1-函数说明-1" class="headerlink" title="3.1.1 函数说明"></a><font size=3>3.1.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_mutexattr_destroy</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="comment">/* man 手册函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_mutexattr_gettype</span><span class="params">(<span class="type">const</span> <span class="type">pthread_mutexattr_t</span> *<span class="keyword">restrict</span> attr, <span class="type">int</span> *<span class="keyword">restrict</span> type)</span>;</span><br><span class="line"><span class="comment">/* 一些资料中的声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_mutexattr_gettype</span><span class="params">(<span class="type">const</span> <span class="type">pthread_mutexattr_t</span> *attr, <span class="type">int</span> *type)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>额……，😥又遇到这样声明的一个函数，给我的感觉就像是<code>restrict attr</code>应该有一个下划线一样，类似这样<code>restrict_attr</code>，一些资料中使用的另一种声明，就还是使用自己容易理解的吧，反正传入的参数以及格式都是一样的。</p>
+<p><strong>【函数说明】</strong>该函数获取一个互斥锁的类型属性。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>attr</code>：<code>const pthread_mutexattr_t *</code>类型，指向已经初始化过的<strong>互斥锁属性对象</strong>。</li>
+<li><code>type</code>：<code>int *</code>类型，将互斥锁类型属性保存在参数<code>type</code>所指向的内存中。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">int</span> type;</span><br><span class="line"><span class="type">pthread_mutexattr_t</span> attr;</span><br><span class="line"><span class="comment">/* 初始化*/</span></span><br><span class="line">pthread_mutexattr_init(&amp;attr);   <span class="comment">/* 初始化互斥锁属性对象 */</span></span><br><span class="line">pthread_mutexattr_gettype(&amp;attr, &amp;type);</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h4 id="3-1-2-使用实例-1"><a href="#3-1-2-使用实例-1" class="headerlink" title="3.1.2 使用实例"></a><font size=3>3.1.2 使用实例</font></h4><p>暂无。</p>
+<h3 id="3-2-pthread-mutexattr-settype"><a href="#3-2-pthread-mutexattr-settype" class="headerlink" title="3.2 pthread_mutexattr_settype() "></a><font size=3>3.2 pthread_mutexattr_settype() </font></h3><h4 id="3-2-1-函数说明"><a href="#3-2-1-函数说明" class="headerlink" title="3.2.1 函数说明"></a><font size=3>3.2.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_mutexattr_settype</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_mutexattr_settype</span><span class="params">(<span class="type">pthread_mutexattr_t</span> *attr, <span class="type">int</span> type)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数设置一个互斥锁的类型属性。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>attr</code>：<code>const pthread_mutexattr_t *</code>类型，指向已经初始化过的<strong>互斥锁属性对象</strong>。</li>
+<li><code>type</code>：<code>int</code>类型，将互斥锁类型属性设置为参数<code>type</code>所指向的内存中的值。</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看 type 可取的值 </summary>
+              <div class='content'>
+              <table>    <tr><td align="left" width=150px>PTHREAD_MUTEX_NORMAL    </td><td align="left">一种标准的互斥锁类型，不做任何的错误检查或死锁检测。如果线程试图对已经由自己锁定的互斥锁再次进行加锁，则发生死锁；互斥锁处于未锁定状态，或者已由其它线程锁定，对其解锁会导致不确定结果。</td></tr>    <tr><td align="left" width=150px>PTHREAD_MUTEX_ERRORCHECK</td><td align="left">此类互斥锁会提供错误检查。例如这三种情况都会导致返回错误：线程试图对已经由自己锁定的互斥锁再次进行加锁（同一线程对同一互斥锁加锁两次），返回错误；线程对由其它线程锁定的互斥锁进行解锁，返回错误；线程对处于未锁定状态的互斥锁进行解锁，返回错误。这类互斥锁运行起来比较慢，因为它需要做错误检查，不过可将其作为调试工具，以发现程序哪里违反了互斥锁使用的基本原则。</td></tr>    <tr><td align="left" width=150px>PTHREAD_MUTEX_RECURSIVE </td><td align="left">此类互斥锁允许同一线程在互斥锁解锁之前对该互斥锁进行多次加锁，然后维护互斥锁加锁的次数，把这种互斥锁称为递归互斥锁，但是如果解锁次数不等于加速次数，则是不会释放锁的；所以，如果对一个递归互斥锁加锁两次，然后解锁一次，那么这个互斥锁依然处于锁定状态，对它再次进行解锁之前不会释放该锁。</td></tr>    <tr><td align="left" width=150px>PTHREAD_MUTEX_DEFAULT   </td><td align="left">此类互斥锁提供默认的行为和特性。使用宏PTHREAD_MUTEX_INITIALIZER初始化的互斥锁，或者调用参数arg为NULL的pthread_mutexattr_init()函数所创建的互斥锁，都属于此类型。此类锁意在为互斥锁的实现保留最大灵活性，Linux上，PTHREAD_MUTEX_DEFAULT类型互斥锁的行为与PTHREAD_MUTEX_NORMAL类型相仿。</td></tr></table>
+              </div>
+            </details>
+
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">pthread_mutexattr_t</span> attr;</span><br><span class="line"><span class="comment">/* 初始化*/</span></span><br><span class="line">pthread_mutexattr_init(&amp;attr);   <span class="comment">/* 初始化互斥锁属性对象 */</span></span><br><span class="line">pthread_mutexattr_settype(&amp;attr, PTHREAD_MUTEX_NORMAL);<span class="comment">/* 将类型属性设置为PTHREAD_MUTEX_NORMAL */</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h4 id="3-2-2-使用实例"><a href="#3-2-2-使用实例" class="headerlink" title="3.2.2 使用实例"></a><font size=3>3.2.2 使用实例</font></h4><p>暂无。</p>
+<h3 id="3-3-类型设置实例"><a href="#3-3-类型设置实例" class="headerlink" title="3.3 类型设置实例"></a><font size=3>3.3 类型设置实例</font></h3><details class="folding-tag" blue><summary> 点击查看实例 </summary>
+              <div class='content'>
+              <figure class="highlight c"><figcaption><span>test.c</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">pthread_mutex_t</span> mutex; <span class="comment">/* 互斥锁对象定义 */</span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> type;</span><br><span class="line">	<span class="type">pthread_mutexattr_t</span> attr;<span class="comment">/* 互斥锁属性对象定义 */</span></span><br><span class="line">	<span class="comment">/* 初始化互斥锁属性对象 */</span></span><br><span class="line">	pthread_mutexattr_init(&amp;attr);</span><br><span class="line">	<span class="comment">/* 获取互斥锁类型 */</span></span><br><span class="line">	pthread_mutexattr_gettype(&amp;attr, &amp;type);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;mutex type:%d\n&quot;</span>, type);</span><br><span class="line">	<span class="comment">/* 设置互斥锁类型 */</span></span><br><span class="line">	pthread_mutexattr_settype(&amp;attr, PTHREAD_MUTEX_ERRORCHECK);</span><br><span class="line">	pthread_mutexattr_gettype(&amp;attr, &amp;type);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;mutex type:%d\n&quot;</span>, type);</span><br><span class="line">	<span class="comment">/* 初始化互斥锁 */</span></span><br><span class="line">	pthread_mutex_init(&amp;mutex, &amp;attr);</span><br><span class="line">	</span><br><span class="line">	<span class="comment">/* 销毁互斥锁属性对象和互斥锁对象 */</span></span><br><span class="line">	pthread_mutexattr_destroy(&amp;attr); </span><br><span class="line">	pthread_mutex_destroy(&amp;mutex);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -Wall -lpthread # 生成可执行文件 a.out</span><br><span class="line">./a.out # 执行可执行文件</span><br></pre></td></tr></table></figure><p>然后，终端会有以下信息显示：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mutex type:0</span><br><span class="line">mutex type:2</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<h1 id="四、互斥锁死锁"><a href="#四、互斥锁死锁" class="headerlink" title="四、互斥锁死锁"></a><font size=3>四、互斥锁死锁</font></h1><h2 id="1-死锁的概念"><a href="#1-死锁的概念" class="headerlink" title="1. 死锁的概念"></a><font size=3>1. 死锁的概念</font></h2><p>有的时候，一个线程需要同时访问两个或更多不同的共享资源，而每个资源又由不同的互斥锁管理。当超过一个线程对同一组互斥锁（两个或两个以上的互斥锁）进行加锁时，就有可能发生死锁。例如，程序中使用一个以上的互斥锁，如果允许一个线程一直占有第一个互斥锁，并且在试图锁住第二个互斥锁时处于阻塞状态，但是拥有第二个互斥锁的线程也在试图锁住第一个互斥锁。因为两个线程都在相互请求另一个线程拥有的资源，所以这两个线程都无法向前运行，会被一直阻塞，于是就产生了死锁。</p>
+<p>看到过一个比较容易懂的例子，就是这样：小林拿了小美房间的钥匙，而小林在自己的房间里，小美拿了小林房间的钥匙，而小美也在自己的房间里。如果小林要从自己的房间里出去，必须拿到小美手中的钥匙，但是小美要出去，又必须拿到小林手中的钥匙，这就形成了死锁。</p>
+<p>再来看一个代码的实例：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 线程1 */</span></span><br><span class="line">pthread_mutex_lock(mutex1); </span><br><span class="line">pthread_mutex_lock(mutex2); </span><br><span class="line"></span><br><span class="line"><span class="comment">/* 线程2 */</span></span><br><span class="line">pthread_mutex_lock(mutex2); </span><br><span class="line">pthread_mutex_lock(mutex1);</span><br></pre></td></tr></table></figure>
+
+<p>对于线程<code>1</code>，它目前持有<code>mutex1</code>互斥锁，所以其他线程想要使用互斥锁<code>mutex1</code>加锁的共享资源<code>1</code>时，就必须等待线程<code>1</code>释放<code>mutex1</code>互斥锁。</p>
+<p>对于线程<code>2</code>，它目前持有<code>mutex2</code>互斥锁，所以其他线程想要使用互斥锁<code>mutex2</code>加锁的共享资源<code>2</code>时，就必须等待线程<code>2</code>释放<code>mutex1</code>互斥锁。</p>
+<p>现在线程<code>1</code>持有互斥锁<code>mutex1</code>加锁的共享资源<code>1</code>时，又想要获取被线程<code>2</code>加锁的共享资源<code>2</code>，于是，它只能阻塞等待，这就导致了互斥锁<code>1</code>无法释放，共享资源<code>1</code>无法被线程<code>2</code>访问。</p>
+<p>但是呢，线程<code>2</code>持有互斥锁<code>mutex2</code>加锁的共享资源<code>2</code>时，又想要获取被线程<code>1</code>加锁的共享资源<code>1</code>，于是，它也只能阻塞等待，这就导致了互斥锁<code>2</code>无法释放，共享资源<code>2</code>无法被线程<code>1</code>访问。</p>
+<p>于是两者都在等对方先释放资源，你不动，我也不动，于是，死锁产生了… …</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-02-%E4%BA%92%E6%96%A5%E9%94%81/img/image-20220525192312305.png" alt="image-20220525192312305" style="zoom: 50%;" />
+
+<h2 id="2-死锁发生的条件"><a href="#2-死锁发生的条件" class="headerlink" title="2. 死锁发生的条件"></a><font size=3>2. 死锁发生的条件</font></h2><p>死锁只有<strong>同时满足</strong>以下四个条件才会发生：</p>
+<ul>
+<li>互斥条件</li>
+<li>持有并等待条件</li>
+<li>不可剥夺条件</li>
+<li>环路等待条件</li>
+</ul>
+<h3 id="2-1-互斥条件"><a href="#2-1-互斥条件" class="headerlink" title="2.1 互斥条件"></a><font size=3>2.1 互斥条件</font></h3><p>互斥条件是指多个线程不能同时使用同一个资源。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-02-%E4%BA%92%E6%96%A5%E9%94%81/img/image-20220525195411645.png" alt="image-20220525195411645" style="zoom:50%;" />
+
+<p>如果线程 <code>1</code> 已经持有的资源，不能再同时被线程 <code>2</code> 持有，如果线程 <code>2</code> 请求获取线程 <code>1</code> 已经占用的资源，那线程 <code>2</code> 只能等待，直到线程 <code>1</code> 释放了资源。</p>
+<h3 id="2-2-持有并等待条件"><a href="#2-2-持有并等待条件" class="headerlink" title="2.2 持有并等待条件"></a><font size=3>2.2 持有并等待条件</font></h3><p>持有并等待条件是指，当线程 <code>1</code> 已经持有了共享资源 <code>1</code>，又想申请共享资源 <code>2</code>，而共享资源 <code>2</code> 已经被线程 <code>3</code> 持有了，所以线程 <code>1</code> 就会处于等待状态，但是线程 <code>1</code> 在等待共享资源 <code>2</code> 的同时并不会释放自己已经持有的共享资源 <code>1</code>。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-02-%E4%BA%92%E6%96%A5%E9%94%81/img/image-20220525204903020.png" alt="image-20220525204903020" style="zoom:50%;" />
+
+<h3 id="2-3-不可剥夺条件"><a href="#2-3-不可剥夺条件" class="headerlink" title="2.3 不可剥夺条件"></a><font size=3>2.3 不可剥夺条件</font></h3><p>不可剥夺条件是指，当线程已经持有了资源 ，在自己使用完之前不能被其他线程获取，线程 <code>2</code> 如果也想使用此共享资源，则只能在线程 <code>1</code> 使用完并释放后才能获取。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-02-%E4%BA%92%E6%96%A5%E9%94%81/img/image-20220525205314854.png" alt="image-20220525205314854" style="zoom:50%;" />
+
+<h3 id="2-4-环路等待条件"><a href="#2-4-环路等待条件" class="headerlink" title="2.4 环路等待条件"></a><font size=3>2.4 环路等待条件</font></h3><p>环路等待条件指都是，在死锁发生的时候，两个线程获取资源的顺序构成了环形链。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-02-%E4%BA%92%E6%96%A5%E9%94%81/img/image-20220525205842280.png" alt="image-20220525205842280" style="zoom:50%;" />
+
+<p>比如，线程 <code>1</code> 已经持有共享资源 <code>2</code>，而想请求资源 <code>1</code>， 线程 <code>2</code> 已经获取了共享资源 <code>1</code>，而想请求共享资源 <code>2</code>，这就形成共享资源请求等待的环形图。</p>
+<h2 id="3-死锁产生实例"><a href="#3-死锁产生实例" class="headerlink" title="3. 死锁产生实例"></a><font size=3>3. 死锁产生实例</font></h2><details class="folding-tag" blue><summary> 点击查看实例 </summary>
+              <div class='content'>
+              <figure class="highlight c"><figcaption><span>test.c</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span> </span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span><span class="comment">/* pthread_create pthread_exit */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span> <span class="comment">/* sleep */</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">pthread_mutex_t</span> mutex1 = PTHREAD_MUTEX_INITIALIZER;</span><br><span class="line"><span class="type">pthread_mutex_t</span> mutex2 = PTHREAD_MUTEX_INITIALIZER;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadMutex1</span><span class="params">(<span class="type">void</span> *arg)</span>;</span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadMutex2</span><span class="params">(<span class="type">void</span> *arg)</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> ret;</span><br><span class="line">	<span class="type">pthread_t</span> tid1;</span><br><span class="line">	<span class="type">pthread_t</span> tid2;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 1. 创建两个线程 */</span></span><br><span class="line">	ret = pthread_create(&amp;tid1, <span class="literal">NULL</span>, threadMutex1, (<span class="type">void</span> *)<span class="number">1</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is threadMutex1 thread create,ret=%d,tid1=%lu\n&quot;</span>, ret, tid1);</span><br><span class="line">	ret = pthread_create(&amp;tid2, <span class="literal">NULL</span>, threadMutex2, (<span class="type">void</span> *)<span class="number">2</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is threadMutex2 thread create,ret=%d,tid2=%lu\n&quot;</span>, ret, tid2);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;main process PID:%d\n&quot;</span>, getpid());</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		sleep(<span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadMutex1</span><span class="params">(<span class="type">void</span> *arg)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">	<span class="comment">/* 设置线程分离，结束后自动回收 */</span></span><br><span class="line">	pthread_detach(pthread_self());</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is a threadMutex1 test!\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		pthread_mutex_lock(&amp;mutex1);</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;%d,I got lock1!\n&quot;</span>,(<span class="type">int</span>)arg);</span><br><span class="line">        sleep(<span class="number">1</span>);</span><br><span class="line">        pthread_mutex_lock(&amp;mutex2);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;%d,I got lock2!\n&quot;</span>,(<span class="type">int</span>)arg);</span><br><span class="line">		</span><br><span class="line">		pthread_mutex_unlock(&amp;mutex2);</span><br><span class="line">		pthread_mutex_unlock(&amp;mutex1);</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;threadMutex1:i = %d\n&quot;</span>, i++);</span><br><span class="line">		sleep(<span class="number">5</span>);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	pthread_exit(<span class="string">&quot;threadMutex1 exit!&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadMutex2</span><span class="params">(<span class="type">void</span> *arg)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">	<span class="comment">/* 设置线程分离，结束后自动回收 */</span></span><br><span class="line">	pthread_detach(pthread_self());</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is a threadMutex1 test!\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		pthread_mutex_lock(&amp;mutex2);</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;%d,I got lock2!\n&quot;</span>,(<span class="type">int</span>)arg);</span><br><span class="line">        sleep(<span class="number">1</span>);</span><br><span class="line">        pthread_mutex_lock(&amp;mutex1);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;%d,I got lock1!\n&quot;</span>,(<span class="type">int</span>)arg);</span><br><span class="line">		</span><br><span class="line">		pthread_mutex_unlock(&amp;mutex1);</span><br><span class="line">		pthread_mutex_unlock(&amp;mutex2);</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;threadMutex1:i = %d\n&quot;</span>, i++);</span><br><span class="line">		sleep(<span class="number">5</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	pthread_exit(<span class="string">&quot;threadMutex1 exit!&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -Wall -l pthread # 生成可执行文件 a.out </span><br><span class="line">./a.out # 执行可执行程序</span><br></pre></td></tr></table></figure><p>然后，终端会有以下信息显示：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">This is threadMutex1 thread create,ret=0,tid1=139650389415488</span><br><span class="line">This is threadMutex2 thread create,ret=0,tid2=139650381022784</span><br><span class="line">main process PID:14067</span><br><span class="line">This is a threadMutex1 test!</span><br><span class="line">2,I got lock2!</span><br><span class="line">This is a threadMutex1 test!</span><br><span class="line">1,I got lock1!</span><br></pre></td></tr></table></figure><p>然后程序就卡住了，不会继续运行了，这就是产生了死锁问题。</p>
+              </div>
+            </details>
+
+<h2 id="4-如何排查死锁问题？"><a href="#4-如何排查死锁问题？" class="headerlink" title="4. 如何排查死锁问题？"></a><font size=3>4. 如何排查死锁问题？</font></h2><p>在 <code>Linux</code> 下，我们可以使用 <code>pstack</code> 和 <code>GDB</code> 调试工具来定位死锁问题，主要是还是查看各个函数的堆栈的信息来判断。</p>
+<h3 id="4-1-pstack-的使用"><a href="#4-1-pstack-的使用" class="headerlink" title="4.1 pstack 的使用"></a><font size=3>4.1 pstack 的使用</font></h3><p><code>pstack</code> 命令可以显示每个线程的栈跟踪信息（函数调用过程），它的使用格式：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo pstack &lt;pid&gt;</span><br></pre></td></tr></table></figure>
+
+<p>【注意事项】<code>pstack</code>安装完毕后使用可能会有问题，具体解决办法可以查看这篇文章：<a target="_blank" rel="noopener" href="https://qidaink.gitee.io/post/f7d395c.html#3-5%E6%9F%A5%E7%9C%8B%E8%BF%9B%E7%A8%8B%E5%A0%86%E6%A0%88%EF%BC%9Apstack">【Linux】LV2-02-Linux文件系统与基础命令 | 繁華落尽 (gitee.io)  <i class="fa fa-external-link-alt"></i> </a></p>
+<p>还是使用上边的死锁例程，我们运行进程后，重新开一个终端，多执行几次<code>pstack</code>命令，会发现显示的内容都差不多，都会有<code>__lll_lock_wait ()</code>这样一句，这便可以初步判定程序有某个地方一直处于锁定等待状态。不过这里有很多的<code>?</code>，暂时还不清楚是什么，不过具体的，后边会再通过<code>GDB</code>确定，这里只需要大概判断出可能有死锁问题就可以了：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">Thread 3 (LWP 14824 &quot;a.out&quot;):</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">0  0x00007f2f4eb6dff0 <span class="keyword">in</span> __lll_lock_wait () from /lib/x86_64-linux-gnu/libpthread.so.0</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">1  0x00007f2f4eb66733 <span class="keyword">in</span> pthread_mutex_lock () from /lib/x86_64-linux-gnu/libpthread.so.0</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">2  0x00007ffd15297cde <span class="keyword">in</span> ?? ()</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">3  0x00005592ec341040 <span class="keyword">in</span> ?? ()</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">4  0x0000000000000000 <span class="keyword">in</span> ?? ()</span></span><br><span class="line">Thread 2 (LWP 14823 &quot;a.out&quot;):</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">0  0x00007f2f4eb6dff0 <span class="keyword">in</span> __lll_lock_wait () from /lib/x86_64-linux-gnu/libpthread.so.0</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">1  0x00007f2f4eb66733 <span class="keyword">in</span> pthread_mutex_lock () from /lib/x86_64-linux-gnu/libpthread.so.0</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">2  0x00007ffd15297cde <span class="keyword">in</span> ?? ()</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">3  0x00005592ec341080 <span class="keyword">in</span> ?? ()</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">4  0x0000000000000000 <span class="keyword">in</span> ?? ()</span></span><br><span class="line">Thread 1 (LWP 14822 &quot;a.out&quot;):</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">0  0x00007f2f4ea475df <span class="keyword">in</span> clock_nanosleep () from /lib/x86_64-linux-gnu/libc.so.6</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">1  0x0000000000008000 <span class="keyword">in</span> ?? ()</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">2  0x0000000000000000 <span class="keyword">in</span> ?? ()</span></span><br></pre></td></tr></table></figure>
+
+<p>不过呢，我们也可以不用<code>pstack</code>命令，其实我们可以直接使用<code>GDB</code>来打印所有线程的堆栈信息，找到系统中<code>pstack</code>的执行脚本，打开之后就会发现，它其实也就是一个<code>Shell</code>脚本，在脚本中使用<code>GDB</code>进行了堆栈信息的打印。</p>
+<h3 id="4-2-GDB-的使用"><a href="#4-2-GDB-的使用" class="headerlink" title="4.2 GDB 的使用"></a><font size=3>4.2 GDB 的使用</font></h3><p>接下来我们就来使用<code>GDB</code>调试工具一步一步的分析死锁发生的问题吧。</p>
+<ul>
+<li>（1）开启进程调试</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$</span><span class="language-bash">sudo gdb -p 14822 <span class="comment"># 需要有管理员权限才可以</span></span></span><br></pre></td></tr></table></figure>
+
+<p>这里和之前不同，<code>-p</code>参数后边跟着的是我们要调试的进程的<code>PID</code>，还需要有<code>root</code>权限才能正常开启调试，然后便会进入<code>GDB</code>调试界面。</p>
+<ul>
+<li>（2）打印所有线程堆栈信息</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(gdb) thread apply all bt</span><br></pre></td></tr></table></figure>
+
+<details class="folding-tag" blue><summary> 点击查看打印信息 </summary>
+              <div class='content'>
+              <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">Thread 3 (LWP 14824 &quot;a.out&quot;):</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">0  futex_wait (private=0, expected=2, futex_word=0x5592ec341040 &lt;mutex1&gt;) at ../sysdeps/nptl/futex-internal.h:146</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">1  __lll_lock_wait (futex=futex@entry=0x5592ec341040 &lt;mutex1&gt;, private=0) at lowlevellock.c:52</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">2  0x00007f2f4eb66733 <span class="keyword">in</span> __GI___pthread_mutex_lock (mutex=0x5592ec341040 &lt;mutex1&gt;) at ../nptl/pthread_mutex_lock.c:80</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">3  0x00005592ec33e42f <span class="keyword">in</span> threadMutex2 (arg=0x2) at test.c:68</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">4  0x00007f2f4eb64450 <span class="keyword">in</span> start_thread (arg=0x7f2f4e16a640) at pthread_create.c:473</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">5  0x00007f2f4ea86d53 <span class="keyword">in</span> <span class="built_in">clone</span> () at ../sysdeps/unix/sysv/linux/x86_64/clone.S:95</span></span><br><span class="line"></span><br><span class="line">Thread 2 (LWP 14823 &quot;a.out&quot;):</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">0  futex_wait (private=0, expected=2, futex_word=0x5592ec341080 &lt;mutex2&gt;) at ../sysdeps/nptl/futex-internal.h:146</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">1  __lll_lock_wait (futex=futex@entry=0x5592ec341080 &lt;mutex2&gt;, private=0) at lowlevellock.c:52</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">2  0x00007f2f4eb66733 <span class="keyword">in</span> __GI___pthread_mutex_lock (mutex=0x5592ec341080 &lt;mutex2&gt;) at ../nptl/pthread_mutex_lock.c:80</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">3  0x00005592ec33e36c <span class="keyword">in</span> threadMutex1 (arg=0x1) at test.c:43</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">4  0x00007f2f4eb64450 <span class="keyword">in</span> start_thread (arg=0x7f2f4e96b640) at pthread_create.c:473</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">5  0x00007f2f4ea86d53 <span class="keyword">in</span> <span class="built_in">clone</span> () at ../sysdeps/unix/sysv/linux/x86_64/clone.S:95</span></span><br><span class="line"></span><br><span class="line">Thread 1 (LWP 14822 &quot;a.out&quot;):</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">0  0x00007f2f4ea475df <span class="keyword">in</span> __GI___clock_nanosleep (clock_id=clock_id@entry=0, flags=flags@entry=0, req=req@entry=0x7ffd15297db0, rem=rem@entry=0x7ffd15297db0) at ../sysdeps/unix/sysv/linux/clock_nanosleep.c:73</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">1  0x00007f2f4ea4cac7 <span class="keyword">in</span> __GI___nanosleep (req=req@entry=0x7ffd15297db0, rem=rem@entry=0x7ffd15297db0) at ../sysdeps/unix/sysv/linux/nanosleep.c:25</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">2  0x00007f2f4ea4c9fe <span class="keyword">in</span> __sleep (seconds=0) at ../sysdeps/posix/sleep.c:55</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">3  0x00005592ec33e301 <span class="keyword">in</span> main (argc=1, argv=0x7ffd15297f18) at test.c:26</span></span><br></pre></td></tr></table></figure><p>可以看到，上边有两个线程中均显示有<code>__lll_lock_wait</code>，其实这一步就可以确定是发生了死锁的。</p>
+              </div>
+            </details>
+
+<ul>
+<li>（3）显示所有线程信息</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(gdb) info thread</span><br></pre></td></tr></table></figure>
+
+<p>可以看到打印信息如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">  Id   Target Id         Frame </span><br><span class="line">* 1    LWP 14822 &quot;a.out&quot; 0x00007f2f4ea475df in __GI___clock_nanosleep (clock_id=clock_id@entry=0, flags=flags@entry=0, req=req@entry=0x7ffd15297db0, </span><br><span class="line">    rem=rem@entry=0x7ffd15297db0) at ../sysdeps/unix/sysv/linux/clock_nanosleep.c:73</span><br><span class="line">  2    LWP 14823 &quot;a.out&quot; futex_wait (private=0, expected=2, futex_word=0x5592ec341080 &lt;mutex2&gt;) at ../sysdeps/nptl/futex-internal.h:146</span><br><span class="line">  3    LWP 14824 &quot;a.out&quot; futex_wait (private=0, expected=2, futex_word=0x5592ec341040 &lt;mutex1&gt;) at ../sysdeps/nptl/futex-internal.h:146</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>（4）切换到第二个线程</li>
+</ul>
+<p>这里主要是先随便找一个，以便于后边确定线程名称以及对应的线程号。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(gdb) thread 2</span><br></pre></td></tr></table></figure>
+
+<p>可以看到打印信息如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[Switching to thread 2 (LWP 14823)]</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">0  futex_wait (private=0, expected=2, futex_word=0x5592ec341080 &lt;mutex2&gt;) at ../sysdeps/nptl/futex-internal.h:146</span></span><br><span class="line">146	../sysdeps/nptl/futex-internal.h: 没有那个文件或目录.</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>（5）打印这个线程堆栈信息</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(gdb) bt</span><br></pre></td></tr></table></figure>
+
+<p>可以看到打印信息如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">0  futex_wait (private=0, expected=2, futex_word=0x5592ec341080 &lt;mutex2&gt;) at ../sysdeps/nptl/futex-internal.h:146</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">1  __lll_lock_wait (futex=futex@entry=0x5592ec341080 &lt;mutex2&gt;, private=0) at lowlevellock.c:52</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">2  0x00007f2f4eb66733 <span class="keyword">in</span> __GI___pthread_mutex_lock (mutex=0x5592ec341080 &lt;mutex2&gt;) at ../nptl/pthread_mutex_lock.c:80</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">3  0x00005592ec33e36c <span class="keyword">in</span> threadMutex1 (arg=0x1) at test.c:43</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">4  0x00007f2f4eb64450 <span class="keyword">in</span> start_thread (arg=0x7f2f4e96b640) at pthread_create.c:473</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">5  0x00007f2f4ea86d53 <span class="keyword">in</span> <span class="built_in">clone</span> () at ../sysdeps/unix/sysv/linux/x86_64/clone.S:95</span></span><br></pre></td></tr></table></figure>
+
+<p>看到打印信息中有<code>threadMutex1</code>可以知道，这是线程<code>threadMutex1</code>的函数，也就是说<code>(LWP 14823)</code>是线程<code>threadMutex1</code>，同样的方法可以确定，<code>(LWP 14824)</code>是线程<code>threadMutex2</code>。</p>
+<ul>
+<li>（6）打印调用栈中的第三个帧的信息</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(gdb) frame 3</span><br></pre></td></tr></table></figure>
+
+<p>可以看到打印信息如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">3  0x00005592ec33e36c <span class="keyword">in</span> threadMutex1 (arg=0x1) at test.c:43</span></span><br><span class="line">43	        pthread_mutex_lock(&amp;mutex2);</span><br></pre></td></tr></table></figure>
+
+<p>可以看到线程 <code>threadMutex1</code> 函数，在获取互斥锁 <code>mutex2</code> 的时候阻塞了。</p>
+<ul>
+<li>（7）打印互斥锁<code>mutex2</code>对象信息</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(gdb) p mutex2</span><br></pre></td></tr></table></figure>
+
+<p>可以看到打印信息如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$</span><span class="language-bash">1 = &#123;__data = &#123;__lock = 2, __count = 0, __owner = 14824, __nusers = 1, __kind = 0, __spins = 0, __elision = 0, __list = &#123;__prev = 0x0, __next = 0x0&#125;&#125;,</span> </span><br><span class="line">  __size = &quot;\002\000\000\000\000\000\000\000\350\071\000\000\001&quot;, &#x27;\000&#x27; &lt;repeats 26 times&gt;, __align = 2&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到它被 <code>LWP</code> 为 <code>14824</code>（线程 <code>threadMutex2</code>） 的线程持有着。</p>
+<ul>
+<li>（8）打印互斥锁<code>mutex1</code>对象信息</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(gdb) p mutex1</span><br></pre></td></tr></table></figure>
+
+<p>可以看到打印信息如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$</span><span class="language-bash">2 = &#123;__data = &#123;__lock = 2, __count = 0, __owner = 14823, __nusers = 1, __kind = 0, __spins = 0, __elision = 0, __list = &#123;__prev = 0x0, __next = 0x0&#125;&#125;,</span> </span><br><span class="line">  __size = &quot;\002\000\000\000\000\000\000\000\347\071\000\000\001&quot;, &#x27;\000&#x27; &lt;repeats 26 times&gt;, __align = 2&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到它被 <code>LWP</code> 为 <code>14823</code>（线程 <code>threadMutex1</code>） 的线程持有着。</p>
+<p>经过以上分析，可知线程<code>threadMutex1</code>在等待线程<code>threadMutex2</code>所赐持有的<code>mutex2</code>，而线程<code>threadMutex2</code>在等待线程<code>threadMutex1</code>所赐持有的<code>mutex1</code>，由此可以判断产生了死锁。</p>
+<h2 id="5-避免死锁"><a href="#5-避免死锁" class="headerlink" title="5. 避免死锁"></a><font size=3>5. 避免死锁</font></h2><p>产生死锁的四个必要条件是：互斥条件、持有并等待条件、不可剥夺条件、环路等待条件。那么避免死锁问题就只需要破环其中一个条件就可以，最常见的并且可行的就是定义互斥锁的层级关系，来破环环路等待条件。</p>
+<p>线程 <code>1</code> 和 线程 <code>2</code> 获取资源的顺序要一样，当线程 <code>1</code> 是先尝试获取共享资源<code>1</code>，然后尝试获取共享资源<code>2</code> 的时候，线程 <code>2</code> 同样也是先尝试获取共享资源<code>1</code>，然后尝试获取共享资源<code>2</code>。也就是说，线程<code>1</code> 和 线程 <code>2</code> 总是以相同的顺序申请自己想要的资源。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-03-%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5-02-%E4%BA%92%E6%96%A5%E9%94%81/img/image-20220526072940980.png" alt="image-20220526072940980" style="zoom: 50%;" />
+
+<p>所以上边死锁的例子可以修改如下：</p>
+<details class="folding-tag" blue><summary> 点击查看实例 </summary>
+              <div class='content'>
+              <figure class="highlight c"><figcaption><span>test.c</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span> </span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span><span class="comment">/* pthread_create pthread_exit */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span> <span class="comment">/* sleep */</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">pthread_mutex_t</span> mutex1 = PTHREAD_MUTEX_INITIALIZER;</span><br><span class="line"><span class="type">pthread_mutex_t</span> mutex2 = PTHREAD_MUTEX_INITIALIZER;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadMutex1</span><span class="params">(<span class="type">void</span> *arg)</span>;</span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadMutex2</span><span class="params">(<span class="type">void</span> *arg)</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> ret;</span><br><span class="line">	<span class="type">pthread_t</span> tid1;</span><br><span class="line">	<span class="type">pthread_t</span> tid2;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 1. 创建两个线程 */</span></span><br><span class="line">	ret = pthread_create(&amp;tid1, <span class="literal">NULL</span>, threadMutex1, (<span class="type">void</span> *)<span class="number">1</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is threadMutex1 thread create,ret=%d,tid1=%lu\n&quot;</span>, ret, tid1);</span><br><span class="line">	ret = pthread_create(&amp;tid2, <span class="literal">NULL</span>, threadMutex2, (<span class="type">void</span> *)<span class="number">2</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is threadMutex2 thread create,ret=%d,tid2=%lu\n&quot;</span>, ret, tid2);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;main process PID:%d\n&quot;</span>, getpid());</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		sleep(<span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadMutex1</span><span class="params">(<span class="type">void</span> *arg)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">	<span class="comment">/* 设置线程分离，结束后自动回收 */</span></span><br><span class="line">	pthread_detach(pthread_self());</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is a threadMutex1 test!\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		pthread_mutex_lock(&amp;mutex1);</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;%d,I got lock1!\n&quot;</span>,(<span class="type">int</span>)arg);</span><br><span class="line">        sleep(<span class="number">1</span>);</span><br><span class="line">        pthread_mutex_lock(&amp;mutex2);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;%d,I got lock2!\n&quot;</span>,(<span class="type">int</span>)arg);</span><br><span class="line">		</span><br><span class="line">		pthread_mutex_unlock(&amp;mutex2);</span><br><span class="line">		pthread_mutex_unlock(&amp;mutex1);</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;threadMutex1:i = %d\n&quot;</span>, i++);</span><br><span class="line">		sleep(<span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	pthread_exit(<span class="string">&quot;threadMutex1 exit!&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> *<span class="title function_">threadMutex2</span><span class="params">(<span class="type">void</span> *arg)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">	<span class="comment">/* 设置线程分离，结束后自动回收 */</span></span><br><span class="line">	pthread_detach(pthread_self());</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is a threadMutex1 test!\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		pthread_mutex_lock(&amp;mutex1);</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;%d,I got lock1!\n&quot;</span>,(<span class="type">int</span>)arg);</span><br><span class="line">        sleep(<span class="number">1</span>);</span><br><span class="line">        pthread_mutex_lock(&amp;mutex2);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;%d,I got lock2!\n&quot;</span>,(<span class="type">int</span>)arg);</span><br><span class="line">		</span><br><span class="line">		pthread_mutex_unlock(&amp;mutex2);</span><br><span class="line">		pthread_mutex_unlock(&amp;mutex1);</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;threadMutex1:i = %d\n&quot;</span>, i++);</span><br><span class="line">		sleep(<span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	pthread_exit(<span class="string">&quot;threadMutex1 exit!&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -Wall -l pthread # 生成可执行文件 a.out </span><br><span class="line">./a.out # 执行可执行程序</span><br></pre></td></tr></table></figure><p>然后，终端会有以下信息显示：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">This is threadMutex1 thread create,ret=0,tid1=139952005150272</span><br><span class="line">This is threadMutex2 thread create,ret=0,tid2=139951996757568</span><br><span class="line">main process PID:17452</span><br><span class="line">This is a threadMutex1 test!</span><br><span class="line">2,I got lock1!</span><br><span class="line">This is a threadMutex1 test!</span><br><span class="line">2,I got lock2!</span><br><span class="line">threadMutex1:i = 0</span><br><span class="line">1,I got lock1!</span><br><span class="line">1,I got lock2!</span><br><span class="line">threadMutex1:i = 0</span><br><span class="line">2,I got lock1!</span><br><span class="line">2,I got lock2!</span><br><span class="line">threadMutex1:i = 1</span><br><span class="line">1,I got lock1!</span><br><span class="line">1,I got lock2!</span><br><span class="line">threadMutex1:i = 1</span><br><span class="line">2,I got lock1!</span><br><span class="line">2,I got lock2!</span><br><span class="line">threadMutex1:i = 2</span><br><span class="line">1,I got lock1!</span><br><span class="line">1,I got lock2!</span><br><span class="line">threadMutex1:i = 2</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">后边的省略 ... ...</span></span><br></pre></td></tr></table></figure><p>这样程序就正常运行了。</p>
+              </div>
+            </details>
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/d611e088.html">LV05-03-线程同步-02-互斥锁</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年07月02日 - 21:52</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/d611e088.html" title="LV05-03-线程同步-02-互斥锁">https://sumumm.github.io/post/d611e088.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" rel="tag"><i class="fa fa-tag"></i> LV05-操作系统</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/9629078.html" rel="prev" title="LV05-03-线程同步-03-自旋锁">
+                  <i class="fa fa-angle-left"></i> LV05-03-线程同步-03-自旋锁
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/ca2dc020.html" rel="next" title="LV05-03-线程同步-01-线程同步基础">
+                  LV05-03-线程同步-01-线程同步基础 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

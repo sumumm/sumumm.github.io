@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是攻克视频技术课程视频传输和网络对抗——RTP &amp; RTCP：如何正确地将视频装进RTP中？的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV04-视频传输和网络对抗-01-RTP与RTCP">
+<meta property="og:url" content="https://sumumm.github.io/post/a2e73b6c.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是攻克视频技术课程视频传输和网络对抗——RTP &amp; RTCP：如何正确地将视频装进RTP中？的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/143a86a6aef7f664beca7268f58e99e6.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/3b724acdcb5a69f3c1831591be49ca52.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/8346b7d062d6e18c1700603a2dd1a5cf.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/c3e2f8185a38c0746be0c0dbd6b52073.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/12961a82dca32ea3f1d760b4674fbf91.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/3d4845a261ef2f7e0683d8a81522ab9b.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/16ec78c30e2760fab5a34a74524663c2.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/5a27c25b87c3fcb2be2a396f59ecb2a6.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/bb5498a2d629d5c754920d62d401c5c3.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/9ceee0961afe0be20a20f663fbf932c8.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/d50ff5960768966518f9dafdac33a463.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/e3590b35793907d565293bf592c514bd.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/1402a1e69a71d1d9dff7b4f40920907b.jpg">
+<meta property="article:published_time" content="2024-01-30T23:44:40.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.065Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="极客时间-攻克视频技术">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/143a86a6aef7f664beca7268f58e99e6.jpg">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/a2e73b6c.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/a2e73b6c.html","path":"post/a2e73b6c.html","title":"LV04-视频传输和网络对抗-01-RTP与RTCP"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV04-视频传输和网络对抗-01-RTP与RTCP | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81RTP-%E5%8D%8F%E8%AE%AE"><span class="nav-text">一、RTP 协议</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-RTP-%E5%8C%85%E7%9A%84%E5%A4%B4%E9%83%A8"><span class="nav-text">1. RTP 包的头部</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-RTP%E9%80%9A%E7%94%A8%E5%A4%B4%E9%83%A8%E6%89%A9%E5%B1%95"><span class="nav-text">2. RTP通用头部扩展 </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-One-Byte-Header"><span class="nav-text">2.1 One-Byte Header</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-Two-Byte-Header"><span class="nav-text">2.2 Two-Byte Header</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%80%BB%E7%BB%93"><span class="nav-text">3. 总结</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81RTCP-%E5%8D%8F%E8%AE%AE"><span class="nav-text">二、RTCP 协议</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81H264-RTP%E6%89%93%E5%8C%85"><span class="nav-text">三、H264 RTP打包</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%8D%95-NALU-%E5%B0%81%E5%8C%85%E6%96%B9%E5%BC%8F"><span class="nav-text">1. 单 NALU 封包方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%BB%84%E5%90%88%E5%B0%81%E5%8C%85%E6%96%B9%E5%BC%8F"><span class="nav-text">2. 组合封包方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%88%86%E7%89%87%E5%B0%81%E5%8C%85%E6%96%B9%E5%BC%8F"><span class="nav-text">3. 分片封包方式</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E5%B0%8F%E7%BB%93"><span class="nav-text">四、小结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/a2e73b6c.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV04-视频传输和网络对抗-01-RTP与RTCP | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV04-视频传输和网络对抗-01-RTP与RTCP
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-01-31 07:44:40" itemprop="dateCreated datePublished" datetime="2024-01-31T07:44:40+08:00">2024-01-31</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/" itemprop="url" rel="index"><span itemprop="name">04音视频</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">极客时间-攻克视频技术</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>6.8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>25 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是攻克视频技术课程视频传输和网络对抗——RTP &amp; RTCP：如何正确地将视频装进RTP中？的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">---</td>        <td align="left">--- <a href="" target="_blank">  <i class="fa fa-external-link-alt"></i></a></td>      </tr></table>
+              </div>
+            </details>
+
+<p>在前面的课程中，我们详细地讲述了视频编码的原理以及预测编码和变换编码的知识。通过这些我们了解了视频编码的基本原理和步骤。同时，我们还用了一节课的时间深入探讨了 H264 的码流结构，相信你已经清楚了 H264 码流是什么样的，以及如何从码流中分离出一帧帧图像数据，并学会了如何判断这些帧的类型。</p>
+<p>那么从这节课开始呢，我们就要进入视频传输和网络对抗部分了。我们会在视频编码码流的基础上，讲讲如何将码流打包成一个个数据包发送到网络上，并进一步讨论如何避免在发送的过程中引起网络拥塞，从而保证视频的流畅性。同时，我们会进一步在后面的课程中讲解如何在网络不断变化的时候做好视频码控算法，如何防止视频出现花屏，以及如何尽量减少视频卡顿等非常有难度的实际工程问题。</p>
+<p>这些问题是视频开发过程中经常会遇到且迫切需要解决的重要问题。而解决这些问题的基础就是需要熟悉 RTP 和 RTCP 协议，也就是我们这节课的重点。</p>
+<p>接下来我们会分别从 RTP 协议、RTCP 协议和 H264 的 RTP 打包方法这三个方面来展开这节课。首先让我们一起来认识一下 RTP 协议。</p>
+<h1 id="一、RTP-协议"><a href="#一、RTP-协议" class="headerlink" title="一、RTP 协议"></a><font size=3>一、RTP 协议</font></h1><p>RTP（Real-time Transport Protocol）协议，全称是实时传输协议。它主要用于音视频数据的传输。那它的作用是什么呢？</p>
+<p>一般我们在实时通信的时候，需要传输音频和视频数据。我们通常是这样做的，先将原始数据经过编码压缩之后，再将编码码流传输到接收端。在传输的时候我们通常不会直接将编码码流进行传输，而是<strong>先将码流打包成一个个 RTP 包再进行发送</strong>。</p>
+<p>那为什么需要打包成 RTP 包呢？这是因为我们的接收端要能够正确地使用这些音视频编码数据，不仅仅需要原始的编码码流，还需要一些额外的信息。比如说：</p>
+<ul>
+<li><strong>当前视频码流是哪种视频编码标准</strong>，是 H264、H265、VP8、VP9 还是 AV1 呢？我们知道每种不同的编码标准，其码流解析的方式肯定也不一样。这个就需要通过 RTP 协议告知接收端。</li>
+<li>当我们知道编码标准了，我们就可以正确地解析码流，并解码出图像了。但是我们又会遇到一个新的问题，那就是<strong>按照什么速度播放视频呢？</strong>这个也需要 RTP 协议告知接收端。</li>
+</ul>
+<p>这就是 RTP 协议的一个重要的作用，即告知接收端一些必要的信息。当然 RTP 协议的作用不止这些，它其实在网络带宽预测和拥塞控制的时候也发挥出了至关重要的作用。我们在之后的课程中会继续讨论，这里就先不讲了，你大体有个印象就可以。</p>
+<p>我们知道 RTP 包需要附带很多额外的信息，那这些信息在 RTP 包中是怎么存在的呢？其实 RTP 包包括两个部分：第一个部分是 RTP 头；另外一个部分是 RTP 有效载荷。其中 RTP 头主要是用来携带前面说的那些额外信息的，等会儿我会详细介绍一下 RTP 头部每个字段的意义。</p>
+<p>这里我先稍微跟你解释一下另外一个部分，也就是 RTP 有效载荷。RTP 有效载荷，其实就是 RTP 包里面的实际数据。如果是 H264 编码打包成 RTP 包，那有效载荷就是经过 H264 编码的码流；如果是 VP8 编码呢，那就是 VP8 码流。</p>
+<h2 id="1-RTP-包的头部"><a href="#1-RTP-包的头部" class="headerlink" title="1. RTP 包的头部"></a><font size=3>1. RTP 包的头部</font></h2><p>接下来，我们重点来看看 RTP 包的头部。具体如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/143a86a6aef7f664beca7268f58e99e6.jpg" alt="img" style="zoom:50%;" />
+
+<p>是不是有点懵，别急，下面我给了一张表格，你可以对照着表格看看 RTP 包头的每一个字段占用的位数和具体的含义。其中绿色部分是很重要的知识点，需要你重点掌握。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/3b724acdcb5a69f3c1831591be49ca52.png" alt="img" style="zoom:50%;" />
+
+<p>上面讲的就是 RTP 头部的主要组成部分。在这里需要单独提一下 RTP 头部的另外一个比较重要的部分，就是 RTP 扩展头。从上表我们可以看到，RTP 包头有一个扩展头标志位 X，当扩展头标志位 X 为 1 的时候，说明有 RTP 扩展头。RTP 扩展头由于平时大家很少用看似不怎么重要，但是在 RTC 场景中，尤其是 WebRTC 中经常会用到。另外，RTP 扩展头我们在带宽预测的时候也会用到。所以建议你也了解一下。</p>
+<h2 id="2-RTP通用头部扩展"><a href="#2-RTP通用头部扩展" class="headerlink" title="2. RTP通用头部扩展 "></a><font size=3>2. RTP通用头部扩展 </font></h2><p>扩展头主要是用来给用户自定义扩展使用的。因为协议是标准的，但是用户使用场景却是多种多样的，所以 RTP 需要考虑的比较全面，留了一个扩展头可以让用户根据使用场景和需求，自己定义扩展头，用来传输需要在 RTP 包中传输的信息。具体的可以参考这里：<a target="_blank" rel="noopener" href="https://datatracker.ietf.org/doc/html/rfc5285">RFC 5285 - A General Mechanism for RTP Header Extensions (ietf.org)</a>。在RFC3550中， 一个通用的RTP头部如下:</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"> 0                   1                   2                   3</span><br><span class="line"> 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br><span class="line">|V=2|P|X|  CC   |M|     PT      |       sequence number         |</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br><span class="line">|                           timestamp                           |</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br><span class="line">|           synchronization source (SSRC) identifier            |</span><br><span class="line">+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+</span><br><span class="line">|            contributing source (CSRC) identifiers             |</span><br><span class="line">|                             ....                              |</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br></pre></td></tr></table></figure>
+
+<p>其中X位如果为1，就表示CSRC后面还有一些额外的RTP扩展头，其形式如下</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"> 0                   1                   2                   3</span><br><span class="line"> 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br><span class="line">|      defined by profile       |           length              |</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br><span class="line">|                        header extension                       |</span><br><span class="line">|                             ....                              |</span><br></pre></td></tr></table></figure>
+
+<p>但是这种形式只能够附加一个扩展头，为了支持多个扩展头，RFC5285以<strong>defined by profile</strong>进行了扩展</p>
+<h3 id="2-1-One-Byte-Header"><a href="#2-1-One-Byte-Header" class="headerlink" title="2.1 One-Byte Header"></a><font size=3>2.1 One-Byte Header</font></h3><p>扩展头为one-byte的情况下，一个例子如下:</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"> 0                   1                   2                   3</span><br><span class="line"> 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br><span class="line">|       0xBE    |    0xDE       |           length =3           |</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br><span class="line">|  ID   | L=0   |     data      |  ID   |  L=1  |   data...</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br><span class="line">      ...data   |    0 (pad)    |    0 (pad)    |  ID   | L=3   |</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br><span class="line">|                          data                                 |</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br></pre></td></tr></table></figure>
+
+<p>RTP头后的第一个16为固定为<strong>0XBEDE</strong>标志，意味着这是一个one-byte扩展，<strong>length &#x3D; 3</strong> 说明后面有三个扩展头，每个扩展头首先以一个byte开始，前4位是这个扩展头的ID， 后四位是data的长度-1，譬如说<strong>L&#x3D;0</strong>意味着后面有1个byte的data，同理第二个扩展头的<strong>L&#x3D;1</strong>说明后面还有2个byte的data，但是注意，其后没有紧跟第三个扩展头，而是添加了2个byte大小的全0的data，这是为了作填充对齐，因为扩展头是以为32bit作填充对齐的。</p>
+<h3 id="2-2-Two-Byte-Header"><a href="#2-2-Two-Byte-Header" class="headerlink" title="2.2 Two-Byte Header"></a><font size=3>2.2 Two-Byte Header</font></h3><p>扩展头为Two-Byte的情况下， RTP头后的第一个16为如下所示， 一个<strong>0x100 + appbits</strong>， <strong>appbits</strong>可以用来填充应用层级别的数据：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"> 0                   1</span><br><span class="line"> 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br><span class="line">|         0x100         |appbits|</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br></pre></td></tr></table></figure>
+
+<p>一个例子如下, 可以看到开头为 <strong>0x100 + 0x0</strong>， 接下来的为<strong>length&#x3D;3</strong>表示接下来有3个头，接下来的就是扩展头和数据，扩展头除了ID和L相对于one-byte header从4bits变成了8bits之后，其余都一样：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"> 0                   1                   2                   3</span><br><span class="line"> 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br><span class="line">|       0x10    |    0x00       |           length=3            |</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br><span class="line">|      ID       |     L=0       |     ID        |     L=1       |</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br><span class="line">|       data    |    0 (pad)    |       ID      |      L=4      |</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br><span class="line">|                          data                                 |</span><br><span class="line">+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-总结"><a href="#3-总结" class="headerlink" title="3. 总结"></a><font size=3>3. 总结</font></h2><p>好了，以上就是 RTP 协议的主要知识点。有了 RTP 协议，我们就能够将码流打包成 RTP 包发给接收端了。如果你只负责传输 RTP 包，而不需要管传输过程中有没有丢包，以及传输 RTP 包的时候有没有引起网络拥塞的话，那你只需要使用 RTP 协议就可以了。比如说，你选择使用 TCP 协议传输 RTP 包的话就可以不用管这些事情，因为 TCP 协议具有丢包重传、拥塞控制等功能。</p>
+<p>但是通常情况下，我们在传输音视频数据的时候不会使用 TCP 协议作为传输层协议。这是因为 TCP 协议更适合传输文本和文件等数据，而不适合传输实时音频流和视频流数据，所以我们通常会<strong>使用 UDP 协议作为音视频数据的传输层协议</strong>。但 UDP 协议不具有丢包重传和拥塞控制的功能，需要我们自己实现。那怎么办呢？</p>
+<p>其实，真要做好丢包重传和拥塞控制是非常难的，一节课也讲述不清楚，所以，我们会在接下来的好几节课里详细解释。接下来我们可以先关注下丢包重传和拥塞控制的基础之一，也就是 RTP 协议的“好兄弟”，RTCP 协议。</p>
+<h1 id="二、RTCP-协议"><a href="#二、RTCP-协议" class="headerlink" title="二、RTCP 协议"></a><font size=3>二、RTCP 协议</font></h1><p>RTCP（Real-time Transport Control Protocol）协议，全称是实时传输控制协议。它是辅助 RTP 协议使用的。RTCP 报文有很多种，分别负责不同的功能。常用的报文有发送端报告（SR）、接收端报告（RR）、RTP 反馈报告（RTPFB）等。而每一种报告的有效载荷都是不同的。我们就是通过这些报告在接收端和发送端传递当前统计的 RTP 包的传输情况的。我们使用这些统计信息来做丢包重传，以及预测带宽。</p>
+<p>不过，我需要再次强调一下，<strong>RTCP 协议只是用来传递 RTP 包的传输统计信息，本身不具有丢包重传和带宽预测的功能</strong>，而这些功能需要我们自己来实现。</p>
+<p>我们上面讲到了 RTCP 协议有很多种报告，而每种报告其实定义的具体内容都是不一样的。我们这里以 RTPFB 报告中的 NACK 报告（丢包提示报告）作为一个例子来看看 RTCP 协议大概是什么样子的。（RTPFB 报告包含了多种子报告，NACK 报告只是其中的一种，因为我们后面还会用到这个报告，所以这里我们就先以这个报告为例子。）</p>
+<p>下图就是 NACK 报告的协议格式。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/8346b7d062d6e18c1700603a2dd1a5cf.jpg" alt="img" style="zoom:50%;" />
+
+<p>其中，每一个字段在下表中都有详细的解释。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/c3e2f8185a38c0746be0c0dbd6b52073.jpg" alt="img" style="zoom:50%;" />
+
+<p>从上面的 NACK 报告我们可以看到，RTCP 协议跟 RTP 不同，它们传递的东西是不一样的。</p>
+<p>我们知道 RTP 是用来传输实际的视频数据的。它就像一个快递盒，先装好视频，然后填好运送的视频基本信息和收件人信息，最后将视频运送到收件人手上。</p>
+<p>而 RTCP 协议则像是一个用来统计快递运送情况的记录表。其中的 NACK 报告就是快递丢件情况的记录表。它记录着哪些快递丢了。发件人收到了 NACK 之后，可以重新寄一个同样的快递给收件人，防止收件人没有收到快递。在这里也就是将丢失的视频 RTP 包重传一遍。</p>
+<p>虽然我们只讲了一种 RTCP 报告，但是其它的报告也是类似的。大多数报告都是用来记录传输信息的。因为数量很多，我们这里就不一一展开了。如果你有兴趣的话，可以查看这个文档：<a target="_blank" rel="noopener" href="https://datatracker.ietf.org/doc/html/rfc3550">RFC 3550 - RTP: A Transport Protocol for Real-Time Applications (ietf.org)</a>。</p>
+<h1 id="三、H264-RTP打包"><a href="#三、H264-RTP打包" class="headerlink" title="三、H264 RTP打包"></a><font size=3>三、H264 RTP打包</font></h1><p>好了，通过学习 RTP 和 RTCP 的基础知识，我们了解了 RTP 包的协议格式和主要负责的功能，也知道了 RTCP 的协议格式和其主要承担的责任。接下来我们就进入实际工程部分的知识了。</p>
+<p>我相信通过前面课程的学习，你对 H264 的码流结构已经较为熟悉了，H264 是在工程中用得比较多的编码标准，所以这里我们以 H264 为例来讲讲实际工程开发中，我们怎么将 H264 码流打包成 RTP 包。</p>
+<p>我们前面说了，H264 码流是放在 RTP 的有效载荷部分的。因此有效载荷前面的 RTP 头部跟码流本身是没有关系的，所以我们可以直接先将头部的字段填好就可以。接下来我们需要将 H264 码流填充到 RTP 有效载荷中去。</p>
+<p>RTP H264 码流打包分为三种方式：分别是单 NALU 封包方式、组合封包方式、分片封包方式。顾名思义，单 NALU 封包方式是一个 NALU 打一个 RTP 包；而组合封包方式就是多个 NALU 打一个 RTP 包；分片封包方式则是一个 NALU 分开放在连续的多个 RTP 包中。下面我们来分别看一下各种打包方式是怎么样的。</p>
+<h2 id="1-单-NALU-封包方式"><a href="#1-单-NALU-封包方式" class="headerlink" title="1. 单 NALU 封包方式"></a><font size=3>1. 单 NALU 封包方式</font></h2><p>单 NALU 封包方式非常简单。我们在 RTP 头部的后面，直接放置 NALU 数据即可。注意，根据 RTP 的规定，这里需要将 NALU 数据前面的起始码去除，不要将起始码也带入 RTP 包中。其格式如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/12961a82dca32ea3f1d760b4674fbf91.jpg" alt="img" style="zoom:50%;" />
+
+<p>为了让你更直观地理解这种打包方式，我给出了打包的示意图。具体如下所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/3d4845a261ef2f7e0683d8a81522ab9b.jpg" alt="img" style="zoom:50%;" />
+
+<p>这种打包方式适合于单个 RTP 包小于 1500 字节（MTU 大小）的时候。一般来说，一些 P 帧和 B 帧编码之后比较小，就可以使用这种打包方式。</p>
+<h2 id="2-组合封包方式"><a href="#2-组合封包方式" class="headerlink" title="2. 组合封包方式"></a><font size=3>2. 组合封包方式</font></h2><p>组合封包方式稍微复杂一些。它是将多个 NALU 放置在一个 RTP 包中。在 RTP 头部之后，且放置 NALU 数据之前，我们需要放置一个 1 字节的 STAP-A 的头部。其中，STAP-A Header 跟 NALU Header 的格式是一样的，只是 Type 字段的值不一样。因此，你可以参考 H264 码流结构课程中 NALU 小节来理解 STAP-A 的头部的格式。具体如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/16ec78c30e2760fab5a34a74524663c2.jpg" alt="img" style="zoom:50%;" />
+
+<p>其中，Type 的取值如下表所示。这里我需要提醒你一下，表中的 24 和 25 类型就是 STAP 组合封包方式。注意，我们这里只讲 STAP-A，这是因为 STAP-B 很少用到。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/5a27c25b87c3fcb2be2a396f59ecb2a6.jpg" alt="img" style="zoom:50%;" />
+
+<p>放置完 STAP-A Header 之后，在每一个 NALU 的前面我们需要放置一个 2 字节的 size 字段，用于表示后面的 NALU 的大小。之后才是 NALU 的数据。记住同样需要去掉起始码。其格式如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/bb5498a2d629d5c754920d62d401c5c3.jpg" alt="img" style="zoom:50%;" />
+
+<p>同样地，为了让你更直观地理解这种打包方式，我也给出了打包的示意图。具体如下所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/9ceee0961afe0be20a20f663fbf932c8.jpg" alt="img" style="zoom:50%;" />
+
+<p>这种打包方式适合于单个 NALU 很小的时候。因此，我们将多个 NALU 打包到一起也小于 1500 字节的时候就可以使用。但是由于一般多个视频帧加到一起还小于 1500 的情况比较少，所以视频数据的 RTP 打包一般来说用组合封包方式的情况也很少。</p>
+<h2 id="3-分片封包方式"><a href="#3-分片封包方式" class="headerlink" title="3. 分片封包方式"></a><font size=3>3. 分片封包方式</font></h2><p>分片封包就更复杂一些了，但却是我们经常用到的打包方式。</p>
+<p>它是将一个 NALU 分开打包在连续的多个 RTP 包中。因此，我们首先需要一个 1 字节的 FU indicator 来表示当前 RTP 包是不是分片封包方式，再用一个 1 字节的 FU Header 来表示当前这个 RTP 包是不是 NALU 的第一个包，是不是 NALU 的最后一个包，以及 NALU 的类型。</p>
+<p>为什么需要表示是不是第一个包以及是不是最后一个包呢？这是因为一个 NALU 被分开放在多个 RTP 包中，我们需要知道哪个是第一个 NALU 分片，哪个是最后一个 NALU 分片，以及哪些是中间分片。这样我们才能组成一个完整的 NALU。</p>
+<p>那你可能会问，NALU 不是已经在 NALU Header 中有了 NALU Type 字段吗？为什么 FU Header 中还要有 NALU Type 呢？这是因为分片封包时需要去掉 NALU Header。因此，我们需要通过 FU Header 中的 NALU Type 得到 NALU 的类型。</p>
+<p>其中，分片封装中的 FU indicator 跟 NALU Header 的格式也是一样的，也只是 Type 字段的值不同，所以我们可以参考组合封包小节中的表格。因为我们一般只使用 FU-A，所以接下来讲述的将是 FU-A 的分片封包方式。另外，FU Header 格式如下所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/d50ff5960768966518f9dafdac33a463.jpg" alt="img" style="zoom: 33%;" />
+
+<p>这里我简单解释一下各字段的含义：</p>
+<ul>
+<li>S：起始位，占 1bit，为 1 则表示是 NALU 的第一个 RTP 包。</li>
+<li>E：结束位，占 1bit，为 1 则表示是 NALU 的最后一个 RTP 包。</li>
+<li>R：预留位，占 1bit。</li>
+<li>Type：占 5bits，表示 NALU 类型。</li>
+</ul>
+<p>分片打包的格式如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/e3590b35793907d565293bf592c514bd.jpg" alt="img" style="zoom:50%;" />
+
+<p>分片打包的示意图如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV04-%E8%A7%86%E9%A2%91%E4%BC%A0%E8%BE%93%E5%92%8C%E7%BD%91%E7%BB%9C%E5%AF%B9%E6%8A%97-01-RTP%E4%B8%8ERTCP/img/1402a1e69a71d1d9dff7b4f40920907b.jpg" alt="img" style="zoom:50%;" />
+
+<p>这种打包方式主要用于将 NALU 数据打包成一个 RTP 包时大小大于 1500 字节的时候，这是经常使用的视频 RTP 打包方法。</p>
+<p>好了，以上就是三种打包方式。我们怎么选择使用哪种方式打包呢？一般来说，我们在一个 H264 码流中会混合使用多种 RTP 打包方式。一般来说，对于小的 P 帧、B 帧还有 SPS、PPS 我们可以使用单个 NALU 封包方式。而对于大的 I 帧、P 帧或 B 帧，我们使用分片封包方式。当然，你可以根据实际情况进行选择。</p>
+<h1 id="四、小结"><a href="#四、小结" class="headerlink" title="四、小结"></a><font size=3>四、小结</font></h1><p>好了，以上就是这节课的主要内容。接下来我们来总结一下。</p>
+<p>首先，我们一起讨论了 RTP 协议和 RTCP 协议的主要作用。RTP 协议用来封装音视频数据，并且将音视频数据和一些基本信息打包到 RTP 包中传输到接收端。而 RTCP 协议则辅助 RTP 协议使用，其中一个主要的功能就是用来统计 RTP 包的发送情况，比如说丢包率和具体哪些 RTP 包在网络发送的过程中丢失了。RTCP 包将这些信息收集起来发送给 RTP 包的发送端。</p>
+<p>然后，我们说明了 RTP 和 RTCP 协议是带宽预测和拥塞控制的基础，并且重点强调了 RTCP 协议本身只统计信息，而带宽预测和拥塞控制算法是需要我们自己实现的，RTCP 协议本身并没有这个功能。</p>
+<p>最后，我们介绍了 H264 的 RTP 打包方式，总共有三种，分别是单 NALU 封包方式、组合封包方式和分片封包方式。</p>
+<ul>
+<li>单 NALU 封包方式，一般适合 NALU 大小比较小，且打包出来的 RTP 大小小于 1500 字节的时候使用。</li>
+<li>组合封包方式，适合多个 NALU 都很小，且合并在一起打包的 RTP 包小于 1500 字节的时候使用。</li>
+<li>分片打包，则适合 NALU 比较大的情况，且打包成一个 RTP 包其大小会大于 1500 字节的时候使用。</li>
+</ul>
+<p>这几种打包方式不是说只能选择一种，在一个 RTP 流中是可以存在多种打包方式的，即可以混合使用。</p>
+<p>最后再一次强调，这节课和 H264 码流结构那节课都是非常重要的。它们在实际视频开发的过程中会经常用到，希望你可以熟练掌握。</p>
+<blockquote>
+<p>思考题：为什么我们在选择 RTP 打包方式的时候，需要根据 NALU 大小是不是大于 1500 字节（MTU）来选择？</p>
+<p>评论区答案：不超过1500主要是因为Udp协议的MTU为1500，超过了会导致Udp分片传输，而分片的缺点是丢了一个片，整包数据就废弃了</p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/a2e73b6c.html">LV04-视频传输和网络对抗-01-RTP与RTCP</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年01月31日 - 07:44</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/a2e73b6c.html" title="LV04-视频传输和网络对抗-01-RTP与RTCP">https://sumumm.github.io/post/a2e73b6c.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/" rel="tag"><i class="fa fa-tag"></i> 极客时间-攻克视频技术</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/3f3ca4ba.html" rel="prev" title="LV04-视频传输和网络对抗-02-带宽预测">
+                  <i class="fa fa-angle-left"></i> LV04-视频传输和网络对抗-02-带宽预测
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/5bb1b6bc.html" rel="next" title="LV03-视频编码-05-变换量化">
+                  LV03-视频编码-05-变换量化 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

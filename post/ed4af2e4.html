@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是kernel——文件描述符分配的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV05-03-Kernel-05-02-文件描述符分配">
+<meta property="og:url" content="https://sumumm.github.io/post/ed4af2e4.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是kernel——文件描述符分配的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-05-02-%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6%E5%88%86%E9%85%8D/img/0cc1cbd80a2d405f4246c4e2203941bd.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-05-02-%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6%E5%88%86%E9%85%8D/img/b22afc86d25e8496b613cd5eb686ad8b.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-05-02-%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6%E5%88%86%E9%85%8D/img/image-20241209080006635.png">
+<meta property="article:published_time" content="2024-12-17T15:25:14.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.045Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV05-系统镜像">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-05-02-%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6%E5%88%86%E9%85%8D/img/0cc1cbd80a2d405f4246c4e2203941bd.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/ed4af2e4.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/ed4af2e4.html","path":"post/ed4af2e4.html","title":"LV05-03-Kernel-05-02-文件描述符分配"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV05-03-Kernel-05-02-文件描述符分配 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81linux%E5%86%85%E6%A0%B8%E6%96%87%E4%BB%B6%E7%9B%B8%E5%85%B3%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">一、linux内核文件相关结构体</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-struct-files-struct"><span class="nav-text">1. struct files_struct</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-struct-fdtable"><span class="nav-text">2. struct fdtable</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-struct-file"><span class="nav-text">3. struct file</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6%E4%BD%8D%E5%9B%BE"><span class="nav-text">二、文件描述符位图</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-fdtable"><span class="nav-text">1. fdtable</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-full-fds-bits"><span class="nav-text">1.1 full_fds_bits</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-open-fds"><span class="nav-text">1.2 open_fds</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-next-zero-bit%E6%9F%A5%E6%89%BE%E5%87%BD%E6%95%B0"><span class="nav-text">2. next zero bit查找函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.1 函数说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86"><span class="nav-text">2.2 基本原理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-alloc-fd"><span class="nav-text">3. __alloc_fd()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-find-next-fd"><span class="nav-text">4. find_next_fd()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-expand-files"><span class="nav-text">5. expand_files()</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-expand-fdtable"><span class="nav-text">5.1 expand_fdtable()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-alloc-fdtable"><span class="nav-text">5.2 alloc_fdtable()</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-put-unused-fd"><span class="nav-text">6. __put_unused_fd()</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6%E5%85%B3%E8%81%94"><span class="nav-text">三、文件描述符关联</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-do-sys-open"><span class="nav-text">1. do_sys_open()</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/ed4af2e4.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV05-03-Kernel-05-02-文件描述符分配 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV05-03-Kernel-05-02-文件描述符分配
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-12-17 23:25:14" itemprop="dateCreated datePublished" datetime="2024-12-17T23:25:14+08:00">2024-12-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/" itemprop="url" rel="index"><span itemprop="name">LV05-系统镜像</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>6.4k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>23 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是kernel——文件描述符分配的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-05-02-%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6%E5%88%86%E9%85%8D/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="2">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、linux内核文件相关结构体"><a href="#一、linux内核文件相关结构体" class="headerlink" title="一、linux内核文件相关结构体"></a><font size=3>一、linux内核文件相关结构体</font></h1><p><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-05-02-%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6%E5%88%86%E9%85%8D/img/0cc1cbd80a2d405f4246c4e2203941bd.png" alt="img"></p>
+<h2 id="1-struct-files-struct"><a href="#1-struct-files-struct" class="headerlink" title="1. struct files_struct"></a><font size=3>1. struct files_struct</font></h2><p>files_struct这个结构体定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fdtable.h#L48">fdtable.h - include&#x2F;linux&#x2F;fdtable.h - <em>files_struct</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Open file table structure</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">files_struct</span> &#123;</span></span><br><span class="line">  <span class="comment">/*</span></span><br><span class="line"><span class="comment">   * read mostly part</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">	<span class="type">atomic_t</span> count;</span><br><span class="line">	<span class="type">bool</span> resize_in_progress;</span><br><span class="line">	<span class="type">wait_queue_head_t</span> resize_wait;</span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fdtable</span> __<span class="title">rcu</span> *<span class="title">fdt</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fdtable</span> <span class="title">fdtab</span>;</span></span><br><span class="line">  <span class="comment">/*</span></span><br><span class="line"><span class="comment">   * written part on a separate cache line in SMP</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">	<span class="type">spinlock_t</span> file_lock ____cacheline_aligned_in_smp;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span> next_fd;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> close_on_exec_init[<span class="number">1</span>];</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> open_fds_init[<span class="number">1</span>];</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> full_fds_bits_init[<span class="number">1</span>];</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">file</span> __<span class="title">rcu</span> * <span class="title">fd_array</span>[<span class="title">NR_OPEN_DEFAULT</span>];</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>进程打开文件的表结构，next_fd 表示下一个可用进程描述符，并不一定真正可用，假如 0-10 描述符都被使用了，中间释放3文件描述符，再打开文件，此时将使用3作为新的文件描述符，内核认为next_fd 为4，next_fd只是表示可能可用的下一个文件描述符，下次查找可用描述符时从next_fd开始查找，而不需要从头开始找。</p>
+<h2 id="2-struct-fdtable"><a href="#2-struct-fdtable" class="headerlink" title="2. struct fdtable"></a><font size=3>2. struct fdtable</font></h2><p>fdtable定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fdtable.h#L26">fdtable.h - include&#x2F;linux&#x2F;fdtable.h - <em>fdtable</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">fdtable</span> &#123;</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span> max_fds;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">file</span> __<span class="title">rcu</span> **<span class="title">fd</span>;</span>      <span class="comment">/* current fd array */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> *close_on_exec;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> *open_fds;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> *full_fds_bits;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rcu_head</span> <span class="title">rcu</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>真正记录哪些文件描述符被使用了，哪些是空闲的，实际是一个文件描述符位图，每1bit表示了一个文件描述符，例如bit 0为1表示描述符1被使用了，bit 3为0表示描述符3可以使用。fd数组记录了file信息，数组下标就是文件描述符的值。</p>
+<h2 id="3-struct-file"><a href="#3-struct-file" class="headerlink" title="3. struct file"></a><font size=3>3. struct file</font></h2><p>file结构体定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L891">fs.h - include&#x2F;linux&#x2F;fs.h - <em>file</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">file</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">llist_node</span>	<span class="title">fu_llist</span>;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">rcu_head</span> 	<span class="title">fu_rcuhead</span>;</span></span><br><span class="line">	&#125; f_u;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">path</span>		<span class="title">f_path</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">inode</span>		*<span class="title">f_inode</span>;</span>	<span class="comment">/* cached value */</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span>	*<span class="title">f_op</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Protects f_ep_links, f_flags.</span></span><br><span class="line"><span class="comment">	 * Must not be taken from IRQ context.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="type">spinlock_t</span>		f_lock;</span><br><span class="line">	<span class="class"><span class="keyword">enum</span> <span class="title">rw_hint</span>		<span class="title">f_write_hint</span>;</span></span><br><span class="line">	<span class="type">atomic_long_t</span>		f_count;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span> 		f_flags;</span><br><span class="line">	<span class="type">fmode_t</span>			f_mode;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mutex</span>		<span class="title">f_pos_lock</span>;</span></span><br><span class="line">	<span class="type">loff_t</span>			f_pos;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fown_struct</span>	<span class="title">f_owner</span>;</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">cred</span>	*<span class="title">f_cred</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">file_ra_state</span>	<span class="title">f_ra</span>;</span></span><br><span class="line"></span><br><span class="line">	u64			f_version;</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_SECURITY</span></span><br><span class="line">	<span class="type">void</span>			*f_security;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="comment">/* needed for tty driver, and maybe others */</span></span><br><span class="line">	<span class="type">void</span>			*private_data;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_EPOLL</span></span><br><span class="line">	<span class="comment">/* Used by fs/eventpoll.c to link all the hooks to this file */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>	<span class="title">f_ep_links</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>	<span class="title">f_tfile_llink</span>;</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">/* #ifdef CONFIG_EPOLL */</span></span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">address_space</span>	*<span class="title">f_mapping</span>;</span></span><br><span class="line">	<span class="type">errseq_t</span>		f_wb_err;</span><br><span class="line">&#125; __randomize_layout</span><br><span class="line">  __attribute__((aligned(<span class="number">4</span>)));	<span class="comment">/* lest something weird decides that 2 is OK */</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">file_handle</span> &#123;</span></span><br><span class="line">	__u32 handle_bytes;</span><br><span class="line">	<span class="type">int</span> handle_type;</span><br><span class="line">	<span class="comment">/* file identifier */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">char</span> f_handle[<span class="number">0</span>];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>file: 文件的真正信息，文件描述符只是个数组下标，通过下标查找file结构体信息，f_op记录的是文件读写及其他操作的真正函数，不同的文件系统，读写函数不一样，申请文件描述后，内核会将文件描述符与文件结构体(file读写函数等)关联起来。具体怎识别文件系统获取读写函数后面再学习。</p>
+<h1 id="二、文件描述符位图"><a href="#二、文件描述符位图" class="headerlink" title="二、文件描述符位图"></a><font size=3>二、文件描述符位图</font></h1><h2 id="1-fdtable"><a href="#1-fdtable" class="headerlink" title="1. fdtable"></a><font size=3>1. fdtable</font></h2><p>如下简要示意了下文件描述符位图结构：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-05-02-%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6%E5%88%86%E9%85%8D/img/b22afc86d25e8496b613cd5eb686ad8b.png" alt="img" />
+
+<p>前面已经提到，fdtable定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fdtable.h#L26">fdtable.h - include&#x2F;linux&#x2F;fdtable.h - <em>fdtable</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">fdtable</span> &#123;</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span> max_fds;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">file</span> __<span class="title">rcu</span> **<span class="title">fd</span>;</span>      <span class="comment">/* current fd array */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> *close_on_exec;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> *open_fds;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> *full_fds_bits;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rcu_head</span> <span class="title">rcu</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-1-full-fds-bits"><a href="#1-1-full-fds-bits" class="headerlink" title="1.1 full_fds_bits"></a><font size=3>1.1 full_fds_bits</font></h3><p>full_fds_bits每1bit代表的是一个32位的数组，也就是说代表了32位描述符；上面只画了32位，内核中的位图是一片连续的内存空间，最低bit表示数值0，下一比特表示1，依次类推；full_fds_bits每1bit只有0和1两个值，0表示有该组有可用的文件描述符，1表示没有可用的文件描述符，例如位图bit 0代表的是0-31共32个文件描述符，bit1代表的是32-63共32个文件描述符，假如0-31文件描述符都被使用了，那么位图bit0则应该标记为1，如果32-63中有一个未使用的文件描述符，则bit1被标记为0，当32-63中的所有文件描述符都被使用的时候，才标记为1。我们来跟踪一下full_fds_bits这个指针的调用关系（source insight中），图中紫色部分应该是进程创建过程中初始化的full_fds_bits这个参数。</p>
+<p><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-05-02-%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6%E5%88%86%E9%85%8D/img/image-20241209080006635.png" alt="image-20241209080006635"></p>
+<h3 id="1-2-open-fds"><a href="#1-2-open-fds" class="headerlink" title="1.2 open_fds"></a><font size=3>1.2 open_fds</font></h3><p>open_fds是真正的文件描述符位图，也是一片连续的内存空间，每bit代表一个文件描述符(注意full_fds_bits每bit代表的是一组文件描述符)，标记为0的bit表示该文件描述符没用被使用，标记为1的比特表示该文件描述符已经被使用，例如从内存其实地址开始计算，第35比特为1，则表示文件描述符35已经被使用了。</p>
+<h2 id="2-next-zero-bit查找函数"><a href="#2-next-zero-bit查找函数" class="headerlink" title="2. next zero bit查找函数"></a><font size=3>2. next zero bit查找函数</font></h2><h3 id="2-1-函数说明"><a href="#2-1-函数说明" class="headerlink" title="2.1 函数说明"></a><font size=3>2.1 函数说明</font></h3><p>这个函数是查找可用文件描述符，其实我是不确定到底用的是哪个的，在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/arch/arm/lib/findbit.S">findbit.S - arch&#x2F;arm&#x2F;lib&#x2F;findbit.S</a>和这<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/arch/unicore32/lib/findbit.S">findbit.S - arch&#x2F;unicore32&#x2F;lib&#x2F;findbit.S</a>两个文件中都有相关的信息，但是这里都是汇编，就没有过于深究，大概了解一下吧。函数原型如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">find_next_zero_bit</span><span class="params">(<span class="type">void</span> *addr, <span class="type">unsigned</span> <span class="type">int</span> maxbit, <span class="type">int</span> offset)</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>参数:</strong> </p>
+<ul>
+<li>addr位图内存起始地址；</li>
+<li>maxbit最大bit偏移，也就是位图最后一bit的偏移；</li>
+<li>offset起始查找地址，</li>
+</ul>
+<p>前面有介绍位图数组full_fds_bits，通过该位图可以确定某组文件描述符里面是否有可以使用的文件描述符，另外next_fd也记录了下一个可能可用的文件描述符，因此查找可用文件描述符的时候，总是从可能可用的文件描述符开始查找，而不需要从头找，next_fd在打开和关闭文件描述符的时候会计算相关的内容。</p>
+<h3 id="2-2-基本原理"><a href="#2-2-基本原理" class="headerlink" title="2.2 基本原理"></a><font size=3>2.2 基本原理</font></h3><p>这里以这个<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/arch/arm/lib/findbit.S#L45">findbit.S - arch&#x2F;arm&#x2F;lib&#x2F;findbit.S - <em>ENTRY(_find_next_zero_bit_le)</em></a>为例来分析一下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">/*</span><br><span class="line"> * Purpose  : Find next &#x27;zero&#x27; bit</span><br><span class="line"> * Prototype: int find_next_zero_bit(void *addr, unsigned int maxbit, int offset)</span><br><span class="line"> */</span><br><span class="line">ENTRY(_find_next_zero_bit_le)</span><br><span class="line">		teq	r1, #0</span><br><span class="line">		beq	3b</span><br><span class="line">		ands	ip, r2, #7</span><br><span class="line">		beq	1b			@ If new byte, goto old routine</span><br><span class="line"> ARM(		ldrb	r3, [r0, r2, lsr #3]	)</span><br><span class="line"> THUMB(		lsr	r3, r2, #3		)</span><br><span class="line"> THUMB(		ldrb	r3, [r0, r3]		)</span><br><span class="line">		eor	r3, r3, #0xff		@ now looking for a 1 bit</span><br><span class="line">		movs	r3, r3, lsr ip		@ shift off unused bits</span><br><span class="line">		bne	.L_found</span><br><span class="line">		orr	r2, r2, #7		@ if zero, then no bits here</span><br><span class="line">		add	r2, r2, #1		@ align bit pointer</span><br><span class="line">		b	2b			@ loop for next bit</span><br><span class="line">ENDPROC(_find_next_zero_bit_le)</span><br></pre></td></tr></table></figure>
+
+<p>第 6 行：r1 &#x3D; maxbit，如果maxbit为0，是不需要比较的。</p>
+<p>第 8 行：判断offset低3位是否为0，查找0bit位的时候是以8位对齐查找的，3位二进制，如果offset是8的整数倍，那么低3位应该是0，跳转到1b处查找(从byte的第0位开始查找)</p>
+<p>第 10 行：offset不是8的整数倍，那么先从offset % 8开始查找，假如offset &#x3D; 18 &#x3D; 15 + 3，0 -15 bit正好是2个字节，我们只需要从第3个字节的第3位开始查找即可，因为计算机读的时候是以最小单位字节读取的，所以我们不能直接读取第18bit，而是要读取16-23bit，相当于多读了3bit的值而已。</p>
+<p>第 11 行：”lsr, #3” 实际是offset&#x2F;8，获取的是bit对应的byte，例如18&#x2F;8 &#x3D; 2，表示18bit在内存的第2个字节里面(字节起始索引为0)</p>
+<p>第 13 行：”eor r3, r3, #0xff”，这一行是8bit文件描述符进行异或操作，实际效果是各位取反，就是将0变1、1变0，对0的查找变为对1的查找，便于代码的编写</p>
+<p>第 14 行：”movs r3, r3, lsr ip”，ip是offset % 8，右移文件描述符，就是将不需要比较的位移除(该函数是从指定位置开始找0bit位，但是并不是说指定位置之前都是1)</p>
+<p>第 15 行：结果不为0，即有bit的值为1(前面已经将0取反为1了)，找到了为1的bit则跳转到 .L_found</p>
+<p>第 18 行：没有找到，继续查找，后续都是8个bit的查找。</p>
+<p>再来看一下 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/arch/arm/lib/findbit.S#L175">.L_found</a>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">/*</span><br><span class="line"> * One or more bits in the LSB of r3 are assumed to be set.</span><br><span class="line"> */</span><br><span class="line">.L_found:</span><br><span class="line">#if __LINUX_ARM_ARCH__ &gt;= 5</span><br><span class="line">		rsb	r0, r3, #0</span><br><span class="line">		and	r3, r3, r0</span><br><span class="line">		clz	r3, r3</span><br><span class="line">		rsb	r3, r3, #31</span><br><span class="line">		add	r0, r2, r3</span><br><span class="line">#else</span><br><span class="line">		@ r3是前面取的8bit文件描述符，r3 &amp; 0x0f用来判断低4位是否有1，即可用描述符是否在r3的低4位里面</span><br><span class="line">		tst	r3, #0x0f    </span><br><span class="line">        @ 上一条指令结果为0，表示r3低4位没有可用的文件描述符，offset = offset + 4，在第4位之后继续查找</span><br><span class="line">		addeq	r2, r2, #4  </span><br><span class="line">        @ tst指令执行结果不为0，表示r3低4位有1(即有可用文件描述符)，将r3左移4位，移位后低4位就都为0了，注意这里offset没有变化，执行者条指令之后，可用描述符都集中的r3的高4位了，只要从第4位开始查找为1的bit就可以了。</span><br><span class="line">		movne	r3, r3, lsl #4</span><br><span class="line">		</span><br><span class="line">		@ 从第4位开始查找</span><br><span class="line">		@ 判断第4或者5位是否为1</span><br><span class="line">		tst	r3, #0x30</span><br><span class="line">		@ 第4、5位都不为1，则为1的bit位必定在第6或7位，偏移先加2，offset = offset + 2</span><br><span class="line">		addeq	r2, r2, #2</span><br><span class="line">		@ 第4或者第5位有1，则先左移2两位，这步的offset没有修改</span><br><span class="line">		movne	r3, r3, lsl #2</span><br><span class="line">		</span><br><span class="line">		@ 从第6位开始查找</span><br><span class="line">		@ 判断第6位是否为0</span><br><span class="line">		tst	r3, #0x40</span><br><span class="line">		@ 第6位为0，则为1的bit位一定在第7位，offset = offset + 1</span><br><span class="line">		addeq	r2, r2, #1</span><br><span class="line">		@ 为1(之前为0的bit取反得到的)的bit偏移位置，即可用的文件描述符，r0是函数的返回值</span><br><span class="line">		mov	r0, r2</span><br><span class="line">#endif</span><br><span class="line">		cmp	r1, r0			@ Clamp to maxbit</span><br><span class="line">		movlo	r0, r1</span><br><span class="line">		ret	lr</span><br></pre></td></tr></table></figure>
+
+<p>说实话，没看懂。这里举个简单的例子再解释下；例如r3的第0-3bit都为0，第7bit为1，offset起始值为0，需要查找到低7bit，先让offset &#x3D; offset + 4，然后从第4位找为1的第7bit位，此时第4到第7位的偏移是3，我们只需要让offset再加3即可offset &#x3D; offset + 3 &#x3D; 4 + 3 &#x3D; 7，也就是我们每次查找的起始位置变了；再假如r3的第3bit为1，offset起始值为0，将r3左移4位，此时第3bit将变为第7bit，但是offset还是为0，接着我们从第4bit开始查找为1的bit，第4到第7bit的偏移为3，offset &#x3D; offset + 3 &#x3D; 0 + 3 &#x3D; 3，得到的结果是正确的。</p>
+<p>总结一句话就是，移位操作是为了使后面代码查找时的起点都是一样的。</p>
+<h2 id="3-alloc-fd"><a href="#3-alloc-fd" class="headerlink" title="3. __alloc_fd()"></a><font size=3>3. __alloc_fd()</font></h2><p>__alloc_fd()函数是文件描述符分配，该函数仅分配了一个可用的文件描述符，文件描述符与文件操作函数的关联不在这里处理。它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/file.c#L480">file.c - fs&#x2F;file.c - <em>__alloc_fd</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * allocate a file descriptor, mark it busy.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> __alloc_fd(<span class="keyword">struct</span> files_struct *files,</span><br><span class="line">	       <span class="type">unsigned</span> start, <span class="type">unsigned</span> end, <span class="type">unsigned</span> flags)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span> fd;</span><br><span class="line">	<span class="type">int</span> error;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fdtable</span> *<span class="title">fdt</span>;</span></span><br><span class="line"></span><br><span class="line">	spin_lock(&amp;files-&gt;file_lock);</span><br><span class="line">repeat:</span><br><span class="line">	fdt = files_fdtable(files); <span class="comment">// 获取文件描述符表</span></span><br><span class="line">	fd = start;</span><br><span class="line">	<span class="keyword">if</span> (fd &lt; files-&gt;next_fd)</span><br><span class="line">		fd = files-&gt;next_fd;    <span class="comment">// 默认传递的起始查找文件描述不一定有效，不在有效范围时使用next_fd作为起始查找值</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (fd &lt; fdt-&gt;max_fds)</span><br><span class="line">		fd = find_next_fd(fdt, fd); <span class="comment">// 起始查找文件描述符小于最大文件描述符，从当前文件描述符表中查找可用的文件描述符(max_fds表示已分配的文件描述符的数量，也就是位图总的bit数，后面会看到文件描述符表扩展的代码，在此先介绍下)</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * N.B. For clone tasks sharing a files structure, this test</span></span><br><span class="line"><span class="comment">	 * will limit the total number of files that can be opened.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	error = -EMFILE;</span><br><span class="line">	<span class="keyword">if</span> (fd &gt;= end)  <span class="comment">// 可用文件描述符超出函数参数传递的最大值，返回-EMFILE，这是个标准错误码errno</span></span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line"></span><br><span class="line">	error = expand_files(files, fd); <span class="comment">// 扩展文件描述符，当fd&lt;=max_fds时，fd在文件描述符位图可表示的范围，例如我们申请的文件描述符大小为1byte，那么文件描述符最大只能表示7，当fd大于7的时候，我们就没有对应的bit位可以标记了，因此需要重新扩展，申请更大的内存，申请的新的文件描述符表，让后将旧的值拷贝到新的文件描述符表中。只有fd&gt;max_fds才会真正扩展。</span></span><br><span class="line">	<span class="keyword">if</span> (error &lt; <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * If we needed to expand the fs array we</span></span><br><span class="line"><span class="comment">	 * might have blocked - try again.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (error)</span><br><span class="line">		<span class="keyword">goto</span> repeat;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (start &lt;= files-&gt;next_fd)</span><br><span class="line">		files-&gt;next_fd = fd + <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	__set_open_fd(fd, fdt); <span class="comment">// 在文件描述符表中标记fd已经被打开，对应bit位设置为1，同时更新fd所在文件描述符组的值，因为fd改变后，可能导致该组的文件描述符都被使用了，需要将该组标记为1，下次查找可用文件描述符时就会跳过该组，避免不必要的查找。</span></span><br><span class="line">	<span class="keyword">if</span> (flags &amp; O_CLOEXEC)</span><br><span class="line">		__set_close_on_exec(fd, fdt); <span class="comment">// 打开时带有O_CLOEXEC标志，设置close_on_exec文件描述符位打开状态，大致意思是exec创建进程时会覆盖父进程，但是子进程继承了父进程的文件描述符，对于exec创建的新进程，继承的文件描述符已经没有任何意义了，创建之后需要关闭这些无意义的文件描述符，而这些文件描述符就记录在close_on_exec里面。</span></span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">		__clear_close_on_exec(fd, fdt);</span><br><span class="line">	error = fd;</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> 1</span></span><br><span class="line">	<span class="comment">/* Sanity check */</span></span><br><span class="line">	<span class="keyword">if</span> (rcu_access_pointer(fdt-&gt;fd[fd]) != <span class="literal">NULL</span>) &#123;</span><br><span class="line">		printk(KERN_WARNING <span class="string">&quot;alloc_fd: slot %d not NULL!\n&quot;</span>, fd);</span><br><span class="line">		rcu_assign_pointer(fdt-&gt;fd[fd], <span class="literal">NULL</span>); <span class="comment">// 文件操作函数设置为NULL，此时只分配了文件描述符，还没有真正关联到具体的文件操作函数</span></span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">out:</span><br><span class="line">	spin_unlock(&amp;files-&gt;file_lock);</span><br><span class="line">	<span class="keyword">return</span> error;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-find-next-fd"><a href="#4-find-next-fd" class="headerlink" title="4. find_next_fd()"></a><font size=3>4. find_next_fd()</font></h2><p>find_next_fd()函数是查找下一个可用的文件描述符，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/file.c#L463">file.c - fs&#x2F;file.c - <em>find_next_fd</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">unsigned</span> <span class="type">int</span> <span class="title function_">find_next_fd</span><span class="params">(<span class="keyword">struct</span> fdtable *fdt, <span class="type">unsigned</span> <span class="type">int</span> start)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span> maxfd = fdt-&gt;max_fds; <span class="comment">// 文件描述符表最大文件描述符</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span> maxbit = maxfd / BITS_PER_LONG; <span class="comment">// 最大文件描述符组(一组文件描述符包含32个文件描述符，例如0-31为一组)</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span> bitbit = start / BITS_PER_LONG; <span class="comment">// 起始查找文件描述符所在组(32个文件描述符为一组，我们要从文件描述符33开始查找，可知，33文件描述符在33/32 = 1组，因此我们从第1组开始查找即可)</span></span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">	bitbit = find_next_zero_bit(fdt-&gt;full_fds_bits, maxbit, bitbit) * BITS_PER_LONG; <span class="comment">// 查找下一个可用文件描述符组，结果乘以BITS_PER_LONG，即得到该组起始文件描述符。</span></span><br><span class="line">	<span class="keyword">if</span> (bitbit &gt; maxfd)</span><br><span class="line">		<span class="keyword">return</span> maxfd; <span class="comment">// 可用文件描述符起始值大于最大文件描述符，直接返回最大文件描述符，表示文件描述符需要扩展。</span></span><br><span class="line">	<span class="keyword">if</span> (bitbit &gt; start)</span><br><span class="line">		start = bitbit; <span class="comment">// 可用起始文件描述符大于参数传递的起始查找文件描述符，将开始查找的值从真正有效的值开始，避免做无效的查找。</span></span><br><span class="line">	<span class="keyword">return</span> find_next_zero_bit(fdt-&gt;open_fds, maxfd, start); <span class="comment">// 从文件描述符表中查找可用的文件描述符(之前是查找可用组，以32位为大小查找，提高效率，这次的查找范围缩小的组内了，即最多只需要查找32次了，这有点像找房间一样，先找楼层，再找房间，而不需要每层楼每间房间都找一遍；查找函数在前面章节已经介绍了)。</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="5-expand-files"><a href="#5-expand-files" class="headerlink" title="5. expand_files()"></a><font size=3>5. expand_files()</font></h2><p>文件描述表大小是根据需要动态增加的，不会一开始就申请很大空间，这样会浪费内存，当文件描述符表不够大时才重新分配内存空间。expand_files()函数用于扩展文件描述符表。这个函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/file.c#L193">file.c - fs&#x2F;file.c - <em>expand_files</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Expand files.</span></span><br><span class="line"><span class="comment"> * This function will expand the file structures, if the requested size exceeds</span></span><br><span class="line"><span class="comment"> * the current capacity and there is room for expansion.</span></span><br><span class="line"><span class="comment"> * Return &lt;0 error code on error; 0 when nothing done; 1 when files were</span></span><br><span class="line"><span class="comment"> * expanded and execution may have blocked.</span></span><br><span class="line"><span class="comment"> * The files-&gt;file_lock should be held on entry, and will be held on exit.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">expand_files</span><span class="params">(<span class="keyword">struct</span> files_struct *files, <span class="type">unsigned</span> <span class="type">int</span> nr)</span></span><br><span class="line">	__<span class="title function_">releases</span><span class="params">(files-&gt;file_lock)</span></span><br><span class="line">	__<span class="title function_">acquires</span><span class="params">(files-&gt;file_lock)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fdtable</span> *<span class="title">fdt</span>;</span></span><br><span class="line">	<span class="type">int</span> expanded = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">repeat:</span><br><span class="line">	fdt = files_fdtable(files); <span class="comment">// 获取文件描述符表</span></span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">	<span class="comment">/* Do we need to expand? */</span></span><br><span class="line">	<span class="keyword">if</span> (nr &lt; fdt-&gt;max_fds) <span class="comment">// 新的文件描述符&lt;max_fds，旧的文件描述符表已经足够表示该文件描述符了，不需要扩展。</span></span><br><span class="line">		<span class="keyword">return</span> expanded;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Can we expand? */</span></span><br><span class="line">	<span class="keyword">if</span> (nr &gt;= sysctl_nr_open) <span class="comment">// 大于限制的最大文件描述符，返回错误，不运行操作系统设置的最大文件描述符</span></span><br><span class="line">		<span class="keyword">return</span> -EMFILE;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (unlikely(files-&gt;resize_in_progress)) &#123; <span class="comment">// 同一进程下的多个线程是共用一个文件描述符的，需要互斥访问</span></span><br><span class="line">		spin_unlock(&amp;files-&gt;file_lock);</span><br><span class="line">		expanded = <span class="number">1</span>;</span><br><span class="line">		wait_event(files-&gt;resize_wait, !files-&gt;resize_in_progress);</span><br><span class="line">		spin_lock(&amp;files-&gt;file_lock);</span><br><span class="line">		<span class="keyword">goto</span> repeat;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* All good, so we try */</span></span><br><span class="line">	files-&gt;resize_in_progress = <span class="literal">true</span>;</span><br><span class="line">	expanded = expand_fdtable(files, nr); <span class="comment">// 扩展文件描述符表</span></span><br><span class="line">	files-&gt;resize_in_progress = <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">	wake_up_all(&amp;files-&gt;resize_wait);</span><br><span class="line">	<span class="keyword">return</span> expanded;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第38行，调用expand_fdtable()函数进行文件描述符表的扩展。</p>
+<h3 id="5-1-expand-fdtable"><a href="#5-1-expand-fdtable" class="headerlink" title="5.1 expand_fdtable()"></a><font size=3>5.1 expand_fdtable()</font></h3><p>expand_fdtable()函数用于文件描述符表的扩展，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/file.c#L148">file.c - fs&#x2F;file.c - <em>expand_fdtable</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Expand the file descriptor table.</span></span><br><span class="line"><span class="comment"> * This function will allocate a new fdtable and both fd array and fdset, of</span></span><br><span class="line"><span class="comment"> * the given size.</span></span><br><span class="line"><span class="comment"> * Return &lt;0 error code on error; 1 on successful completion.</span></span><br><span class="line"><span class="comment"> * The files-&gt;file_lock should be held on entry, and will be held on exit.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">expand_fdtable</span><span class="params">(<span class="keyword">struct</span> files_struct *files, <span class="type">unsigned</span> <span class="type">int</span> nr)</span></span><br><span class="line">	__<span class="title function_">releases</span><span class="params">(files-&gt;file_lock)</span></span><br><span class="line">	__<span class="title function_">acquires</span><span class="params">(files-&gt;file_lock)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fdtable</span> *<span class="title">new_fdt</span>, *<span class="title">cur_fdt</span>;</span></span><br><span class="line"></span><br><span class="line">	spin_unlock(&amp;files-&gt;file_lock);</span><br><span class="line">	new_fdt = alloc_fdtable(nr); <span class="comment">// 申请足以表示nr文件描述符的内存空间</span></span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">	copy_fdtable(new_fdt, cur_fdt); <span class="comment">// 文件描述符信息拷贝</span></span><br><span class="line">	rcu_assign_pointer(files-&gt;fdt, new_fdt); <span class="comment">// 文件描述符表指针更新</span></span><br><span class="line">	<span class="keyword">if</span> (cur_fdt != &amp;files-&gt;fdtab)</span><br><span class="line">		call_rcu(&amp;cur_fdt-&gt;rcu, free_fdtable_rcu);</span><br><span class="line">	<span class="comment">/* coupled with smp_rmb() in __fd_install() */</span></span><br><span class="line">	smp_wmb();</span><br><span class="line">	<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第 15 行，通过调用alloc_fdtable()函数来申请足以表示nr文件描述符的内存空间。</p>
+<h3 id="5-2-alloc-fdtable"><a href="#5-2-alloc-fdtable" class="headerlink" title="5.2 alloc_fdtable()"></a><font size=3>5.2 alloc_fdtable()</font></h3><p>alloc_fdtable()函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/file.c#L85">file.c - fs&#x2F;file.c - <em>alloc_fdtable</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">struct</span> fdtable * <span class="title function_">alloc_fdtable</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> nr)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fdtable</span> *<span class="title">fdt</span>;</span></span><br><span class="line">	<span class="type">void</span> *data;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Figure out how many fds we actually want to support in this fdtable.</span></span><br><span class="line"><span class="comment">	 * Allocation steps are keyed to the size of the fdarray, since it</span></span><br><span class="line"><span class="comment">	 * grows far faster than any of the other dynamic data. We try to fit</span></span><br><span class="line"><span class="comment">	 * the fdarray into comfortable page-tuned chunks: starting at 1024B</span></span><br><span class="line"><span class="comment">	 * and growing in powers of two from there on.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	nr /= (<span class="number">1024</span> / <span class="keyword">sizeof</span>(<span class="keyword">struct</span> file *));</span><br><span class="line">	nr = roundup_pow_of_two(nr + <span class="number">1</span>);</span><br><span class="line">	nr *= (<span class="number">1024</span> / <span class="keyword">sizeof</span>(<span class="keyword">struct</span> file *)); <span class="comment">// nr大小不确定，这之前的步骤就是为了调整nr大小，具体含义看英文说明</span></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Note that this can drive nr *below* what we had passed if sysctl_nr_open</span></span><br><span class="line"><span class="comment">	 * had been set lower between the check in expand_files() and here.  Deal</span></span><br><span class="line"><span class="comment">	 * with that in caller, it&#x27;s cheaper that way.</span></span><br><span class="line"><span class="comment">	 *</span></span><br><span class="line"><span class="comment">	 * We make sure that nr remains a multiple of BITS_PER_LONG - otherwise</span></span><br><span class="line"><span class="comment">	 * bitmaps handling below becomes unpleasant, to put it mildly...</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (unlikely(nr &gt; sysctl_nr_open)) <span class="comment">// nr大于系统设置的文件描述符上限，需要调整不超过系统设置的上限</span></span><br><span class="line">		nr = ((sysctl_nr_open - <span class="number">1</span>) | (BITS_PER_LONG - <span class="number">1</span>)) + <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	fdt = kmalloc(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> fdtable), GFP_KERNEL_ACCOUNT); <span class="comment">// 申请内存空间</span></span><br><span class="line">	<span class="keyword">if</span> (!fdt)</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line">	fdt-&gt;max_fds = nr; <span class="comment">// 最大文件描述符</span></span><br><span class="line">	data = kvmalloc_array(nr, <span class="keyword">sizeof</span>(<span class="keyword">struct</span> file *), GFP_KERNEL_ACCOUNT);</span><br><span class="line">	<span class="keyword">if</span> (!data)</span><br><span class="line">		<span class="keyword">goto</span> out_fdt;</span><br><span class="line">	fdt-&gt;fd = data;</span><br><span class="line"></span><br><span class="line">	data = kvmalloc(<span class="type">max_t</span>(<span class="type">size_t</span>,</span><br><span class="line">				 <span class="number">2</span> * nr / BITS_PER_BYTE + BITBIT_SIZE(nr), L1_CACHE_BYTES),</span><br><span class="line">				 GFP_KERNEL_ACCOUNT);</span><br><span class="line">	<span class="keyword">if</span> (!data)</span><br><span class="line">		<span class="keyword">goto</span> out_arr;</span><br><span class="line">	fdt-&gt;open_fds = data; <span class="comment">// 文件描述符位图(每一位代表一个文件描述符)</span></span><br><span class="line">	data += nr / BITS_PER_BYTE;</span><br><span class="line">	fdt-&gt;close_on_exec = data; <span class="comment">// close_on_exec文件描述符位图(用于在exec创建替换父进程时，确定哪些文件描述符需要关闭)</span></span><br><span class="line">	data += nr / BITS_PER_BYTE;</span><br><span class="line">	fdt-&gt;full_fds_bits = data; <span class="comment">// 文件描述符组位图(每一位代表一个文件描述符组，一组文件描述符有32个文件描述符，当该组文件描述符都被使用了的时候，将该组对应的bit位设置为1，表示该组已经没有可用文件描述符了)</span></span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">	<span class="keyword">return</span> fdt;</span><br><span class="line"></span><br><span class="line">out_arr:</span><br><span class="line">	kvfree(fdt-&gt;fd);</span><br><span class="line">out_fdt:</span><br><span class="line">	kfree(fdt);</span><br><span class="line">out:</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="6-put-unused-fd"><a href="#6-put-unused-fd" class="headerlink" title="6. __put_unused_fd()"></a><font size=3>6. __put_unused_fd()</font></h2><p>为了加速文件描述符查找，文件描述符分配&#x2F;释放的时候都会更新next_fd，用来标志下一个可能可用的文件描述符，例如：我们刚申请到了文件描述符3，那么就代表3之前的文件描述符都被使用了(分配文件描述符是从小到大分配的)，下一个可能可用的文件描述符应该大于等于4，当然文件描述符4有可能已经被使用了，但是我们不必查找文件描述符4之前的文件描述符，这样就提高了效率。另外，例如：0-9文件描述符都被使用了，next_fd&#x3D;10，现在close文件描述符3，3&lt;10，因此我们更新next_fd为3，这样我们就能保证next_fd始终是最小可能可用的文件描述符，不会造成查找时跳过可用文件描述符的情况。</p>
+<p>实现上述功能的函数为__put_unused_fd()，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/file.c#L549">file.c - fs&#x2F;file.c - <em>__put_unused_fd</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span> __put_unused_fd(<span class="keyword">struct</span> files_struct *files, <span class="type">unsigned</span> <span class="type">int</span> fd)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fdtable</span> *<span class="title">fdt</span> =</span> files_fdtable(files);</span><br><span class="line">	__clear_open_fd(fd, fdt); <span class="comment">// 清除文件描述符使用标记，同时清除该文件描述符所在组的标记，释放了一个文件描述符，该组至少有一个文件描述符可使用</span></span><br><span class="line">	<span class="keyword">if</span> (fd &lt; files-&gt;next_fd)</span><br><span class="line">		files-&gt;next_fd = fd; <span class="comment">// 更新下一个可用的文件描述符(打开文件时会更新)</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="三、文件描述符关联"><a href="#三、文件描述符关联" class="headerlink" title="三、文件描述符关联"></a><font size=3>三、文件描述符关联</font></h1><p>linux系统下任何设备都是文件，任何文件操作接口都是一样的，对于应用程序来说，用户只获取到文件描述符，要实现对文件操作，内核还需要知道文件描述符对应的真正设备是什么，怎么操作；ext2、ext4、socket、pipe各种文件的操作都不一样，具体由vfs统一封装了。</p>
+<h2 id="1-do-sys-open"><a href="#1-do-sys-open" class="headerlink" title="1. do_sys_open()"></a><font size=3>1. do_sys_open()</font></h2><p>这里简单看一下do_sys_open()函数，他定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/open.c#L1073">open.c - fs&#x2F;open.c - <em>do_sys_open</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">long</span> <span class="title function_">do_sys_open</span><span class="params">(<span class="type">int</span> dfd, <span class="type">const</span> <span class="type">char</span> __user *filename, <span class="type">int</span> flags, <span class="type">umode_t</span> mode)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">open_flags</span> <span class="title">op</span>;</span></span><br><span class="line">	<span class="type">int</span> fd = build_open_flags(flags, mode, &amp;op);</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">filename</span> *<span class="title">tmp</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (fd)</span><br><span class="line">		<span class="keyword">return</span> fd;</span><br><span class="line"></span><br><span class="line">	tmp = getname(filename);</span><br><span class="line">	<span class="keyword">if</span> (IS_ERR(tmp))</span><br><span class="line">		<span class="keyword">return</span> PTR_ERR(tmp);</span><br><span class="line"></span><br><span class="line">	fd = get_unused_fd_flags(flags); <span class="comment">// 获取未使用的文件描述符</span></span><br><span class="line">	<span class="keyword">if</span> (fd &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">file</span> *<span class="title">f</span> =</span> do_filp_open(dfd, tmp, &amp;op); <span class="comment">// 打开文件，获取file结构体，文件操作的函数指针等，在此暂不做解释，可以参考之前pipe管道的文章，自己分析下pipe操作函数是怎么获取到的，pipe操作比物理文件系统操作简单了很多，分析起来更容易。</span></span><br><span class="line">		<span class="keyword">if</span> (IS_ERR(f)) &#123;</span><br><span class="line">			put_unused_fd(fd);</span><br><span class="line">			fd = PTR_ERR(f);</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			fsnotify_open(f);</span><br><span class="line">			fd_install(fd, f); <span class="comment">// 文件描述符与文件结构体(真正的文件操作函数等)关联，实际就是设置fd对应的数组的值为f，在此不做详细解释。</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	putname(tmp);</span><br><span class="line">	<span class="keyword">return</span> fd;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>后面我们再详细学习吧。</p>
+<blockquote>
+<p>参考资料</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/arm7star/article/details/78668951">linux文件描述符分配实现详解(基于ARM处理器)_fdtable-CSDN博客</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/huzai9527/article/details/117107663">Linux创建进程的源码分析-CSDN博客</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/ed4af2e4.html">LV05-03-Kernel-05-02-文件描述符分配</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年12月17日 - 23:25</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/ed4af2e4.html" title="LV05-03-Kernel-05-02-文件描述符分配">https://sumumm.github.io/post/ed4af2e4.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/" rel="tag"><i class="fa fa-tag"></i> LV05-系统镜像</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/5a460a0.html" rel="prev" title="LV05-03-Kernel-05-03-01-open函数简介">
+                  <i class="fa fa-angle-left"></i> LV05-03-Kernel-05-03-01-open函数简介
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/c88a86e3.html" rel="next" title="LV05-03-Kernel-05-01-mknod">
+                  LV05-03-Kernel-05-01-mknod <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

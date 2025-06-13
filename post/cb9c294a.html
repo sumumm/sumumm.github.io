@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="dtb是什么格式？内核怎么处理设备树的？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-10-设备树-03-设备树深入分析">
+<meta property="og:url" content="https://sumumm.github.io/post/cb9c294a.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="dtb是什么格式？内核怎么处理设备树的？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221101732222.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221114541086.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221114739533.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221115127342.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221142011534.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221144542579.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/942f4402b7b046a27d34e732ba7b8989.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221151342424.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221152833425.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250219094830737.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221160740859.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250219163216978.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250225104457278.png">
+<meta property="article:published_time" content="2025-03-16T23:45:52.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.054Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221101732222.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/cb9c294a.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/cb9c294a.html","path":"post/cb9c294a.html","title":"LV06-10-设备树-03-设备树深入分析"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-10-设备树-03-设备树深入分析 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81dtb-%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F"><span class="nav-text">一、dtb 文件格式  </span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-dtb%E5%9C%A8%E5%86%85%E5%AD%98%E4%B8%AD%E6%98%AF%E4%BB%80%E4%B9%88%E6%A0%B7%E5%AD%90%EF%BC%9F"><span class="nav-text">1. dtb在内存中是什么样子？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-dtb%E6%A0%BC%E5%BC%8F%E5%88%86%E6%9E%90"><span class="nav-text">2. dtb格式分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%BA%90%E7%A0%81"><span class="nav-text">2.1 设备树源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%89%93%E5%BC%80%E6%98%AF%E4%BB%80%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">2.2 二进制打开是什么样？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E8%A7%A3%E8%AF%BB%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%96%87%E4%BB%B6"><span class="nav-text">2.3 解读二进制文件</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1-Header"><span class="nav-text">2.3.1 Header  </span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2-%E5%86%85%E5%AD%98%E4%BF%9D%E7%95%99%E5%9D%97"><span class="nav-text">2.3.2 内存保留块  </span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-3-%E7%BB%93%E6%9E%84%E5%9D%97"><span class="nav-text">2.3.3 结构块  </span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-4-%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%9D%97"><span class="nav-text">2.3.4 字符串块  </span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%80%BB%E7%BB%93"><span class="nav-text">3. 总结</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-dtb%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84%E5%9B%BE"><span class="nav-text">3.1 dtb文件结构图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E8%AE%BE%E5%A4%87%E8%8A%82%E7%82%B9%E7%BB%93%E6%9E%84%E5%9B%BE"><span class="nav-text">3.2 设备节点结构图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E4%B8%80%E4%B8%AA%E6%9B%B4%E7%AE%80%E5%8D%95%E7%9A%84%E5%AE%9E%E4%BE%8B"><span class="nav-text">3.3 一个更简单的实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%86%85%E6%A0%B8%E5%AF%B9%E8%AE%BE%E5%A4%87%E6%A0%91%E7%9A%84%E5%A4%84%E7%90%86"><span class="nav-text">二、内核对设备树的处理  </span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BE%E5%A4%87%E6%A0%91%E7%9A%84%E5%A4%84%E7%90%86%E8%BF%87%E7%A8%8B"><span class="nav-text">1. 设备树的处理过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-dtb-%E5%B1%95%E5%BC%80%E6%88%90-device-node"><span class="nav-text">2. dtb 展开成 device_node  </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%B1%95%E5%BC%80%E6%B5%81%E7%A8%8B"><span class="nav-text">2.1 展开流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E7%9B%B8%E5%85%B3%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="nav-text">2.2 相关数据结构</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-struct-device-node"><span class="nav-text">2.2.1  struct device_node</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-struct-property"><span class="nav-text">2.2.2 struct property</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E5%B1%95%E5%BC%80%E8%BF%87%E7%A8%8B%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="nav-text">2.3 展开过程源码分析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1-start-kernel"><span class="nav-text">2.3.1 start_kernel()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2-setup-arch"><span class="nav-text">2.3.2 setup_arch()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-3-unflatten-device-tree"><span class="nav-text">2.3.3 unflatten_device_tree()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-4-unflatten-device-tree"><span class="nav-text">2.3.4 __unflatten_device_tree()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-5-unflatten-dt-nodes"><span class="nav-text">2.3.5 unflatten_dt_nodes()</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-device-node-%E8%BD%AC%E6%8D%A2%E6%88%90-platform-device"><span class="nav-text">3. device_node 转换成 platform_device</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E8%BD%AC%E6%8D%A2%E8%A7%84%E5%88%99"><span class="nav-text">3.1 转换规则  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E8%BD%AC%E6%8D%A2%E7%A4%BA%E4%BE%8B"><span class="nav-text">3.2 转换示例</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-2-%E7%A4%BA%E4%BE%8B1"><span class="nav-text">3.2.2 示例1</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-3-%E7%A4%BA%E4%BE%8B2"><span class="nav-text">3.2.3 示例2</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-4-%E7%A4%BA%E4%BE%8B3"><span class="nav-text">3.2.4 示例3</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-4-%E7%A4%BA%E4%BE%8B4"><span class="nav-text">3.2.4 示例4</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-5-%E7%A4%BA%E4%BE%8B5"><span class="nav-text">3.2.5 示例5</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E8%BD%AC%E6%8D%A2%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90"><span class="nav-text">3.3 转换流程分析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-1-arch-initcall-sync"><span class="nav-text">3.3.1 arch_initcall_sync()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-2-of-platform-default-populate-init"><span class="nav-text">3.3.2 of_platform_default_populate_init()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-3-of-platform-default-populate"><span class="nav-text">3.3.3 of_platform_default_populate()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-4-of-platform-populate"><span class="nav-text">3.3.4 of_platform_populate()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-5-of-platform-bus-create"><span class="nav-text">3.3.5 of_platform_bus_create</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-6-of-platform-device-create-pdata"><span class="nav-text">3.3.6  of_platform_device_create_pdata()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-7-%E6%80%BB%E7%BB%93"><span class="nav-text">3.3.7 总结</span></a></li></ol></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/cb9c294a.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-10-设备树-03-设备树深入分析 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-10-设备树-03-设备树深入分析
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-03-17 07:45:52" itemprop="dateCreated datePublished" datetime="2025-03-17T07:45:52+08:00">2025-03-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>13k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>48 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>dtb是什么格式？内核怎么处理设备树的？若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="3">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4" target="_blank">kernel/git/stable/linux.git - Linux kernel stable tree</a></td>        <td align="left">linux kernel源码(官网,tag 4.19.71)</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、dtb-文件格式"><a href="#一、dtb-文件格式" class="headerlink" title="一、dtb 文件格式  "></a><font size=3>一、dtb 文件格式  </font></h1><h2 id="1-dtb在内存中是什么样子？"><a href="#1-dtb在内存中是什么样子？" class="headerlink" title="1. dtb在内存中是什么样子？"></a><font size=3>1. dtb在内存中是什么样子？</font></h2><p>设备树 Blob (DTB) 格式是设备树数据的平面二进制编码。 它用于在软件程序之间交换设备树数据。 例如， 在启动操作系统时， 固件会将 DTB 传递给操作系统内核。  </p>
+<p>DTB 格式在单个、 线性、 无指针数据结构中对设备树数据进行编码。 它由一个小头部和三个可变大小的部分组成： 内存保留块、 结构块和字符串块。 这些应该以该顺序出现在展平的设备树中。 因此， 设备树结构作为一个整体， 当加载到内存地址时， 将类似于下图  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221101732222.png" alt="image-20250221101732222" style="zoom:33%;" />
+
+<blockquote>
+<p>Tips：设备树的dtb文件是以大端模式存储，所以打开的时候要注意一下。</p>
+</blockquote>
+<h2 id="2-dtb格式分析"><a href="#2-dtb格式分析" class="headerlink" title="2. dtb格式分析"></a><font size=3>2. dtb格式分析</font></h2><h3 id="2-1-设备树源码"><a href="#2-1-设备树源码" class="headerlink" title="2.1 设备树源码"></a><font size=3>2.1 设备树源码</font></h3><p>下面我们以这个设备树为例进行分析：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">/dts-v1/;</span><br><span class="line">/ &#123;</span><br><span class="line">    model = <span class="string">&quot;This is my devicetree!&quot;</span>;</span><br><span class="line">    <span class="meta">#address-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">    <span class="meta">#size-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">    chosen &#123;</span><br><span class="line">        bootargs = <span class="string">&quot;root=/dev/nfs rw nfsroot=192.168.1.1 console=ttyS0, 115200&quot;</span>;</span><br><span class="line">    &#125;;</span><br><span class="line">    cpu1: cpu@<span class="number">1</span> &#123;</span><br><span class="line">        device_type = <span class="string">&quot;cpu&quot;</span>;</span><br><span class="line">        compatible = <span class="string">&quot;arm,cortex-a35&quot;</span>, <span class="string">&quot;arm,armv8&quot;</span>;</span><br><span class="line">        reg = &lt;<span class="number">0x0</span> <span class="number">0x1</span>&gt;;</span><br><span class="line">    &#125;;</span><br><span class="line">    aliases &#123;</span><br><span class="line">        led1 = <span class="string">&quot;/gpio@22020101&quot;</span>;</span><br><span class="line">    &#125;;</span><br><span class="line">    node1 &#123;</span><br><span class="line">        <span class="meta">#address-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">        <span class="meta">#size-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">        gpio@<span class="number">22020102</span> &#123;</span><br><span class="line">            reg = &lt;<span class="number">0x20220102</span> <span class="number">0x40</span>&gt;;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;;</span><br><span class="line">    node2 &#123;</span><br><span class="line">        node1-child &#123;</span><br><span class="line">            pinnum = &lt;<span class="number">01234</span>&gt;;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;;</span><br><span class="line">    gpio@<span class="number">22020101</span> &#123;</span><br><span class="line">        compatible = <span class="string">&quot;led&quot;</span>;</span><br><span class="line">        reg = &lt;<span class="number">0x20220101</span> <span class="number">0x40</span>&gt;;</span><br><span class="line">        status = <span class="string">&quot;okay&quot;</span>;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>而我们之后要分析的是二进制的 dtb 文件， 所以需要使用 dtc 工具将上面的 dts 文件编译成 dtb 文件，前面已经了解过了。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./dtc -I dts -O dtb -o dtb_file_format.dtb dtb_file_format.dts</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="2-2-二进制打开是什么样？"><a href="#2-2-二进制打开是什么样？" class="headerlink" title="2.2 二进制打开是什么样？"></a><font size=3>2.2 二进制打开是什么样？</font></h3><p>用二进制分析软件（可以用 BinaryViewer 或者 hexdump 命令）打开 dtb 文件并设置大端模式。我这里用的是BinaryViewer ，这个是免费软件，去官网下载安装就可以了。打开后，内容如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221114541086.png" alt="image-20250221114541086"  />
+
+<blockquote>
+<p>Tips: hexdump 命令使用格式如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexdump -C dtb_file_format.dtb</span><br></pre></td></tr></table></figure>
+
+</blockquote>
+<h3 id="2-3-解读二进制文件"><a href="#2-3-解读二进制文件" class="headerlink" title="2.3 解读二进制文件"></a><font size=3>2.3 解读二进制文件</font></h3><h4 id="2-3-1-Header"><a href="#2-3-1-Header" class="headerlink" title="2.3.1 Header  "></a><font size=3>2.3.1 Header  </font></h4><p>devicetree 的头布局由 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L57">struct fdt_header</a>  结构定义。所有的头字段都是 32 位整数， 以大端格式存储。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">fdt_header</span> &#123;</span></span><br><span class="line">	<span class="type">fdt32_t</span> magic;			 <span class="comment">// 设备树头部的魔数</span></span><br><span class="line">	<span class="type">fdt32_t</span> totalsize;		 <span class="comment">// 设备树文件的总大小</span></span><br><span class="line">	<span class="type">fdt32_t</span> off_dt_struct;	 <span class="comment">// 设备树结构体（节点数据） 相对于文件开头的偏移量</span></span><br><span class="line">	<span class="type">fdt32_t</span> off_dt_strings;  <span class="comment">// 设备树字符串表相对于文件开头的偏移量</span></span><br><span class="line">	<span class="type">fdt32_t</span> off_mem_rsvmap;	 <span class="comment">// 内存保留映射表相对于文件开头的偏移量</span></span><br><span class="line">	<span class="type">fdt32_t</span> version;		 <span class="comment">// 设备树版本号</span></span><br><span class="line">	<span class="type">fdt32_t</span> last_comp_version;	<span class="comment">// 最后一个兼容版本号</span></span><br><span class="line">	<span class="comment">/* version 2 fields below */</span></span><br><span class="line">	<span class="type">fdt32_t</span> boot_cpuid_phys;	<span class="comment">// 启动 CPU 的物理 ID</span></span><br><span class="line">	<span class="comment">/* version 3 fields below */</span></span><br><span class="line">	<span class="type">fdt32_t</span> size_dt_strings;	<span class="comment">// 设备树字符串表的大小</span></span><br><span class="line">	<span class="comment">/* version 17 fields below */</span></span><br><span class="line">	<span class="type">fdt32_t</span> size_dt_struct;	   <span class="comment">// 设备树结构体（节点数据） 的大小</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>其中 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/libfdt_env.h#L69">fdt32_t</a> 就是uint32_t。每个字段的描述如下所示 ：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>magic</td>
+<td>该字段为固定值 0xd00dfeed（大端） 。</td>
+</tr>
+<tr>
+<td>totalsize</td>
+<td>该字段包含设备树数据结构的总大小（以字节为单位） 。 此大小应包含结构的所有部分： 标题、 内存保留块、 结构块和字符串块， 以及块之间或最后一个块之后的任何空闲空间间隙。</td>
+</tr>
+<tr>
+<td>off_dt_struct</td>
+<td>该字段包含结构块从头开始的以字节为单位的偏移量。</td>
+</tr>
+<tr>
+<td>off_dt_strings</td>
+<td>该字段包含字符串块从头开始的以字节为单位的偏移量。</td>
+</tr>
+<tr>
+<td>off_mem_rsvmap</td>
+<td>该字段包含从头开始的内存保留块的字节偏移量。</td>
+</tr>
+<tr>
+<td>version</td>
+<td>该字段包含设备树数据结构的版本。</td>
+</tr>
+<tr>
+<td>last_comp_version</td>
+<td>向后兼容的设备树数据结构的最低版本。</td>
+</tr>
+<tr>
+<td>boot_cpuid_phys</td>
+<td>与设备树 CPU 节点的 reg 属性对应</td>
+</tr>
+<tr>
+<td>size_dt_strings</td>
+<td>设备树字符串块部分的字节长度。</td>
+</tr>
+<tr>
+<td>size_dt_struct</td>
+<td>设备树结构块部分的字节长度。</td>
+</tr>
+</tbody></table>
+<p>然后来查看二进制文件， 其中 4 个字节表示一个单位， 前十个单位分别代表上述的十个字段如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221114739533.png" alt="image-20250221114739533"  />
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>十六进制数值</th>
+<th>代表含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>magic</td>
+<td>D00DFEED</td>
+<td>固定值</td>
+</tr>
+<tr>
+<td>totalsize</td>
+<td>000002A4</td>
+<td>转换为十进制之后为 676， 表示该文件大小为 676 字节</td>
+</tr>
+<tr>
+<td>off_dt_struct</td>
+<td>00000038</td>
+<td>表示结构块从 00000038 这个地址开始， 和后面的size_dt_struct 结构块大小参数一起可以确定结构块的存储范围</td>
+</tr>
+<tr>
+<td>off_dt_strings</td>
+<td>0000024C</td>
+<td>表示字符串块从 0000024C 这个地址开始， 和后面的size_dt_strings 字符串块大小参数一起可以确定字符串块的存储范围</td>
+</tr>
+<tr>
+<td>off_mem_rsvmap</td>
+<td>00000028</td>
+<td>表示内存保留块的偏移为 00000028， header 之后结构快之前都是属于内存保留块。</td>
+</tr>
+<tr>
+<td>version</td>
+<td>00000011</td>
+<td>11 转换为十进制之后为 17， 表示当前设备树结构版本为17</td>
+</tr>
+<tr>
+<td>last_comp_version</td>
+<td>00000010</td>
+<td>10 转换为十进制之后为 16， 表示向前兼容的设备树结构版本为 16</td>
+</tr>
+<tr>
+<td>boot_cpuid_phys</td>
+<td>00000000</td>
+<td>表示设备树的 teg 属性为 0</td>
+</tr>
+<tr>
+<td>size_dt_strings</td>
+<td>00000058</td>
+<td>表 示 字 符 串 块 的 大 小 为 00000058 ， 和 前 面 的off_dt_strings 字符串块偏移值一起可以确定字符串块的范围</td>
+</tr>
+<tr>
+<td>size_dt_struct</td>
+<td>00000214</td>
+<td>表示结构块的大小为 00000214， 和前面的 off_dt_struct结构块偏移值一起可以确定结构块的范围</td>
+</tr>
+</tbody></table>
+<h4 id="2-3-2-内存保留块"><a href="#2-3-2-内存保留块" class="headerlink" title="2.3.2 内存保留块  "></a><font size=3>2.3.2 内存保留块  </font></h4><p>内存保留块（Memory Reserved Block） 是用于客户端程序的保护和保留物理内存区域的列表。 这些保留区域不应被用于一般的内存分配， 而是用于保护重要数据结构， 以防止客户端程序覆盖这些数据。 内存保留块的目的是确保特定的内存区域在客户端程序运行时不被修改或使用。 由于在示例设备树中没有设置内存保留块， 所以相应的区域都为 0， 如下  ：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221115127342.png" alt="image-20250221115127342"  />
+
+<p>保留区域列表： 内存保留块是一个由一组 64 位大端整数对构成的列表。 每对整数对应一个保留内存区域， 其中包含物理地址和区域的大小（以字节为单位） 。 这些保留区域应该彼此不重叠。  </p>
+<p>保留区域的用途： 客户端程序不应访问内存保留块中的保留区域， 除非引导程序提供的其他信息明确指示可以访问。 引导程序可以使用特定的方式来指示客户端程序可以访问保留内存的部分内容。 引导程序可能会在文档、 可选的扩展或特定于平台的文档中说明保留内存的特定用途。  </p>
+<p>格式： 内存保留块中的每个保留区域由一个 64 位大端整数对表示。 每对由 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L76">struct fdt_reserve_entry</a> 结构表示  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">fdt_reserve_entry</span> &#123;</span></span><br><span class="line">	<span class="type">fdt64_t</span> address;</span><br><span class="line">	<span class="type">fdt64_t</span> size;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>其中的第一个整数表示保留区域的物理地址， 第二个整数表示保留区域的大小（以字节为单位） 。 每个整数都以 64 位的形式表示， 即使在 32 位架构上也是如此。 在 32 位 CPU 上，整数的高 32 位将被忽略。  </p>
+<p>内存保留块为设备树提供了保护和保留物理内存区域的功能。 它确保了特定的内存区域在客户端程序运行时不被修改或使用。 这样可以确保引导程序和其他关键组件在需要的情况下能够访问保留内存的特定部分， 并保护关键数据结构免受意外修改。  </p>
+<h4 id="2-3-3-结构块"><a href="#2-3-3-结构块" class="headerlink" title="2.3.3 结构块  "></a><font size=3>2.3.3 结构块  </font></h4><p>结构块是设备树中描述设备树本身结构和内容的部分。 它由一系列带有数据的令牌序列组成， 这些令牌按照线性树结构进行组织。  </p>
+<ul>
+<li>（1） 令牌类型</li>
+</ul>
+<p>结构块中的令牌分为五种类型， 每种类型用于不同的目的。 </p>
+<p>a. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L98">FDT_BEGIN_NODE</a> (0x00000001): FDT_BEGIN_NODE 标记表示一个节点的开始。 它后面跟着节点的单元名称作为额外数据。 节点名称以以空字符结尾的字符串形式存储， 并且可以包括单元地址。 节点名称后可能需要填充零字节以对齐， 然后是下一个标记， 可以是除了 FDT_END之外的任何标记。  </p>
+<p>b. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L99">FDT_END_NODE</a> (0x00000002): FDT_END_NODE 标记表示一个节点的结束。 该标记没有额外的数据， 紧随其后的是下一个标记， 可以是除了 FDT_PROP 之外的任何标记。  </p>
+<p>c. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L100">FDT_PROP</a>(0x00000003): FDT_PROP 标记表示设备树中属性的开始。 它后面跟着描述属性的额外数据， 该数据首先由属性的长度和名称组成， 表示为下面这样的结构  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span>&#123;</span></span><br><span class="line">	<span class="type">fdt32_t</span> len;</span><br><span class="line">	<span class="type">fdt32_t</span> nameoff;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>长度表示属性值的字节长度， 名称偏移量指向字符串块中存储属性名称的位置。 在这个结构之后， 属性的值作为字节字符串给出。 属性值后可能需要填充零字节以对齐， 然后是下一个令牌， 可以是除了 FDT_END 之外的任何标记。 </p>
+<p>d. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L102">FDT_NOP</a> (0x00000004): FDT_NOP 令牌可以被解析设备树的程序忽略。 该令牌没有额外的数据， 紧随其后的是下一个令牌， 可以是任何有效的令牌。 使用 FDT_NOP 令牌可以覆盖树中的属性或节点定义， 从而将其从树中删除， 而无需移动设备树 blob 中的其他部分。  </p>
+<p>e. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L103">FDT_END</a> (0x00000009): FDT_END 标记表示结构块的结束。 应该只有一个 FDT_END 标记， 并且应该是结构块中的最后一个标记。 该标记没有额外的数据， 紧随其后的字节应该位于结构块的开头偏移处， 该偏移等于设备树 blob 标头中的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L73">fdt_header.size_dt_struct</a>字段的值。  </p>
+<ul>
+<li>（2） 树状结构</li>
+</ul>
+<p>设备树的结构以线性树的形式表示。 每个节点由 FDT_BEGIN_NODE 标记开始， 由FDT_END_NODE 标记结束。 节点的属性和子节点在 FDT_END_NODE 之前表示， 因此子节点的FDT_BEGIN_NODE 和 FDT_END_NODE 令牌嵌套在父节点的令牌中。  </p>
+<ul>
+<li>（3） 结构块的结束</li>
+</ul>
+<p>结构块以单个 FDT_END 标记结束。 该标记没有额外的数据， 它位于结构块的末尾， 并且是结构块中的最后一个标记。 FDT_END 标记之后的字节应位于结构块的开头偏移处， 该偏移等于设备树 blob 标头中的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L73">fdt_header.size_dt_struct</a>字段的值。  </p>
+<p>对结构块开头的部分内容进行分析:</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221142011534.png" alt="image-20250221142011534"  />
+
+<table>
+<thead>
+<tr>
+<th>十六进制数值</th>
+<th>代表含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>00000001</td>
+<td>根节点的开始</td>
+</tr>
+<tr>
+<td>00000000</td>
+<td>根节点没有节点名， 所以这里名字为 0</td>
+</tr>
+<tr>
+<td>00000003</td>
+<td>设备树中属性的开始</td>
+</tr>
+<tr>
+<td>00000017</td>
+<td>代表该属性的大小， 换算成十进制为 23， 也就是”This is my devicetree!”这一字符串的长度</td>
+</tr>
+<tr>
+<td>00000000</td>
+<td>代表该属性在字符串块的偏移量， 这里为 0， 表示无偏移</td>
+</tr>
+<tr>
+<td>54686973 - 65210000</td>
+<td>model 的具体值</td>
+</tr>
+</tbody></table>
+<p>通过使用结构块， 设备树可以以一种层次化的方式组织和描述系统中的设备和资源。 每个节点可以包含属性和子节点， 从而实现更加灵活和可扩展的设备树表示。  </p>
+<h4 id="2-3-4-字符串块"><a href="#2-3-4-字符串块" class="headerlink" title="2.3.4 字符串块  "></a><font size=3>2.3.4 字符串块  </font></h4><p>字符串块用于存储设备树中使用的<strong>所有属性名称</strong>。 它由一系列以空字符结尾的字符串组成， 这些字符串在字符串块中简单地连接在一起， 具体示例如下  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221144542579.png" alt="image-20250221144542579"  />
+
+<ul>
+<li>（ 1） 字符串连接</li>
+</ul>
+<p>字符串块中的字符串以空字符（<code>\0</code>） 作为终止符来连接。 这意味着每个字符串都以空字符结尾， 并且下一个字符串紧跟在上一个字符串的末尾。 这种连接方式使得字符串块中的所有字符串形成一个连续的字符序列。  </p>
+<ul>
+<li>（ 2） 偏移量引用</li>
+</ul>
+<p>在结构块中， 属性的名称是通过偏移量来引用字符串块中的相应字符串的。 偏移量是一个无符号整数值， 它表示字符串在字符串块中的位置。 通过使用偏移量引用， 设备树可以节省空间， 并且在属性名称发生变化时也更加灵活， 因为只需要更新偏移量， 而不需要修改结构块中的属性引用。  </p>
+<ul>
+<li>（ 3） 对齐约束</li>
+</ul>
+<p>字符串块没有对齐约束， 这意味着它可以出现在设备树 blob 的任何偏移处。 这使得字符串块的位置在设备树 blob 中是灵活的， 并且可以根据需要进行调整， 而不会对设备树的解析和处理造成影响。  </p>
+<p>字符串块是设备树中用于存储属性名称的部分。 它由字符串连接而成， 并通过偏移量在结构块中进行引用。 字符串块的灵活位置使得设备树的表示更加紧凑和可扩展。  </p>
+<h2 id="3-总结"><a href="#3-总结" class="headerlink" title="3. 总结"></a><font size=3>3. 总结</font></h2><h3 id="3-1-dtb文件结构图"><a href="#3-1-dtb文件结构图" class="headerlink" title="3.1 dtb文件结构图"></a><font size=3>3.1 dtb文件结构图</font></h3><p>通过以上分析，可以得到Device Tree文件结构如下图（与前面分析的设备树有所不同，这里是从网上找的图）所示。dtb的头部首先存放的是fdt_header的结构体信息，接着是填充区域，填充大小为off_dt_struct – sizeof(struct fdt_header)，填充的值为0。接着就是struct fdt_property 结构体的相关信息。最后是 dt_string 部分。<br><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/942f4402b7b046a27d34e732ba7b8989.png" alt="img"  /></p>
+<p>Device Tree源文件的结构分为header、fill_area、dt_struct及dt_string四个区域。fill_area区域填充数值0。节点（node）信息使用<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L81">struct fdt_node_header</a>结构体描述。属性信息使用<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L86">struct fdt_property</a>结构体描述。各个结构体信息如下:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">fdt_node_header</span> &#123;</span></span><br><span class="line">	<span class="type">fdt32_t</span> tag;</span><br><span class="line">	<span class="type">char</span> name[<span class="number">0</span>];</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">fdt_property</span> &#123;</span></span><br><span class="line">	<span class="type">fdt32_t</span> tag;</span><br><span class="line">	<span class="type">fdt32_t</span> len;</span><br><span class="line">	<span class="type">fdt32_t</span> nameoff;</span><br><span class="line">	<span class="type">char</span> data[<span class="number">0</span>];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L81">struct fdt_node_header</a>描述节点信息，tag是标识node的起始结束等信息的标志位，name指向node名称的首地址。tag的取值如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1.</span> <span class="meta">#<span class="keyword">define</span> FDT_BEGIN_NODE 0x1 <span class="comment">/* Start node: full name */</span></span></span><br><span class="line"><span class="number">2.</span> <span class="meta">#<span class="keyword">define</span> FDT_END_NODE   0x2 <span class="comment">/* End node */</span></span></span><br><span class="line"><span class="number">3.</span> <span class="meta">#<span class="keyword">define</span> FDT_PROP 	  0x3 <span class="comment">/* Property: name off, size, content */</span></span></span><br><span class="line"><span class="number">4.</span> <span class="meta">#<span class="keyword">define</span> FDT_NOP 		  0x4 <span class="comment">/* nop */</span></span></span><br><span class="line"><span class="number">5.</span> <span class="meta">#<span class="keyword">define</span> FDT_END 		  0x9</span></span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L98">FDT_BEGIN_NODE</a>和<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L99">FDT_END_NODE</a>标识node节点的起始和结束，<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L100">FDT_PROP</a>标识node节点下面的属性起始符，<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L103">FDT_END</a>标识Device Tree的结束标识符。因此，对于每个node节点的tag标识符一般为<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L98">FDT_BEGIN_NODE</a>，对于每个node节点下面的属性的tag标识符一般是<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L100">FDT_PROP</a>。</p>
+<p>描述属性采用<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L86">struct fdt_property</a>描述，tag标识是属性，取值为<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.h#L100">FDT_PROP</a>；len为属性值的长度（包括‘\0’，单位：字节）；nameoff为属性名称存储位置相对于off_dt_strings的偏移地址。</p>
+<h3 id="3-2-设备节点结构图"><a href="#3-2-设备节点结构图" class="headerlink" title="3.2 设备节点结构图"></a><font size=3>3.2 设备节点结构图</font></h3><p>dt_struct在Device Tree中的结构如下图所示。节点的嵌套也带来tag标识符的嵌套。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221151342424.png" alt="image-20250221151342424"  />
+
+<h3 id="3-3-一个更简单的实例"><a href="#3-3-一个更简单的实例" class="headerlink" title="3.3 一个更简单的实例"></a><font size=3>3.3 一个更简单的实例</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">/dts-v1/;</span><br><span class="line">/ &#123;	</span><br><span class="line">	compatible = <span class="string">&quot;hd,test_dts&quot;</span>, <span class="string">&quot;hd,test_xxx&quot;</span>;</span><br><span class="line">	<span class="meta">#address-cells = <span class="string">&lt;0x1&gt;</span>;</span></span><br><span class="line">	<span class="meta">#size-cells = <span class="string">&lt;0x1&gt;</span>;</span></span><br><span class="line">	model = <span class="string">&quot;HD test dts&quot;</span>;</span><br><span class="line">	</span><br><span class="line">	chosen &#123;</span><br><span class="line">		<span class="built_in">stdout</span>-path = <span class="string">&quot;/ocp/serial@ffff&quot;</span>;</span><br><span class="line">	&#125;;</span><br><span class="line">	memory@<span class="number">80000000</span> &#123;</span><br><span class="line">		device_type = <span class="string">&quot;memory&quot;</span>;</span><br><span class="line">		reg = &lt;<span class="number">0x80000000</span> <span class="number">0x10000000</span>&gt;;</span><br><span class="line">	&#125;;</span><br><span class="line">	led1:led@<span class="number">2000000</span> &#123;</span><br><span class="line">		compatible = <span class="string">&quot;test_led&quot;</span>;</span><br><span class="line">		<span class="meta">#address-cells = <span class="string">&lt;0x1&gt;</span>;</span></span><br><span class="line">		<span class="meta">#size-cells = <span class="string">&lt;0x1&gt;</span>;</span></span><br><span class="line">		reg = &lt;<span class="number">0x200</span> <span class="number">0x4</span>&gt;;</span><br><span class="line">	&#125;;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>我们会得到如下结构的dtb文件：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221152833425.png" alt="image-20250221152833425"  />
+
+<p>整个dtb文件还是比较简单的，图中的红色框出的部分为header部分的数据，可以看到：</p>
+<ul>
+<li>（1）fdt_header</li>
+</ul>
+<p>第1个四字节对应magic，数据为 D00DFEED.</p>
+<p>第2四字节对应totalsize，数据为 000001BC，可以由整张图片看出，这个dtb文件的大小由0x0~0x1bb,大小刚好是0x1bc</p>
+<p>第3个四字节对应off_dt_struct，数据为00000038。</p>
+<p>第4个四字节对应off_dt_strings，数据为00000174，可以由整张图片看到，从0x174开始刚好是字符串开始的地方</p>
+<p>第5个四字节对应off_mem_rsvmap，数据为00000028</p>
+<p>第6个四字节对应version，数据为00000011，十进制为17</p>
+<p>第7个四字节对应last_comp_version，数据为00000010，十进制为16，表示兼容版本16</p>
+<p>第8个四字节对应boot_cpuid_phys，数据为00000000，仅在版本2中使用，这里为0</p>
+<p>第9个四字节对应size_dt_strings，数据为00000048，表示字符串总长。</p>
+<p>第10个四字节对应size_dt_struct，数据为0000013c，表示struct部分总长度。</p>
+<p>整个头部为40字节，16进制为0x28，从头部信息中off_mem_rsvmap部分可以得到，reserve memory起始地址为0x28，上文中提到，这一部分使用一个16字节的struct来描述，以一个全为0的struct结尾。</p>
+<ul>
+<li>（2）reserve memory</li>
+</ul>
+<p>后16字节全为0，可以看出，这里并没有设置reserve memory。</p>
+<ul>
+<li>（3）dt_struct</li>
+</ul>
+<p>偏移地址来到0x00000038(0x28+0x10),接下来8个字节为00000003，根据上述structure中的描述，这是OF_DT_PROP，即标示属性的开始。</p>
+<p>接下来4字节为00000018，表明该属性的value部分size为24字节。</p>
+<p>接下来4字节是当前属性的key在string 部分的偏移地址，这里是00000000，由头部信息中off_dt_strings可以得到，string部分的开始为00000174，偏移地址为0，所以对应字符串为”compatible”.</p>
+<p>之后就是value部分，这部分的数据是字符串，可以直接从图片右侧栏看出，总共24字节的字符串”hd,test_dts”, “hd,test_xxx”,因为字符串之间以0结尾，所以程序可以识别出这是两个字符串。</p>
+<p>可以看出，到这里，compatible &#x3D; “hd,test_dts”, “hd,test_xxx”;这个属性就被描述完了。</p>
+<p>按照固有的规律，接下来就是对#address-cells &#x3D; &lt;0x1&gt;的解析，然后是#size-cells &#x3D; &lt;0x1&gt;…</p>
+<p>然后就是递归的子节点chosen，memory@80000000等等都是按照上文中提到的structure解析规则来进行解析，最后以00000002结尾。</p>
+<p>与根节点不同的是，子节点有一个unit name，即chosen，memory@80000000这些名称，并非节点中的.name属性。</p>
+<p>而整个结构的结束由00000009来描述。</p>
+<ul>
+<li>dt_string</li>
+</ul>
+<p>从0x00000174地址开始就是dt_string的内容了。</p>
+<h1 id="二、内核对设备树的处理"><a href="#二、内核对设备树的处理" class="headerlink" title="二、内核对设备树的处理  "></a><font size=3>二、内核对设备树的处理  </font></h1><h2 id="1-设备树的处理过程"><a href="#1-设备树的处理过程" class="headerlink" title="1. 设备树的处理过程"></a><font size=3>1. 设备树的处理过程</font></h2><p>从源代码文件 dts 文件开始，设备树的处理过程为：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250219094830737.png" alt="image-20250219094830737"  />
+
+<p>（1）dts 在 PC 机上被编译为 dtb 文件； </p>
+<p>（2）u-boot 把 dtb 文件传给内核；</p>
+<p>（3）内核解析 dtb 文件，把每一个节点都转换为 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L51">struct device_node</a>结构体；</p>
+<p>（4）对于某些 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L51">struct device_node</a> 结构体，会被转换为 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">struct platform_device</a>结构体。</p>
+<h2 id="2-dtb-展开成-device-node"><a href="#2-dtb-展开成-device-node" class="headerlink" title="2. dtb 展开成 device_node  "></a><font size=3>2. dtb 展开成 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L51">device_node</a>  </font></h2><p>dtb 中每一个节点都会被转换为 device_node 结构体。  </p>
+<h3 id="2-1-展开流程"><a href="#2-1-展开流程" class="headerlink" title="2.1 展开流程"></a><font size=3>2.1 展开流程</font></h3><p>dtb 展开流程图如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250221160740859.png" alt="image-20250221160740859"  />
+
+<p>（1） 设备树源文件编写： 根据设备树的基本语法和相关知识编写符合规范的设备树。  </p>
+<p>（2） 设备树编译： 设备树源文件经过设备树编译器（dtc） 进行编译， 生成设备树二进制文件（.dtb） 。 设备树编译器会检查源文件的语法和语义， 并将其转换为二进制格式， 以便内核能够解析和使用。  </p>
+<p>（3） boot.img 镜像生成： boot.img 是一个包含内核镜像、 设备树二进制文件和其他一些资源文件的镜像文件（目前只是适用于瑞芯微的 soc 上， 其他厂商的 soc 需要具体问题具体分析） 。 在生成 boot.img 时， 通常会将内核镜像、 设备树二进制文件和其他一些资源文件打包在一起。 这个过程可以使用特定的工具或脚本完成。但是这里其实可以内核和设备树分开，内核是内核，设备树是设备树，然后配置uboot为从tftp下载内核和设备树，然后加载内核和设备树，这样有利于我们调试。</p>
+<p>（4） U-Boot 加载： U-Boot（Universal Bootloader） 是一种常用的开源引导加载程序， 用于引导嵌入式系统。 在系统启动过程中， U-Boot 会将 boot.img 中的内核和设备树的二进制文件加载到系统内存的特定地址。或者可以设置为从tftp服务器下载设备树和内核。  </p>
+<p>（ 5） 内核初始化： U-Boot 将内核和设备树的二进制文件加载到系统内存的特定地址后，控制权会转交给内核。 在内核初始化的过程中， 会解析设备树二进制文件， 将其展开为内核可以识别的数据结构， 以便内核能够正确地初始化和管理硬件资源。  </p>
+<p>（ 6） 设备树展开： 设备树展开是指将设备树二进制文件解析成内核中的设备节点（<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L51">device_node</a>） 的过程。 内核会读取设备树二进制文件的内容， 并根据设备树的描述信息，构建设备树数据结构， 例如设备节点、 中断控制器、 寄存器、 时钟等。 这些设备树数据结构将在内核运行时用于管理和配置硬件资源。 </p>
+<h3 id="2-2-相关数据结构"><a href="#2-2-相关数据结构" class="headerlink" title="2.2 相关数据结构"></a><font size=3>2.2 相关数据结构</font></h3><p>dtb 中每一个节点都被转换为  <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L51">struct device_node</a> 结构体。根节点被保存在全局变量 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/base.c#L35">of_root</a>中（这个全局变量在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L426">__unflatten_device_tree()</a>函数中使用），从 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/base.c#L35">of_root</a> 开始可以访问到任意节点。</p>
+<h4 id="2-2-1-struct-device-node"><a href="#2-2-1-struct-device-node" class="headerlink" title="2.2.1  struct device_node"></a><font size=3>2.2.1  <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L51">struct device_node</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L51">struct device_node</a> 结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">device_node</span> &#123;</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span> *name;</span><br><span class="line">	<span class="type">const</span> <span class="type">char</span> *type;</span><br><span class="line">	phandle phandle;</span><br><span class="line">	<span class="type">const</span> <span class="type">char</span> *full_name;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fwnode_handle</span> <span class="title">fwnode</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span>	<span class="title">property</span> *<span class="title">properties</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span>	<span class="title">property</span> *<span class="title">deadprops</span>;</span>	<span class="comment">/* removed properties */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span>	<span class="title">device_node</span> *<span class="title">parent</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span>	<span class="title">device_node</span> *<span class="title">child</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span>	<span class="title">device_node</span> *<span class="title">sibling</span>;</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-2-2-struct-property"><a href="#2-2-2-struct-property" class="headerlink" title="2.2.2 struct property"></a><font size=3>2.2.2 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L31">struct property</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L31">struct property</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">property</span> &#123;</span></span><br><span class="line">	<span class="type">char</span>	*name;</span><br><span class="line">	<span class="type">int</span>	length;</span><br><span class="line">	<span class="type">void</span>	*value;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">property</span> *<span class="title">next</span>;</span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(CONFIG_OF_DYNAMIC) || defined(CONFIG_SPARC)</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> _flags;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(CONFIG_OF_PROMTREE)</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span> unique_id;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(CONFIG_OF_KOBJ)</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">bin_attribute</span> <span class="title">attr</span>;</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-展开过程源码分析"><a href="#2-3-展开过程源码分析" class="headerlink" title="2.3 展开过程源码分析"></a><font size=3>2.3 展开过程源码分析</font></h3><p>Linux 内核在启动的时候会解析 DTB 文件，然后在&#x2F;proc&#x2F;device-tree 目录下生成相应的设备树节点文件。 Linux 内核解析 DTB 文件的函数调用关系如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250219163216978.png" alt="image-20250219163216978"  />
+
+<p>可以看出，在 start_kernel 函数中完成了设备树节点解析的工作，最终实际工作的函数为 unflatten_dt_nodes。  </p>
+<h4 id="2-3-1-start-kernel"><a href="#2-3-1-start-kernel" class="headerlink" title="2.3.1 start_kernel()"></a><font size=3>2.3.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/init/main.c#L531">start_kernel()</a></font></h4><p>首先来到源码目录下的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/init/main.c">main.c - init&#x2F;main.c</a> 文件， 找到其中的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/init/main.c#L531">start_kernel()</a> 函数， <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/init/main.c#L531">start_kernel()</a> 函数是 Linux 内核启动的入口点， 它是 Linux 内核的核心函数之一， 负责完成内核的初始化和启动过程：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">asmlinkage __visible <span class="type">void</span> __init <span class="title function_">start_kernel</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// ......</span></span><br><span class="line">	setup_arch(&amp;command_line);<span class="comment">// 架构相关的初始化</span></span><br><span class="line">    <span class="comment">// ......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中跟设备树相关的函数为 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/init/main.c#L552">setup_arch(&amp;command_line);</a>。</p>
+<h4 id="2-3-2-setup-arch"><a href="#2-3-2-setup-arch" class="headerlink" title="2.3.2 setup_arch()"></a><font size=3>2.3.2 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/arch/arm/kernel/setup.c#L1074">setup_arch()</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/arch/arm/kernel/setup.c#L1074">setup_arch()</a>函数与架构有关，像RK3568平台是定义在 arch&#x2F;arm64&#x2F;kernel&#x2F;setup.c  中，imx6ull的话是定义在 arch&#x2F;arm64&#x2F;kernel&#x2F;setup.c 中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> __init <span class="title function_">setup_arch</span><span class="params">(<span class="type">char</span> **cmdline_p)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	mdesc = setup_machine_fdt(__atags_pointer);<span class="comment">// 设置机器的 FDT（平台设备树）</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	unflatten_device_tree();<span class="comment">// 展开设备树</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/arch/arm/kernel/devtree.c#L211">setup_machine_fdt()</a>函数是用于在内核启动过程中设置机器的设备树。 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/arch/arm/kernel/head.S">__atags_pointer</a>是 dtb 二进制文件加载到内存的地址。具体是怎么传过来的，这里就没有深入研究了，这里知道是设备树的地址就可以了。可以简单看一下这个函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 初始化设置机器的设备树</span></span><br><span class="line"><span class="type">const</span> <span class="keyword">struct</span> machine_desc * __init <span class="title function_">setup_machine_fdt</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> dt_phys)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">machine_desc</span> *<span class="title">mdesc</span>, *<span class="title">mdesc_best</span> =</span> <span class="literal">NULL</span>;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="comment">// phys_to_virt() 将设备树物理地址映射到内核虚拟地址空间</span></span><br><span class="line">    <span class="comment">// early_init_dt_verify() 验证设备树有效性</span></span><br><span class="line">	<span class="keyword">if</span> (!dt_phys || !early_init_dt_verify(phys_to_virt(dt_phys)))</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">	<span class="comment">// 匹配 machine_desc:遍历所有 machine_desc，与设备树根节点的 compatible 字符串进行匹配</span></span><br><span class="line">	mdesc = of_flat_dt_match_machine(mdesc_best, arch_get_next_mach);</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="keyword">return</span> mdesc;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>具体的就没有再深入去了解了，以后有需要再说吧。这里主要还是要了解设备树的展开：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L1246">unflatten_device_tree()</a></p>
+<h4 id="2-3-3-unflatten-device-tree"><a href="#2-3-3-unflatten-device-tree" class="headerlink" title="2.3.3 unflatten_device_tree()"></a><font size=3>2.3.3 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L1246">unflatten_device_tree()</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L1246">unflatten_device_tree()</a>函数用于解析设备树， 将紧凑的设备树数据结构转换为树状结构的设备树  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * unflatten_device_tree - create tree of device_nodes from flat blob</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * unflattens the device-tree passed by the firmware, creating the</span></span><br><span class="line"><span class="comment"> * tree of struct device_node. It also fills the &quot;name&quot; and &quot;type&quot;</span></span><br><span class="line"><span class="comment"> * pointers of the nodes so the normal device-tree walking functions</span></span><br><span class="line"><span class="comment"> * can be used.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">void</span> __init <span class="title function_">unflatten_device_tree</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 解析设备树，解析后的设备树将使用 of_root 指针进行存储。</span></span><br><span class="line">	__unflatten_device_tree(initial_boot_params, <span class="literal">NULL</span>, &amp;of_root,</span><br><span class="line">				early_init_dt_alloc_memory_arch, <span class="literal">false</span>);</span><br><span class="line">	<span class="comment">// 获取指向 &quot;/chosen&quot; 和 &quot;/aliases&quot; 节点的指针，并为它们分配内存。 以供全局使用</span></span><br><span class="line">	<span class="comment">/* Get pointer to &quot;/chosen&quot; and &quot;/aliases&quot; nodes for use everywhere */</span></span><br><span class="line">	of_alias_scan(early_init_dt_alloc_memory_arch);</span><br><span class="line">	<span class="comment">// 运行设备树的单元测试 </span></span><br><span class="line">	unittest_unflatten_overlay_base();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-3-4-unflatten-device-tree"><a href="#2-3-4-unflatten-device-tree" class="headerlink" title="2.3.4 __unflatten_device_tree()"></a><font size=3>2.3.4 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L426">__unflatten_device_tree()</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L426">__unflatten_device_tree()</a>函数的重点在两次设备树的扫描上， 第一遍扫描的目的是计算展开设备树所需的内存大小，第二遍扫描的目的是实际展开设备树， 并填充设备节点的名称、 类型和属性等信息。 我们来看一下这个函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> *__unflatten_device_tree(<span class="type">const</span> <span class="type">void</span> *blob,</span><br><span class="line">			      <span class="keyword">struct</span> device_node *dad,</span><br><span class="line">			      <span class="keyword">struct</span> device_node **mynodes,</span><br><span class="line">			      <span class="type">void</span> *(*dt_alloc)(u64 size, u64 align),</span><br><span class="line">			      <span class="type">bool</span> detached)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// 第一遍扫描， 计算大小</span></span><br><span class="line">	<span class="comment">/* First pass, scan for size */</span></span><br><span class="line">	size = unflatten_dt_nodes(blob, <span class="literal">NULL</span>, dad, <span class="literal">NULL</span>);</span><br><span class="line">	<span class="keyword">if</span> (size &lt; <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">	size = ALIGN(size, <span class="number">4</span>);</span><br><span class="line">	pr_debug(<span class="string">&quot;  size is %d, allocating...\n&quot;</span>, size);</span><br><span class="line">	<span class="comment">// 为展开的设备树分配内存</span></span><br><span class="line">	<span class="comment">/* Allocate memory for the expanded device tree */</span></span><br><span class="line">	mem = dt_alloc(size + <span class="number">4</span>, __alignof__(<span class="keyword">struct</span> device_node));</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="comment">// 第二遍扫描， 实际展开设备树</span></span><br><span class="line">	<span class="comment">/* Second pass, do actual unflattening */</span></span><br><span class="line">	unflatten_dt_nodes(blob, mem, dad, mynodes);</span><br><span class="line">	<span class="keyword">if</span> (be32_to_cpup(mem + size) != <span class="number">0xdeadbeef</span>)</span><br><span class="line">		pr_warning(<span class="string">&quot;End of tree marker overwritten: %08x\n&quot;</span>,</span><br><span class="line">			   be32_to_cpup(mem + size));</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L470">470</a> 行：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L354">unflatten_dt_nodes()</a>函数的作用是递归地遍历设备树数据块， 并计算展开设备树所需的内存大小。 它接受四个参数： blob（设备树数据块指针） 、 start（当前节点的起始地址，初始为 NULL） 、 dad（父节点指针） 和 mynodes（用于存储节点指针数组的指针， 初始为 NULL）。第一遍扫描完成后， <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L354">unflatten_dt_nodes()</a>函数会返回展开设备树所需的内存大小， 然后在对大小进行对齐操作， 并为展开的设备树分配内存。  </p>
+<p> 第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L489">489</a> 行：再次调用了 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L354">unflatten_dt_nodes()</a> 函数进行第二遍扫描。 通过这样的过程， 第二遍扫描会将设备树数据块中的节点展开为真正的设备节点， 并填充节点的名称、 类型和属性等信息。 这样就完成了设备树的展开过程。  </p>
+<h4 id="2-3-5-unflatten-dt-nodes"><a href="#2-3-5-unflatten-dt-nodes" class="headerlink" title="2.3.5 unflatten_dt_nodes()"></a><font size=3>2.3.5 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L354">unflatten_dt_nodes()</a></font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L354">unflatten_dt_nodes()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">unflatten_dt_nodes</span><span class="params">(<span class="type">const</span> <span class="type">void</span> *blob,</span></span><br><span class="line"><span class="params">			      <span class="type">void</span> *mem,</span></span><br><span class="line"><span class="params">			      <span class="keyword">struct</span> device_node *dad,</span></span><br><span class="line"><span class="params">			      <span class="keyword">struct</span> device_node **nodepp)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device_node</span> *<span class="title">root</span>;</span>                     <span class="comment">// 根节点</span></span><br><span class="line">	<span class="type">int</span> offset = <span class="number">0</span>, depth = <span class="number">0</span>, initial_depth = <span class="number">0</span>; <span class="comment">// 偏移量、 深度和初始深度</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> FDT_MAX_DEPTH	64                        <span class="comment">// 最大深度</span></span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device_node</span> *<span class="title">nps</span>[<span class="title">FDT_MAX_DEPTH</span>];</span>       <span class="comment">// 设备节点数组</span></span><br><span class="line">	<span class="type">void</span> *base = mem;     <span class="comment">// 基地址， 用于计算偏移量</span></span><br><span class="line">	<span class="type">bool</span> dryrun = !base;  <span class="comment">// 是否只是模拟运行， 不实际处理</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (nodepp)</span><br><span class="line">		*nodepp = <span class="literal">NULL</span>;   <span class="comment">// 如果指针不为空， 将其置为空指针</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * We&#x27;re unflattening device sub-tree if @dad is valid. There are</span></span><br><span class="line"><span class="comment">	 * possibly multiple nodes in the first level of depth. We need</span></span><br><span class="line"><span class="comment">	 * set @depth to 1 to make fdt_next_node() happy as it bails</span></span><br><span class="line"><span class="comment">	 * immediately when negative @depth is found. Otherwise, the device</span></span><br><span class="line"><span class="comment">	 * nodes except the first one won&#x27;t be unflattened successfully.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">    <span class="comment">// 如果 @dad 有效， 则表示正在展开设备子树。在第一层深度可能有多个节点。</span></span><br><span class="line">    <span class="comment">//将 @depth 设置为 1， 以使 fdt_next_node() 正常工作。当发现负的 @depth 时， 该函数会立即退出。否则， 除第一个节点外的设备节点将无法成功展开。</span></span><br><span class="line">	<span class="keyword">if</span> (dad)</span><br><span class="line">		depth = initial_depth = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	root = dad;       <span class="comment">// 根节点为 @dad</span></span><br><span class="line">	nps[depth] = dad; <span class="comment">// 将根节点放入设备节点数组</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (offset = <span class="number">0</span>;</span><br><span class="line">	     offset &gt;= <span class="number">0</span> &amp;&amp; depth &gt;= initial_depth;</span><br><span class="line">	     offset = fdt_next_node(blob, offset, &amp;depth)) &#123;</span><br><span class="line">		<span class="keyword">if</span> (WARN_ON_ONCE(depth &gt;= FDT_MAX_DEPTH))</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		<span class="comment">// 如果未启用 CONFIG_OF_KOBJ 并且节点不可用， 则跳过该节点</span></span><br><span class="line">		<span class="keyword">if</span> (!IS_ENABLED(CONFIG_OF_KOBJ) &amp;&amp;</span><br><span class="line">		    !of_fdt_device_is_available(blob, offset))</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		<span class="comment">// 填充节点信息， 并将子节点添加到设备节点数组</span></span><br><span class="line">		<span class="keyword">if</span> (!populate_node(blob, offset, &amp;mem, nps[depth],</span><br><span class="line">				   &amp;nps[depth+<span class="number">1</span>], dryrun))</span><br><span class="line">			<span class="keyword">return</span> mem - base;</span><br><span class="line">		<span class="comment">// 将子节点指针赋值给 @nodepp</span></span><br><span class="line">		<span class="keyword">if</span> (!dryrun &amp;&amp; nodepp &amp;&amp; !*nodepp)</span><br><span class="line">			*nodepp = nps[depth+<span class="number">1</span>];</span><br><span class="line">        <span class="comment">// 如果根节点为空， 则将子节点设置为根节点</span></span><br><span class="line">		<span class="keyword">if</span> (!dryrun &amp;&amp; !root)</span><br><span class="line">			root = nps[depth+<span class="number">1</span>];</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (offset &lt; <span class="number">0</span> &amp;&amp; offset != -FDT_ERR_NOTFOUND) &#123;</span><br><span class="line">		pr_err(<span class="string">&quot;Error %d processing FDT\n&quot;</span>, offset);</span><br><span class="line">		<span class="keyword">return</span> -EINVAL;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Reverse the child list. Some drivers assumes node order matches .dts</span></span><br><span class="line"><span class="comment">	 * node order</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">    </span><br><span class="line">	<span class="comment">// 反转子节点列表。 一些驱动程序假设节点顺序与 .dts 文件中的节点顺序一致</span></span><br><span class="line">	<span class="keyword">if</span> (!dryrun)</span><br><span class="line">		reverse_nodes(root);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> mem - base; <span class="comment">// 返回处理的字节数</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L393">393</a> 行：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/scripts/dtc/libfdt/fdt.c#L165">fdt_next_node()</a>函数用来遍历设备树的节点。 从偏移量为 0 开始， 只要偏移量大于等于 0且深度大于等于初始深度， 就执行循环。 循环中的每次迭代都会处理一个设备树节点。在每次迭代中， 首先检查深度是否超过了最大深度 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L370">FDT_MAX_DEPTH</a>， 如果超过了， 则跳过该节点。如果未启用 CONFIG_OF_KOBJ 并且节点不可用（ 通过 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L133">of_fdt_device_is_available() </a>函数判断） ， 则跳过该节点。</p>
+<p>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L401">401</a> 行：调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L280">populate_node()</a> 函数填充节点信息，并将子节点添加到设备节点数组 nps 中。 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L280">populate_node()</a> 函数定义如下所示：    </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">bool</span> <span class="title function_">populate_node</span><span class="params">(<span class="type">const</span> <span class="type">void</span> *blob,</span></span><br><span class="line"><span class="params">			  <span class="type">int</span> offset,</span></span><br><span class="line"><span class="params">			  <span class="type">void</span> **mem,</span></span><br><span class="line"><span class="params">			  <span class="keyword">struct</span> device_node *dad,</span></span><br><span class="line"><span class="params">			  <span class="keyword">struct</span> device_node **pnp,</span></span><br><span class="line"><span class="params">			  <span class="type">bool</span> dryrun)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device_node</span> *<span class="title">np</span>;</span> <span class="comment">// 设备节点指针</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span> *pathp;      <span class="comment">// 节点路径字符串指针</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span> l, allocl; <span class="comment">// 路径字符串长度和分配的内存大小</span></span><br><span class="line"></span><br><span class="line">	pathp = fdt_get_name(blob, offset, &amp;l); <span class="comment">// 获取节点路径和长度</span></span><br><span class="line">	<span class="keyword">if</span> (!pathp) &#123;</span><br><span class="line">		*pnp = <span class="literal">NULL</span>;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	allocl = ++l; <span class="comment">// 分配内存大小为路径长度加一， 用于存储节点路径字符串</span></span><br><span class="line"></span><br><span class="line">	np = unflatten_dt_alloc(mem, <span class="keyword">sizeof</span>(<span class="keyword">struct</span> device_node) + allocl,</span><br><span class="line">				__alignof__(<span class="keyword">struct</span> device_node)); <span class="comment">// 分配设备节点内存</span></span><br><span class="line">	<span class="keyword">if</span> (!dryrun) &#123;</span><br><span class="line">		<span class="type">char</span> *fn;</span><br><span class="line">		of_node_init(np); <span class="comment">// 初始化设备节点</span></span><br><span class="line">		np-&gt;full_name = fn = ((<span class="type">char</span> *)np) + <span class="keyword">sizeof</span>(*np); <span class="comment">// 设置设备节点的完整路径名</span></span><br><span class="line"></span><br><span class="line">		<span class="built_in">memcpy</span>(fn, pathp, l); <span class="comment">// 将节点路径字符串复制到设备节点的完整路径名中</span></span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (dad != <span class="literal">NULL</span>) &#123;</span><br><span class="line">			np-&gt;parent = dad;        <span class="comment">// 设置设备节点的父节点</span></span><br><span class="line">			np-&gt;sibling = dad-&gt;child;<span class="comment">// 设置设备节点的兄弟节点</span></span><br><span class="line">			dad-&gt;child = np;         <span class="comment">// 将设备节点添加为父节点的子节点</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	populate_properties(blob, offset, mem, np, pathp, dryrun);<span class="comment">// 填充设备节点的属性信息</span></span><br><span class="line">	<span class="keyword">if</span> (!dryrun) &#123;</span><br><span class="line">		np-&gt;name = of_get_property(np, <span class="string">&quot;name&quot;</span>, <span class="literal">NULL</span>);<span class="comment">// 获取设备节点的名称属性</span></span><br><span class="line">		np-&gt;type = of_get_property(np, <span class="string">&quot;device_type&quot;</span>, <span class="literal">NULL</span>);<span class="comment">// 获取设备节点的设备类型属性</span></span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (!np-&gt;name)</span><br><span class="line">			np-&gt;name = <span class="string">&quot;&lt;NULL&gt;&quot;</span>;<span class="comment">// 如果设备节点没有名称属性， 则设置为&quot;&lt;NULL&gt;&quot;</span></span><br><span class="line">		<span class="keyword">if</span> (!np-&gt;type)</span><br><span class="line">			np-&gt;type = <span class="string">&quot;&lt;NULL&gt;&quot;</span>;<span class="comment">// 如果设备节点没有设备类型属性， 则设置为&quot;&lt;NULL&gt;&quot;</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	*pnp = np;<span class="comment">// 将设备节点指针赋值给*pnp</span></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L280">populate_node()</a>  函数中首先会调用第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L299">299</a> 行的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L167">unflatten_dt_alloc()</a>函数分配设备节点内存。分配的内存大小 为 sizeof(<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L51">struct device_node</a>) + allocl 字 节 ， 并 使 用 __alignof__(<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L51">struct device_node</a>) 对齐。 然后调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/fdt.c#L179">populate_properties()</a>函数填充设备节点的属性信息。 该函数会解析设备节点的属性， 并根据需要分配内存来存储属性值。  </p>
+<h2 id="3-device-node-转换成-platform-device"><a href="#3-device-node-转换成-platform-device" class="headerlink" title="3. device_node 转换成 platform_device"></a><font size=3>3. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L51">device_node</a> 转换成 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">platform_device</a></font></h2><p>在上一节中， 我们学习了 dtb 二进制文件展开成 device_node 的具体流程， 而 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L51">device_node</a> 这时候还并不能跟内核中的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L180">platform_driver</a>进行对接， 而为了让操作系统能够识别和管理设备， 需要将设备节点转换为平台设备。</p>
+<h3 id="3-1-转换规则"><a href="#3-1-转换规则" class="headerlink" title="3.1 转换规则  "></a><font size=3>3.1 转换规则  </font></h3><p>在之前学习的平台总线模型中， device 部分是用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">platform_device</a> 结构体来描述硬件资源的， 所以内核最终会将内核认识的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L51">device_node</a> 树转换 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">platform_device</a>， 但是并不是所有的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L51">device_node</a> 都会被转换成 platform_ device， 只有满足要求的才会转换成 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">platform_device</a>，转换成  <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">platform_device</a> 的节点可以在 &#x2F;sys&#x2F;bus&#x2F;platform&#x2F;devices 下查看， 那 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/of.h#L51">device_node</a> 节点要满足什么要求才会被转换成 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">platform_device</a> 呢?  </p>
+<ul>
+<li>规则 1：<strong>根节点下包含 compatible 属性的子节点</strong>。</li>
+</ul>
+<p>对于每个根节点下含有 compatible 属性的子节点， 创建一个对应的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">platform_device</a>。</p>
+<ul>
+<li>规则 2：含<strong>有特定compatible 属性的节点的子节点</strong>。</li>
+</ul>
+<p>节点中 compatible 属性含有 “simple-bus”、 “simple-mfd” 或 “isa” 的节点，如果它们的子节点包含 compatible 属性值，则会为这个子节点创建一个对应的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">platform_device</a>。</p>
+<ul>
+<li><p>规则 3：节点的 compatible 属性包含 “arm” 或 “primecell”， 则<strong>不将该节点转换</strong>为 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">platform_device</a>， 而是将其识别为 AMBA 设备。</p>
+</li>
+<li><p>规则4：总线 I2C、 SPI 节点下的子节点， <strong>不转换</strong>为 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">platform_device</a> 。某个总线下的子节点， 应该交给对应的总线驱动程序来处理, 它们不应该被转换为  <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">platform_device</a>。</p>
+</li>
+</ul>
+<h3 id="3-2-转换示例"><a href="#3-2-转换示例" class="headerlink" title="3.2 转换示例"></a><font size=3>3.2 转换示例</font></h3><h4 id="3-2-2-示例1"><a href="#3-2-2-示例1" class="headerlink" title="3.2.2 示例1"></a><font size=3>3.2.2 示例1</font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">/&#123;</span><br><span class="line">    mytest &#123;</span><br><span class="line">        compatile = <span class="string">&quot;mytest&quot;</span>, <span class="string">&quot;simple-bus&quot;</span>;</span><br><span class="line">        mytest@<span class="number">0</span> &#123;</span><br><span class="line">            compatile = <span class="string">&quot;mytest_0&quot;</span>;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;;</span><br><span class="line">    i2c &#123;</span><br><span class="line">        compatile = <span class="string">&quot;samsung,i2c&quot;</span>;</span><br><span class="line">        at24c02 &#123;</span><br><span class="line">        	compatile = <span class="string">&quot;at24c02&quot;</span>;</span><br><span class="line">    	&#125;;</span><br><span class="line">    &#125;;</span><br><span class="line">    spi &#123;</span><br><span class="line">        compatile = <span class="string">&quot;samsung,spi&quot;</span>;</span><br><span class="line">        flash@<span class="number">0</span> &#123;</span><br><span class="line">            compatible = <span class="string">&quot;winbond,w25q32dw&quot;</span>;</span><br><span class="line">            spi-max-frequency = &lt;<span class="number">25000000</span>&gt;;</span><br><span class="line">            reg = &lt;<span class="number">0</span>&gt;;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>&#x2F;mytest 会被转换为 platform_device, 因为它兼容”simple-bus”;它的子节点&#x2F;mytest&#x2F;mytest@0 也会被转换为 platform_device</li>
+<li>&#x2F;i2c 节点一般表示 i2c 控制器, 它会被转换为 platform_device, 在内核中有对应的 platform_driver;</li>
+<li>&#x2F;i2c&#x2F;at24c02 节点不会被转换为 platform_device, 它被如何处理完全由父节点的 platform_driver 决定, 一般是被创建为一个 i2c_client。</li>
+<li>类似的也有&#x2F;spi 节点, 它一般也是用来表示 SPI 控制器, 它会被转换为platform_device, 在内核中有对应的 platform_driver;</li>
+<li>&#x2F;spi&#x2F;flash@0 节点不会被转换为 platform_device, 它被如何处理完全由父节点的 platform_driver 决定, 一般是被创建为一个 spi_device。</li>
+</ul>
+<h4 id="3-2-3-示例2"><a href="#3-2-3-示例2" class="headerlink" title="3.2.3 示例2"></a><font size=3>3.2.3 示例2</font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">/dts-v1/;</span><br><span class="line">/ &#123;</span><br><span class="line">    model = <span class="string">&quot;This is my devicetree!&quot;</span>;</span><br><span class="line">    <span class="meta">#address-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">    <span class="meta">#size-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">    chosen &#123;</span><br><span class="line">        bootargs = <span class="string">&quot;root=/dev/nfs rw nfsroot=192.168.1.1 console=ttyS0, 115200&quot;</span>;</span><br><span class="line">    &#125;;</span><br><span class="line">    cpu1: cpu@<span class="number">1</span> &#123;</span><br><span class="line">        device_type = <span class="string">&quot;cpu&quot;</span>;</span><br><span class="line">        compatible = <span class="string">&quot;arm,cortex-a35&quot;</span>, <span class="string">&quot;arm,armv8&quot;</span>;</span><br><span class="line">        reg = &lt;<span class="number">0x0</span> <span class="number">0x1</span>&gt;;</span><br><span class="line">    &#125;;</span><br><span class="line">    aliases &#123;</span><br><span class="line">        led1 = <span class="string">&quot;/gpio@22020101&quot;</span>;</span><br><span class="line">    &#125;;</span><br><span class="line">    node1 &#123;</span><br><span class="line">        <span class="meta">#address-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">        <span class="meta">#size-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">        gpio@<span class="number">22020102</span> &#123;</span><br><span class="line">            reg = &lt;<span class="number">0x20220102</span> <span class="number">0x40</span>&gt;;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;;</span><br><span class="line">    node2 &#123;</span><br><span class="line">        node1-child &#123;</span><br><span class="line">            pinnum = &lt;<span class="number">01234</span>&gt;;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;;</span><br><span class="line">    gpio@<span class="number">22020101</span> &#123;</span><br><span class="line">        compatible = <span class="string">&quot;led&quot;</span>;</span><br><span class="line">        reg = &lt;<span class="number">0x20220101</span> <span class="number">0x40</span>&gt;;</span><br><span class="line">        status = <span class="string">&quot;okay&quot;</span>;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>总共有 chosen、 cpu1: cpu@1、 aliases、 node1、 node2、 gpio@22020101这六个节点， 其中前五个节点都没有 compatible 属性， 所以并不会被转换为 platform_device，而最后一个 gpio@22020101 节点符合规则一， 在根节点下， 且有 compatible 属性， 所以最后会转换为 platform_device。  </p>
+<h4 id="3-2-4-示例3"><a href="#3-2-4-示例3" class="headerlink" title="3.2.4 示例3"></a><font size=3>3.2.4 示例3</font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">/dts-v1/;</span><br><span class="line">/ &#123;</span><br><span class="line">    model = <span class="string">&quot;This is my devicetree!&quot;</span>;</span><br><span class="line">    <span class="meta">#address-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">    <span class="meta">#size-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">    chosen &#123;</span><br><span class="line">        bootargs = <span class="string">&quot;root=/dev/nfs rw nfsroot=192.168.1.1 console=ttyS0, 115200&quot;</span>;</span><br><span class="line">    &#125;;</span><br><span class="line">    cpu1: cpu@<span class="number">1</span> &#123;</span><br><span class="line">        device_type = <span class="string">&quot;cpu&quot;</span>;</span><br><span class="line">        compatible = <span class="string">&quot;arm,cortex-a35&quot;</span>, <span class="string">&quot;arm,armv8&quot;</span>;</span><br><span class="line">        reg = &lt;<span class="number">0x0</span> <span class="number">0x1</span>&gt;;</span><br><span class="line">    &#125;;</span><br><span class="line">    aliases &#123;</span><br><span class="line">        led1 = <span class="string">&quot;/gpio@22020101&quot;</span>;</span><br><span class="line">    &#125;;</span><br><span class="line">    node1 &#123;</span><br><span class="line">        <span class="meta">#address-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">        <span class="meta">#size-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">        compatible = <span class="string">&quot;simple-bus&quot;</span>;</span><br><span class="line">        gpio@<span class="number">22020102</span> &#123;</span><br><span class="line">            reg = &lt;<span class="number">0x20220102</span> <span class="number">0x40</span>&gt;;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;;</span><br><span class="line">    node2 &#123;</span><br><span class="line">        node1-child &#123;</span><br><span class="line">            pinnum = &lt;<span class="number">01234</span>&gt;;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;;</span><br><span class="line">    gpio@<span class="number">22020101</span> &#123;</span><br><span class="line">        compatible = <span class="string">&quot;led&quot;</span>;</span><br><span class="line">        reg = &lt;<span class="number">0x20220101</span> <span class="number">0x40</span>&gt;;</span><br><span class="line">        status = <span class="string">&quot;okay&quot;</span>;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>相较于示例 2 的设备树， 这里在 node1 节点中添加了 compatible 属性， 但是这个 compa tible 属性值为 simple-bus， 我们需要继续看他的子节点， 子节点 gpio@22020102 并没有 comp atible 属性值， 所以这里的 node1 节点不会被转换。  </p>
+<h4 id="3-2-4-示例4"><a href="#3-2-4-示例4" class="headerlink" title="3.2.4 示例4"></a><font size=3>3.2.4 示例4</font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">/dts-v1/;</span><br><span class="line">/ &#123;</span><br><span class="line">    model = <span class="string">&quot;This is my devicetree!&quot;</span>;</span><br><span class="line">    <span class="meta">#address-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">    <span class="meta">#size-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">    chosen &#123;</span><br><span class="line">        bootargs = <span class="string">&quot;root=/dev/nfs rw nfsroot=192.168.1.1 console=ttyS0, 115200&quot;</span>;</span><br><span class="line">    &#125;;</span><br><span class="line">    cpu1: cpu@<span class="number">1</span> &#123;</span><br><span class="line">        device_type = <span class="string">&quot;cpu&quot;</span>;</span><br><span class="line">        compatible = <span class="string">&quot;arm,cortex-a35&quot;</span>, <span class="string">&quot;arm,armv8&quot;</span>;</span><br><span class="line">        reg = &lt;<span class="number">0x0</span> <span class="number">0x1</span>&gt;;</span><br><span class="line">    &#125;;</span><br><span class="line">    aliases &#123;</span><br><span class="line">        led1 = <span class="string">&quot;/gpio@22020101&quot;</span>;</span><br><span class="line">    &#125;;</span><br><span class="line">    node1 &#123;</span><br><span class="line">        <span class="meta">#address-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">        <span class="meta">#size-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">        compatible = <span class="string">&quot;simple-bus&quot;</span>;</span><br><span class="line">        gpio@<span class="number">22020102</span> &#123;</span><br><span class="line">            compatible = <span class="string">&quot;gpio&quot;</span>;</span><br><span class="line">            reg = &lt;<span class="number">0x20220102</span> <span class="number">0x40</span>&gt;;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;;</span><br><span class="line">    node2 &#123;</span><br><span class="line">        node1-child &#123;</span><br><span class="line">            pinnum = &lt;<span class="number">01234</span>&gt;;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;;</span><br><span class="line">    gpio@<span class="number">22020101</span> &#123;</span><br><span class="line">        compatible = <span class="string">&quot;led&quot;</span>;</span><br><span class="line">        reg = &lt;<span class="number">0x20220101</span> <span class="number">0x40</span>&gt;;</span><br><span class="line">        status = <span class="string">&quot;okay&quot;</span>;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>相较于示例 3 的设备树， 这里在 node1 节点的子节点 gpio@22020102 中添加了 compati ble 属性， node1 节点的 compatible 属性值为 simple-bus， 然后需要继续看他的子节点， 子节点 gpio@22020102 的 compatible 属性值为 gpio， 所以这里的 gpio@22020102 节点会被转换成platform_device。    </p>
+<h4 id="3-2-5-示例5"><a href="#3-2-5-示例5" class="headerlink" title="3.2.5 示例5"></a><font size=3>3.2.5 示例5</font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">/dts-v1/;</span><br><span class="line">/ &#123;</span><br><span class="line">    model = <span class="string">&quot;This is my devicetree!&quot;</span>;</span><br><span class="line">    <span class="meta">#address-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">    <span class="meta">#size-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">    chosen &#123;</span><br><span class="line">        bootargs = <span class="string">&quot;root=/dev/nfs rw nfsroot=192.168.1.1 console=ttyS0,115200&quot;</span>;</span><br><span class="line">    &#125;;</span><br><span class="line">    cpul: cpu@<span class="number">1</span> &#123;</span><br><span class="line">        device_type = <span class="string">&quot;cpu&quot;</span>;</span><br><span class="line">        compatible = <span class="string">&quot;arm,cortex-a35&quot;</span>, <span class="string">&quot;arm,armv8&quot;</span>;</span><br><span class="line">        reg = &lt;<span class="number">0x0</span> <span class="number">0x1</span>&gt;;</span><br><span class="line">        amba &#123;</span><br><span class="line">            compatible = <span class="string">&quot;simple-bus&quot;</span>;</span><br><span class="line">            <span class="meta">#address-cells = <span class="string">&lt;2&gt;</span>;</span></span><br><span class="line">            <span class="meta">#size-cells = <span class="string">&lt;2&gt;</span>;</span></span><br><span class="line">            ranges;</span><br><span class="line">            dmac_peri: dma-controller@ff250000 &#123;</span><br><span class="line">                compatible = <span class="string">&quot;arm,p1330&quot;</span>, <span class="string">&quot;arm,primecell&quot;</span>;</span><br><span class="line">                reg = &lt;<span class="number">0x0</span> <span class="number">0xff250000</span> <span class="number">0x0</span> <span class="number">0x4000</span>&gt;;</span><br><span class="line">                interrupts = &lt;GIC_SPI <span class="number">2</span> IRQ_TYPE_LEVEL_HIGH&gt;,</span><br><span class="line">                &lt;GIC_SPI <span class="number">3</span> IRQ_TYPE_LEVEL_HIGH&gt;;</span><br><span class="line">                <span class="meta">#dma-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">                arm,pl330-broken-no-flushp;</span><br><span class="line">                arm,p1330-periph-burst;</span><br><span class="line">                clocks = &lt;&amp;cru ACLK DMAC_PERI&gt;;</span><br><span class="line">                clock-names = <span class="string">&quot;apb_pclk&quot;</span>;</span><br><span class="line">            &#125;;</span><br><span class="line">            dmac_bus: dma-controller@ff600000 &#123;</span><br><span class="line">                compatible = <span class="string">&quot;arm,p1330&quot;</span>, <span class="string">&quot;arm,primecell&quot;</span>;</span><br><span class="line">                reg = &lt;<span class="number">0x0</span> <span class="number">0xff600000</span> <span class="number">0x0</span> <span class="number">0x4000</span>&gt;;</span><br><span class="line">                interrupts = &lt;GIC_SPI <span class="number">0</span> IRQ_TYPE_LEVEL_HIGH&gt;,</span><br><span class="line">                &lt;GIC_SPI <span class="number">1</span> IRQ_TYPE_LEVEL_HIGH&gt;;</span><br><span class="line">                <span class="meta">#dma-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">                arm,pl330-broken-no-flushp;</span><br><span class="line">                arm,pl330-periph-burst;</span><br><span class="line">                clocks = &lt;&amp;cru ACLK_DMAC_BUS&gt;;</span><br><span class="line">                clock-names = <span class="string">&quot;apb_pclk&quot;</span>;</span><br><span class="line">            &#125;;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>amba 节点的 compatible 值为 simple-bus， 不会被转换为 platform_device， 而是作为父节点用于组织其他设备， 所以需要来查看他的子节点。  </p>
+<p>dmac_peri: dma-controller@ff250000 节点: 该节点的 compatible 属性包含 “arm,p1330”和 “arm,primecell”， 根据规则 3， 该节点不会被转换为 platform_device， 而是被识别为 AMBA设备。  </p>
+<p>dmac_bus: dma-controller@ff600000 节点: 该节点的 compatible 属性包含 “arm,p1330” 和”arm,primecell”， 根据规则 3， 该节点不会被转换为 platform_device， 而是被识别为 AMBA 设备。  </p>
+<h3 id="3-3-转换流程分析"><a href="#3-3-转换流程分析" class="headerlink" title="3.3 转换流程分析"></a><font size=3>3.3 转换流程分析</font></h3><h4 id="3-3-1-arch-initcall-sync"><a href="#3-3-1-arch-initcall-sync" class="headerlink" title="3.3.1 arch_initcall_sync()"></a><font size=3>3.3.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/init.h#L222">arch_initcall_sync()</a></font></h4><p>事实上，如果从C语言的开始函数<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/init/main.c#L531">start_kernel()</a>进行追溯，是找不到platform device这一部分转换的源头的，事实上，这个转换过程的函数是<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L520">of_platform_default_populate_init()</a>，它被调用的方式是这样一个声明：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">arch_initcall_sync(of_platform_default_populate_init);</span><br></pre></td></tr></table></figure>
+
+<p>这行在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L546">platform.c - drivers&#x2F;of&#x2F;platform.c</a> 中，先来看 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/init.h#L222">arch_initcall_sync()</a> 函数，它是一个宏：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_HAVE_ARCH_PREL32_RELOCATIONS</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> ___define_initcall(fn, id, __sec)			\</span></span><br><span class="line"><span class="meta">	__ADDRESSABLE(fn)					\</span></span><br><span class="line"><span class="meta">	asm(<span class="string">&quot;.section	\&quot;&quot;</span> #__sec <span class="string">&quot;.init\&quot;, \&quot;a\&quot;	\n&quot;</span>	\</span></span><br><span class="line"><span class="meta">	<span class="string">&quot;__initcall_&quot;</span> #fn #id <span class="string">&quot;:			\n&quot;</span>	\</span></span><br><span class="line"><span class="meta">	    <span class="string">&quot;.long	&quot;</span> #fn <span class="string">&quot; - .			\n&quot;</span>	\</span></span><br><span class="line"><span class="meta">	    <span class="string">&quot;.previous					\n&quot;</span>);</span></span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> ___define_initcall(fn, id, __sec) \</span></span><br><span class="line"><span class="meta">	static initcall_t __initcall_##fn##id __used \</span></span><br><span class="line"><span class="meta">		__attribute__((__section__(#__sec <span class="string">&quot;.init&quot;</span>))) = fn;</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __define_initcall(fn, id) ___define_initcall(fn, id, .initcall##id)</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> arch_initcall_sync(fn)		__define_initcall(fn, 3s)</span></span><br></pre></td></tr></table></figure>
+
+<p>最终是调用<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/init.h#L199">__define_initcall(fn, id)</a>，这个 id 代表系统启动时被调用的优先级，数字越小，优先级越低，用这一系列宏声明一个新的函数就是将这个函数指针放入内存中一个指定的段（即放入到”.init”中，n代表优先级，当系统启动时，会依次调用这些段中的函数）内。</p>
+<p>它用于在内核初始化过程中执行架构相关的初始化函数。 它属于内核的初始化调用机制， 用于确保在系统启动过程中适时地调用特定架构的初始化函数。  </p>
+<p>在 Linux 内核的初始化过程中， 各个子系统和架构会注册自己的初始化函数。 这些初始化函数负责完成特定子系统或架构相关的初始化工作， 例如初始化硬件设备、 注册中断处理程序、设置内存映射等。 而  <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/init.h#L222">arch_initcall_sync()</a> 函数则用于调用与当前架构相关的初始化函数。</p>
+<h4 id="3-3-2-of-platform-default-populate-init"><a href="#3-3-2-of-platform-default-populate-init" class="headerlink" title="3.3.2 of_platform_default_populate_init()"></a><font size=3>3.3.2 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L520">of_platform_default_populate_init()</a></font></h4><p>当内核启动，在初始化过程中，<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/init.h#L222">arch_initcall_sync()</a> 函数会被调用， 以确保所有与当前架构相关的初始化函数按照正确的顺序执行。 这样可以保证在启动过程中， 特定架构相关的初始化工作得到正确地完成。  </p>
+<p>而 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L520">of_platform_default_populate_init()</a> 函数的作用是在内核初始化过程中自动解析设备树，并根据设备树中的设备节点创建对应的 platform_device 结构。 它会遍历设备树中的设备节点，并为每个设备节点创建一个对应的 platform_device 结构， 然后将其注册到内核中， 使得设备驱动程序能够识别和操作这些设备。   </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> __init <span class="title function_">of_platform_default_populate_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device_node</span> *<span class="title">node</span>;</span></span><br><span class="line">	<span class="comment">// 检查设备树是否已经被填充。 如果设备树尚未填充， 则返回错误码</span></span><br><span class="line">	<span class="keyword">if</span> (!of_have_populated_dt())</span><br><span class="line">		<span class="keyword">return</span> -ENODEV;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Handle certain compatibles explicitly, since we don&#x27;t want to create</span></span><br><span class="line"><span class="comment">	 * platform_devices for every node in /reserved-memory with a</span></span><br><span class="line"><span class="comment">	 * &quot;compatible&quot;,</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">    <span class="comment">// 遍历设备树中与 reserved_mem_matches 匹配的节点。 这些节点是 /reserved-memory 中具有 &quot;compatible&quot; 属性的节点。</span></span><br><span class="line">    <span class="comment">//reserved-memory 中匹配的节点创建 platform_device 结构。 不会为每个具有“compatible”的节点节点都创建 platform_device， 而是根据需要进行显式处理。</span></span><br><span class="line">	for_each_matching_node(node, reserved_mem_matches)</span><br><span class="line">		of_platform_device_create(node, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line">	<span class="comment">// 查找节点 &quot;/firmware&quot;</span></span><br><span class="line">	node = of_find_node_by_path(<span class="string">&quot;/firmware&quot;</span>);</span><br><span class="line">	<span class="keyword">if</span> (node) &#123;</span><br><span class="line">        <span class="comment">// 使用找到的节点填充设备树中的平台设备。 这些节点可能包含与固件相关的设备。</span></span><br><span class="line">		of_platform_populate(node, <span class="literal">NULL</span>, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line">		of_node_put(node);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 填充其他设备</span></span><br><span class="line">	<span class="comment">/* Populate everything else. */</span></span><br><span class="line">	of_platform_default_populate(<span class="literal">NULL</span>, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line">arch_initcall_sync(of_platform_default_populate_init);</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-3-3-of-platform-default-populate"><a href="#3-3-3-of-platform-default-populate" class="headerlink" title="3.3.3 of_platform_default_populate()"></a><font size=3>3.3.3 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L503">of_platform_default_populate()</a></font></h4><p>我们来看一下 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L520">of_platform_default_populate_init()</a> 函数的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L542">542</a> 行，这里调用了<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L503">of_platform_default_populate()</a>，这个函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">of_platform_default_populate</span><span class="params">(<span class="keyword">struct</span> device_node *root,</span></span><br><span class="line"><span class="params">				 <span class="type">const</span> <span class="keyword">struct</span> of_dev_auxdata *lookup,</span></span><br><span class="line"><span class="params">				 <span class="keyword">struct</span> device *parent)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> of_platform_populate(root, of_default_bus_match_table, lookup,</span><br><span class="line">				    parent);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>该函数的作用是调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L455">of_platform_populate()</a>函数来填充设备树中的平台设备， 并使用默认的设备匹配表 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L25">of_default_bus_match_table</a>， 设备匹配表内容如下所示：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">of_device_id</span> <span class="title">of_default_bus_match_table</span>[] =</span> &#123;</span><br><span class="line">	&#123; .compatible = <span class="string">&quot;simple-bus&quot;</span>, &#125;,</span><br><span class="line">	&#123; .compatible = <span class="string">&quot;simple-mfd&quot;</span>, &#125;,</span><br><span class="line">	&#123; .compatible = <span class="string">&quot;isa&quot;</span>, &#125;,</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_ARM_AMBA</span></span><br><span class="line">	&#123; .compatible = <span class="string">&quot;arm,amba-bus&quot;</span>, &#125;,</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">/* CONFIG_ARM_AMBA */</span></span></span><br><span class="line">	&#123;&#125; <span class="comment">/* Empty terminated list */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>上述的设备匹配表就是我们第 2 条规则， 函数将自动根据设备树节点的属性匹配相应的设备驱动程序， 并填充内核的平台设备列表。   </p>
+<h4 id="3-3-4-of-platform-populate"><a href="#3-3-4-of-platform-populate" class="headerlink" title="3.3.4 of_platform_populate()"></a><font size=3>3.3.4 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L455">of_platform_populate()</a></font></h4><p>接下来看 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L455">of_platform_populate()</a> 函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">of_platform_populate</span><span class="params">(<span class="keyword">struct</span> device_node *root,</span></span><br><span class="line"><span class="params">			<span class="type">const</span> <span class="keyword">struct</span> of_device_id *matches,</span></span><br><span class="line"><span class="params">			<span class="type">const</span> <span class="keyword">struct</span> of_dev_auxdata *lookup,</span></span><br><span class="line"><span class="params">			<span class="keyword">struct</span> device *parent)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device_node</span> *<span class="title">child</span>;</span></span><br><span class="line">	<span class="type">int</span> rc = <span class="number">0</span>;</span><br><span class="line">	<span class="comment">// 如果 root 不为空， 则增加 root 节点的引用计数； 否则， 在设备树中根据路径查找 root 节点</span></span><br><span class="line">	root = root ? of_node_get(root) : of_find_node_by_path(<span class="string">&quot;/&quot;</span>);</span><br><span class="line">	<span class="keyword">if</span> (!root)</span><br><span class="line">		<span class="keyword">return</span> -EINVAL;</span><br><span class="line"></span><br><span class="line">	pr_debug(<span class="string">&quot;%s()\n&quot;</span>, __func__);</span><br><span class="line">	pr_debug(<span class="string">&quot; starting at: %pOF\n&quot;</span>, root);</span><br><span class="line">	<span class="comment">// 遍历设备树节点的子节点， 查找与平台设备相关的节点。 这些节点通常具有 compatible 属性， 用于匹配设备驱动程序。</span></span><br><span class="line">	for_each_child_of_node(root, child) &#123;</span><br><span class="line">        <span class="comment">// 创建平台设备并添加到设备树总线,对于每个找到的平台设备节点， 创建一个 platform_device 结构， 并根据设备树节点的属性设置该结构的各个字段。</span></span><br><span class="line">		rc = of_platform_bus_create(child, matches, lookup, parent, <span class="literal">true</span>);</span><br><span class="line">		<span class="keyword">if</span> (rc) &#123;</span><br><span class="line">			of_node_put(child);<span class="comment">//将创建的 platform_device 添加到内核的平台设备列表中， 以便设备驱动程序能够识别和操作这些设备。</span></span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// 设置 root 节点的 OF_POPULATED_BUS 标志</span></span><br><span class="line">	of_node_set_flag(root, OF_POPULATED_BUS);</span><br><span class="line">	<span class="comment">// 释放 root 节点的引用计数</span></span><br><span class="line">	of_node_put(root);</span><br><span class="line">	<span class="keyword">return</span> rc;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(of_platform_populate);</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-3-5-of-platform-bus-create"><a href="#3-3-5-of-platform-bus-create" class="headerlink" title="3.3.5 of_platform_bus_create"></a><font size=3>3.3.5 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L341">of_platform_bus_create</a></font></h4><p>接下来看一下 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L341">of_platform_bus_create()</a> 函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">of_platform_bus_create</span><span class="params">(<span class="keyword">struct</span> device_node *bus,</span></span><br><span class="line"><span class="params">				  <span class="type">const</span> <span class="keyword">struct</span> of_device_id *matches,</span></span><br><span class="line"><span class="params">				  <span class="type">const</span> <span class="keyword">struct</span> of_dev_auxdata *lookup,</span></span><br><span class="line"><span class="params">				  <span class="keyword">struct</span> device *parent, <span class="type">bool</span> strict)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">of_dev_auxdata</span> *<span class="title">auxdata</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device_node</span> *<span class="title">child</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">platform_device</span> *<span class="title">dev</span>;</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span> *bus_id = <span class="literal">NULL</span>;</span><br><span class="line">	<span class="type">void</span> *platform_data = <span class="literal">NULL</span>;</span><br><span class="line">	<span class="type">int</span> rc = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Make sure it has a compatible property */</span></span><br><span class="line">    <span class="comment">// 确保设备节点具有 compatible 属性 </span></span><br><span class="line">	<span class="keyword">if</span> (strict &amp;&amp; (!of_get_property(bus, <span class="string">&quot;compatible&quot;</span>, <span class="literal">NULL</span>))) &#123;</span><br><span class="line">		pr_debug(<span class="string">&quot;%s() - skipping %pOF, no compatible prop\n&quot;</span>,</span><br><span class="line">			 __func__, bus);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Skip nodes for which we don&#x27;t want to create devices */</span></span><br><span class="line">    <span class="comment">// 跳过不想创建设备的节点</span></span><br><span class="line">	<span class="keyword">if</span> (unlikely(of_match_node(of_skipped_node_table, bus))) &#123;</span><br><span class="line">		pr_debug(<span class="string">&quot;%s() - skipping %pOF node\n&quot;</span>, __func__, bus);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (of_node_check_flag(bus, OF_POPULATED_BUS)) &#123;</span><br><span class="line">		pr_debug(<span class="string">&quot;%s() - skipping %pOF, already populated\n&quot;</span>,</span><br><span class="line">			__func__, bus);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	auxdata = of_dev_lookup(lookup, bus);</span><br><span class="line">	<span class="keyword">if</span> (auxdata) &#123;</span><br><span class="line">		bus_id = auxdata-&gt;name;</span><br><span class="line">		platform_data = auxdata-&gt;platform_data;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (of_device_is_compatible(bus, <span class="string">&quot;arm,primecell&quot;</span>)) &#123;</span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * Don&#x27;t return an error here to keep compatibility with older</span></span><br><span class="line"><span class="comment">		 * device tree files.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">        <span class="comment">// 在此处不返回错误以保持与旧设备树文件的兼容性。</span></span><br><span class="line">		of_amba_device_create(bus, bus_id, platform_data, parent);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	dev = of_platform_device_create_pdata(bus, bus_id, platform_data, parent);</span><br><span class="line">	<span class="keyword">if</span> (!dev || !of_match_node(matches, bus))</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	for_each_child_of_node(bus, child) &#123;</span><br><span class="line">		pr_debug(<span class="string">&quot;   create child: %pOF\n&quot;</span>, child);</span><br><span class="line">		rc = of_platform_bus_create(child, matches, lookup, &amp;dev-&gt;dev, strict);</span><br><span class="line">		<span class="keyword">if</span> (rc) &#123;</span><br><span class="line">			of_node_put(child);</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	of_node_set_flag(bus, OF_POPULATED_BUS);</span><br><span class="line">	<span class="keyword">return</span> rc;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L365">365</a> 行： 如果 strict 为真且设备节点 bus 没有兼容性属性， 则输出调试信息并返回 0。 这个条件判断确保设备节点具有 compatible 属性， 因为 compatible 属性用于匹配设备驱动程序，对应第 1 条规则。</p>
+<p>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L372">372</a> 行： 如果设备节点 bus 在被跳过的节点表中， 则输出调试信息并返回 0。 这个条件判断用于跳过不想创建设备的节点。</p>
+<p>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L377">377</a> 行： 如果设备节点 bus 的 OF_POPULATED_BUS 标志已经设置， 则输出调试信息并返回 0。 这个条件判断用于避免重复创建已经填充的设备节点。</p>
+<p>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L383">383</a> 行： 使用 lookup 辅助数据结构查找设备节点 bus 的特定配置信息， 并将其赋值给变量 bus_id 和 platform_data。 这个步骤用于获取设备节点的特定配置信息， 以便在创建平台设备时使用， 由于这里传入的参数为 NULL， 所以下面的条件判断并不会被执行。</p>
+<p>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L389">389</a> 行： 如果设备节点 bus 兼容于 “arm,primecell”， 则调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L225">of_amba_device_create()</a>函数创建 AMBA 设备， 并返回 0， 对应第 3 条规则。</p>
+<p>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L398">398</a> 行： 调用<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L162"> of_platform_device_create_pdata()</a>函数创建平台设备， 并将其赋值给变量dev。 然后， 检查设备节点 bus 是否与给定的匹配表 <code>matches</code> 匹配。 如果平台设备创建失败或者设备节点不匹配， 那么返回 0。</p>
+<p>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L402">402</a> 行 - 第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L409">409</a> 行： 遍历设备节点 bus 的每个子节点 child， 并递归调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L341">of_platform_bus_create()</a>函数来创建子节点的平台设备。</p>
+<h4 id="3-3-6-of-platform-device-create-pdata"><a href="#3-3-6-of-platform-device-create-pdata" class="headerlink" title="3.3.6  of_platform_device_create_pdata()"></a><font size=3>3.3.6 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L162"> of_platform_device_create_pdata()</a></font></h4><p>再来看一下 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L162"> of_platform_device_create_pdata()</a> 函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">struct</span> platform_device *<span class="title function_">of_platform_device_create_pdata</span><span class="params">(</span></span><br><span class="line"><span class="params">					<span class="keyword">struct</span> device_node *np,</span></span><br><span class="line"><span class="params">					<span class="type">const</span> <span class="type">char</span> *bus_id,</span></span><br><span class="line"><span class="params">					<span class="type">void</span> *platform_data,</span></span><br><span class="line"><span class="params">					<span class="keyword">struct</span> device *parent)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">platform_device</span> *<span class="title">dev</span>;</span></span><br><span class="line">	<span class="comment">// 检查设备节点是否可用或已填充</span></span><br><span class="line">	<span class="keyword">if</span> (!of_device_is_available(np) ||</span><br><span class="line">	    of_node_test_and_set_flag(np, OF_POPULATED))</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">	<span class="comment">// 分配平台设备结构体</span></span><br><span class="line">	dev = of_device_alloc(np, bus_id, parent);</span><br><span class="line">	<span class="keyword">if</span> (!dev)</span><br><span class="line">		<span class="keyword">goto</span> err_clear_flag;</span><br><span class="line">	<span class="comment">// 设置平台设备的一些属性</span></span><br><span class="line">	dev-&gt;dev.coherent_dma_mask = DMA_BIT_MASK(<span class="number">32</span>);</span><br><span class="line">	<span class="keyword">if</span> (!dev-&gt;dev.dma_mask)</span><br><span class="line">		dev-&gt;dev.dma_mask = &amp;dev-&gt;dev.coherent_dma_mask;</span><br><span class="line">	dev-&gt;dev.bus = &amp;platform_bus_type;</span><br><span class="line">	dev-&gt;dev.platform_data = platform_data;</span><br><span class="line">	of_msi_configure(&amp;dev-&gt;dev, dev-&gt;dev.of_node);</span><br><span class="line">	<span class="comment">// 将平台设备添加到设备模型中 </span></span><br><span class="line">	<span class="keyword">if</span> (of_device_add(dev) != <span class="number">0</span>) &#123;</span><br><span class="line">		platform_device_put(dev);</span><br><span class="line">		<span class="keyword">goto</span> err_clear_flag;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> dev;</span><br><span class="line"></span><br><span class="line">err_clear_flag:</span><br><span class="line">    <span class="comment">//清除设备节点的已填充标志</span></span><br><span class="line">	of_node_clear_flag(np, OF_POPULATED);</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L180">180</a> 行： 函数会检查设备节点的可用性， 即检查设备树对应节点的 status 属性。 如果设备节点不可用或已经被填充， 则直接返回 NULL。    </p>
+<p>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L184">184</a> 行： 函数调用 of_device_alloc 分配一个平台设备结构体， 并将设备节点指针、 设备标识符和父设备指针传递给它。 如果分配失败， 则跳转到 err_clear_flag 标签处进行错误处理。</p>
+<p>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L188">188</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L193">193</a>行， 函数设置平台设备的一些属性。 它将 coherent_dma_mask 属性设置为 32 位的DMA 位掩码， 并检查 dma_mask 属性是否为 NULL。 如果 dma_mask 为 NULL， 则将其指向 coherent_dma_mask。 然后， 函数设置平台设备的总线类型为 platform_bus_type， 并将平台数据指针存储在 platform_data 属性中。 接着， 函数调用 of_msi_configure 来配置设备的 MSI 信息。</p>
+<p>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/of/platform.c#L195">195</a> 行： 函数调用 of_device_add 将平台设备添加到设备模型中。 如果添加失败， 则释放已分配的平台设备， 并跳转到 err_clear_flag 标签处进行错误处理。</p>
+<h4 id="3-3-7-总结"><a href="#3-3-7-总结" class="headerlink" title="3.3.7 总结"></a><font size=3>3.3.7 总结</font></h4><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-10-%E8%AE%BE%E5%A4%87%E6%A0%91-03-%E8%AE%BE%E5%A4%87%E6%A0%91%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90/img/image-20250225104457278.png" alt="image-20250225104457278"  />
+
+
+
+<blockquote>
+<p>参考资料：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u011456016/article/details/136666184">Device Tree (二) - dtb格式_dtb文件-CSDN博客</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/sky-heaven/p/11755685.html">设备树处理之——device_node转换成platform_device【转】 - Sky&amp;Zhang - 博客园</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/downey-blog/p/10486653.html">linux的initcall机制 - 牧野星辰 - 博客园</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/cb9c294a.html">LV06-10-设备树-03-设备树深入分析</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2025年03月17日 - 07:45</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/cb9c294a.html" title="LV06-10-设备树-03-设备树深入分析">https://sumumm.github.io/post/cb9c294a.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/3df14f88.html" rel="prev" title="LV06-10-设备树-04-设备树的应用">
+                  <i class="fa fa-angle-left"></i> LV06-10-设备树-04-设备树的应用
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/3a7cdf02.html" rel="next" title="LV06-10-设备树-02-设备树语法">
+                  LV06-10-设备树-02-设备树语法 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是strace命令的移植相关笔记。若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV07-04-strace命令-移植">
+<meta property="og:url" content="https://sumumm.github.io/post/fec95377.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是strace命令的移植相关笔记。若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240410074846424.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240410075030275.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240410075131896.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240410075634200.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240424073454263.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240424073540065.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240424074331649.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240424074806204.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240424075503496.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240424230416176.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240424231950807.png">
+<meta property="article:published_time" content="2024-04-25T23:58:05.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.057Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="(ALPHA)LV07-第三方库移植">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240410074846424.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/fec95377.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/fec95377.html","path":"post/fec95377.html","title":"LV07-04-strace命令-移植"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV07-04-strace命令-移植 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81strace%E7%AE%80%E4%BB%8B"><span class="nav-text">一、strace简介</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%AE%80%E4%BB%8B"><span class="nav-text">1. 简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%BA%90%E7%A0%81%E8%8E%B7%E5%8F%96"><span class="nav-text">2. 源码获取</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E7%A7%BB%E6%A4%8Dstrace"><span class="nav-text">二、移植strace</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%BC%96%E8%AF%91strace%E6%BA%90%E7%A0%81"><span class="nav-text">1. 编译strace源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%80%8E%E4%B9%88%E6%94%BE%E5%88%B0%E5%BC%80%E5%8F%91%E6%9D%BF%E4%B8%AD%E5%8E%BB%EF%BC%9F"><span class="nav-text">2. 怎么放到开发板中去？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E9%87%8D%E6%96%B0%E5%8E%8B%E7%BC%A9%E6%A0%B9%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-text">2.1 重新压缩根文件系统</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E7%83%A7%E5%86%99%E5%88%B0SD%E5%8D%A1%EF%BC%9F"><span class="nav-text">2.2 烧写到SD卡？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E5%90%AF%E5%8A%A8%E5%BC%80%E5%8F%91%E6%9D%BF%E6%B5%8B%E8%AF%95"><span class="nav-text">2.3 启动开发板测试</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%9F%BA%E6%9C%AC%E6%B5%8B%E8%AF%95"><span class="nav-text">3. 基本测试</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/fec95377.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV07-04-strace命令-移植 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV07-04-strace命令-移植
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-04-26 07:58:05" itemprop="dateCreated datePublished" datetime="2024-04-26T07:58:05+08:00">2024-04-26</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/" itemprop="url" rel="index"><span itemprop="name">LV07-第三方库移植</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.7k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>13 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是strace命令的移植相关笔记。若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows版本</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu版本</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>      </tr>    <tr>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center">buildroot</td>        <td align="left">2023.05.1版本</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="4">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">在线阅读linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga" target="_blank">nxp-imx/linux-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga</a></td>        <td align="left">NXP linux内核仓库tags中的rel_imx_4.1.15_2.1.0_ga</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.1.15_2.1.0_ga</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr></table>
+              </div>
+            </details>
+
+<p>在linux中有一个调试代码的神器，就是strace命令，这一节就来看一下如何编译它的源码，将它移植到我们的开发板上来吧。</p>
+<h1 id="一、strace简介"><a href="#一、strace简介" class="headerlink" title="一、strace简介"></a><font size=3>一、strace简介</font></h1><h2 id="1-简介"><a href="#1-简介" class="headerlink" title="1. 简介"></a><font size=3>1. 简介</font></h2><p>trace是一个可用于诊断、调试和教学的Linux用户空间跟踪器。我们用它来监控用户空间进程和内核的交互，比如系统调用、信号传递、进程状态变更等。可用来追踪调试程序，能够与其他命令搭配使用。</p>
+<p>Linux系统管理员可以在不需要源代码的情况下即可跟踪系统的调用。strace可以显示有关进程的系统调用的信息，这可以帮助确定一个程序使用的哪个函数，当然在系统出现问题时可以使用 strace定位系统调用过程中失败的原因，这是定位系统问题的很好的方法。</p>
+<h2 id="2-源码获取"><a href="#2-源码获取" class="headerlink" title="2. 源码获取"></a><font size=3>2. 源码获取</font></h2><p>源码那肯定要到官网去找啦：<a target="_blank" rel="noopener" href="https://strace.io/">strace</a></p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240410074846424.png" alt="image-20240410074846424" style="zoom:50%;" />
+
+<p>我们打开对应的github仓库，找自己想要移植的版本就可以了。另外也可以来这里下载源码<a target="_blank" rel="noopener" href="https://strace.io/files/">Index of &#x2F;files&#x2F; (strace.io)</a>，这里可能会更快一些：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240410075030275.png" alt="image-20240410075030275" />
+
+<p>这里我直接下了当前的最新版本，也就是6.8版本：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240410075131896.png" alt="image-20240410075131896" />
+
+<p>然后就是再ubuntu下解压啦（我这里用的是ubuntu16.04）：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">xz -d strace-6.8.tar.xz</span><br><span class="line">tar -xvf strace-6.8.tar</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">其实吧，用下面这一个其实就够了</span></span><br><span class="line">tar -xvf strace-6.8.tar.xz</span><br></pre></td></tr></table></figure>
+
+<p>解压后我们会得到以下文件：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240410075634200.png" alt="image-20240410075634200" style="zoom:50%;" />
+
+<h1 id="二、移植strace"><a href="#二、移植strace" class="headerlink" title="二、移植strace"></a><font size=3>二、移植strace</font></h1><h2 id="1-编译strace源码"><a href="#1-编译strace源码" class="headerlink" title="1. 编译strace源码"></a><font size=3>1. 编译strace源码</font></h2><p>我们要移植到linux开发板上，使用的是arm架构，所以要用交叉编译工具来进行编译，我使用的交叉编译工具版本信息如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">hk@vm:~/5ALPHA/strace-6.8$ arm-linux-gnueabihf-gcc -v</span><br><span class="line">Using built-in specs.</span><br><span class="line">COLLECT_GCC=arm-linux-gnueabihf-gcc</span><br><span class="line">COLLECT_LTO_WRAPPER=/home/hk/2software/gcc-linaro-4.9.4/bin/../libexec/gcc/arm-linux-gnueabihf/4.9.4/lto-wrapper</span><br><span class="line">Target: arm-linux-gnueabihf</span><br><span class="line">Configured with: /home/tcwg-buildslave/workspace/tcwg-make-release/label/docker-trusty-amd64-tcwg-build/target/arm-linux-gnueabihf/snapshots/gcc-linaro-4.9-2017.01/configure SHELL=/bin/bash --with-mpc=/home/tcwg-buildslave/workspace/tcwg-make-release/label/docker-trusty-amd64-tcwg-build/target/arm-linux-gnueabihf/_build/builds/destdir/x86_64-unknown-linux-gnu --with-mpfr=/home/tcwg-buildslave/workspace/tcwg-make-release/label/docker-trusty-amd64-tcwg-build/target/arm-linux-gnueabihf/_build/builds/destdir/x86_64-unknown-linux-gnu --with-gmp=/home/tcwg-buildslave/workspace/tcwg-make-release/label/docker-trusty-amd64-tcwg-build/target/arm-linux-gnueabihf/_build/builds/destdir/x86_64-unknown-linux-gnu --with-gnu-as --with-gnu-ld --disable-libmudflap --enable-lto --enable-objc-gc --enable-shared --without-included-gettext --enable-nls --disable-sjlj-exceptions --enable-gnu-unique-object --enable-linker-build-id --disable-libstdcxx-pch --enable-c99 --enable-clocale=gnu --enable-libstdcxx-debug --enable-long-long --with-cloog=no --with-ppl=no --with-isl=no --disable-multilib --with-float=hard --with-mode=thumb --with-tune=cortex-a9 --with-arch=armv7-a --with-fpu=vfpv3-d16 --enable-threads=posix --enable-multiarch --enable-libstdcxx-time=yes --with-build-sysroot=/home/tcwg-buildslave/workspace/tcwg-make-release/label/docker-trusty-amd64-tcwg-build/target/arm-linux-gnueabihf/_build/sysroots/arm-linux-gnueabihf --with-sysroot=/home/tcwg-buildslave/workspace/tcwg-make-release/label/docker-trusty-amd64-tcwg-build/target/arm-linux-gnueabihf/_build/builds/destdir/x86_64-unknown-linux-gnu/arm-linux-gnueabihf/libc --enable-checking=release --disable-bootstrap --enable-languages=c,c++,fortran,lto --build=x86_64-unknown-linux-gnu --host=x86_64-unknown-linux-gnu --target=arm-linux-gnueabihf --prefix=/home/tcwg-buildslave/workspace/tcwg-make-release/label/docker-trusty-amd64-tcwg-build/target/arm-linux-gnueabihf/_build/builds/destdir/x86_64-unknown-linux-gnu</span><br><span class="line">Thread model: posix</span><br><span class="line">gcc version 4.9.4 (Linaro GCC 4.9-2017.01) </span><br></pre></td></tr></table></figure>
+
+<p>编译源码的命令如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">cd ~/5ALPHA/strace-6.8</span><br><span class="line">mkdir output</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">  --host:主机使用的交叉前缀名</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">--prefix:编译输出目录，绝对路径，这个不指定的话，好像有问题，它不在自己源码目录下，而是直接输出到ubuntu的根目录中了</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">      CC:GCC交叉编译器</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">      LD:GCC交叉链接工具</span> </span><br><span class="line">./configure --host=arm-linux-gnueabihf \</span><br><span class="line">				CC=arm-linux-gnueabihf-gcc \</span><br><span class="line">				LD=arm-linux-gnueabihf-ld \</span><br><span class="line">				--prefix=/home/hk/5ALPHA/strace-6.8/output #/usr/strace_arm</span><br><span class="line">	</span><br><span class="line">make</span><br><span class="line">make install</span><br></pre></td></tr></table></figure>
+
+<p>上面没啥意外的话应该是没啥意外的，就是没明白哪个<code>--prefix</code>参数，不指定吧，没有root权限又会报错，指定吧，又没有输出在那个目录，难道是做中间缓存目录用的？最后生成的可执行文件在starce源码目录下的bin目录中：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240424073454263.png" alt="image-20240424073454263" style="zoom:50%;" />
+
+<p>我们可以使用file命令来看一下它是不是我们要的格式：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240424073540065.png" alt="image-20240424073540065" style="zoom:50%;" />
+
+<h2 id="2-怎么放到开发板中去？"><a href="#2-怎么放到开发板中去？" class="headerlink" title="2. 怎么放到开发板中去？"></a><font size=3>2. 怎么放到开发板中去？</font></h2><p>啊，这里有点头大，我之前自己学习的时候是从nfs加载根文件系统，所以直接在ubuntu中拷贝到对应的目录中去就可以了，做这个命令移植学习的时候环境没得了，就只能全部烧录一遍啦，我们首先把这个编译出来的strace命令放到根文件系统中去。我这里直接先使用正点原子官方出厂的固件来搞，防止出现缺失库的情况，毕竟现在重点是学习命令的使用，后面出现了什么问题再在笔记中补充。</p>
+<h3 id="2-1-重新压缩根文件系统"><a href="#2-1-重新压缩根文件系统" class="headerlink" title="2.1 重新压缩根文件系统"></a><font size=3>2.1 重新压缩根文件系统</font></h3><p>在烧写工具的固件中有根文件系统，在这里：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240424074331649.png" alt="image-20240424074331649" style="zoom:50%;" />
+
+<p>这个压缩包是<code>.tar.bz2</code>格式，我不知道为什么解压缩会有问题，可能是使用的是winrar的原因？我后来索性就把file目录全部拷贝到ubuntu中，使用tar命令来重新搞啦。解压命令如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar -xvf rootfs.tar.bz2</span><br></pre></td></tr></table></figure>
+
+<p>解压完后，把strace命令放在根文件系统的bin目录下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240424074806204.png" alt="image-20240424074806204" style="zoom:50%;" />
+
+<p>放好后，我们重新压缩：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd .. #回到上一级再压缩</span><br><span class="line">sudo tar -cjf rootfs.tar.bz2 filesystem/* # 不加sudo的话，可能有些步骤要报错</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240424075503496.png" alt="image-20240424075503496" style="zoom:50%;" />
+
+<p>加上sudo之后就正常了。但是这里可能会有问题，就是这样压缩出来，解压后，我们会得到一个filesystem目录，目录里面才是根文件系统，这对于我们后面烧写的时候是一个很大的bug，可能会出现找不到根文件系统相关目录的bug，我后面通过ubuntu使用脚本烧写系统到SD卡的时候就是这样的：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240424230416176.png" alt="image-20240424230416176" style="zoom:50%;" />
+
+<p>应该直接在filesystem目录下进行压缩：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo tar -cjf rootfs.tar.bz2 ./*</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="2-2-烧写到SD卡？"><a href="#2-2-烧写到SD卡？" class="headerlink" title="2.2 烧写到SD卡？"></a><font size=3>2.2 烧写到SD卡？</font></h3><p>这一步我么就可以直接在ubuntu中进行了，可以参考《LV01-02-IMX6ULL-ALPHA开发板体验-03-开发板系统烧写》笔记中的《2. 烧写系统到TF卡》一小节，这里就不赘述了。这个过程会非常慢，耐心等一下吧。</p>
+<h3 id="2-3-启动开发板测试"><a href="#2-3-启动开发板测试" class="headerlink" title="2.3 启动开发板测试"></a><font size=3>2.3 启动开发板测试</font></h3><p>我们按照对应章节的笔记烧写完毕后，从sd卡启动系统，然后我们看一下根文件系统中的文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls /bin/str*</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/LV07-04-strace%E5%91%BD%E4%BB%A4-%E7%A7%BB%E6%A4%8D/img/image-20240424231950807.png" alt="image-20240424231950807" style="zoom:50%;" />
+
+<h2 id="3-基本测试"><a href="#3-基本测试" class="headerlink" title="3. 基本测试"></a><font size=3>3. 基本测试</font></h2><p>我们使用以下命令来查看strace的帮助说明：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">strace -v</span><br></pre></td></tr></table></figure>
+
+<p>然后就会看到如下打印信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line">root@ATK-IMX6U:~# strace -v</span><br><span class="line">strace: must have PROG [ARGS] or -p PID</span><br><span class="line">Try &#x27;strace -h&#x27; for more information.</span><br><span class="line">root@ATK-IMX6U:~# strace -h</span><br><span class="line">usage: strace [-CdffhiqrtttTvVwxxy] [-I n] [-e expr]...</span><br><span class="line">              [-a column] [-o file] [-s strsize] [-P path]...</span><br><span class="line">              -p pid... / [-D] [-E var=val]... [-u username] PROG [ARGS]</span><br><span class="line">   or: strace -c[dfw] [-I n] [-e expr]... [-O overhead] [-S sortby]</span><br><span class="line">              -p pid... / [-D] [-E var=val]... [-u username] PROG [ARGS]</span><br><span class="line"></span><br><span class="line">Output format:</span><br><span class="line">  -a column      alignment COLUMN for printing syscall results (default 40)</span><br><span class="line">  -i             print instruction pointer at time of syscall</span><br><span class="line">  -o file        send trace output to FILE instead of stderr</span><br><span class="line">  -q             suppress messages about attaching, detaching, etc.</span><br><span class="line">  -r             print relative timestamp</span><br><span class="line">  -s strsize     limit length of print strings to STRSIZE chars (default 32)</span><br><span class="line">  -t             print absolute timestamp</span><br><span class="line">  -tt            print absolute timestamp with usecs</span><br><span class="line">  -T             print time spent in each syscall</span><br><span class="line">  -x             print non-ascii strings in hex</span><br><span class="line">  -xx            print all strings in hex</span><br><span class="line">  -y             print paths associated with file descriptor arguments</span><br><span class="line">  -yy            print ip:port pairs associated with socket file descriptors</span><br><span class="line"></span><br><span class="line">Statistics:</span><br><span class="line">  -c             count time, calls, and errors for each syscall and report summary</span><br><span class="line">  -C             like -c but also print regular output</span><br><span class="line">  -O overhead    set overhead for tracing syscalls to OVERHEAD usecs</span><br><span class="line">  -S sortby      sort syscall counts by: time, calls, name, nothing (default time)</span><br><span class="line">  -w             summarise syscall latency (default is system time)</span><br><span class="line"></span><br><span class="line">Filtering:</span><br><span class="line">  -e expr        a qualifying expression: option=[!]all or option=[!]val1[,val2]...</span><br><span class="line">     options:    trace, abbrev, verbose, raw, signal, read, write</span><br><span class="line">  -P path        trace accesses to path</span><br><span class="line"></span><br><span class="line">Tracing:</span><br><span class="line">  -b execve      detach on execve syscall</span><br><span class="line">  -D             run tracer process as a detached grandchild, not as parent</span><br><span class="line">  -f             follow forks</span><br><span class="line">  -ff            follow forks with output into separate files</span><br><span class="line">  -I interruptible</span><br><span class="line">     1:          no signals are blocked</span><br><span class="line">     2:          fatal signals are blocked while decoding syscall (default)</span><br><span class="line">     3:          fatal signals are always blocked (default if &#x27;-o FILE PROG&#x27;)</span><br><span class="line">     4:          fatal signals and SIGTSTP (^Z) are always blocked</span><br><span class="line">                 (useful to make &#x27;strace -o FILE PROG&#x27; not stop on ^Z)</span><br><span class="line"></span><br><span class="line">Startup:</span><br><span class="line">  -E var         remove var from the environment for command</span><br><span class="line">  -E var=val     put var=val in the environment for command</span><br><span class="line">  -p pid         trace process with process id PID, may be repeated</span><br><span class="line">  -u username    run command as username handling setuid and/or setgid</span><br><span class="line"></span><br><span class="line">Miscellaneous:</span><br><span class="line">  -d             enable debug output to stderr</span><br><span class="line">  -v             verbose mode: print unabbreviated argv, stat, termios, etc. args</span><br><span class="line">  -h             print help message</span><br><span class="line">  -V             print version</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>这其实也是说明了我们移植的strace命令是可以正常使用的。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/fec95377.html">LV07-04-strace命令-移植</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年04月26日 - 07:58</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/fec95377.html" title="LV07-04-strace命令-移植">https://sumumm.github.io/post/fec95377.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/ALPHA-LV07-%E7%AC%AC%E4%B8%89%E6%96%B9%E5%BA%93%E7%A7%BB%E6%A4%8D/" rel="tag"><i class="fa fa-tag"></i> (ALPHA)LV07-第三方库移植</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/c01f8732.html" rel="prev" title="麦田">
+                  <i class="fa fa-angle-left"></i> 麦田
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/bad19cb2.html" rel="next" title="绣球花">
+                  绣球花 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

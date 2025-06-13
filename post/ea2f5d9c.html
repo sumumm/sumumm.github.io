@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="kobjet对象怎么释放的？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-04-linux设备模型-04-kobject的释放">
+<meta property="og:url" content="https://sumumm.github.io/post/ea2f5d9c.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="kobjet对象怎么释放的？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106192234812.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106192920732.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106195217638.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106195313188.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106195427442.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106195522524.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106195819946.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106200226834.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106200351948.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106201828643.png">
+<meta property="article:published_time" content="2025-01-06T14:13:01.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.051Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106192234812.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/ea2f5d9c.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/ea2f5d9c.html","path":"post/ea2f5d9c.html","title":"LV06-04-linux设备模型-04-kobject的释放"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-04-linux设备模型-04-kobject的释放 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81kobject%E6%80%8E%E4%B9%88%E5%88%9B%E5%BB%BA%E7%9A%84%EF%BC%9F"><span class="nav-text">一、kobject怎么创建的？</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-kobject-create-and-add"><span class="nav-text">1. kobject_create_and_add() </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-kobject-init-and-add"><span class="nav-text">2. kobject_init_and_add() </span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81kobject%E7%9A%84%E9%87%8A%E6%94%BE"><span class="nav-text">二、kobject的释放</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-kobject-put"><span class="nav-text">1. kobject_put()</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-kref-put"><span class="nav-text">1.1 kref_put()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-kobject-release"><span class="nav-text">1.2 kobject_release()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-kobject-cleanup"><span class="nav-text">1.3 kobject_cleanup()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-%E6%80%BB%E7%BB%93"><span class="nav-text">1.4 总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-dynamic-kobj-ktype"><span class="nav-text">2. dynamic_kobj_ktype</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-dynamic-kobj-release"><span class="nav-text">2.1 dynamic_kobj_release()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-kobj-sysfs-ops"><span class="nav-text">2.2 kobj_sysfs_ops</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E5%9C%A8%E5%93%AA%E9%87%8C%E8%A2%AB%E8%B0%83%E7%94%A8%EF%BC%9F"><span class="nav-text">2.3 在哪里被调用？</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%87%AA%E5%AE%9A%E4%B9%89%E9%87%8A%E6%94%BE%E5%87%BD%E6%95%B0%EF%BC%9F"><span class="nav-text">3. 自定义释放函数？</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/ea2f5d9c.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-04-linux设备模型-04-kobject的释放 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-04-linux设备模型-04-kobject的释放
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-01-06 22:13:01" itemprop="dateCreated datePublished" datetime="2025-01-06T22:13:01+08:00">2025-01-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.4k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>12 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>kobjet对象怎么释放的？若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="3">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4" target="_blank">kernel/git/stable/linux.git - Linux kernel stable tree</a></td>        <td align="left">linux kernel源码(官网,tag 4.19.71)</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<p>在《LV06-04-linux设备模型-02-kobject相关的数据结构.md》中已经了解了引用计数器，知道当引用计数器的值变为 0 后，会自动调用自定义的释放函数去执行释放的操作。那么为什么到 0 的时候就会释放呢？我们来看一下。</p>
+<h1 id="一、kobject怎么创建的？"><a href="#一、kobject怎么创建的？" class="headerlink" title="一、kobject怎么创建的？"></a><font size=3>一、kobject怎么创建的？</font></h1><p>要知道 kobject 是如何释放的，那么我们要先明白 kobject 是如何创建的。对于 kobject 的创 建，我们可以进一步分析这两种方法的实现细节。</p>
+<h2 id="1-kobject-create-and-add"><a href="#1-kobject-create-and-add" class="headerlink" title="1. kobject_create_and_add() "></a><font size=3>1. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L748">kobject_create_and_add()</a> </font></h2><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L748">kobject_create_and_add()</a> 函数创建kobject的实现过程大概如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106192234812.png" alt="image-20250106192234812"  />
+
+<h2 id="2-kobject-init-and-add"><a href="#2-kobject-init-and-add" class="headerlink" title="2. kobject_init_and_add() "></a><font size=3>2. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L434">kobject_init_and_add()</a> </font></h2><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L434">kobject_init_and_add()</a> 创建kobject时需要手动分配内存，并通过 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L329">kobject_init()</a> 函数对分配的内存进行初始化。此时需要自己实现 ktype 结构体。初始化完成后，调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L370">kobject_add_varg()</a> 函数将 kobject 添加到系统中。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106192920732.png" alt="image-20250106192920732"  />
+
+<h1 id="二、kobject的释放"><a href="#二、kobject的释放" class="headerlink" title="二、kobject的释放"></a><font size=3>二、kobject的释放</font></h1><p>我们来看一下 kobject 的释放函数——<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L695">kobject_put()</a>函数的实现。</p>
+<h2 id="1-kobject-put"><a href="#1-kobject-put" class="headerlink" title="1. kobject_put()"></a><font size=3>1. kobject_put()</font></h2><p>在 Linux 内核中，<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L695">kobject_put()</a>函数用于减少 kobject 的引用计数，并在引用计数达到 0 时 释放 kobject 相关的资源。该函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">kobject_put</span><span class="params">(<span class="keyword">struct</span> kobject *kobj)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">if</span> (kobj) &#123;</span><br><span class="line">		<span class="keyword">if</span> (!kobj-&gt;state_initialized)</span><br><span class="line">			WARN(<span class="number">1</span>, KERN_WARNING</span><br><span class="line">				<span class="string">&quot;kobject: &#x27;%s&#x27; (%p): is not initialized, yet kobject_put() is being called.\n&quot;</span>,</span><br><span class="line">			     kobject_name(kobj), kobj);</span><br><span class="line">		kref_put(&amp;kobj-&gt;kref, kobject_release);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(kobject_put);</span><br></pre></td></tr></table></figure>
+
+<p>可以看到内部最终调用的是 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/kref.h#L67">kref_put()</a> 函数来对引用计数进行操作。</p>
+<h3 id="1-1-kref-put"><a href="#1-1-kref-put" class="headerlink" title="1.1 kref_put()"></a><font size=3>1.1 kref_put()</font></h3><p> <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/kref.h#L67">kref_put()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">int</span> <span class="title function_">kref_put</span><span class="params">(<span class="keyword">struct</span> kref *kref, <span class="type">void</span> (*release)(<span class="keyword">struct</span> kref *kref))</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">if</span> (refcount_dec_and_test(&amp;kref-&gt;refcount)) &#123;</span><br><span class="line">		release(kref);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在该函数中，当引用计数器的值变为 0 以后，会调用 release 函数执行释放的操作，这个release是一个函数指针，它指向一个这样的函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> (*release)(<span class="keyword">struct</span> kref *kref)</span><br></pre></td></tr></table></figure>
+
+<p>这个函数是啥？我们看上一层调用它的函数（<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L695">kobject_put()</a>）给它传的什么，可以看到传入的是：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ref_put(&amp;kobj-&gt;kref, kobject_release);</span><br></pre></td></tr></table></figure>
+
+<p>所以最终其实调用的是 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L680">kobject_release()</a> 函数来释放kobject对象。</p>
+<h3 id="1-2-kobject-release"><a href="#1-2-kobject-release" class="headerlink" title="1.2 kobject_release()"></a><font size=3>1.2 kobject_release()</font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L680">kobject_release()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">kobject_release</span><span class="params">(<span class="keyword">struct</span> kref *kref)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kobject</span> *<span class="title">kobj</span> =</span> container_of(kref, <span class="keyword">struct</span> kobject, kref);</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_DEBUG_KOBJECT_RELEASE</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> delay = HZ + HZ * (get_random_int() &amp; <span class="number">0x3</span>);</span><br><span class="line">	pr_info(<span class="string">&quot;kobject: &#x27;%s&#x27; (%p): %s, parent %p (delayed %ld)\n&quot;</span>,</span><br><span class="line">		 kobject_name(kobj), kobj, __func__, kobj-&gt;parent, delay);</span><br><span class="line">	INIT_DELAYED_WORK(&amp;kobj-&gt;release, kobject_delayed_cleanup);</span><br><span class="line"></span><br><span class="line">	schedule_delayed_work(&amp;kobj-&gt;release, delay);</span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line">	kobject_cleanup(kobj);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>去内核源码搜一下就会发现，正常情况是没有这个CONFIG_DEBUG_KOBJECT_RELEASE宏的，后面会调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L633">kobject_cleanup()</a> 函数。</p>
+<h3 id="1-3-kobject-cleanup"><a href="#1-3-kobject-cleanup" class="headerlink" title="1.3 kobject_cleanup()"></a><font size=3>1.3 kobject_cleanup()</font></h3><p>kobject_cleanup()函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L633">kobject.c - lib&#x2F;kobject.c - kobject_cleanup</a>。接下来我们详细分析一下：</p>
+<ul>
+<li>第<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L633">633</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L636">636</a> 行</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106195217638.png" alt="image-20250106195217638"  />
+
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L633">kobject_cleanup()</a> 函数的参数为一个指向 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/kobject.h#L65">struct kobject</a> 结构体的指针 kobj。函数内部定义了一个指向 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/kobject.h#L139">struct kobj_type</a> 结构体的指针 t，用于获取 kobj 的类型信息。还定义了一个指向常量字符的指针 name，用于保存 kobj 的名称。 </p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L638">638</a> 行</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106195313188.png" alt="image-20250106195313188"  />
+
+<p>接下来，使用 pr_debug 打印调试信息，显示 kobject 的名称、地址、函数名称和父对象的地址。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L641">641</a> 行</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106195427442.png" alt="image-20250106195427442"  />
+
+<p>检查 kobj 的类型信息 t 是否存在，并且检查 t-&gt;release 是否为 NULL。如果 t 存在但 t-&gt;release 为 NULL，表示 kobj 的类型没有定义释放函数，会打印调试信息指示该情况。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L646">646</a> 行</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106195522524.png" alt="image-20250106195522524"  />
+
+<p>检查 kobj 的状态变量 state_add_uevent_sent 和 state_remove_uevent_sent。如果 state_add_uevent_sent 为真而 state_remove_uevent_sent 为假，表示调用者没有发送”remove” 事件，会自动发送 “remove” 事件。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L653">653</a> 行</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106195819946.png" alt="image-20250106195819946"  />
+
+<p>检查 kobj 的状态变量 state_in_sysfs。如果为真，表示调用者没有从 sysfs 中删除 kobj，会自动调用 kobject_del() 函数将其从 sysfs 中删除。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L659">659</a> 行</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106200226834.png" alt="image-20250106200226834"  />
+
+<p>再次检查 t 是否存在，并且检查 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/kobject.h#L140">t-&gt;release</a> 是否存在。如果存在，表示 kobj 的 类型定义了释放函数，会调用该释放函数进行资源清理。从这里可以知道，最后调用的这个release函数是 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/kobject.h#L139">kobj_type</a> 结构体中定义的。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L666">666</a> 行</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106200351948.png" alt="image-20250106200351948"  />
+
+<p>检查 name 是否存在。如果存在，表示 kobj 的名称是动态分配的，会释放该名称 的内存。</p>
+<p>这就是 kobject_cleanup() 函数的实现。它负责执行 kobject 的资源清理和释放操作， 包括处理类型信息、发送事件、删除 sysfs 中的对象以及调用释放函数。</p>
+<h3 id="1-4-总结"><a href="#1-4-总结" class="headerlink" title="1.4 总结"></a><font size=3>1.4 总结</font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L633">kobject_cleanup()</a> 函数的实现表明，最终调用的释放函数是在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/kobject.h#L139">kobj_type</a> 结构体中定义的。 这解释了为什么在使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L434">kobject_init_and_add()</a> 函数时，<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/kobject.h#L139">kobj_type</a> 结构体不能为空的原因。因 为释放函数是在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/kobject.h#L139">kobj_type</a> 结构体中定义的，如果不实现释放函数，就无法进行正确的资源释放。</p>
+<h2 id="2-dynamic-kobj-ktype"><a href="#2-dynamic-kobj-ktype" class="headerlink" title="2. dynamic_kobj_ktype"></a><font size=3>2. dynamic_kobj_ktype</font></h2><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L719">dynamic_kobj_ktype</a> 是一个 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/kobject.h#L139">kobj_type</a> 结构体对 象，用于定义动态创建的 kobject 的类型。它指定了释放函数和 sysfs 操作：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">kobj_type</span> <span class="title">dynamic_kobj_ktype</span> =</span> &#123;</span><br><span class="line">	.release	= dynamic_kobj_release,</span><br><span class="line">	.sysfs_ops	= &amp;kobj_sysfs_ops,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-1-dynamic-kobj-release"><a href="#2-1-dynamic-kobj-release" class="headerlink" title="2.1 dynamic_kobj_release()"></a><font size=3>2.1 dynamic_kobj_release()</font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L713">dynamic_kobj_release()</a>函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">dynamic_kobj_release</span><span class="params">(<span class="keyword">struct</span> kobject *kobj)</span></span><br><span class="line">&#123;</span><br><span class="line">	pr_debug(<span class="string">&quot;kobject: (%p): %s\n&quot;</span>, kobj, __func__);</span><br><span class="line">	kfree(kobj);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 kfree 函数对创建的 kobj 进行了释放。总结起来， <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/kobject.h#L139">kobj_type</a>  结构体中的释放函数是为了确保在释放 kobject 时执行必要的资源清理和释放操作，以确保系统的正确运行。</p>
+<h3 id="2-2-kobj-sysfs-ops"><a href="#2-2-kobj-sysfs-ops" class="headerlink" title="2.2 kobj_sysfs_ops"></a><font size=3>2.2 kobj_sysfs_ops</font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L815">kobj_sysfs_ops</a>定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">sysfs_ops</span> <span class="title">kobj_sysfs_ops</span> =</span> &#123;</span><br><span class="line">	.show	= kobj_attr_show,</span><br><span class="line">	.store	= kobj_attr_store,</span><br><span class="line">&#125;;</span><br><span class="line">EXPORT_SYMBOL_GPL(kobj_sysfs_ops);</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-在哪里被调用？"><a href="#2-3-在哪里被调用？" class="headerlink" title="2.3 在哪里被调用？"></a><font size=3>2.3 在哪里被调用？</font></h3><p>这个<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L719">dynamic_kobj_ktype</a> 是在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L743">kobject_create()</a> 函数中设置的：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-04-kobject%E7%9A%84%E9%87%8A%E6%94%BE/img/image-20250106201828643.png" alt="image-20250106201828643"  />
+
+<h2 id="3-自定义释放函数？"><a href="#3-自定义释放函数？" class="headerlink" title="3. 自定义释放函数？"></a><font size=3>3. 自定义释放函数？</font></h2><p>自定义的话，好像要自己采用手动申请内存，创建kobject那种方式，这里有一个demo：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/05_device_model/05_ktype">05_device_model&#x2F;05_ktype · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<details class="folding-tag" blue><summary> 点击查看详情 </summary>
+              <div class='content'>
+              <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/init.h&gt;</span> <span class="comment">/* module_init module_exit */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/module.h&gt;</span> <span class="comment">/* MODULE_LICENSE */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/kobject.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/slab.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./timestamp_autogenerated.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./version_autogenerated.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./sdrv_common.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// #undef PRT</span></span><br><span class="line"><span class="comment">// #undef PRTE</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> PRT</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PRT printk</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> PRTE</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PRTE printk</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kobject</span> *<span class="title">skobject1</span> =</span> <span class="literal">NULL</span>; <span class="comment">// 定义kobject指针变量：skobject1</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  dynamic_kobj_release()</span></span><br><span class="line"><span class="comment"> * @note   定义kobject的释放函数</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">dynamic_kobj_release</span><span class="params">(<span class="keyword">struct</span> kobject *kobj)</span></span><br><span class="line">&#123;</span><br><span class="line">    PRT(<span class="string">&quot;kobject: (%p)\n&quot;</span>, kobj);</span><br><span class="line">    kfree(kobj);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 定义了一个kobj_type结构体变量stype，用于描述kobject的类型。</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kobj_type</span> <span class="title">stype</span> =</span> &#123;</span><br><span class="line">    .release = dynamic_kobj_release,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdriver_demo_init()</span></span><br><span class="line"><span class="comment"> * @note   </span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> __init <span class="type">int</span> <span class="title function_">sdriver_demo_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> ret = <span class="number">0</span>;</span><br><span class="line">	printk(<span class="string">&quot;*** [%s:%d]Build Time: %s %s, git version:%s ***\n&quot;</span>, __FUNCTION__,</span><br><span class="line">           __LINE__, KERNEL_KO_DATE, KERNEL_KO_TIME, KERNEL_KO_VERSION);</span><br><span class="line">    PRT(<span class="string">&quot;sdriver_demo module init!\n&quot;</span>);</span><br><span class="line">    </span><br><span class="line"></span><br><span class="line">    <span class="comment">// 创建kobject的第二种方法</span></span><br><span class="line">    <span class="comment">// 1.使用kzalloc函数分配了一个kobject对象的内存</span></span><br><span class="line">    skobject1 = kzalloc(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> kobject), GFP_KERNEL);</span><br><span class="line">    <span class="comment">// 2.初始化并添加到内核中，名为&quot;skobject1&quot;。</span></span><br><span class="line">    ret = kobject_init_and_add(skobject1, &amp;stype, <span class="literal">NULL</span>, <span class="string">&quot;%s&quot;</span>, <span class="string">&quot;skobject1&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span>(ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;kobject_init_and_add fail!ret=%d\n&quot;</span>, ret);</span><br><span class="line">        <span class="keyword">goto</span> err_kobject_init_and_add;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">err_kobject_init_and_add:</span><br><span class="line">	<span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdriver_demo_exit()</span></span><br><span class="line"><span class="comment"> * @note   </span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> __exit <span class="type">void</span> <span class="title function_">sdriver_demo_exit</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 释放之前创建的kobject对象</span></span><br><span class="line">    kobject_put(skobject1);</span><br><span class="line">    PRT(<span class="string">&quot;sdriver_demo module exit!\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">module_init(sdriver_demo_init); <span class="comment">// 将__init定义的函数指定为驱动的入口函数</span></span><br><span class="line">module_exit(sdriver_demo_exit); <span class="comment">// 将__exit定义的函数指定为驱动的出口函数</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 模块信息(通过 modinfo chrdev_led_demo 查看) */</span></span><br><span class="line">MODULE_LICENSE(<span class="string">&quot;GPL v2&quot;</span>);            <span class="comment">/* 源码的许可证协议 */</span></span><br><span class="line">MODULE_AUTHOR(<span class="string">&quot;sumu&quot;</span>);               <span class="comment">/* 字符串常量内容为模块作者说明 */</span></span><br><span class="line">MODULE_DESCRIPTION(<span class="string">&quot;Description&quot;</span>);   <span class="comment">/* 字符串常量内容为模块功能说明 */</span></span><br><span class="line">MODULE_ALIAS(<span class="string">&quot;module&#x27;s other name&quot;</span>); <span class="comment">/* 字符串常量内容为模块别名 */</span></span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/ea2f5d9c.html">LV06-04-linux设备模型-04-kobject的释放</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2025年01月06日 - 22:13</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/ea2f5d9c.html" title="LV06-04-linux设备模型-04-kobject的释放">https://sumumm.github.io/post/ea2f5d9c.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/3cca4963.html" rel="prev" title="LV06-04-linux设备模型-05-属性文件">
+                  <i class="fa fa-angle-left"></i> LV06-04-linux设备模型-05-属性文件
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/d70fd185.html" rel="next" title="LV06-04-linux设备模型-03-sysfs文件系统">
+                  LV06-04-linux设备模型-03-sysfs文件系统 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

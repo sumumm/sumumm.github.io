@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是进程通信——共享内存的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV05-05-进程通信-04-共享内存">
+<meta property="og:url" content="https://sumumm.github.io/post/ecb2bcfe.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是进程通信——共享内存的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-05-%E8%BF%9B%E7%A8%8B%E9%80%9A%E4%BF%A1-04-%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98/img/image-20220604164114921.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-05-%E8%BF%9B%E7%A8%8B%E9%80%9A%E4%BF%A1-04-%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98/img/image-20220606093647447.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-05-%E8%BF%9B%E7%A8%8B%E9%80%9A%E4%BF%A1-04-%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98/img/image-20220606101734501.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-05-%E8%BF%9B%E7%A8%8B%E9%80%9A%E4%BF%A1-04-%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98/img/image-20220606105047523.png">
+<meta property="article:published_time" content="2023-07-02T13:52:23.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:56.995Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV05-操作系统">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-05-%E8%BF%9B%E7%A8%8B%E9%80%9A%E4%BF%A1-04-%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98/img/image-20220604164114921.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/ecb2bcfe.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/ecb2bcfe.html","path":"post/ecb2bcfe.html","title":"LV05-05-进程通信-04-共享内存"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV05-05-进程通信-04-共享内存 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98%E7%AE%80%E4%BB%8B"><span class="nav-text">一、共享内存简介</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%86%85%E5%AD%98%E6%98%A0%E5%B0%84"><span class="nav-text">二、内存映射</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="nav-text">1. 基本概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98%E5%88%9B%E5%BB%BA"><span class="nav-text">2. 共享内存创建</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-mmap"><span class="nav-text">2.1 mmap() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98%E9%87%8A%E6%94%BE"><span class="nav-text">3. 共享内存释放</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-munmap"><span class="nav-text">3.1 munmap() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">3.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%90%8C%E6%AD%A5%E6%98%A0%E5%B0%84%E5%8C%BA%E5%9F%9F%E5%88%B0%E6%96%87%E4%BB%B6"><span class="nav-text">4. 同步映射区域到文件</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-msync"><span class="nav-text">4.1 msync() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">4.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-mmap-%E6%98%A0%E5%B0%84%E5%8E%9F%E7%90%86%E4%B8%8E%E7%B1%BB%E5%9E%8B"><span class="nav-text">5. mmap 映射原理与类型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98%E6%98%A0%E5%B0%84%E8%BF%87%E7%A8%8B"><span class="nav-text">5.1 虚拟内存映射过程</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#5-1-1-vm-area-struct-%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">5.1.1  vm_area_struct 结构体</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-1-2-%E8%99%9A%E6%8B%9F%E9%A1%B5%E7%9A%84%E4%B8%89%E7%A7%8D%E7%8A%B6%E6%80%81"><span class="nav-text">5.1.2 虚拟页的三种状态</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-1-3-mmap-%E6%98%A0%E5%B0%84%E5%8E%9F%E7%90%86"><span class="nav-text">5.1.3 mmap 映射原理</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-mmap-%E7%9A%84%E5%9B%9B%E7%A7%8D%E7%B1%BB%E5%9E%8B"><span class="nav-text">5.2 mmap 的四种类型</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8"><span class="nav-text">6. 共享内存基本使用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-%E6%97%A0%E8%A1%80%E7%BC%98%E5%85%B3%E7%B3%BB%E7%9A%84%E8%BF%9B%E7%A8%8B"><span class="nav-text">6.1 无血缘关系的进程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-%E7%88%B6%E5%AD%90%E8%BF%9B%E7%A8%8B"><span class="nav-text">6.2 父子进程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-%E6%96%87%E4%BB%B6%E6%98%A0%E5%B0%84%E8%BE%B9%E7%95%8C%E9%97%AE%E9%A2%98"><span class="nav-text">7. 文件映射边界问题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#7-1-%E6%AD%A3%E5%B8%B8%E6%96%87%E4%BB%B6%E8%8C%83%E5%9B%B4%E7%9A%84%E5%86%85%E5%AD%98%E6%98%A0%E5%B0%84"><span class="nav-text">7.1 正常文件范围的内存映射</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-2-%E8%B6%85%E5%87%BA%E6%96%87%E4%BB%B6%E8%8C%83%E5%9B%B4%E7%9A%84%E5%86%85%E5%AD%98%E6%98%A0%E5%B0%84"><span class="nav-text">7.2 超出文件范围的内存映射</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-3-%E6%9C%89%E5%81%8F%E7%A7%BB%E7%9A%84%E6%96%87%E4%BB%B6%E5%86%85%E5%AD%98%E6%98%A0%E5%B0%84"><span class="nav-text">7.3 有偏移的文件内存映射</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81System-V-%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98"><span class="nav-text">三、System V 共享内存</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%88%9B%E5%BB%BA%E6%88%96%E8%80%85%E6%89%93%E5%BC%80%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98"><span class="nav-text">1. 创建或者打开共享内存</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-shmget"><span class="nav-text">1.1 shmget() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">1.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%98%A0%E5%B0%84%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98"><span class="nav-text">2. 映射共享内存</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-shmat"><span class="nav-text">2.1 shmat() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B-1"><span class="nav-text">2.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%92%A4%E9%94%80%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98"><span class="nav-text">3.撤销共享内存</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-shmdt"><span class="nav-text">3.1 shmdt() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B-1"><span class="nav-text">3.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98%E6%8E%A7%E5%88%B6"><span class="nav-text">4. 共享内存控制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-shmctl"><span class="nav-text">4.1 shmctl() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B-1"><span class="nav-text">4.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">5. 使用实例</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B1"><span class="nav-text">5.1 使用实例1</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B2"><span class="nav-text">5.2 使用实例2</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/ecb2bcfe.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV05-05-进程通信-04-共享内存 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV05-05-进程通信-04-共享内存
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-07-02 21:52:23" itemprop="dateCreated datePublished" datetime="2023-07-02T21:52:23+08:00">2023-07-02</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" itemprop="url" rel="index"><span itemprop="name">LV05-操作系统</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>11k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>40 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是进程通信——共享内存的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-05-%E8%BF%9B%E7%A8%8B%E9%80%9A%E4%BF%A1-04-%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150>---</td>        <td align="left"><a href="" target="_blank">---<i class="fa fa-external-link-alt"></i> </a></td>      </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、共享内存简介"><a href="#一、共享内存简介" class="headerlink" title="一、共享内存简介"></a><font size=3>一、共享内存简介</font></h1><p>共享内存就是映射一段能被其它进程所访问的内存，这段共享内存由一个进程创建，但其它的多个进程都可以访问，使得多个进程可以访问同一块内存空间。共享内存是最快的<code>IPC</code>方式，它是针对其它进程间通信方式运行效率低而专门设计的，它往往与其它通信机制，例如结合信号量来使用，以实现进程间的同步和通信。</p>
+<p><strong>共享内存的机制，就是拿出一块虚拟地址空间来，映射到相同的物理内存中</strong>。这样这一个进程写入的东西，另外一个进程马上就能看到了，都不需要拷贝来拷贝去，传来传去，大大提高了进程间通信的速度。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-05-%E8%BF%9B%E7%A8%8B%E9%80%9A%E4%BF%A1-04-%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98/img/image-20220604164114921.png" alt="image-20220604164114921" style="zoom:43%;" />
+
+<h1 id="二、内存映射"><a href="#二、内存映射" class="headerlink" title="二、内存映射"></a><font size=3>二、内存映射</font></h1><h2 id="1-基本概念"><a href="#1-基本概念" class="headerlink" title="1. 基本概念"></a><font size=3>1. 基本概念</font></h2><p><strong>内存映射</strong>就是使一个磁盘文件与内存中的一个缓冲区相映射，进程可以像访问普通内存一样对文件进行访问，不必再调用<code>read</code>，<code>write</code>等函数。</p>
+<p><strong>内存映射文件</strong>，是由一个文件到一块内存的映射。 共享内存(<code>SharedMemory</code>)实际就是文件映射的一种特殊情况。 使用内存映射文件处理存储于磁盘上的文件时，将不必再对文件执行<code>I/O</code>操作，使得内存映射文件在处理大数据量的文件时能起到相当重要的作用。</p>
+<p>内存的映射有两种，一种是基于文件的映射（<code>file-backed</code>），称为<strong>文件映射</strong>，我看到有些地方也称之为<strong>有后备文件的映射</strong>，另一种是对没有文件关联的内容进行映射，也就是<strong>匿名映射</strong>。</p>
+<p>文件映射相对<code>read()</code>和<code>write()</code>的对比：</p>
+<ul>
+<li>在大型文件的重复随机访问中，文件映射的优势突出，方便应用，代码简捷。</li>
+<li><code>read()</code>和<code>write()</code>操作需要两次传输：一次是在文件和内核高速缓存之间，另一次是内核高速缓存和用户空间缓存之间。使用文件映射就无需第二次传输了。</li>
+<li>如果是顺序的访问文件，执行<code>read()</code>和 <code>write()</code>时使用的缓冲区足够大，以至于能够避免执行大量的<code>I/O</code>系统调用，但是<code>mmap()</code>带来的系统提升是非常有限，或者可以说没有提升。</li>
+<li>对于小数据量的<code>I/O</code>操作，<code>mmap()</code>的开销比<code>read()</code>和 <code>write()</code>还要大。</li>
+</ul>
+<h2 id="2-共享内存创建"><a href="#2-共享内存创建" class="headerlink" title="2. 共享内存创建"></a><font size=3>2. 共享内存创建</font></h2><h3 id="2-1-mmap"><a href="#2-1-mmap" class="headerlink" title="2.1 mmap() "></a><font size=3>2.1 mmap() </font></h3><p>在<code>linux</code>下可以使用<code>man mmap</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/mman.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">void</span> *<span class="title function_">mmap</span><span class="params">(<span class="type">void</span> *addr, <span class="type">size_t</span> length, <span class="type">int</span> prot, <span class="type">int</span> flags, <span class="type">int</span> fd, <span class="type">off_t</span> offset)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数将某个文件映射到物理内存中，也就是创建一个共享内存映射。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>addr</code>：<code>void *</code>类型，指定要映射的内存地址，一般设置为 <code>NULL</code> 让操作系统自动选择合适的内存地址，访问时可能需要强制类型转换。</li>
+<li><code>length</code>：<code>size_t</code>类型，必须大于<code>0</code>（否则就会报【<code>Invalid argument</code>】），表示映射地址空间的字节数，它从被映射文件开头 <code>offset</code> 个字节开始算起。</li>
+<li><code>prot</code>：<code>int</code>类型，指定共享的内存映射区的访问权限。</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看 prot 可取的值 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center" width=150px>ROT_READ</td><td align="left">映射区域可读</td></tr>    <tr><td align="center" width=150px>PROT_WRITE</td><td align="left">映射区域可写</td></tr>    <tr><td align="center" width=150px>PROT_EXEC</td><td align="left">映射区域可被执行</td></tr>    <tr><td align="center" width=150px>PROT_NONE</td><td align="left">映射区域不可访问</td></tr></table><p>可以多选，中间用<code>|</code>连接。</p>
+              </div>
+            </details>
+
+<ul>
+<li><code>flag</code>：<code>int</code>类型，映射区的特性标志位。</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看 flag 常用取值及说明 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center" width=150px>MAP_FIXED</td><td align="left">如果参数 addr 所指的地址无法成功建立映射时，则放弃映射，不对地址做修正，通常不建议使用此标志。</td></tr>    <tr><td align="center" width=150px>MAP_SHARED</td><td align="left">对应射区域的写入数据会复制回文件内，而且允许其他映射该文件的进程共享。</td></tr>    <tr><td align="center" width=150px>MAP_PRIVATE</td><td align="left">对应射区域的写入操作会产生一个映射文件的复制，即私人的"写入时复制" (copy on write)，对此区域作的任何修改都不会被写回原来的文件。</td></tr>    <tr><td align="center" width=150px>MAP_ANONYMOUS</td><td align="left">建立匿名映射，此时会忽略参数fd，不涉及文件，而且映射区域无法和其他进程共享。一般用于血缘关系进程间通信。</td></tr>    <tr><td align="center" width=150px>MAP_DENYWRITE</td><td align="left">只允许对应射区域的写入操作，其他对文件直接写入的操作将会被拒绝。</td></tr>    <tr><td align="center" width=150px>MAP_LOCKED</td><td align="left">将映射区域锁定住，这表示该区域不会被置换(swap)。</td></tr></table><p><strong>【说明】</strong><code>MAP_SHARED</code> , <code>MAP_PRIVATE</code>两个必选其一，而 <code>MAP_FIXED</code> 则不推荐使用。</p>
+              </div>
+            </details>
+
+<ul>
+<li><code>fd</code>：<code>int</code>类型，表示代表要映射到内存的文件描述符，如果匿名映射则可以设置为<code>-1</code>。</li>
+<li><code>offset</code>：<code>off_t</code>类型，表示映射文件的偏移量，一般设置为 <code>0</code> 表示从文件头部开始映射，需要注意的是<code>offset</code>必须是系统分页大小的整数倍（<code>Linux</code>系统中系统分页的大小一般是<code>4KB</code>），如果不是的话，会报【<code>Invalid argument</code>】。</li>
+</ul>
+<p><strong>【返回值】</strong><code>void *</code>类型，成功返回创建的映射区首地址，失败返回<code>MAP_FAILED</code>，其实就是<code>(void *) -1 </code>，并设置<code>errno</code>值。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/mman.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">void</span> *addr;</span><br><span class="line"><span class="type">int</span> fd = <span class="number">-1</span>;</span><br><span class="line">fd = open(<span class="string">&quot;/home/hk/shared.txt&quot;</span>, O_RDWR); <span class="comment">/* 注意文件大小不可为0，否则映射时会报总线错误 (核心已转储) */</span></span><br><span class="line">addr = mmap(<span class="literal">NULL</span>, <span class="number">100</span>, PROT_READ|PROT_WRITE, MAP_SHARED, fd, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong></p>
+<p>（1）创建映射区的过程中，隐含着一次对映射文件的读操作，会<strong>将文件内容读取到映射区</strong>。</p>
+<p>（2）映射区的释放与文件关闭无关，只要<strong>映射建立成功，文件可以立即关闭</strong>，在<code>flag</code>为<code>MAP_SHARED</code>时，即便是关闭了文件描述符，在修改共享内存数据的时候，部分数据也还是会写回物理磁盘上用于内存映射的文件的。</p>
+<p>（3）使用文件映射时，用于映射的文件大小必须大于<code>0</code>，当映射文件大小为<code>0</code>时，若指定非<code>0</code>大小创建映射区，访问映射地址会报【总线错误 (核心已转储)】，指定<code>0</code>大小创建映射区，会报非法参数错误【<code>Invalid argument</code>】。</p>
+<p>（4）<code>mmap</code>创建映射区出错概率非常高，<strong>一定要检查返回值</strong>，确保映射区建立成功再进行后续操作。</p>
+<p>（5）当<code>flag</code>为<code>MAP_SHARED</code>时，要求<strong>映射区的权限小于等于文件打开的权限</strong>(出于对映射区的保护)，如果不满足的话（例如，<code>open</code>时权限为<code>O_RDONLY</code>，<code>mmap</code>时<code>PROT_READ|PROT_WRITE</code>）将会报非法参数【Invalid argument】错误。当<code>flag</code>为<code>MAP_PRIVATE</code>时候，<code>mmap</code>中的权限是对内存的限制，只需要文件有读权限即可，<strong>操作只在内存有效，不会写到物理磁盘，且不能在进程间共享</strong>。</p>
+<p>（6）文件偏移量必须为<code>0</code>或者<code>4K</code>（系统分页大小）的整数倍（不是会报非法参数I<code>Invalid argument</code>错误）。</p>
+<h3 id="2-2-使用实例"><a href="#2-2-使用实例" class="headerlink" title="2.2 使用实例"></a><font size=3>2.2 使用实例</font></h3><p>这里写一个测试的实例，用于<strong>测试上边几个的注意事项</strong>，会先使用后边的共享内存释放函数<code>munmap</code>。</p>
+<details class="folding-tag" blue><summary> 点击查看实例 </summary>
+              <div class='content'>
+              <figure class="highlight c"><figcaption><span>test.c</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span>    <span class="comment">/* perror */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span>   <span class="comment">/* sleep fork */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span>   <span class="comment">/* memcpy */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/mman.h&gt;</span> <span class="comment">/* munmap */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span><span class="comment">/* open */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/stat.h&gt;</span> <span class="comment">/* open */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;fcntl.h&gt;</span>    <span class="comment">/* open */</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 主函数 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">void</span> *addr;<span class="comment">/* 共享内存映射的首地址 */</span></span><br><span class="line">	<span class="type">int</span> fd;    <span class="comment">/* 接收文件描述符 */</span></span><br><span class="line">	<span class="comment">/* 1. 打开共享文件 */</span></span><br><span class="line">	fd = open(<span class="string">&quot;/home/hk/shared.txt&quot;</span>, O_RDWR);</span><br><span class="line">	<span class="keyword">if</span>(fd &lt; <span class="number">0</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;open&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 2. 创建共享内存映射 */</span></span><br><span class="line">	addr = mmap(<span class="literal">NULL</span>, <span class="number">100</span>, PROT_READ|PROT_WRITE, MAP_SHARED, fd, <span class="number">0</span>);</span><br><span class="line">	<span class="keyword">if</span>(addr == MAP_FAILED)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;mmap&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 3. 关闭文件(只要映射建立成功，文件可以立即关闭) */</span></span><br><span class="line">	close(fd);</span><br><span class="line">	<span class="comment">/* 4. 共享内存操作 */</span></span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;read=%s\n&quot;</span>, (<span class="type">char</span>*)(addr));</span><br><span class="line">	<span class="built_in">memcpy</span>((addr),<span class="string">&quot;99999999999999&quot;</span>,<span class="number">15</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;read=%s\n&quot;</span>, (<span class="type">char</span>*)(addr));</span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;read addr=%s\n&quot;</span>, (<span class="type">char</span>*)(addr));</span><br><span class="line">		sleep(<span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	munmap(addr, <span class="number">100</span>);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -Wall # 生成可执行文件 a.out </span><br><span class="line">./a.out # 执行可执行程序</span><br></pre></td></tr></table></figure><p>然后，终端会有以下信息显示：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">read=99999999999999</span><br><span class="line">read=99999999999999</span><br><span class="line">read addr=99999999999999</span><br></pre></td></tr></table></figure><p>第一个<code>read</code>读取的是原来的用于文件映射的文件中的内容，第二个<code>read</code>是对共享内存写入数据后读取的共享内存的内容，后边的都是对共享内存的读取。</p>
+              </div>
+            </details>
+
+<h2 id="3-共享内存释放"><a href="#3-共享内存释放" class="headerlink" title="3. 共享内存释放"></a><font size=3>3. 共享内存释放</font></h2><h3 id="3-1-munmap"><a href="#3-1-munmap" class="headerlink" title="3.1 munmap() "></a><font size=3>3.1 munmap() </font></h3><p>在<code>linux</code>下可以使用<code>man munmap</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/mman.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">munmap</span><span class="params">(<span class="type">void</span> *addr, <span class="type">size_t</span> length)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用来取消参数<code>addr</code> 所指的映射内存起始地址，也就是说通过该函数可以释放创建的内存映射。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>addr</code>：<code>void *</code>类型，指定要释放的内存映射的内存地址，也就是<code>mmap()</code>函数成功返回的映射区首地址，就是它的第一个参数。</li>
+<li><code>length</code>：<code>size_t</code>类型，表示内存映射地址空间的字节数，也就是<code>mmap()</code>函数的第二个参数。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，成功返回<code>0</code>，失败返回<code>-1</code>，并设置<code>errno</code>值。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/mman.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">void</span> *addr;</span><br><span class="line"><span class="type">int</span> fd = <span class="number">-1</span>;</span><br><span class="line">fd = open(<span class="string">&quot;/home/hk/shared.txt&quot;</span>, O_RDWR); <span class="comment">/* 注意文件大小不可为0，否则映射时会报总线错误 (核心已转储) */</span></span><br><span class="line">addr = mmap(<span class="literal">NULL</span>, <span class="number">100</span>, PROT_READ|PROT_WRITE, MAP_SHARED, fd, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">munmap(addr, <span class="number">100</span>);</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h3 id="3-2-使用实例"><a href="#3-2-使用实例" class="headerlink" title="3.2 使用实例"></a><font size=3>3.2 使用实例</font></h3><p>暂无。</p>
+<h2 id="4-同步映射区域到文件"><a href="#4-同步映射区域到文件" class="headerlink" title="4. 同步映射区域到文件"></a><font size=3>4. 同步映射区域到文件</font></h2><h3 id="4-1-msync"><a href="#4-1-msync" class="headerlink" title="4.1 msync() "></a><font size=3>4.1 msync() </font></h3><p>在<code>linux</code>下可以使用<code>man msync</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/mman.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">msync</span><span class="params">(<span class="type">void</span> *addr, <span class="type">size_t</span> length, <span class="type">int</span> flags)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于同步映射区域内数据与文件数据。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>addr</code>：<code>void *</code>类型，指定需要同步的映射区域的内存地址。</li>
+<li><code>length</code>：<code>size_t</code>类型，表示需要同步的映射地址空间的字节数。</li>
+<li><code>flag</code>：<code>int</code>类型，表示同步的模式。</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看 flag 取值 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center" width=150px>MS_SYNC      </td><td align="left">调用会阻塞，直到虚拟内存区域中所有被修改的分页被写入到真实文件为止。调用完后，虚拟内存与磁盘内容同步。</td></tr>    <tr><td align="center" width=150px>MS_ASYNC     </td><td align="left">虚拟内存区域与内核高速缓存区同步，并对立即执行read()操作的其他进程可见，但会在之后的某个时刻将修改内容写入磁盘。</td></tr>    <tr><td align="center" width=150px>MS_INVALIDATE</td><td align="left">使映射数据的缓存副本失效，当内存区域中所有被修改过的分页被同步到文件中之后，内存区域中所有与底层文件不一致的分页会被标记为无效。下次引用这些分页时会重新从文件的相应位置复制相应的分页内容。</td></tr></table>
+              </div>
+            </details>
+
+<p><strong>【返回值】</strong><code>int</code>类型，成功返回<code>0</code>，失败返回<code>-1</code>，并设置<code>errno</code>值。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h3 id="4-2-使用实例"><a href="#4-2-使用实例" class="headerlink" title="4.2 使用实例"></a><font size=3>4.2 使用实例</font></h3><p>暂无。</p>
+<h2 id="5-mmap-映射原理与类型"><a href="#5-mmap-映射原理与类型" class="headerlink" title="5. mmap 映射原理与类型"></a><font size=3>5. mmap 映射原理与类型</font></h2><h3 id="5-1-虚拟内存映射过程"><a href="#5-1-虚拟内存映射过程" class="headerlink" title="5.1 虚拟内存映射过程"></a><font size=3>5.1 虚拟内存映射过程</font></h3><h4 id="5-1-1-vm-area-struct-结构体"><a href="#5-1-1-vm-area-struct-结构体" class="headerlink" title="5.1.1  vm_area_struct 结构体"></a><font size=3>5.1.1  vm_area_struct 结构体</font></h4><p>先来了解一个结构体<code>vm_area_struct</code>，该结构体定义在<code>include/linux/mm_types.h</code>文件中，可以使用如下命令来查找文件位置：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">locate include/linux/mm_types.h</span><br></pre></td></tr></table></figure>
+
+<p>打开文件，找到这个接结构体，成员如下：</p>
+<details class="folding-tag" blue><summary> 点击查看结构体成员定义 </summary>
+              <div class='content'>
+              <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * This struct describes a virtual memory area. There is one of these</span></span><br><span class="line"><span class="comment"> * per VM-area/task. A VM area is any part of the process virtual memory</span></span><br><span class="line"><span class="comment"> * space that has a special rule for the page-fault handlers (ie a shared</span></span><br><span class="line"><span class="comment"> * library, the executable area etc).</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">vm_area_struct</span> &#123;</span></span><br><span class="line">	<span class="comment">/* The first cache line has the info for VMA tree walking. */</span></span><br><span class="line"></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> vm_start;		<span class="comment">/* Our start address within vm_mm. */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> vm_end;		<span class="comment">/* The first byte after our end address</span></span><br><span class="line"><span class="comment">					   within vm_mm. */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* linked list of VM areas per task, sorted by address */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">vm_area_struct</span> *<span class="title">vm_next</span>, *<span class="title">vm_prev</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rb_node</span> <span class="title">vm_rb</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Largest free memory gap in bytes to the left of this VMA.</span></span><br><span class="line"><span class="comment">	 * Either between this VMA and vma-&gt;vm_prev, or between one of the</span></span><br><span class="line"><span class="comment">	 * VMAs below us in the VMA rbtree and its -&gt;vm_prev. This helps</span></span><br><span class="line"><span class="comment">	 * get_unmapped_area find a free area of the right size.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> rb_subtree_gap;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Second cache line starts here. */</span></span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mm_struct</span> *<span class="title">vm_mm</span>;</span>	<span class="comment">/* The address space we belong to. */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Access permissions of this VMA.</span></span><br><span class="line"><span class="comment">	 * See vmf_insert_mixed_prot() for discussion.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="type">pgprot_t</span> vm_page_prot;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> vm_flags;		<span class="comment">/* Flags, see mm.h. */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * For areas with an address space and backing store,</span></span><br><span class="line"><span class="comment">	 * linkage into the address_space-&gt;i_mmap interval tree.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">rb_node</span> <span class="title">rb</span>;</span></span><br><span class="line">		<span class="type">unsigned</span> <span class="type">long</span> rb_subtree_last;</span><br><span class="line">	&#125; shared;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * A file&#x27;s MAP_PRIVATE vma can be in both i_mmap tree and anon_vma</span></span><br><span class="line"><span class="comment">	 * list, after a COW of one of the file pages.	A MAP_SHARED vma</span></span><br><span class="line"><span class="comment">	 * can only be in the i_mmap tree.  An anonymous MAP_PRIVATE, stack</span></span><br><span class="line"><span class="comment">	 * or brk vma (with NULL file) can only be in an anon_vma list.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">anon_vma_chain</span>;</span> <span class="comment">/* Serialized by mmap_lock &amp;</span></span><br><span class="line"><span class="comment">					  * page_table_lock */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">anon_vma</span> *<span class="title">anon_vma</span>;</span>	<span class="comment">/* Serialized by page_table_lock */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Function pointers to deal with this struct. */</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">vm_operations_struct</span> *<span class="title">vm_ops</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Information about our backing store: */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> vm_pgoff;		<span class="comment">/* Offset (within vm_file) in PAGE_SIZE</span></span><br><span class="line"><span class="comment">					   units */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">file</span> * <span class="title">vm_file</span>;</span>		<span class="comment">/* File we map to (can be NULL). */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">file</span> *<span class="title">vm_prfile</span>;</span>		<span class="comment">/* shadow of vm_file */</span></span><br><span class="line">	<span class="type">void</span> * vm_private_data;		<span class="comment">/* was vm_pte (shared mem) */</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_SWAP</span></span><br><span class="line">	<span class="type">atomic_long_t</span> swap_readahead_info;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> CONFIG_MMU</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">vm_region</span> *<span class="title">vm_region</span>;</span>	<span class="comment">/* NOMMU mapping region */</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_NUMA</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mempolicy</span> *<span class="title">vm_policy</span>;</span>	<span class="comment">/* NUMA policy for the VMA */</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">vm_userfaultfd_ctx</span> <span class="title">vm_userfaultfd_ctx</span>;</span></span><br><span class="line">&#125; __randomize_layout;</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<p>分配的每个虚拟内存区域都由一个<code>vm_area_struct</code> 数据结构来管理，包括虚拟内存的起始和结束地址，以及内存的访问权限等。<code>vm_area_struct</code>是在<code>mmap</code>的时候创建的，<code>vm_area_strcut</code>代表了一段连续的虚拟地址，这些虚拟地址相应地映射到一个后备文件或者一个匿名文件的虚拟页。一个<code>vm_area_struct</code>映射到一组连续的页表项。页表项又指向物理内存<code>page</code>，这样就把一个文件和物理内存页相映射。</p>
+<h4 id="5-1-2-虚拟页的三种状态"><a href="#5-1-2-虚拟页的三种状态" class="headerlink" title="5.1.2 虚拟页的三种状态"></a><font size=3>5.1.2 虚拟页的三种状态</font></h4><p>当拿到一个虚拟地址时，系统会根据已有的<code>vm_area_struct</code>看这个虚拟地址是否属于某个<code>vm_area_struct</code>，然后会有以下两种情况：</p>
+<ul>
+<li>如果没有匹配到，就报段错误，访问了一个没有分配的虚拟地址。</li>
+<li>如果匹配到了<code>vm_area_struct</code>，根据虚拟地址和页表的映射关系，找到对应的页表项<code>PTE</code>，如果<code>PTE</code>没有分配，就报一个缺页异常，去加载相应的文件数据到物理内存，如果<code>PTE</code>分配，就去相应的物理页的偏移位置读取数据。</li>
+</ul>
+<p>所以虚拟页会有以下三种状态：</p>
+<table>
+    <tr><td align="center" width=150px>未分配虚拟页</td><td align="left">指的是没有使用mmap建立vm_area_struct，所以也就没有对应到具体的页表项</td></tr>
+    <tr><td align="center" width=150px>已分配虚拟页</td><td align="left">未映射到物理页，指的是已经使用了mmap建立的vm_area_struct，可以映射到对应的页表项，但是页表项没有指向具体的物理页</td></tr>
+    <tr><td align="center" width=150px>已分配虚拟页</td><td align="left">已映射到物理页，指的是已经使用了mmap建立的vm_area_struct，可以映射到对应的页表项，并且页表项指向具体的物理页</td></tr>
+</table>
+
+<h4 id="5-1-3-mmap-映射原理"><a href="#5-1-3-mmap-映射原理" class="headerlink" title="5.1.3 mmap 映射原理"></a><font size=3>5.1.3 mmap 映射原理</font></h4><ul>
+<li>（一）进程启动映射过程，并在虚拟地址空间中为映射创建虚拟映射区域</li>
+</ul>
+<p>（1）进程在用户空间调用库函数<code>mmap</code>。</p>
+<p>（2）在当前进程的虚拟地址空间中，寻找一段空闲的满足要求的连续的虚拟地址。</p>
+<p>（3）为此虚拟区分配一个<code>vm_area_struct</code>结构，接着对这个结构的各个域进行初始化。</p>
+<p>（4）将新建的虚拟区结构（<code>vm_area_struct</code>）插入进程的虚拟地址区域链表或树中。</p>
+<ul>
+<li>（二）调用内核空间的系统调用函数<code>mmap</code>（不同于用户空间函数），实现文件物理地址和进程虚拟地址的一一映射关系</li>
+</ul>
+<p>（5）为映射分配了新的虚拟地址区域后，通过待映射的文件指针，在文件描述符表中找到对应的文件描述符，通过文件描述符，链接到内核“已打开文件集”中该文件的文件结构体（<code>struct file</code>），每个文件结构体维护着和这个已打开文件相关各项信息。</p>
+<p>（6） 通过该文件的文件结构体，链接到<code>file_operations</code>模块，调用内核函数<code>mmap</code>，其原型为：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">mmap</span><span class="params">(<span class="keyword">struct</span> file *filp, <span class="keyword">struct</span> vm_area_struct *vma)</span>;<span class="comment">/* 不同于用户空间库函数。 */</span></span><br></pre></td></tr></table></figure>
+
+<p>（7）内核<code>mmap</code>函数通过虚拟文件系统<code>inode</code>模块定位到文件磁盘物理地址。</p>
+<p>（8）通过<code>remap_pfn_range</code>函数建立页表，即实现了文件地址和虚拟地址区域的映射关系。此时，这片虚拟地址并没有任何数据关联到内存中。</p>
+<ul>
+<li>（三）进程发起对这片映射空间的访问，引发缺页异常，实现文件内容到物理内存（主存）的拷贝</li>
+</ul>
+<p>（9）进程的读或写操作访问虚拟地址空间这一段映射地址，通过查询页表，发现这一段地址并不在物理页面上。因为目前只建立了地址映射，真正的硬盘数据还没有拷贝到内存中，因此引发缺页异常。</p>
+<p>（10）缺页异常进行一系列判断，确定无非法操作后，内核发起请求调页过程。</p>
+<p>（11）调页过程先在交换缓存空间（<code>swap cache</code>）中寻找需要访问的内存页，如果没有则调用<code>nopage</code>函数把所缺的页从磁盘装入到内存中。</p>
+<p>（12）之后进程即可对这片内存进行读或者写的操作，如果写操作改变了其内容，一定时间后系统会自动回写脏页面到对应磁盘地址，也即完成了写入到文件的过程。</p>
+<details class="folding-tag" blue><summary> 点击查看脏页面的概念 </summary>
+              <div class='content'>
+              <p><code>Linux</code>内核由于存在<code>page cache</code>, 一般修改的文件数据并不会马上同步到磁盘，会缓存在内存的<code>page cache</code>中，我们把这种和磁盘数据不一致的页称为脏页，脏页会在合适的时机同步到磁盘。为了回写<code>page cache</code>中的脏页，需要标记页为脏（<code>dirty</code>）。</p>
+              </div>
+            </details>
+
+<p><strong>【注意事项】</strong></p>
+<p>（1）修改过的脏页面并不会立即更新回文件中，而是有一段时间的延迟，可以调用<code>msync()</code>来强制同步, 这样所写的内容就能立即保存到文件里了。</p>
+<p>（2）前两个阶段仅在于创建虚拟区间并完成地址映射，但是并没有将任何文件数据的拷贝至物理内存。真正的文件读取是当进程发起读或写操作时。</p>
+<h3 id="5-2-mmap-的四种类型"><a href="#5-2-mmap-的四种类型" class="headerlink" title="5.2 mmap 的四种类型"></a><font size=3>5.2 mmap 的四种类型</font></h3><p><code>mmap</code>分为有后备文件的映射和匿名文件的映射，这两种映射又有私有映射和共享映射之分，所以<code>mmap</code>可以创建<code>4</code>种类型的映射：</p>
+<table>
+    <tr><td align="center" width=180px>后备文件的共享映射</td><td align="left">多个进程的vm_area_struct指向同一个物理内存区域，一个进程对文件内容的修改，会被其他进程可见。对文件内容的修改会被写回到后备文件。</td></tr>
+    <tr><td align="center" width=180px>后备文件的私有映射</td><td align="left">多个进程的vm_area_struct指向同一个物理内存区域，采用写时拷贝的方式，当一个进程对文件内容做修改，不会被其他进程看到。另外对文件内的修改也不会被写回到后备文件。当内存不够需要进行页回收时，私有映射的页被交换到交换区。一般用在加载共享代码库。</td></tr>
+    <tr><td align="center" width=180px>匿名文件的共享映射</td><td align="left">内核创建一个初始都是0的物理内存区域，然后多个进程的vm_area_struct指向这个共享的物理内存区域，对该区域内容的修改对所有进程可见。匿名文件在页回收时被交换到交换区。</td></tr>
+    <tr><td align="center" width=180px>匿名文件的私有映射</td><td align="left">内核创建一个初始都是0的物理内存区域，对该区域内容的修改只对创建者进程可见。匿名文件在页回收时被交换到交换区。malloc()底层是用了匿名文件的私有映射来分配大块内存。</td></tr>
+</table>
+
+<h2 id="6-共享内存基本使用"><a href="#6-共享内存基本使用" class="headerlink" title="6. 共享内存基本使用"></a><font size=3>6. 共享内存基本使用</font></h2><p>内存映射可以用于进程的通信，在无血缘关系的进程间，或者是父子进程中，都可以使用内存映射的共享内存实现通信。</p>
+<h3 id="6-1-无血缘关系的进程"><a href="#6-1-无血缘关系的进程" class="headerlink" title="6.1 无血缘关系的进程"></a><font size=3>6.1 无血缘关系的进程</font></h3><p>下边的例子是<strong>基于文件映射</strong>实现的没有血缘关系的两个进程之间的通信。</p>
+<details class="folding-tag" blue><summary> 点击查看实例 </summary>
+              <div class='content'>
+              <div class="tabs" id="tabname1"><ul class="nav-tabs"><li class="tab active"><a href="#tabname1-1">mmap_read.c</a></li><li class="tab"><a href="#tabname1-2">mmap_write.c</a></li><li class="tab"><a href="#tabname1-3">Makefile</a></li></ul><div class="tab-content"><div class="tab-pane active" id="tabname1-1"><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span>    <span class="comment">/* perror */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span>   <span class="comment">/* sleep fork */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span>   <span class="comment">/* memcpy */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/mman.h&gt;</span> <span class="comment">/* munmap */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span><span class="comment">/* open */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/stat.h&gt;</span> <span class="comment">/* open */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;fcntl.h&gt;</span>    <span class="comment">/* open */</span></span></span><br><span class="line"><span class="comment">/* 主函数 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">void</span> *addr;<span class="comment">/* 共享内存的首地址 */</span></span><br><span class="line">	<span class="type">int</span> fd;    <span class="comment">/* 接收文件描述符 */</span></span><br><span class="line">	<span class="comment">/* 1. 打开共享文件 */</span></span><br><span class="line">	fd = open(<span class="string">&quot;/home/hk/shared.txt&quot;</span>, O_RDWR);<span class="comment">/* 注意文件大小不可为0，否则映射时会报总线错误 (核心已转储) */</span></span><br><span class="line">	<span class="keyword">if</span>(fd &lt; <span class="number">0</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;open&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 2. 创建共享内存映射 */</span></span><br><span class="line">	addr = mmap(<span class="literal">NULL</span>, <span class="number">2048</span>, PROT_READ|PROT_WRITE, MAP_SHARED, fd, <span class="number">0</span>);</span><br><span class="line">	<span class="keyword">if</span>(addr == MAP_FAILED)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;mmap&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 3. 关闭文件(只要映射建立成功，文件可以立即关闭) */</span></span><br><span class="line">	close(fd);</span><br><span class="line">	<span class="comment">/* 4. 打印读取数据 */</span></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;read process: read=%s\n&quot;</span>, (<span class="type">char</span>*)(addr));</span><br><span class="line">		sleep(<span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div><div class="tab-pane" id="tabname1-2"><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span>    <span class="comment">/* perror */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span>   <span class="comment">/* sleep fork */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span>   <span class="comment">/* memcpy */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/mman.h&gt;</span> <span class="comment">/* munmap */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span><span class="comment">/* open */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/stat.h&gt;</span> <span class="comment">/* open */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;fcntl.h&gt;</span>    <span class="comment">/* open */</span></span></span><br><span class="line"><span class="comment">/* 主函数 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">void</span> *addr;<span class="comment">/* 共享内存的首地址 */</span></span><br><span class="line">	<span class="type">int</span> fd;    <span class="comment">/* 接收文件描述符 */</span></span><br><span class="line">	<span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">	<span class="comment">/* 1. 打开共享文件 */</span></span><br><span class="line">	fd = open(<span class="string">&quot;/home/hk/shared.txt&quot;</span>, O_RDWR);<span class="comment">/* 注意文件大小不可为0，否则映射时会报总线错误 (核心已转储) */</span></span><br><span class="line">	<span class="keyword">if</span>(fd &lt; <span class="number">0</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;open&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 2. 创建共享内存映射 */</span></span><br><span class="line">	addr = mmap(<span class="literal">NULL</span>, <span class="number">2048</span>, PROT_READ|PROT_WRITE, MAP_SHARED, fd, <span class="number">0</span>);</span><br><span class="line">	<span class="keyword">if</span>(addr == MAP_FAILED)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;mmap&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 3. 关闭文件(只要映射建立成功，文件可以立即关闭) */</span></span><br><span class="line">	close(fd);</span><br><span class="line">	<span class="keyword">while</span>(i &lt; <span class="number">2048</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="built_in">memcpy</span>((addr + i), <span class="string">&quot;a&quot;</span>, <span class="number">1</span>);</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;i = %d\n&quot;</span>, i++);</span><br><span class="line">		sleep(<span class="number">1</span>);</span><br><span class="line">	&#125; </span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div><div class="tab-pane" id="tabname1-3"><figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">CC = gcc</span><br><span class="line"></span><br><span class="line">DEBUG = -g -O2 -Wall</span><br><span class="line">CFLAGS += <span class="variable">$(DEBUG)</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 所有.c文件去掉后缀</span></span><br><span class="line">TARGET_LIST = $&#123;patsubst %.c, %, $&#123;wildcard *.c&#125;&#125; </span><br><span class="line"></span><br><span class="line">all : <span class="variable">$(TARGET_LIST)</span></span><br><span class="line"></span><br><span class="line">%.o : %.c</span><br><span class="line">	<span class="variable">$(CC)</span> <span class="variable">$(CFLAGS)</span> -c <span class="variable">$&lt;</span> -o <span class="variable">$@</span></span><br><span class="line"></span><br><span class="line"><span class="meta"><span class="keyword">.PHONY</span>: all clean clean_o</span></span><br><span class="line">clean : clean_o</span><br><span class="line">	@rm -vf <span class="variable">$(TARGET_LIST)</span> </span><br><span class="line">	</span><br><span class="line">clean_o :</span><br><span class="line">	@rm -vf *.o</span><br></pre></td></tr></table></figure></div></div></div><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">make # 编译程序，将会生成两个可执行程序 </span><br><span class="line">./mmap_write # 一个终端中共享内存区域写入数据</span><br><span class="line">./mmap_read  # 在另一个终端对共享内存进行读取操作</span><br></pre></td></tr></table></figure><p>若之前用于文件映射的文件内容如下：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">123456789</span></span><br></pre></td></tr></table></figure><p>那么，两个终端显示的数据将是这样的：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">运行 ./mmap_read 的终端</span></span><br><span class="line">hk@vm:~/2Sharedfiles/temp$ ./mmap_read</span><br><span class="line">read process: read=123456789</span><br><span class="line"></span><br><span class="line">read process: read=a23456789</span><br><span class="line"></span><br><span class="line">read process: read=aa3456789</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">... ...</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">运行 ./mmap_write 的终端</span></span><br><span class="line">hk@vm:/mnt/hgfs/Sharedfiles/temp$ ./mmap_write</span><br><span class="line">i = 0</span><br><span class="line">i = 1</span><br><span class="line">i = 2</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">... ...</span></span><br></pre></td></tr></table></figure><p>后边都是循环，运行 <code>./mmap_read</code> 的终端显示的数据中间隔较大，这是因为文件映射到共享内存区后自带换行，这个符号还没有被覆盖，于是每一次都会被读出来，而每次循环打印的时候也会有一个换行，所以就会出现刚开始间隔大，后边间隔小的情况啦。</p>
+              </div>
+            </details>
+
+
+
+<h3 id="6-2-父子进程"><a href="#6-2-父子进程" class="headerlink" title="6.2 父子进程"></a><font size=3>6.2 父子进程</font></h3><p>我们前边学习<code>mmap</code>函数的时候，它是可以建立匿名映射的，而匿名映射主要就是用于父子进程之间的通信。</p>
+<details class="folding-tag" blue><summary> 点击查看实例 </summary>
+              <div class='content'>
+              <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span>    <span class="comment">/* perror */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span>   <span class="comment">/* sleep fork */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span>   <span class="comment">/* memcpy */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/mman.h&gt;</span> <span class="comment">/* mmap munmap */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span><span class="comment">/* open */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/stat.h&gt;</span> <span class="comment">/* open */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;fcntl.h&gt;</span>    <span class="comment">/* open */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/wait.h&gt;</span> <span class="comment">/* wait */</span></span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 主函数 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">void</span> *addr;</span><br><span class="line">	<span class="type">pid_t</span> pid;</span><br><span class="line">	<span class="comment">/* 1. 创建共享内存映射 */</span></span><br><span class="line">	addr = mmap(<span class="literal">NULL</span>, <span class="number">2048</span>, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">	<span class="keyword">if</span>(addr == MAP_FAILED)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;mmap&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 2. 创建父子进程 */</span></span><br><span class="line">	pid = fork();</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(pid &lt; <span class="number">0</span>)<span class="comment">/* 创建出错 */</span></span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;fork&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span>(pid &gt; <span class="number">0</span>)<span class="comment">/* 父进程 */</span></span><br><span class="line">	&#123;</span><br><span class="line">		<span class="built_in">memcpy</span>(addr,<span class="string">&quot;1234567890&quot;</span>,<span class="number">10</span>);</span><br><span class="line"></span><br><span class="line">		wait(<span class="literal">NULL</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> <span class="comment">/* 子进程 */</span></span><br><span class="line">	&#123;</span><br><span class="line">		sleep(<span class="number">1</span>);</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;read father val=%s\n&quot;</span>,(<span class="type">char</span> *)addr);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 释放内存映射 */</span></span><br><span class="line">	munmap(addr,<span class="number">2048</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -Wall # 生成可执行文件 a.out </span><br><span class="line">./a.out # 执行可执行程序</span><br></pre></td></tr></table></figure><p>终端将会显示以下情况：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">read father val=1234567890</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<h2 id="7-文件映射边界问题"><a href="#7-文件映射边界问题" class="headerlink" title="7. 文件映射边界问题"></a><font size=3>7. 文件映射边界问题</font></h2><h3 id="7-1-正常文件范围的内存映射"><a href="#7-1-正常文件范围的内存映射" class="headerlink" title="7.1 正常文件范围的内存映射"></a><font size=3>7.1 正常文件范围的内存映射</font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-05-%E8%BF%9B%E7%A8%8B%E9%80%9A%E4%BF%A1-04-%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98/img/image-20220606093647447.png" alt="image-20220606093647447" style="zoom:50%;" />
+
+<p>这种情况就是，我们要映射的区域大小并未超过文件大小，如上图，我们有一个<code>9600 Bytes</code>的文件，我们现在要映射一个<code>5000 Bytes</code>的共享内存区域，由于系统是按页来分配内存，在所用的系统中，一页是<code>4KB</code>，所以实际申请可访问的内存空间会被扩展，创建共享内存时映射语句为：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">addr = mmap(<span class="literal">NULL</span>, <span class="number">5000</span>, PROT_READ|PROT_WRITE, MAP_SHARED, fd, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+
+<p>由于映射长度<code>5000 Bytes</code>并非系统分页大小的整数倍，所以会按照分页大小，自动向上取整，所以实际映射大小为<code>8092 Bytes</code>，即文件从起始位置有<code>8092 Bytes</code>映射到虚拟内存中。<br>文件中未被映射的区域是无法通过虚拟内存进行访问的，如果强制向虚拟内存末尾后面访问，则会访问到一片未定义的地址，产生<code>SIGSEGV</code>信号，默认该信号会终止进程，并打印<code>core dump</code>。<strong>【注意事项】</strong>这一点其实我挺有疑问的，毕竟我尝试的时候似乎并没有什么特别的现象，代码也在正常跑，后便找到问题所在再补充吧。后来似乎明白了，原因在<code>5.3</code>一节的图中，当我使用访问<code>4</code>个页面外的内存时，出现了这个信号。<br>由于实际文件映射大小为<code>8092 Bytes</code>，且为共享映射，所以映射后虚拟内存的<code>8092 Bytes</code>可读可写，且修改的内容会同步到实际文件中。</p>
+<h3 id="7-2-超出文件范围的内存映射"><a href="#7-2-超出文件范围的内存映射" class="headerlink" title="7.2 超出文件范围的内存映射"></a><font size=3>7.2 超出文件范围的内存映射</font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-05-%E8%BF%9B%E7%A8%8B%E9%80%9A%E4%BF%A1-04-%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98/img/image-20220606101734501.png" alt="image-20220606101734501" style="zoom:50%;" />
+
+<p>这种情况就是，我们要映射的区域大小超过文件大小，如上图，我们有一个<code>2200 Bytes</code>的文件，我们现在要映射一个<code>6000 Bytes</code>的共享内存区域，由于系统是按页来分配内存，在所用的系统中，一页是<code>4KB</code>，所以实际申请可访问的内存空间会被扩展，创建共享内存时映射语句为：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">addr = mmap(<span class="literal">NULL</span>, <span class="number">6000</span>, PROT_READ|PROT_WRITE, MAP_SHARED, fd, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+
+<p>映射长度为<code>6000 Bytes</code>，自动向上对齐系统分页，所以实际映射大小为<code>8092 Bytes</code>。但文件的实际大小为<code>2000 Bytes</code>。所以长度为<code>8092 Bytes</code>的虚拟内存映射区域被分为三段。第一段，即实际真实文件映射大小<code>2000 Bytes</code>，该区域是可读、可写，且修改内容会同步到真实文件中；第二段，即第一个分页中除开首部<code>2000 Bytes</code>的剩余部分，大小为<code>2096 Bytes</code>，该部分可读可写，但由于没有文件映射与该内存相对应，所以写入内容无法同步到真实文件中；第三段，即第二个分页，该分页无文件与之对应，是为了映射长度的分页对齐而自动扩展的，如果访问该部分内容会产生<code>SIGBUS</code>信号。<br>访问未被映射的区域会产生<code>SIGSEGV</code>信号。<strong>【注意事项】</strong>这一点其实我挺有疑问的，毕竟我尝试的时候似乎并没有什么特别的现象，代码也在正常跑，后便找到问题所在再补充吧。后来似乎明白了，原因在<code>5.3</code>一节的图中，当我使用访问<code>4</code>个页面外的内存时，出现了这个信号。</p>
+<h3 id="7-3-有偏移的文件内存映射"><a href="#7-3-有偏移的文件内存映射" class="headerlink" title="7.3 有偏移的文件内存映射"></a><font size=3>7.3 有偏移的文件内存映射</font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/LV05-05-%E8%BF%9B%E7%A8%8B%E9%80%9A%E4%BF%A1-04-%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98/img/image-20220606105047523.png" alt="image-20220606105047523" style="zoom:50%;" />
+
+<p>当我看到这张图的时候，上边两个疑问似乎都解决了，真正映射到进程的虚拟地址空间的起始是创建共享内存页面数量的<code>2</code>倍，区域之外的访问才会产生<code>SIGSEGV</code>信号。</p>
+<h1 id="三、System-V-共享内存"><a href="#三、System-V-共享内存" class="headerlink" title="三、System V 共享内存"></a><font size=3>三、<code>System V</code> 共享内存</font></h1><p>前边我们已经知道了<code>System V IPC</code>包含三种通信机制，分别是消息队列、共享内存和信号量，这一部分就刚好是学习共享内存的笔记，就一起写在这里吧。</p>
+<h2 id="1-创建或者打开共享内存"><a href="#1-创建或者打开共享内存" class="headerlink" title="1. 创建或者打开共享内存"></a><font size=3>1. 创建或者打开共享内存</font></h2><h3 id="1-1-shmget"><a href="#1-1-shmget" class="headerlink" title="1.1 shmget() "></a><font size=3>1.1 shmget() </font></h3><p>在<code>linux</code>下可以使用<code>man 2 shmget </code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/ipc.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/shm.h&gt;</span></span></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">shmget</span><span class="params">(<span class="type">key_t</span> key, <span class="type">size_t</span> size, <span class="type">int</span> shmflg)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数得到一个共享内存标识符<code>ID</code>或创建一个共享内存对象。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>key</code>：<code>key_t</code>类型，通过<code>ftok</code>创建的<code>key</code>（键）值或者是<code>IPC_PRIVATE</code>（这样的话只能用于具有血缘关系的进程通信）。</li>
+<li><code>size</code>：<code>size_t</code>类型，指定共享内存的大小，以字节为单位。所有的内存分配操作都是<strong>以页为单位</strong>的。所以如果一段进程只申请一块只有一个字节的内存，内存也会分配整整一页(在<code>i386</code>机器中一页的缺省大小<code>PACE_SIZE=4096</code>字节)这样，新创建的共享内存的大小实际上是从<code>size</code>这个参数调整而来的页面大小。即如果<code>size</code>为<code>1</code>至<code>4096</code>，则实际申请到的共享内存大小为<code>4K</code>(一页)；<code>4097</code>到<code>8192</code>，则实际申请到的共享内存大小为<code>8K</code>(两页)，依此类推。</li>
+<li><code>shmflg</code>：<code>int</code>类型，共享内存标志位，使用时需要与<code>IPC</code>对象存取权限（如<code>0666</code>）进行<code>|</code>运算来确定读写权限。一般是需要创建共享内存时为<code> IPC_CREAT|0666</code>，若不需要创建，直接打开时，使用<code>0666</code>即可。</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看常用可取的值及含义 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center" width=150px>IPC_CREAT</td><td align="left">如果共享内存不存在，则创建一个共享内存，否则打开操作。</td></tr>    <tr><td align="center" width=150px>IPC_EXCL </td><td align="left">只有在共享内存不存在的时候，新的共享内存才建立，否则就产生错误。</td></tr></table><ul><li><p>如果单独使用<code>IPC_CREAT</code>，<code>shmget()</code>函数要么返回一个已经存在的共享内存的操作符，要么返回一个新建的共享内存的标识符。</p></li><li><p>如果将<code>IPC_CREAT</code>和<code>IPC_EXCL</code>标志一起使用，<code>shmget()</code>将返回一个新建的共享内存的标识符；如果该共享内存已存在，就会返回错误。</p></li></ul>
+              </div>
+            </details>
+
+<p><strong>【返回值】</strong><code>int</code>类型，成功返回共享内存的标识符，失败返回<code>-1</code>，并设置<code>errno</code>。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/ipc.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/shm.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">int</span> shmid;</span><br><span class="line">key = ftok(<span class="string">&quot;./keytest.txt&quot;</span>, <span class="number">100</span>);</span><br><span class="line">shmid = shmget(key, <span class="number">512</span>, IPC_CREAT|<span class="number">0666</span>);</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong>共享内存的大小是有限制的，可以使用以下命令查看：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ipcs -l</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">或者</span></span><br><span class="line">cat /proc/sys/kernel/shmmax</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-2-使用实例"><a href="#1-2-使用实例" class="headerlink" title="1.2 使用实例"></a><font size=3>1.2 使用实例</font></h3><p>暂无。</p>
+<h2 id="2-映射共享内存"><a href="#2-映射共享内存" class="headerlink" title="2. 映射共享内存"></a><font size=3>2. 映射共享内存</font></h2><h3 id="2-1-shmat"><a href="#2-1-shmat" class="headerlink" title="2.1 shmat() "></a><font size=3>2.1 shmat() </font></h3><p>在<code>linux</code>下可以使用<code>man 2 shmat</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/shm.h&gt;</span></span></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">void</span> *<span class="title function_">shmat</span><span class="params">(<span class="type">int</span> shmid, <span class="type">const</span> <span class="type">void</span> *shmaddr, <span class="type">int</span> shmflg)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数将<code>shmid</code>标识的共享内存映射到当前进程的虚拟地址空间，随后可像本地空间一样访问。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>shmid</code>：<code>int</code>类型，共享内存<code>IPC</code>对象的<code>ID</code>。</li>
+<li><code>shmaddr</code>：<code>void *</code>类型，表示映射的方式，若为<code>NULL</code>，共享内存会被系统内核自动映射到一个合适的虚拟地址空间，建议使用<code>NULL</code>；若不为<code>NULL</code>，我自己没试过，可以参考函数帮助手册。</li>
+<li><code>shmflg</code>：<code>int</code>类型，一些标志，一般是不指定的，写<code>0</code>就可以啦，表示可读可写。其他的可以查看帮助手册，若设置为<code>SHM_RDONLY</code>表示只读模式；不指定的话默认是读写权限；若设置为<code>IPC_REMAP</code>，表示替换位于<code>shmaddr</code>处的任意已有映射。</li>
+</ul>
+<p><strong>【返回值】</strong><code>void *</code>类型，成功返回映射的共享内存段的地址，失败返回<code>(void *) -1</code>，并设置<code>errno</code>来指示错误的原因。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/ipc.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/shm.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">char</span> *buf;</span><br><span class="line">buf = shmat(shmid, <span class="literal">NULL</span>, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong></p>
+<p>（1）<code>fork()</code>后创建的子进程继承已连接的共享内存地址。</p>
+<p>（2）<code>exec</code>执行时会执行其他进程，<code>exec</code>执行的进程将会与已连接的共享内存地址自动脱离(<code>detach</code>)。</p>
+<p>（3）进程结束后，已连接的共享内存地址会自动脱离(<code>detach</code>).</p>
+<h3 id="2-2-使用实例-1"><a href="#2-2-使用实例-1" class="headerlink" title="2.2 使用实例"></a><font size=3>2.2 使用实例</font></h3><p>暂无。</p>
+<h2 id="3-撤销共享内存"><a href="#3-撤销共享内存" class="headerlink" title="3.撤销共享内存"></a><font size=3>3.撤销共享内存</font></h2><h3 id="3-1-shmdt"><a href="#3-1-shmdt" class="headerlink" title="3.1 shmdt() "></a><font size=3>3.1 shmdt() </font></h3><p>在<code>linux</code>下可以使用<code>man 2 shmdt</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/shm.h&gt;</span></span></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">shmdt</span><span class="params">(<span class="type">const</span> <span class="type">void</span> *shmaddr)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数是用来撤销共享内存映射，将会禁止本进程访问此片共享内存。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>shmaddr</code>：<code>void *</code>类型，表示要撤销的共享内存的首地址。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，成功<code>0</code>，失败返回<code>-1</code>，并设置<code>errno</code>来指示错误的原因。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/ipc.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/shm.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">char</span> *buf;</span><br><span class="line">buf = shmat(shmid, <span class="literal">NULL</span>, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">shmdt(buf);</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong>撤销后，内存地址不可再访问，但是共享内存依然存在，共享内存占用的内存空间并未被释放。</p>
+<h3 id="3-2-使用实例-1"><a href="#3-2-使用实例-1" class="headerlink" title="3.2 使用实例"></a><font size=3>3.2 使用实例</font></h3><p>暂无。</p>
+<h2 id="4-共享内存控制"><a href="#4-共享内存控制" class="headerlink" title="4. 共享内存控制"></a><font size=3>4. 共享内存控制</font></h2><h3 id="4-1-shmctl"><a href="#4-1-shmctl" class="headerlink" title="4.1 shmctl() "></a><font size=3>4.1 shmctl() </font></h3><p>在<code>linux</code>下可以使用<code>man 2 shmctl</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/shm.h&gt;</span></span></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">shmctl</span><span class="params">(<span class="type">int</span> shmid, <span class="type">int</span> cmd, <span class="keyword">struct</span> shmid_ds *buf)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数是用来控制创建的共享内存，一般是用来删除创建的共享内存。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>shmid</code>：<code>int</code>类型，表示共享内存<code>IPC</code>对象的<code>ID</code>，由<code>shmget</code>函数生成，不同的<code>key</code>值对应不同的<code>ID</code>值。</li>
+<li><code>cmd</code>：<code>int</code>类型，表示要执行的操作。</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看常见 cmd 取值 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center" width=150px>IPC_RMID  </td><td align="left">删除共享内存（释放内存空间）。公共的IPC选项(ipc.h中)</td></tr>    <tr><td align="center" width=150px>IPC_SET   </td><td align="left">设置ipc_perm参数，改变共享内存状态。公共的IPC选项(ipc.h中)</td></tr>    <tr><td align="center" width=150px>IPC_STAT  </td><td align="left">获取ipc_perm参数，获取共享内存状态。>公共的IPC选项(ipc.h中)</td></tr>    <tr><td align="center" width=150px>SHM_LOCK  </td><td align="left">锁定共享内存段,需要root权限。共享内存自己的选项(shm.h中)</td></tr>    <tr><td align="center" width=150px>SHM_UNLOCK</td><td align="left">解锁共享内存段,需要root权限。共享内存自己的选项(shm.h中)</td></tr></table>
+              </div>
+            </details>
+
+<ul>
+<li><code>buf</code>：<code>struct shmid_ds</code>类型，保存或设置共享内存属性的地址。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，成功<code>0</code>，失败返回<code>-1</code>，并设置<code>errno</code>来指示错误的原因。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/ipc.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/shm.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line">shmctl(shmid, IPC_RMID, <span class="literal">NULL</span>);<span class="comment">/* 释放共享内存空间 */</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h3 id="4-2-使用实例-1"><a href="#4-2-使用实例-1" class="headerlink" title="4.2 使用实例"></a><font size=3>4.2 使用实例</font></h3><p>暂无。</p>
+<h2 id="5-使用实例"><a href="#5-使用实例" class="headerlink" title="5. 使用实例"></a><font size=3>5. 使用实例</font></h2><h3 id="5-1-使用实例1"><a href="#5-1-使用实例1" class="headerlink" title="5.1 使用实例1"></a><font size=3>5.1 使用实例1</font></h3><p>这个例子是使用<code>ftok()</code>函数创建<code>key</code>，以实现不同进程的通信。</p>
+<details class="folding-tag" blue><summary> 点击查看实例 </summary>
+              <div class='content'>
+              <div class="tabs" id="tabname2"><ul class="nav-tabs"><li class="tab active"><a href="#tabname2-1">shm_read.c</a></li><li class="tab"><a href="#tabname2-2">shm_write.c</a></li><li class="tab"><a href="#tabname2-3">Makefile</a></li></ul><div class="tab-content"><div class="tab-pane active" id="tabname2-1"><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span>   <span class="comment">/* perror */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/ipc.h&gt;</span> <span class="comment">/* ftok shmget */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/shm.h&gt;</span> <span class="comment">/* shmget shmat */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span>  <span class="comment">/* strcpy */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span>  <span class="comment">/* sleep */</span></span></span><br><span class="line"><span class="comment">/* 主函数 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">key_t</span> key;</span><br><span class="line">	<span class="type">int</span> shmid;</span><br><span class="line">	<span class="type">char</span> *buf;</span><br><span class="line">	<span class="comment">/* 1. 生成key */</span></span><br><span class="line">	key = ftok(<span class="string">&quot;./keytest.txt&quot;</span>, <span class="number">100</span>);</span><br><span class="line">	<span class="keyword">if</span>(key &lt; <span class="number">0</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;ftok&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;key=%x\n&quot;</span>, key);</span><br><span class="line">	<span class="comment">/* 2. 打开共享内存(之前已创建) */</span></span><br><span class="line">	shmid = shmget(key, <span class="number">512</span>, <span class="number">0666</span>);</span><br><span class="line">	<span class="keyword">if</span>(shmid &lt; <span class="number">0</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;shmget&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;shmid=%d\n&quot;</span>, shmid);</span><br><span class="line">	<span class="comment">/* 3. 映射共享内存，即把指定的共享内存映射到进程的地址空间用于访问*/</span></span><br><span class="line">	buf = shmat(shmid, <span class="literal">NULL</span>, <span class="number">0</span>);</span><br><span class="line">	<span class="keyword">if</span>(buf &lt; <span class="number">0</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;shmat&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;buf=%p\n&quot;</span>, buf);</span><br><span class="line">	<span class="comment">/* 4. 读取数据 */</span></span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;share memory=%s\n&quot;</span>, buf);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 5. 撤销共享内存(但并未释放内存空间) */</span></span><br><span class="line">	shmdt(buf);</span><br><span class="line">	<span class="comment">/* 6. 释放共享内存空间 */</span></span><br><span class="line">    shmctl(shmid, IPC_RMID, <span class="literal">NULL</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div><div class="tab-pane" id="tabname2-2"><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span>   <span class="comment">/* perror */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/ipc.h&gt;</span> <span class="comment">/* ftok shmget */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/shm.h&gt;</span> <span class="comment">/* shmget shmat */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span>  <span class="comment">/* strcpy */</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 主函数 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">key_t</span> key;</span><br><span class="line">	<span class="type">int</span> shmid;</span><br><span class="line">	<span class="type">char</span> *buf;</span><br><span class="line">	<span class="comment">/* 1. 生成key */</span></span><br><span class="line">	key = ftok(<span class="string">&quot;./keytest.txt&quot;</span>, <span class="number">100</span>);</span><br><span class="line">	<span class="keyword">if</span>(key &lt; <span class="number">0</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;ftok&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;key=%x\n&quot;</span>, key);</span><br><span class="line">	<span class="comment">/* 2. 创建或者打开共享内存 */</span></span><br><span class="line">	shmid = shmget(key, <span class="number">512</span>, IPC_CREAT|<span class="number">0666</span>);</span><br><span class="line">	<span class="keyword">if</span>(shmid &lt; <span class="number">0</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;shmget&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;shmid=%d\n&quot;</span>, shmid);</span><br><span class="line">	<span class="comment">/* 3. 映射共享内存，即把指定的共享内存映射到进程的地址空间用于访问*/</span></span><br><span class="line">	buf = shmat(shmid, <span class="literal">NULL</span>, <span class="number">0</span>);</span><br><span class="line">	<span class="keyword">if</span>(buf &lt; <span class="number">0</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;shmat&quot;</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;buf=%p\n&quot;</span>, buf);</span><br><span class="line">	<span class="comment">/* 4. 写入数据 */</span></span><br><span class="line">	<span class="built_in">strcpy</span>(buf, <span class="string">&quot;Fanhua write!&quot;</span>);</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure></div><div class="tab-pane" id="tabname2-3"><figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">CC = gcc</span><br><span class="line"></span><br><span class="line">DEBUG = -g -O2 -Wall</span><br><span class="line">CFLAGS += <span class="variable">$(DEBUG)</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 所有.c文件去掉后缀</span></span><br><span class="line">TARGET_LIST = $&#123;patsubst %.c, %, $&#123;wildcard *.c&#125;&#125; </span><br><span class="line"></span><br><span class="line">all : <span class="variable">$(TARGET_LIST)</span></span><br><span class="line"></span><br><span class="line">%.o : %.c</span><br><span class="line">	<span class="variable">$(CC)</span> <span class="variable">$(CFLAGS)</span> -c <span class="variable">$&lt;</span> -o <span class="variable">$@</span></span><br><span class="line"></span><br><span class="line"><span class="meta"><span class="keyword">.PHONY</span>: all clean clean_o</span></span><br><span class="line">clean : clean_o</span><br><span class="line">	@rm -vf <span class="variable">$(TARGET_LIST)</span> </span><br><span class="line">	</span><br><span class="line">clean_o :</span><br><span class="line">	@rm -vf *.o</span><br></pre></td></tr></table></figure></div></div></div><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">make # 生成可执行文件</span><br><span class="line">./shm_wirte    # 在一个终端执行共享内存写入程序</span><br><span class="line">./shm_read     # 在另一个终端执行读取共享内存的程序</span><br></pre></td></tr></table></figure><p>然后，终端会有以下信息显示：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">执行 ./shm_write 的终端</span></span><br><span class="line">hk@vm:~/2Sharedfiles/5temp$ ./shm_write</span><br><span class="line">key=643d0b42</span><br><span class="line">shmid=10</span><br><span class="line">buf=0x7fb80b514000</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">执行 ./shm_read 的终端</span></span><br><span class="line">hk@vm:~/2Sharedfiles/5temp$ ./shm_read</span><br><span class="line">key=643d0b42</span><br><span class="line">shmid=10</span><br><span class="line">buf=0x7f24393f6000</span><br><span class="line">share memory=Fanhua write!</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<h3 id="5-2-使用实例2"><a href="#5-2-使用实例2" class="headerlink" title="5.2 使用实例2"></a><font size=3>5.2 使用实例2</font></h3><p>这个例子是，使用<code>IPC_PRIVATE</code>创建<code>IPC</code>对象的<code>key</code>，这样的话只能是具有血缘关系的进程之间通信。</p>
+<details class="folding-tag" blue><summary> 点击查看实例 </summary>
+              <div class='content'>
+              <figure class="highlight c"><figcaption><span>test.c</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span>   <span class="comment">/* perror */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/ipc.h&gt;</span> <span class="comment">/* shmget */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span>  <span class="comment">/* fork */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/shm.h&gt;</span> <span class="comment">/* shmget shmat */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span>  <span class="comment">/* strcpy */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span>  <span class="comment">/* exit */</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> shmid;</span><br><span class="line">	<span class="type">char</span> *buf = <span class="literal">NULL</span>;</span><br><span class="line">	<span class="type">pid_t</span> pid;</span><br><span class="line">	<span class="comment">/* 1.创建共享内存 */</span></span><br><span class="line">	<span class="keyword">if</span>((shmid = shmget(IPC_PRIVATE, <span class="number">512</span>, <span class="number">0666</span>)) == <span class="number">-1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;shmget&quot;</span>);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 2.创建父子进程 */</span></span><br><span class="line">	pid = fork();</span><br><span class="line">	<span class="keyword">if</span> (pid &lt; <span class="number">0</span>)<span class="comment">/* 创建失败 */</span></span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;fork&quot;</span>);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (pid == <span class="number">0</span>)<span class="comment">/* 子进程 */</span></span><br><span class="line">	&#123;</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;This is child process!\n&quot;</span>);</span><br><span class="line">		<span class="comment">/* 映射共享内存 */</span></span><br><span class="line">		<span class="keyword">if</span> ((buf = shmat(shmid, <span class="literal">NULL</span>, <span class="number">0</span>)) == (<span class="type">void</span> *)<span class="number">-1</span>)</span><br><span class="line">		&#123;</span><br><span class="line">			perror(<span class="string">&quot;shmat&quot;</span>);</span><br><span class="line">			<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">/* 向共享内存写数据 */</span></span><br><span class="line">		<span class="built_in">strcpy</span>(buf, <span class="string">&quot;This is child process!\n&quot;</span>);</span><br><span class="line">		system(<span class="string">&quot;ipcs -m&quot;</span>);<span class="comment">/* 显示IPC信息 */</span></span><br><span class="line">		<span class="comment">/* 撤销共享内存 */</span></span><br><span class="line">		<span class="keyword">if</span> (shmdt(buf) == <span class="number">-1</span>)</span><br><span class="line">		&#123;</span><br><span class="line">			perror(<span class="string">&quot;shmdt&quot;</span>);</span><br><span class="line">			<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		system(<span class="string">&quot;ipcs -m&quot;</span>);<span class="comment">/* 显示IPC信息 */</span></span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;child process end!\n&quot;</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> <span class="comment">/* 父进程 */</span></span><br><span class="line">	&#123;</span><br><span class="line">		sleep(<span class="number">1</span>);</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;This is father process, please enter a char:&quot;</span>);</span><br><span class="line">		getchar();</span><br><span class="line">		<span class="keyword">if</span> ((buf = shmat(shmid, <span class="literal">NULL</span>, <span class="number">0</span>)) == (<span class="type">void</span> *)<span class="number">-1</span>)</span><br><span class="line">		&#123;</span><br><span class="line">			perror(<span class="string">&quot;shmat&quot;</span>);</span><br><span class="line">			<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;share mem=%s\n&quot;</span>, (<span class="type">char</span> *)buf);</span><br><span class="line">		<span class="keyword">if</span> (shmctl(shmid, IPC_RMID, <span class="literal">NULL</span>) == <span class="number">-1</span>)</span><br><span class="line">		&#123;</span><br><span class="line">			perror(<span class="string">&quot;RM&quot;</span>);</span><br><span class="line">			<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -Wall # 生成可执行文件 a.out </span><br><span class="line">./a.out # 执行可执行程序</span><br></pre></td></tr></table></figure><p>然后，终端会有以下信息显示：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">This is child process!</span><br><span class="line"></span><br><span class="line">------------ 共享内存段 --------------</span><br><span class="line">键        shmid      拥有者  权限     字节     连接数  状态      </span><br><span class="line">0x27f87e6c 9          hk         644        10         0                       </span><br><span class="line">0x00000000 15         hk         666        512        1                       </span><br><span class="line"></span><br><span class="line"></span><br><span class="line">------------ 共享内存段 --------------</span><br><span class="line">键        shmid      拥有者  权限     字节     连接数  状态      </span><br><span class="line">0x27f87e6c 9          hk         644        10         0                       </span><br><span class="line">0x00000000 15         hk         666        512        0                       </span><br><span class="line"></span><br><span class="line">child process end!</span><br><span class="line">This is father process, please enter a char: </span><br><span class="line">share mem=This is child process!</span><br></pre></td></tr></table></figure><p>子进程先运行，父进程<code>1s</code>后运行，这时候子进程已经运行完毕，当我们输入任意字符，按下<code>enter</code>按键后，父进程读取共享内存数据。</p>
+              </div>
+            </details>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/ecb2bcfe.html">LV05-05-进程通信-04-共享内存</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年07月02日 - 21:52</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/ecb2bcfe.html" title="LV05-05-进程通信-04-共享内存">https://sumumm.github.io/post/ecb2bcfe.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" rel="tag"><i class="fa fa-tag"></i> LV05-操作系统</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/cea9db3c.html" rel="prev" title="LV05-05-进程通信-05-消息队列">
+                  <i class="fa fa-angle-left"></i> LV05-05-进程通信-05-消息队列
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/8457f426.html" rel="next" title="LV05-05-进程通信-03-信号">
+                  LV05-05-进程通信-03-信号 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

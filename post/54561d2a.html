@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="前面我们已经知道了怎么让平台设备和平台驱动进行匹配，那么匹配的目录肯定是驱动获取设备中的资源了，那怎么获取？设备能获取驱动的信息吗，能的话，又该怎么获取呢？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-05-linux平台总线模型-04-驱动和设备资源的获取">
+<meta property="og:url" content="https://sumumm.github.io/post/54561d2a.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="前面我们已经知道了怎么让平台设备和平台驱动进行匹配，那么匹配的目录肯定是驱动获取设备中的资源了，那怎么获取？设备能获取驱动的信息吗，能的话，又该怎么获取呢？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-04-%E9%A9%B1%E5%8A%A8%E5%92%8C%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90%E7%9A%84%E8%8E%B7%E5%8F%96/img/image-20250120113558619.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-04-%E9%A9%B1%E5%8A%A8%E5%92%8C%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90%E7%9A%84%E8%8E%B7%E5%8F%96/img/image-20250120135653502.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-04-%E9%A9%B1%E5%8A%A8%E5%92%8C%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90%E7%9A%84%E8%8E%B7%E5%8F%96/img/image-20250120141723359.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-04-%E9%A9%B1%E5%8A%A8%E5%92%8C%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90%E7%9A%84%E8%8E%B7%E5%8F%96/img/image-20250120141916436.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-04-%E9%A9%B1%E5%8A%A8%E5%92%8C%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90%E7%9A%84%E8%8E%B7%E5%8F%96/img/image-20250120143729078.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-04-%E9%A9%B1%E5%8A%A8%E5%92%8C%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90%E7%9A%84%E8%8E%B7%E5%8F%96/img/image-20250120153400862.png">
+<meta property="article:published_time" content="2025-01-20T14:31:04.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.052Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-04-%E9%A9%B1%E5%8A%A8%E5%92%8C%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90%E7%9A%84%E8%8E%B7%E5%8F%96/img/image-20250120113558619.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/54561d2a.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/54561d2a.html","path":"post/54561d2a.html","title":"LV06-05-linux平台总线模型-04-驱动和设备资源的获取"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-05-linux平台总线模型-04-驱动和设备资源的获取 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E8%AE%BE%E5%A4%87%E8%8E%B7%E5%8F%96%E9%A9%B1%E5%8A%A8%E7%9A%84%E8%B5%84%E6%BA%90"><span class="nav-text">一、设备获取驱动的资源</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-struct-platform-device-id"><span class="nav-text">1. struct platform_device_id</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%B9%B3%E5%8F%B0%E8%AE%BE%E5%A4%87%E6%80%8E%E4%B9%88%E5%BE%97%E5%88%B0%E8%BF%99%E4%B8%AA%E7%BB%93%E6%9E%84%E4%BD%93%E6%95%B0%E6%8D%AE%EF%BC%9F"><span class="nav-text">2. 平台设备怎么得到这个结构体数据？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-text">3. 应用场景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%AE%BE%E5%A4%87%E8%8E%B7%E5%8F%96%E9%A9%B1%E5%8A%A8%E8%B5%84%E6%BA%90demo"><span class="nav-text">4. 设备获取驱动资源demo</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-demo%E6%BA%90%E7%A0%81"><span class="nav-text">4.1 demo源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E9%AA%8C%E8%AF%81"><span class="nav-text">4.2 开发板验证</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E9%A9%B1%E5%8A%A8%E8%8E%B7%E5%8F%96%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90"><span class="nav-text">二、驱动获取设备资源</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%80%8E%E4%B9%88%E8%8E%B7%E5%8F%96%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90%EF%BC%9F"><span class="nav-text">1. 怎么获取设备资源？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E8%8E%B7%E5%8F%96%E8%B5%84%E6%BA%90%E7%9A%84%E5%87%BD%E6%95%B0"><span class="nav-text">2. 获取资源的函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-platform-get-resource"><span class="nav-text">2.1 platform_get_resource()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-platform-get-irq"><span class="nav-text">2.2 platform_get_irq()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-platform-get-resource-byname"><span class="nav-text">2.3 platform_get_resource_byname()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-platform-get-irq-byname"><span class="nav-text">2.4 platform_get_irq_byname()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-dev-get-platdata"><span class="nav-text">2.5 dev_get_platdata()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6-resource-size"><span class="nav-text">2.6 resource_size()</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E9%A9%B1%E5%8A%A8%E8%8E%B7%E5%8F%96%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90demo"><span class="nav-text">3. 驱动获取设备资源demo</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-demo%E6%BA%90%E7%A0%81"><span class="nav-text">3.1 demo源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E9%AA%8C%E8%AF%81"><span class="nav-text">3.2 开发板验证</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/54561d2a.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-05-linux平台总线模型-04-驱动和设备资源的获取 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-05-linux平台总线模型-04-驱动和设备资源的获取
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-01-20 22:31:04" itemprop="dateCreated datePublished" datetime="2025-01-20T22:31:04+08:00">2025-01-20</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>12 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>前面我们已经知道了怎么让平台设备和平台驱动进行匹配，那么匹配的目录肯定是驱动获取设备中的资源了，那怎么获取？设备能获取驱动的信息吗，能的话，又该怎么获取呢？若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-04-%E9%A9%B1%E5%8A%A8%E5%92%8C%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90%E7%9A%84%E8%8E%B7%E5%8F%96/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="3">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4" target="_blank">kernel/git/stable/linux.git - Linux kernel stable tree</a></td>        <td align="left">linux kernel源码(官网,tag 4.19.71)</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、设备获取驱动的资源"><a href="#一、设备获取驱动的资源" class="headerlink" title="一、设备获取驱动的资源"></a><font size=3>一、设备获取驱动的资源</font></h1><p>前面在学习平台设备和平台驱动的时候，我们有看到这个 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L546">struct platform_device_id</a> 结构体，它在  <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">struct platform_device</a> 和 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L180">struct platform_driver</a> 都有，设备获取驱动资源可以通过这个来进行，接下来就来了解一下吧。</p>
+<h2 id="1-struct-platform-device-id"><a href="#1-struct-platform-device-id" class="headerlink" title="1. struct platform_device_id"></a><font size=3>1. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L546">struct platform_device_id</a></font></h2><p>先来回顾一下这个结构体，<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L546">struct platform_device_id</a> 结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">platform_device_id</span> &#123;</span></span><br><span class="line">	<span class="type">char</span> name[PLATFORM_NAME_SIZE];</span><br><span class="line">	<span class="type">kernel_ulong_t</span> driver_data;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L546">struct platform_device_id</a> 这个结构体中，有两个成员，第一个是数组用于指定驱动的名称，总线进行匹配时，会依据该结构体的name成员与 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">struct platform_device</a> 中的成员name进行比较匹配， 另一个成员变量driver_data，则是用于来保存设备的配置。我们知道在同系列的设备中，往往只是某些寄存器的配置不一样，为了减少代码的冗余， 尽量做到一个驱动可以匹配多个设备的目的。</p>
+<h2 id="2-平台设备怎么得到这个结构体数据？"><a href="#2-平台设备怎么得到这个结构体数据？" class="headerlink" title="2. 平台设备怎么得到这个结构体数据？"></a><font size=3>2. 平台设备怎么得到这个结构体数据？</font></h2><p>前面学习id匹配的时候，完成id匹配的是这个 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L936">platform_match_id()</a> 函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">const</span> <span class="keyword">struct</span> platform_device_id *<span class="title function_">platform_match_id</span><span class="params">(</span></span><br><span class="line"><span class="params">			<span class="type">const</span> <span class="keyword">struct</span> platform_device_id *id,</span></span><br><span class="line"><span class="params">			<span class="keyword">struct</span> platform_device *pdev)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">while</span> (id-&gt;name[<span class="number">0</span>]) &#123;</span><br><span class="line">		<span class="keyword">if</span> (<span class="built_in">strcmp</span>(pdev-&gt;name, id-&gt;name) == <span class="number">0</span>) &#123;</span><br><span class="line">			pdev-&gt;id_entry = id;</span><br><span class="line">			<span class="keyword">return</span> id;</span><br><span class="line">		&#125;</span><br><span class="line">		id++;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以看一下传进来的都是什么：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-04-%E9%A9%B1%E5%8A%A8%E5%92%8C%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90%E7%9A%84%E8%8E%B7%E5%8F%96/img/image-20250120113558619.png" alt="image-20250120113558619"  />
+
+<p>可以看到，传进来的指针 id 指向的是 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L187">platform_driver.id_table</a>，而指针 pdev则是 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L23">platform_device</a> 。在函数内部，遍历 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L187">platform_driver.id_table</a> 中的成员，当 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L187">platform_driver.id_table[i].</a><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L547">name</a>和 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L24">platform_device.name</a> 匹配的相等的时候，就将<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L31">platform_device.id_entry</a> 这个指针指向 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L187">platform_driver.id_table[i]</a> 的地址：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-04-%E9%A9%B1%E5%8A%A8%E5%92%8C%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90%E7%9A%84%E8%8E%B7%E5%8F%96/img/image-20250120135653502.png" alt="image-20250120135653502"  />
+
+<p>当匹配成功的时候，我们就可以以访问 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L31">platform_device.id_entry</a> 来获取驱动中的数据了，即访问平台设备的<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L31">platform_device.id_entry.</a><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L548">driver_data</a> 成员就是访问平台驱动的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L187">platform_driver.id_table[i].</a><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L548">driver_data</a> 成员。</p>
+<h2 id="3-应用场景"><a href="#3-应用场景" class="headerlink" title="3. 应用场景"></a><font size=3>3. 应用场景</font></h2><p>可以以以imx的串口为例，具体看下这个结构体的作用：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">imx_uart_data</span> <span class="title">imx_uart_devdata</span>[] =</span> &#123;</span><br><span class="line">    [IMX1_UART] = &#123;</span><br><span class="line">        .uts_reg = IMX1_UTS,</span><br><span class="line">        .devtype = IMX1_UART,</span><br><span class="line">    &#125;,</span><br><span class="line">    [IMX21_UART] = &#123;</span><br><span class="line">        .uts_reg = IMX21_UTS,</span><br><span class="line">        .devtype = IMX21_UART,</span><br><span class="line">    &#125;,</span><br><span class="line">    [IMX6Q_UART] = &#123;</span><br><span class="line">        .uts_reg = IMX21_UTS,</span><br><span class="line">        .devtype = IMX6Q_UART,</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">platform_device_id</span> <span class="title">imx_uart_devtype</span>[] =</span> &#123;</span><br><span class="line">    &#123;</span><br><span class="line">        .name = <span class="string">&quot;imx1-uart&quot;</span>,</span><br><span class="line">        .driver_data = (<span class="type">kernel_ulong_t</span>) &amp;imx_uart_devdata[IMX1_UART],</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        .name = <span class="string">&quot;imx21-uart&quot;</span>,</span><br><span class="line">        .driver_data = (<span class="type">kernel_ulong_t</span>) &amp;imx_uart_devdata[IMX21_UART],</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        .name = <span class="string">&quot;imx6q-uart&quot;</span>,</span><br><span class="line">        .driver_data = (<span class="type">kernel_ulong_t</span>) &amp;imx_uart_devdata[IMX6Q_UART],</span><br><span class="line"></span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">/* sentinel */</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>在上面的代码中，支持三种设备的串口，支持imx1、imx21、imx6q三种不同系列芯片，他们之间区别在于串口的test寄存器地址不同。 当总线成功配对平台驱动以及平台设备时，会将对应的id_table条目赋值给平台设备的id_entry成员，而平台驱动的probe函数是以平台设备为参数， 这样的话，就可以拿到当前设备串口的test寄存器地址了。</p>
+<h2 id="4-设备获取驱动资源demo"><a href="#4-设备获取驱动资源demo" class="headerlink" title="4. 设备获取驱动资源demo"></a><font size=3>4. 设备获取驱动资源demo</font></h2><h3 id="4-1-demo源码"><a href="#4-1-demo源码" class="headerlink" title="4.1 demo源码"></a><font size=3>4.1 demo源码</font></h3><p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/06_platform_bus/05_id_match_get_drv_info">06_platform_bus&#x2F;05_id_match_get_drv_info · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<h3 id="4-2-开发板验证"><a href="#4-2-开发板验证" class="headerlink" title="4.2 开发板验证"></a><font size=3>4.2 开发板验证</font></h3><p>将编译完的sdriver_demo.ko、sdevice_demo.ko拷贝到开发板，然后执行以下命令加载：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">insmod sdriver_demo.ko</span><br><span class="line">insmod sdevice_demo.ko</span><br></pre></td></tr></table></figure>
+
+<p>然后就会看到以下打印信息：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-04-%E9%A9%B1%E5%8A%A8%E5%92%8C%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90%E7%9A%84%E8%8E%B7%E5%8F%96/img/image-20250120141723359.png" alt="image-20250120141723359"  />
+
+<p>可以看到驱动中的xxx_probe()函数执行，然后会有提示驱动和设备匹配成功。为了方便查看平台设备获取驱动中资源的情况，我们可以看一下 &#x2F;sys&#x2F;bus&#x2F;platform&#x2F;devices&#x2F;sdev 中的属性文件的值：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cat /sys/bus/platform/devices/sdev/sdev_attr_reg</span><br><span class="line">cat /sys/bus/platform/devices/sdev/sdev_attr_type</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-04-%E9%A9%B1%E5%8A%A8%E5%92%8C%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90%E7%9A%84%E8%8E%B7%E5%8F%96/img/image-20250120141916436.png" alt="image-20250120141916436"  />
+
+<p>其实可以在匹配之前看一下的:</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-04-%E9%A9%B1%E5%8A%A8%E5%92%8C%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90%E7%9A%84%E8%8E%B7%E5%8F%96/img/image-20250120143729078.png" alt="image-20250120143729078"  />
+
+<h1 id="二、驱动获取设备资源"><a href="#二、驱动获取设备资源" class="headerlink" title="二、驱动获取设备资源"></a><font size=3>二、驱动获取设备资源</font></h1><h2 id="1-怎么获取设备资源？"><a href="#1-怎么获取设备资源？" class="headerlink" title="1. 怎么获取设备资源？"></a><font size=3>1. 怎么获取设备资源？</font></h2><p>这个就比较简单了，因为传到驱动中的是平台设备的哪个全局变量，我们可以直接访问平台设备的资源数组。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">sdrv_probe</span><span class="params">(<span class="keyword">struct</span> platform_device *pdev)</span></span><br><span class="line">&#123;</span><br><span class="line">    PRT(<span class="string">&quot;probing platform device &amp; driver!pdev-&gt;name=%s\n&quot;</span>, pdev-&gt;name);</span><br><span class="line">    <span class="comment">// 添加设备特定的操作</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>例如上面的sdrv_probe()函数，我们可以通过 pdev 直接访问的，也就是说 pdev直接指向这个对象：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 定义一个平台设备全局变量</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">platform_device</span> <span class="title">g_sdev_platform</span> =</span> &#123;</span><br><span class="line">    .name = PLATFORM_DEV_NAME,                     <span class="comment">// 设备名称</span></span><br><span class="line">    .id = <span class="number">-1</span>,                                      <span class="comment">// 设备ID</span></span><br><span class="line">    .num_resources = ARRAY_SIZE(g_sdev_resources), <span class="comment">// 资源数量</span></span><br><span class="line">    .resource = g_sdev_resources,                  <span class="comment">// 资源数组</span></span><br><span class="line">    .dev.release = sdev_release,                   <span class="comment">// 释放资源的回调函数</span></span><br><span class="line">    .id_entry = &amp;g_sdev_id,                        <span class="comment">// 用于ID匹配时获取驱动返回的匹配信息</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>通过 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L29">platform_device.resource</a> 就可以获取资源数组中所有数据，通过 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/platform_device.h#L28">platform_device.num_resources</a>可以获取到设备一共有多少个资源。</p>
+<h2 id="2-获取资源的函数"><a href="#2-获取资源的函数" class="headerlink" title="2. 获取资源的函数"></a><font size=3>2. 获取资源的函数</font></h2><p>linux内核提供了几个函数来帮我们获取资源。其实前面都了解设备信息的时候都了解过了，就那几个函数。</p>
+<h3 id="2-1-platform-get-resource"><a href="#2-1-platform-get-resource" class="headerlink" title="2.1 platform_get_resource()"></a><font size=3>2.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L60">platform_get_resource()</a></font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L60">platform_get_resource()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> resource *<span class="title function_">platform_get_resource</span><span class="params">(<span class="keyword">struct</span> platform_device *dev,</span></span><br><span class="line"><span class="params">				       <span class="type">unsigned</span> <span class="type">int</span> type, <span class="type">unsigned</span> <span class="type">int</span> num)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> i;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; dev-&gt;num_resources; i++) &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">resource</span> *<span class="title">r</span> =</span> &amp;dev-&gt;resource[i];</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (type == resource_type(r) &amp;&amp; num-- == <span class="number">0</span>)</span><br><span class="line">			<span class="keyword">return</span> r;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(platform_get_resource);</span><br></pre></td></tr></table></figure>
+
+<p>该函数返回该 dev 中某类型(type)资源中的第几个(num，其中num的值从0开始)  。</p>
+<h3 id="2-2-platform-get-irq"><a href="#2-2-platform-get-irq" class="headerlink" title="2.2 platform_get_irq()"></a><font size=3>2.2 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L82">platform_get_irq()</a></font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L82">platform_get_irq()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * platform_get_irq - get an IRQ for a device</span></span><br><span class="line"><span class="comment"> * @dev: platform device</span></span><br><span class="line"><span class="comment"> * @num: IRQ number index</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">platform_get_irq</span><span class="params">(<span class="keyword">struct</span> platform_device *dev, <span class="type">unsigned</span> <span class="type">int</span> num)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>返回该 dev 所用的第几个(num)中断。</p>
+<h3 id="2-3-platform-get-resource-byname"><a href="#2-3-platform-get-resource-byname" class="headerlink" title="2.3 platform_get_resource_byname()"></a><font size=3>2.3 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L155">platform_get_resource_byname()</a></font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L155">platform_get_resource_byname()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * platform_get_resource_byname - get a resource for a device by name</span></span><br><span class="line"><span class="comment"> * @dev: platform device</span></span><br><span class="line"><span class="comment"> * @type: resource type</span></span><br><span class="line"><span class="comment"> * @name: resource name</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">struct</span> resource *<span class="title function_">platform_get_resource_byname</span><span class="params">(<span class="keyword">struct</span> platform_device *dev,</span></span><br><span class="line"><span class="params">					      <span class="type">unsigned</span> <span class="type">int</span> type,</span></span><br><span class="line"><span class="params">					      <span class="type">const</span> <span class="type">char</span> *name)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> i;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; dev-&gt;num_resources; i++) &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">resource</span> *<span class="title">r</span> =</span> &amp;dev-&gt;resource[i];</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (unlikely(!r-&gt;name))</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (type == resource_type(r) &amp;&amp; !<span class="built_in">strcmp</span>(r-&gt;name, name))</span><br><span class="line">			<span class="keyword">return</span> r;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(platform_get_resource_byname);</span><br></pre></td></tr></table></figure>
+
+<p>通过名字(name)返回该 dev 的某类型(type)资源。</p>
+<h3 id="2-4-platform-get-irq-byname"><a href="#2-4-platform-get-irq-byname" class="headerlink" title="2.4 platform_get_irq_byname()"></a><font size=3>2.4 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/platform.c#L180">platform_get_irq_byname()</a></font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * platform_get_irq_byname - get an IRQ for a device by name</span></span><br><span class="line"><span class="comment"> * @dev: platform device</span></span><br><span class="line"><span class="comment"> * @name: IRQ name</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">platform_get_irq_byname</span><span class="params">(<span class="keyword">struct</span> platform_device *dev, <span class="type">const</span> <span class="type">char</span> *name)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">resource</span> *<span class="title">r</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (IS_ENABLED(CONFIG_OF_IRQ) &amp;&amp; dev-&gt;dev.of_node) &#123;</span><br><span class="line">		<span class="type">int</span> ret;</span><br><span class="line"></span><br><span class="line">		ret = of_irq_get_byname(dev-&gt;dev.of_node, name);</span><br><span class="line">		<span class="keyword">if</span> (ret &gt; <span class="number">0</span> || ret == -EPROBE_DEFER)</span><br><span class="line">			<span class="keyword">return</span> ret;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	r = platform_get_resource_byname(dev, IORESOURCE_IRQ, name);</span><br><span class="line">	<span class="keyword">return</span> r ? r-&gt;start : -ENXIO;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(platform_get_irq_byname);</span><br></pre></td></tr></table></figure>
+
+<p>通过名字(name)返回该 dev 的中断号。</p>
+<h3 id="2-5-dev-get-platdata"><a href="#2-5-dev-get-platdata" class="headerlink" title="2.5 dev_get_platdata()"></a><font size=3>2.5 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L1252">dev_get_platdata()</a></font></h3><p>对于存放在device结构体中成员platform_data的软件信息，我们可以使用<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L1252">dev_get_platdata()</a> 函数来获取：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">void</span> *<span class="title function_">dev_get_platdata</span><span class="params">(<span class="type">const</span> <span class="keyword">struct</span> device *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> dev-&gt;platform_data;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-6-resource-size"><a href="#2-6-resource-size" class="headerlink" title="2.6 resource_size()"></a><font size=3>2.6 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/ioport.h#L196">resource_size()</a></font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/ioport.h#L196">resource_size()</a>函数用于获取资源的大小，定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">resource_size_t</span> <span class="title function_">resource_size</span><span class="params">(<span class="type">const</span> <span class="keyword">struct</span> resource *res)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> res-&gt;end - res-&gt;start + <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-驱动获取设备资源demo"><a href="#3-驱动获取设备资源demo" class="headerlink" title="3. 驱动获取设备资源demo"></a><font size=3>3. 驱动获取设备资源demo</font></h2><h3 id="3-1-demo源码"><a href="#3-1-demo源码" class="headerlink" title="3.1 demo源码"></a><font size=3>3.1 demo源码</font></h3><p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/06_platform_bus/06_drv_get_dev_resource">06_platform_bus&#x2F;06_drv_get_dev_resource · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<h3 id="3-2-开发板验证"><a href="#3-2-开发板验证" class="headerlink" title="3.2 开发板验证"></a><font size=3>3.2 开发板验证</font></h3><p>将编译完的sdriver_demo.ko、sdevice_demo.ko拷贝到开发板，然后执行以下命令加载：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">insmod sdriver_demo.ko</span><br><span class="line">insmod sdevice_demo.ko</span><br></pre></td></tr></table></figure>
+
+<p>然后就会看到以下打印信息：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-05-linux%E5%B9%B3%E5%8F%B0%E6%80%BB%E7%BA%BF%E6%A8%A1%E5%9E%8B-04-%E9%A9%B1%E5%8A%A8%E5%92%8C%E8%AE%BE%E5%A4%87%E8%B5%84%E6%BA%90%E7%9A%84%E8%8E%B7%E5%8F%96/img/image-20250120153400862.png" alt="image-20250120153400862"  />
+
+<p>可以看到驱动中的xxx_probe()函数执行，然后会有提示驱动和设备匹配成功。然后便会在xxx_probe()函数中分两种方式打印出从平台设备获取的资源。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/54561d2a.html">LV06-05-linux平台总线模型-04-驱动和设备资源的获取</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2025年01月20日 - 22:31</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/54561d2a.html" title="LV06-05-linux平台总线模型-04-驱动和设备资源的获取">https://sumumm.github.io/post/54561d2a.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/9eb12c76.html" rel="prev" title="LV06-06-并发与竞争-01-并发与竞争简介">
+                  <i class="fa fa-angle-left"></i> LV06-06-并发与竞争-01-并发与竞争简介
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/92014e92.html" rel="next" title="LV06-05-linux平台总线模型-03-平台总线的匹配">
+                  LV06-05-linux平台总线模型-03-平台总线的匹配 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

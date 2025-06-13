@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是字符设备驱动——使用lseek函数实现字符设备定位读写的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-03-chrdev-04-llseek的使用">
+<meta property="og:url" content="https://sumumm.github.io/post/7a27b239.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是字符设备驱动——使用lseek函数实现字符设备定位读写的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-12-17T15:33:14.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.049Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/7a27b239.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/7a27b239.html","path":"post/7a27b239.html","title":"LV06-03-chrdev-04-llseek的使用"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-03-chrdev-04-llseek的使用 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%A6%82%E8%BF%B0"><span class="nav-text">一、概述</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%83%8C%E6%99%AF%E6%8F%8F%E8%BF%B0"><span class="nav-text">1. 背景描述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%80%8E%E4%B9%88%E5%81%9A%EF%BC%9F"><span class="nav-text">2. 怎么做？</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%AE%9A%E4%BD%8D%E8%AE%BE%E5%A4%87-llseek"><span class="nav-text">二、定位设备 llseek</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F%E4%B8%AD%E4%BD%BF%E7%94%A8%E7%9A%84lseek"><span class="nav-text">1. 应用程序中使用的lseek</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">1.1 函数说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">1.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%A9%B1%E5%8A%A8%E7%A8%8B%E5%BA%8F%E4%B8%AD%E5%AE%9E%E7%8E%B0%E7%9A%84llseek"><span class="nav-text">2. 驱动程序中实现的llseek</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-sdev-llseek"><span class="nav-text">2.1 sdev_llseek()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-sdev-read"><span class="nav-text">2.2 sdev_read()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-sdev-write"><span class="nav-text">2.3 sdev_write()</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">三、使用实例</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%BA%90%E7%A0%81%E7%BC%96%E5%86%99"><span class="nav-text">1. 源码编写</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-chrdev-llseek-demo-c"><span class="nav-text">1.1 chrdev_llseek_demo.c</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-chrdev-llseek-demo-app-c"><span class="nav-text">1.2 chrdev_llseek_demo_app.c</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%BC%80%E5%8F%91%E6%9D%BF%E6%B5%8B%E8%AF%95"><span class="nav-text">2. 开发板测试</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/7a27b239.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-03-chrdev-04-llseek的使用 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-03-chrdev-04-llseek的使用
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-12-17 23:33:14" itemprop="dateCreated datePublished" datetime="2024-12-17T23:33:14+08:00">2024-12-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>17 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是字符设备驱动——使用lseek函数实现字符设备定位读写的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-04-llseek%E7%9A%84%E4%BD%BF%E7%94%A8/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="2">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details> 
+
+<h1 id="一、概述"><a href="#一、概述" class="headerlink" title="一、概述"></a><font size=3>一、概述</font></h1><h2 id="1-背景描述"><a href="#1-背景描述" class="headerlink" title="1. 背景描述"></a><font size=3>1. 背景描述</font></h2><p>假如现在有这样一个场景，将两个字符串依 次进行写入，并对写入完成的字符串进行读取，如果仍采用之前的方式，第二次的写入值会覆盖第一次写入值，那要如何来实现上述功能呢？</p>
+<p>我们在应用层有用过lseek进行文件读写位置的定位，字符设备也是文件，那是不是一样的原理？当然是啦，我们这部分就实现一下驱动中的llseek函数。</p>
+<h2 id="2-怎么做？"><a href="#2-怎么做？" class="headerlink" title="2. 怎么做？"></a><font size=3>2. 怎么做？</font></h2><p>我们来看一下驱动程序中的read函数指针：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L1742">fs.h - include&#x2F;linux&#x2F;fs.h - <em>*read</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ssize_t</span> (*read) (<span class="keyword">struct</span> file *, <span class="type">char</span> __user *, <span class="type">size_t</span>, <span class="type">loff_t</span> *);</span><br></pre></td></tr></table></figure>
+
+<p>write函数指针在这里 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L1743">fs.h - include&#x2F;linux&#x2F;fs.h - <em>*write</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ssize_t</span> (*write) (<span class="keyword">struct</span> file *, <span class="type">const</span> <span class="type">char</span> __user *, <span class="type">size_t</span>, <span class="type">loff_t</span> *);</span><br></pre></td></tr></table></figure>
+
+<p>llseek函数指针在这里<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L1743">fs.h - include&#x2F;linux&#x2F;fs.h - <em>*llseek</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">loff_t</span> (*llseek) (<span class="keyword">struct</span> file *, <span class="type">loff_t</span>, <span class="type">int</span>);</span><br></pre></td></tr></table></figure>
+
+<p>其实这里我就没有去深究为什么了，具体做法就是实现以下三个函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">sdev_read</span><span class="params">(<span class="keyword">struct</span> file *file, <span class="type">char</span> __user *buf, <span class="type">size_t</span> size, <span class="type">loff_t</span> *off)</span></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">sdev_write</span><span class="params">(<span class="keyword">struct</span> file *file, <span class="type">const</span> <span class="type">char</span> __user *buf, <span class="type">size_t</span> size, <span class="type">loff_t</span> *off)</span></span><br><span class="line"><span class="type">static</span> <span class="type">loff_t</span> <span class="title function_">sdev_llseek</span><span class="params">(<span class="keyword">struct</span> file *file, <span class="type">loff_t</span> offset, <span class="type">int</span> whence)</span></span><br></pre></td></tr></table></figure>
+
+<p>在llseek函数中，更新file&rarr;f_pos成员的值，struct file结构体中 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L910">fs.h - include&#x2F;linux&#x2F;fs.h - <em><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/C/ident/f_pos">*f_pos</a></em></a> 成员用于记录当前的读写位置。每次读写操作后，<code>f_pos</code> 会根据读写的数据量进行更新（这个应该是内核去自动更新的）。读写位置的更新大概是这样一个过程：</p>
+<p>（1）应用程序调用lseek()函数指定读写指针的位置；</p>
+<p>（2）系统调用最终调用到sdev_llseek()函数，函数中更新file&rarr;f_pos的值。</p>
+<p>（3）在调用到read&#x2F;write函数的时候，经过系统调用，会调用sdev_read()&#x2F;sdev_write()函数，这两个函数中这个参数 off 的值会被更新为file&rarr;f_pos的值。然后进行读写操作，读写完毕后，在sdev_read()&#x2F;sdev_write()函数中更新 off 的值（可以看到是一个指针参数，所以完全可以通过指针更新）。</p>
+<p>（4）内核更新file&rarr;f_pos成员的值。</p>
+<blockquote>
+<p>为什么在成功拷贝到用户态数据之后，需要更新*off这个指针的数据，而不是 file&rarr;f_pos 的数据？</p>
+<p>从最终目的上来讲应该是一致的，都是表示用户读写位置的指针，为什么要费劲多传一个 off 过来，还需要内核代码对这个值去修改呢，我们自己直接修改file&rarr;f_pos中的数据不好吗？</p>
+<p>网上看到一个解释：这么做的原因是“时机”，系统要求我们更新 *off，给系统一个机会去选择。系统可以直接选择将 off 指向 &amp;file&rarr;f_pos, 也可以选择指向一个临时区域，后者拥有更大的灵活性。</p>
+<p>比如由于某种情况不能正确返回到用户态，或者不能立即返回，这时内核临时保存这个读文件之后的偏移，file&rarr;f_pos存储的信息还是用户读写之前的样子，这是符合逻辑的，因为用户这时确实还未读到数据，我们不能提前更新file&rarr;f_pos。最终内核会在一个合适的时机将*off中的数据写回给file&rarr;f_pos。</p>
+<p>这里有一个帖子讨论了这个问题：<a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/23501185/reason-why-use-loff-t-offp-instead-of-direct-filp-f-pos-usage">c - Reason why use loff_t *offp instead of direct filp-&gt;f_pos usage - Stack Overflow</a></p>
+</blockquote>
+<h1 id="二、定位设备-llseek"><a href="#二、定位设备-llseek" class="headerlink" title="二、定位设备 llseek"></a><font size=3>二、定位设备 llseek</font></h1><h2 id="1-应用程序中使用的lseek"><a href="#1-应用程序中使用的lseek" class="headerlink" title="1. 应用程序中使用的lseek"></a><font size=3>1. 应用程序中使用的lseek</font></h2><h3 id="1-1-函数说明"><a href="#1-1-函数说明" class="headerlink" title="1.1 函数说明"></a><font size=3>1.1 函数说明</font></h3><p>在应用程序中使用 lseek 函数进行读写位置的调整，该函数的具体使用说明如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">off_t</span> <span class="title function_">lseek</span><span class="params">(<span class="type">int</span> fd, <span class="type">off_t</span> offset, <span class="type">int</span> whence)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>这个函数用于移动文件的读写位置。</p>
+<p><strong>参数：</strong></p>
+<ul>
+<li><p>fd: 文件描述符； </p>
+</li>
+<li><p>off_t offset: 偏移量，单位是字节的数量，可以正负，如果是负值表示向前移动；如果是正值，表示向后移动。 </p>
+</li>
+<li><p>whence：当前位置的基点，可以使用三组值。 SEEK_SET——把文件指针直接设置成 offset，SEEK_CUR——把文件指针设置成 当前位置 + offset 值，SEEK_END——把文件指针设置成  文件结束位置 + offset 值。</p>
+</li>
+</ul>
+<p><strong>返回值：</strong>成功返回当前位移大小，失败返回-1。</p>
+<h3 id="1-2-使用实例"><a href="#1-2-使用实例" class="headerlink" title="1.2 使用实例"></a><font size=3>1.2 使用实例</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">lseek(fd, <span class="number">5</span>, SEEK_SET);  <span class="comment">// 文件位置指针设置为 5</span></span><br><span class="line">lseek(fd, <span class="number">0</span>, SEEK_END);  <span class="comment">// 文件位置设置成文件末尾</span></span><br><span class="line">lseek(fd, <span class="number">0</span>, SEEK_CUR);  <span class="comment">// 确定当前的文件位置</span></span><br><span class="line"></span><br><span class="line">lseek(fd, <span class="number">-1</span>, SEEK_CUR); <span class="comment">// 文件位置设置成当前位置的前一个位置</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="2-驱动程序中实现的llseek"><a href="#2-驱动程序中实现的llseek" class="headerlink" title="2. 驱动程序中实现的llseek"></a><font size=3>2. 驱动程序中实现的llseek</font></h2><h3 id="2-1-sdev-llseek"><a href="#2-1-sdev-llseek" class="headerlink" title="2.1 sdev_llseek()"></a><font size=3>2.1 sdev_llseek()</font></h3><p>应用程序中调用lseek函数，会最终调用到我们驱动函数中实现的llseek函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">loff_t</span> <span class="title function_">sdev_llseek</span><span class="params">(<span class="keyword">struct</span> file *file, <span class="type">loff_t</span> offset, <span class="type">int</span> whence)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">loff_t</span> new_offset = <span class="number">0</span>; <span class="comment">// 定义loff_t类型的新的偏移值</span></span><br><span class="line">    <span class="keyword">switch</span> (whence)    <span class="comment">// 对lseek函数传递的whence参数进行判断</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">case</span> SEEK_SET:</span><br><span class="line">            <span class="keyword">if</span> (offset &lt; <span class="number">0</span> || offset &gt; BUFSIZE)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> -EINVAL; <span class="comment">// EINVAL=22 表示无效参数</span></span><br><span class="line">            &#125;</span><br><span class="line">            new_offset = offset; <span class="comment">// 如果whence参数为SEEK_SET，则新偏移值为offset</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> SEEK_CUR:</span><br><span class="line">            <span class="keyword">if</span> ((file-&gt;f_pos + offset &lt; <span class="number">0</span>) || (file-&gt;f_pos + offset &gt; BUFSIZE))</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> -EINVAL;</span><br><span class="line">            &#125;</span><br><span class="line">            new_offset = file-&gt;f_pos + offset; <span class="comment">// 如果whence参数为SEEK_CUR，则新偏移值为file-&gt;f_pos + offset，file-&gt;f_pos为当前的偏移值</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> SEEK_END:</span><br><span class="line">            <span class="keyword">if</span> (file-&gt;f_pos + offset &lt; <span class="number">0</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> -EINVAL;</span><br><span class="line">            &#125;</span><br><span class="line">            new_offset = BUFSIZE + offset; <span class="comment">// 如果whence参数为SEEK_END，则新偏移值为BUFSIZE + offset，BUFSIZE为最大偏移量</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    file-&gt;f_pos = new_offset; <span class="comment">// 更新file-&gt;f_pos偏移值</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> new_offset;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 switch 语句对传递的 whence 参数进行判断，whence 在这里可以有三个取值， 分别为 SEEK_SET、SEEK_CUR 和 SEEK_END。switch语句内部分别对三个参数所代表的功能进行实现，其中需要注意 的是 file&rarr;f_pos 指的是当前文件的偏移值。</p>
+<blockquote>
+<p>Tips：这里的逻辑我们传入的位置甚至可以直接等于buf的大小，例如，buf为32时，写入的时候索引为0-31，但是这里支持定位到32,。有什么好处？方便知道buf总大小啊，直接一个SEEK_END，然后偏移0，就可以知道buf总大小了。</p>
+</blockquote>
+<h3 id="2-2-sdev-read"><a href="#2-2-sdev-read" class="headerlink" title="2.2 sdev_read()"></a><font size=3>2.2 sdev_read()</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">sdev_read</span><span class="params">(<span class="keyword">struct</span> file *file, <span class="type">char</span> __user *buf, <span class="type">size_t</span> size, <span class="type">loff_t</span> *off)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">    <span class="type">loff_t</span> offset = *off; <span class="comment">// 将读取数据的偏移量赋值给loff_t类型变量p</span></span><br><span class="line">    <span class="type">size_t</span> count = size;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (offset &gt; BUFSIZE)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (count &gt; BUFSIZE - offset)</span><br><span class="line">    &#123;</span><br><span class="line">        count = BUFSIZE - offset;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (copy_to_user(buf, mem + offset, count))</span><br><span class="line">    &#123; </span><br><span class="line">        <span class="comment">// 将mem中的值写入buf，并传递到用户空间</span></span><br><span class="line">        printk(<span class="string">&quot;copy_to_user error!\n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; BUFSIZE; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        printk(<span class="string">&quot;mem buf[%d] %c\n&quot;</span>, i, mem[i]); <span class="comment">// 将mem中的值打印出来</span></span><br><span class="line">    &#125;</span><br><span class="line">    printk(<span class="string">&quot;read offset is %llu, count is %d\n&quot;</span>, offset, count);</span><br><span class="line">    *off = *off + count; <span class="comment">// 更新偏移值</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意这里我们更新off参数，而不直接更新file&rarr;f_ops。另外，此代码逻辑中，当缓冲区buf大小不够存下要读取的数据的时候，只会读取当前位置到buf结束的所有数据。</p>
+<h3 id="2-3-sdev-write"><a href="#2-3-sdev-write" class="headerlink" title="2.3 sdev_write()"></a><font size=3>2.3 sdev_write()</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">sdev_write</span><span class="params">(<span class="keyword">struct</span> file *file, <span class="type">const</span> <span class="type">char</span> __user *buf, <span class="type">size_t</span> size, <span class="type">loff_t</span> *off)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">    <span class="type">loff_t</span> offset = *off; <span class="comment">// 将读取数据的偏移量赋值给loff_t类型变量p</span></span><br><span class="line">    <span class="type">size_t</span> count = size;</span><br><span class="line">    <span class="keyword">if</span> (offset &gt; BUFSIZE)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (count &gt; BUFSIZE - offset)</span><br><span class="line">    &#123;</span><br><span class="line">        count = BUFSIZE - offset;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (copy_from_user(mem + offset, buf, count))</span><br><span class="line">    &#123; </span><br><span class="line">        <span class="comment">// 将buf中的值，从用户空间传递到内核空间</span></span><br><span class="line">        printk(<span class="string">&quot;copy_to_user error \n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; BUFSIZE; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        printk(<span class="string">&quot;mem buf[%d] %c\n&quot;</span>, i, mem[i]); <span class="comment">// 将mem中的值打印出来</span></span><br><span class="line">    &#125;</span><br><span class="line">    printk(<span class="string">&quot;write offset is %llu, count is %d\n&quot;</span>, offset, count); <span class="comment">// 打印写入的值</span></span><br><span class="line">    *off = *off + count;                         <span class="comment">// 更新偏移值</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此代码逻辑中，当缓冲区buf大小不够存下要写入的数据的时候，要写入的数据会被截断。</p>
+<h1 id="三、使用实例"><a href="#三、使用实例" class="headerlink" title="三、使用实例"></a><font size=3>三、使用实例</font></h1><h2 id="1-源码编写"><a href="#1-源码编写" class="headerlink" title="1. 源码编写"></a><font size=3>1. 源码编写</font></h2><h3 id="1-1-chrdev-llseek-demo-c"><a href="#1-1-chrdev-llseek-demo-c" class="headerlink" title="1.1 chrdev_llseek_demo.c"></a><font size=3>1.1 chrdev_llseek_demo.c</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/init.h&gt;</span> <span class="comment">/* module_init module_exit */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/module.h&gt;</span> <span class="comment">/* MODULE_LICENSE */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/fs.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/cdev.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/uaccess.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./timestamp_autogenerated.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./version_autogenerated.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CHRDEV_NAME <span class="string">&quot;sdev&quot;</span>    <span class="comment">/* 设备名,cat /proc/devices 查看与设备号的对应关系 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CLASS_NAME  <span class="string">&quot;sclass&quot;</span>  <span class="comment">/* 类名，在 /sys/class 中显示的名称 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DEVICE_NAME <span class="string">&quot;sdevice&quot;</span> <span class="comment">/* 设备节点名，在 /sys/class/class_name/ 中显示的名称以及 /dev/ 下显示的节点名 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BUFSIZE     32        <span class="comment">/* 设置最大偏移量为32 */</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">dev_t</span> dev_num;             <span class="comment">// 定义dev_t类型（32位大小）的变量dev_num,用来存放设备号</span></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">cdev</span> <span class="title">g_cdev_dev</span>;</span>    <span class="comment">// 定义cdev结构体类型的变量g_cdev_dev</span></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="keyword">class</span> *<span class="title">p_class_dev</span>;</span> <span class="comment">// 定于struct class *类型结构体变量 p_class_dev，表示要创建的类</span></span><br><span class="line"><span class="type">static</span> <span class="type">char</span> mem[BUFSIZE] = &#123;<span class="number">0</span>&#125;;   <span class="comment">// 设置数据存储数组mem</span></span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">sdev_open</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *file)</span></span><br><span class="line">&#123;</span><br><span class="line">    printk(<span class="string">&quot;This is sdev_open!\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">sdev_read</span><span class="params">(<span class="keyword">struct</span> file *file, <span class="type">char</span> __user *buf, <span class="type">size_t</span> size, <span class="type">loff_t</span> *off)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">    <span class="type">loff_t</span> offset = *off; <span class="comment">// 将读取数据的偏移量赋值给loff_t类型变量p</span></span><br><span class="line">    <span class="type">size_t</span> count = size;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (offset &gt; BUFSIZE)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (count &gt; BUFSIZE - offset)</span><br><span class="line">    &#123;</span><br><span class="line">        count = BUFSIZE - offset;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (copy_to_user(buf, mem + offset, count))</span><br><span class="line">    &#123; </span><br><span class="line">        <span class="comment">// 将mem中的值写入buf，并传递到用户空间</span></span><br><span class="line">        printk(<span class="string">&quot;copy_to_user error!\n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; BUFSIZE; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        printk(<span class="string">&quot;mem buf[%d] %c\n&quot;</span>, i, mem[i]); <span class="comment">// 将mem中的值打印出来</span></span><br><span class="line">    &#125;</span><br><span class="line">    printk(<span class="string">&quot;read offset is %llu, count is %d\n&quot;</span>, offset, count);</span><br><span class="line">    *off = *off + count; <span class="comment">// 更新偏移值</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">sdev_write</span><span class="params">(<span class="keyword">struct</span> file *file, <span class="type">const</span> <span class="type">char</span> __user *buf, <span class="type">size_t</span> size, <span class="type">loff_t</span> *off)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">    <span class="type">loff_t</span> offset = *off; <span class="comment">// 将读取数据的偏移量赋值给loff_t类型变量p</span></span><br><span class="line">    <span class="type">size_t</span> count = size;</span><br><span class="line">    <span class="keyword">if</span> (offset &gt; BUFSIZE)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (count &gt; BUFSIZE - offset)</span><br><span class="line">    &#123;</span><br><span class="line">        count = BUFSIZE - offset;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (copy_from_user(mem + offset, buf, count))</span><br><span class="line">    &#123; </span><br><span class="line">        <span class="comment">// 将buf中的值，从用户空间传递到内核空间</span></span><br><span class="line">        printk(<span class="string">&quot;copy_to_user error \n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; BUFSIZE; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        printk(<span class="string">&quot;mem buf[%d] %c\n&quot;</span>, i, mem[i]); <span class="comment">// 将mem中的值打印出来</span></span><br><span class="line">    &#125;</span><br><span class="line">    printk(<span class="string">&quot;write offset is %llu, count is %d\n&quot;</span>, offset, count); <span class="comment">// 打印写入的值</span></span><br><span class="line">    *off = *off + count;                         <span class="comment">// 更新偏移值</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">sdev_release</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *file)</span></span><br><span class="line">&#123;</span><br><span class="line">    printk(<span class="string">&quot;This is sdev_release!\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">loff_t</span> <span class="title function_">sdev_llseek</span><span class="params">(<span class="keyword">struct</span> file *file, <span class="type">loff_t</span> offset, <span class="type">int</span> whence)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">loff_t</span> new_offset = <span class="number">0</span>; <span class="comment">// 定义loff_t类型的新的偏移值</span></span><br><span class="line">    <span class="keyword">switch</span> (whence)    <span class="comment">// 对lseek函数传递的whence参数进行判断</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">case</span> SEEK_SET:</span><br><span class="line">            <span class="keyword">if</span> (offset &lt; <span class="number">0</span> || offset &gt; BUFSIZE)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> -EINVAL; <span class="comment">// EINVAL=22 表示无效参数</span></span><br><span class="line">            &#125;</span><br><span class="line">            new_offset = offset; <span class="comment">// 如果whence参数为SEEK_SET，则新偏移值为offset</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> SEEK_CUR:</span><br><span class="line">            <span class="keyword">if</span> ((file-&gt;f_pos + offset &lt; <span class="number">0</span>) || (file-&gt;f_pos + offset &gt; BUFSIZE))</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> -EINVAL;</span><br><span class="line">            &#125;</span><br><span class="line">            new_offset = file-&gt;f_pos + offset; <span class="comment">// 如果whence参数为SEEK_CUR，则新偏移值为file-&gt;f_pos + offset，file-&gt;f_pos为当前的偏移值</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> SEEK_END:</span><br><span class="line">            <span class="keyword">if</span> (file-&gt;f_pos + offset &lt; <span class="number">0</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> -EINVAL;</span><br><span class="line">            &#125;</span><br><span class="line">            new_offset = BUFSIZE + offset; <span class="comment">// 如果whence参数为SEEK_END，则新偏移值为BUFSIZE + offset，BUFSIZE为最大偏移量</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    file-&gt;f_pos = new_offset; <span class="comment">// 更新file-&gt;f_pos偏移值</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> new_offset;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> <span class="title">g_cdev_dev_ops</span> =</span> &#123;</span><br><span class="line">    .owner = THIS_MODULE,<span class="comment">//将owner字段指向本模块，可以避免在模块的操作正在被使用时卸载该模块</span></span><br><span class="line">	.open = sdev_open,</span><br><span class="line">	.read = sdev_read,</span><br><span class="line">	.write = sdev_write,</span><br><span class="line">	.release = sdev_release,</span><br><span class="line">    .llseek = sdev_llseek,</span><br><span class="line">&#125;; <span class="comment">// 定义file_operations结构体类型的变量g_cdev_dev_ops</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 模块入口函数</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> __init <span class="title function_">chrdev_llseek_demo_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> ret;          <span class="comment">// 定义int类型的变量ret，用来判断函数返回值</span></span><br><span class="line">    <span class="type">int</span> major, minor; <span class="comment">// 定义int类型的主设备号major和次设备号minor</span></span><br><span class="line">    printk(<span class="string">&quot;*** [%s:%d]Build Time: %s %s, git version:%s ***\n&quot;</span>, __FUNCTION__,</span><br><span class="line">           __LINE__, KERNEL_KO_DATE, KERNEL_KO_TIME, KERNEL_KO_VERSION);</span><br><span class="line">    printk(<span class="string">&quot;chrdev_llseek_demo module init!\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">    ret = alloc_chrdev_region(&amp;dev_num, <span class="number">0</span>, <span class="number">1</span>, CHRDEV_NAME); <span class="comment">// 自动获取设备号，设备名为chrdev_name</span></span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        printk(<span class="string">&quot;alloc_chrdev_region is error!\n&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    printk(<span class="string">&quot;alloc_register_region is ok!\n&quot;</span>);</span><br><span class="line">    major = MAJOR(dev_num); <span class="comment">// 使用MAJOR()函数获取主设备号</span></span><br><span class="line">    minor = MINOR(dev_num); <span class="comment">// 使用MINOR()函数获取次设备号</span></span><br><span class="line">    printk(<span class="string">&quot;major is %d, minor is %d !\n&quot;</span>, major, minor);</span><br><span class="line"></span><br><span class="line">    cdev_init(&amp;g_cdev_dev, &amp;g_cdev_dev_ops); <span class="comment">// 使用cdev_init()函数初始化g_cdev_dev结构体，并链接到g_cdev_dev_ops结构体</span></span><br><span class="line">    g_cdev_dev.owner = THIS_MODULE;          <span class="comment">// 将owner字段指向本模块，可以避免在模块的操作正在被使用时卸载该模块</span></span><br><span class="line">    ret = cdev_add(&amp;g_cdev_dev, dev_num, <span class="number">1</span>); <span class="comment">// 使用cdev_add()函数进行字符设备的添加</span></span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        printk(<span class="string">&quot;cdev_add is error !\n&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    printk(<span class="string">&quot;cdev_add is ok !\n&quot;</span>);</span><br><span class="line">    p_class_dev = class_create(THIS_MODULE, CLASS_NAME);          <span class="comment">// 使用class_create进行类的创建，类名称为 class_dev</span></span><br><span class="line">    device_create(p_class_dev, <span class="literal">NULL</span>, dev_num, <span class="literal">NULL</span>, DEVICE_NAME); <span class="comment">// 使用device_create进行设备的创建，设备名称为 device_dev</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 模块出口函数</span></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> __exit <span class="title function_">chrdev_llseek_demo_exit</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 需要注意的是， 字符设备的注册要放在申请字符设备号之后，</span></span><br><span class="line">    <span class="comment">// 字符设备的删除要放在释放字符驱动设备号之前。</span></span><br><span class="line">    cdev_del(&amp;g_cdev_dev);                <span class="comment">// 使用cdev_del()函数进行字符设备的删除</span></span><br><span class="line">    unregister_chrdev_region(dev_num, <span class="number">1</span>); <span class="comment">// 释放字符驱动设备号</span></span><br><span class="line">    device_destroy(p_class_dev, dev_num); <span class="comment">// 删除创建的设备</span></span><br><span class="line">    class_destroy(p_class_dev);           <span class="comment">// 删除创建的类</span></span><br><span class="line">    printk(<span class="string">&quot;chrdev_llseek_demo exit!\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">module_init(chrdev_llseek_demo_init); <span class="comment">// 将__init定义的函数指定为驱动的入口函数</span></span><br><span class="line">module_exit(chrdev_llseek_demo_exit); <span class="comment">// 将__exit定义的函数指定为驱动的出口函数</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 模块信息(通过 modinfo chrdev_llseek_demo 查看) */</span></span><br><span class="line">MODULE_LICENSE(<span class="string">&quot;GPL v2&quot;</span>);            <span class="comment">/* 源码的许可证协议 */</span></span><br><span class="line">MODULE_AUTHOR(<span class="string">&quot;sumu&quot;</span>);               <span class="comment">/* 字符串常量内容为模块作者说明 */</span></span><br><span class="line">MODULE_DESCRIPTION(<span class="string">&quot;Description&quot;</span>);   <span class="comment">/* 字符串常量内容为模块功能说明 */</span></span><br><span class="line">MODULE_ALIAS(<span class="string">&quot;module&#x27;s other name&quot;</span>); <span class="comment">/* 字符串常量内容为模块别名 */</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="1-2-chrdev-llseek-demo-app-c"><a href="#1-2-chrdev-llseek-demo-app-c" class="headerlink" title="1.2 chrdev_llseek_demo_app.c"></a><font size=3>1.2 chrdev_llseek_demo_app.c</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/stat.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BUFSIZE     32      <span class="comment">/* 设置最大偏移量为64, 方便打印完整的内存空间数据*/</span></span></span><br><span class="line"><span class="type">static</span> <span class="type">char</span> usrdata[] = &#123;<span class="string">&quot;sumu&quot;</span>&#125;;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">usage_info</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;+++++++++++++++++++++++++++++++++++++++++\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;+       help information  @sumu          +\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;+++++++++++++++++++++++++++++++++++++++++\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;help:\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;use format: ./app_name /dev/device_name arg1 ... \n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;            ./chrdev_data_exchange_demo_app.out /dev/sdevice 1 x # 从x位置读取 \n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;            ./chrdev_data_exchange_demo_app.out /dev/sdevice 2 x # 从x位置写入 \n&quot;</span>);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;            驱动中buf最大为1024字节 \n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;command info:\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;  (1)load module  : insmod module_name.ko\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;  (2)unload module: rmmod module_name.ko\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;  (3)show module  : lsmod\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;  (4)view device  : cat /proc/devices\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;  (5)create device node: mknod /dev/device_name c major_num secondary_num \n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;  (6)show device node  : ls /dev/device_name \n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;  (7)show device vlass  : ls /sys/class \n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;+++++++++++++++++++++++++++++++++++++++++\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> fd = <span class="number">-1</span>;</span><br><span class="line">    <span class="type">int</span> ret = <span class="number">0</span>;</span><br><span class="line">    <span class="type">char</span> *filename = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> arg1 = <span class="number">0</span>;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> arg2 = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="type">char</span> readbuf[BUFSIZE] = &#123;<span class="number">0</span>&#125;;</span><br><span class="line">    <span class="type">char</span> writebuf[BUFSIZE] = &#123;<span class="number">0</span>&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> off1 = <span class="number">0</span>; <span class="comment">// 定义读写偏移位置</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> off2 = <span class="number">0</span>; <span class="comment">// 定义读写偏移位置</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> off = <span class="number">0</span>; <span class="comment">// 定义读写偏移位置</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;*** Build Time: %s %s,Git Version: %s Git Remote: %s***\n&quot;</span>, </span><br><span class="line">            __DATE__, __TIME__, GIT_VERSION, GIT_PATH);</span><br><span class="line">    <span class="comment">// ./xxx.out /dev/sdevice x x</span></span><br><span class="line">    <span class="keyword">if</span> (argc != <span class="number">4</span>) </span><br><span class="line">    &#123;</span><br><span class="line">        usage_info();</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 解析参数</span></span><br><span class="line">    filename = argv[<span class="number">1</span>];</span><br><span class="line">    arg1 = atoi(argv[<span class="number">2</span>]);</span><br><span class="line">    arg2 = atoi(argv[<span class="number">3</span>]);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%s %s %d %d\n&quot;</span>, argv[<span class="number">0</span>], filename, arg1, arg2);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 打开驱动文件 */</span></span><br><span class="line">    fd = open(filename, O_RDWR);</span><br><span class="line">    <span class="keyword">if</span> (fd &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;can&#x27;t open file %s !\n&quot;</span>, filename);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    off1 = lseek(fd, <span class="number">0</span>, SEEK_END); <span class="comment">// 读取字符设备文件可读写最大的大小</span></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%s mem buf size is %d\n&quot;</span>, filename, off1);</span><br><span class="line">    <span class="keyword">if</span> (arg1 == <span class="number">1</span>)</span><br><span class="line">    &#123; </span><br><span class="line">        off = arg2;<span class="comment">// 获取读写的偏移位置</span></span><br><span class="line">        <span class="comment">/* 从驱动文件读取数据 */</span></span><br><span class="line">        ret = lseek(fd, off, SEEK_SET); <span class="comment">// 将偏移量设置为距离起始地址 off的位置</span></span><br><span class="line">        <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;lseek %s %d failed!\n&quot;</span>, filename, off);</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        ret = read(fd, readbuf, BUFSIZE);</span><br><span class="line">        <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;read file %s failed!\n&quot;</span>, filename);</span><br><span class="line">        &#125;</span><br><span class="line">        off2 = lseek(fd, <span class="number">0</span>, SEEK_CUR); <span class="comment">// 读取当前位置的偏移量</span></span><br><span class="line">        <span class="comment">/*  读取成功，打印出读取成功的数据 */</span></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;read data \&quot;%s\&quot; from %s! off=%d off2=%d\n&quot;</span>, readbuf, filename, off, off2);</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (arg1 == <span class="number">2</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        off = arg2;<span class="comment">// 获取读写的偏移位置</span></span><br><span class="line">        ret = lseek(fd, off, SEEK_SET); <span class="comment">// 将偏移量设置为距离起始地址 off的位置</span></span><br><span class="line">        <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;lseek %s %d failed!\n&quot;</span>, filename, off);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 向设备驱动写数据 */</span></span><br><span class="line">        <span class="built_in">memcpy</span>(writebuf, usrdata, <span class="keyword">sizeof</span>(usrdata));</span><br><span class="line">        ret = write(fd, writebuf, <span class="keyword">sizeof</span>(usrdata));</span><br><span class="line">        <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;write file %s failed!\n&quot;</span>, filename);</span><br><span class="line">        &#125;</span><br><span class="line">        off2 = lseek(fd, <span class="number">0</span>, SEEK_CUR); <span class="comment">// 读取当前位置的偏移量</span></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;write \&quot;%s\&quot; to %s success!off=%d off2=%d\n&quot;</span>, usrdata, filename, off, off2);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 关闭设备 */</span></span><br><span class="line">    ret = close(fd);</span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;can&#x27;t close file %s !\n&quot;</span>, filename);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-开发板测试"><a href="#2-开发板测试" class="headerlink" title="2. 开发板测试"></a><font size=3>2. 开发板测试</font></h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">加载驱动</span></span><br><span class="line">insmod xxx_demo.ko</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">app测试</span></span><br><span class="line">./xxx_demo_app.out /dev/dev_node 1 x # 从x位置读取</span><br><span class="line">./xxx_demo_app.out /dev/dev_node 2 x # 从x位置写入</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">卸载驱动</span></span><br><span class="line">rmmod xxx_demo.ko</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/7a27b239.html">LV06-03-chrdev-04-llseek的使用</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年12月17日 - 23:33</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/7a27b239.html" title="LV06-03-chrdev-04-llseek的使用">https://sumumm.github.io/post/7a27b239.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/140f7c52.html" rel="prev" title="LV06-03-chrdev-05-ioctl的使用">
+                  <i class="fa fa-angle-left"></i> LV06-03-chrdev-05-ioctl的使用
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/263a606.html" rel="next" title="LV06-03-chrdev-03-内核空间与用户空间数据交互">
+                  LV06-03-chrdev-03-内核空间与用户空间数据交互 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="uboot的图形配置界面？make menuconfig是怎么执行的？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV05-02-U-Boot-06-02-menuconfig">
+<meta property="og:url" content="https://sumumm.github.io/post/d26cc426.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="uboot的图形配置界面？make menuconfig是怎么执行的？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20250209091829362.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20250209092457401.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20250209092624310.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20250209092839200.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20250209092933255.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20250209093059717.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230804224326123.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20250209102416540.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805065326598.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805070033763.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805070731647.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805070853149.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805071051567.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805071706114.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805071444814.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805072312327.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805072532230.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805072748488.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805073012950.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805073137961.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805073302638.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805073346439.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805073631961.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805190016466-1739698285739-16.png">
+<meta property="article:published_time" content="2025-02-16T09:58:56.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.044Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV05-系统镜像">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20250209091829362.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/d26cc426.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/d26cc426.html","path":"post/d26cc426.html","title":"LV05-02-U-Boot-06-02-menuconfig"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV05-02-U-Boot-06-02-menuconfig | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81u-boot%E5%9B%BE%E5%BD%A2%E9%85%8D%E7%BD%AE%E7%95%8C%E9%9D%A2"><span class="nav-text">一、u-boot图形配置界面</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%8F%9C%E5%8D%95%E8%AF%B4%E6%98%8E"><span class="nav-text">1. 菜单说明</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%85%8D%E7%BD%AE%E5%AE%9E%E4%BE%8B"><span class="nav-text">2. 配置实例</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%BC%80%E5%90%AFdns%E5%91%BD%E4%BB%A4"><span class="nav-text">2.1 开启dns命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E9%80%80%E5%87%BA%E9%85%8D%E7%BD%AE%E7%95%8C%E9%9D%A2"><span class="nav-text">2.2 退出配置界面</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E7%BC%96%E8%AF%91%E6%BA%90%E7%A0%81"><span class="nav-text">2.3 编译源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-dns%E5%91%BD%E4%BB%A4%E6%B5%8B%E8%AF%95"><span class="nav-text">2.4 dns命令测试</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%9B%BE%E5%BD%A2%E9%85%8D%E7%BD%AE%E7%95%8C%E9%9D%A2%E5%8E%9F%E7%90%86"><span class="nav-text">二、图形配置界面原理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-config%E7%9B%AE%E6%A0%87"><span class="nav-text">1. %config目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-config%E7%9A%84%E4%BE%9D%E8%B5%96%E5%88%86%E6%9E%90"><span class="nav-text">2. %config的依赖分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-FORCE"><span class="nav-text">2.1 FORCE</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-scripts-basic"><span class="nav-text">2.2 scripts_basic</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-%E4%BE%9D%E8%B5%96%E8%A7%84%E5%88%99%E5%88%86%E6%9E%90"><span class="nav-text">2.2.1 依赖规则分析</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-Makefile-build"><span class="nav-text">2.2.2 Makefile.build</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#2-2-2-1-src%E4%B8%8Eprefix%E5%8F%98%E9%87%8F"><span class="nav-text">2.2.2.1 src与prefix变量</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-2-2-2-kbuild-dir%E4%B8%8Ekbuild-file"><span class="nav-text">2.2.2.2 kbuild-dir与kbuild-file</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-2-2-3-hostprogs-y"><span class="nav-text">2.2.2.3 hostprogs-y</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-2-2-4-build"><span class="nav-text">2.2.2.4 __build</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-2-2-5-%E6%80%BB%E7%BB%93"><span class="nav-text">2.2.2.5 总结</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-3-%E6%80%BB%E7%BB%93"><span class="nav-text">2.2.3 总结</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-outputmakefile"><span class="nav-text">2.3 outputmakefile</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-config%E5%88%86%E6%9E%90"><span class="nav-text">3. %config分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-obj-mconf"><span class="nav-text">3.1 $(obj)&#x2F;mconf</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E6%80%BB%E7%BB%93"><span class="nav-text">3.2 总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%87%AA%E5%AE%9A%E4%B9%89%E5%B8%A6Kconfig%E7%9A%84%E5%B7%A5%E7%A8%8B"><span class="nav-text">4. 自定义带Kconfig的工程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-mconf-conf%E7%9A%84%E7%BC%96%E8%AF%91"><span class="nav-text">4.1. mconf&#x2F;conf的编译</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E8%87%AA%E5%8A%A8%E5%88%9B%E5%BB%BA%E5%A4%B4%E6%96%87%E4%BB%B6"><span class="nav-text">4.2 自动创建头文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E5%8A%9F%E8%83%BD%E5%AE%8C%E5%96%84"><span class="nav-text">4.3 功能完善</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81Kconfig%E5%9F%BA%E6%9C%AC%E8%AF%AD%E6%B3%95"><span class="nav-text">三、Kconfig基本语法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-Kconfig-%E8%AF%AD%E6%B3%95%E7%AE%80%E4%BB%8B"><span class="nav-text">1. Kconfig 语法简介  </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-mainmenu"><span class="nav-text">1.1 mainmenu  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E8%B0%83%E7%94%A8%E5%85%B6%E4%BB%96%E7%9B%AE%E5%BD%95%E4%B8%8B%E7%9A%84-Kconfig-%E6%96%87%E4%BB%B6"><span class="nav-text">1.2 调用其他目录下的 Kconfig 文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-menu-endmenu-%E6%9D%A1%E7%9B%AE"><span class="nav-text">1.3 menu&#x2F;endmenu 条目  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-config-%E6%9D%A1%E7%9B%AE"><span class="nav-text">1.4 config 条目  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-5-depends-on-%E5%92%8C-select"><span class="nav-text">1.5 depends on 和 select  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-6-choice-endchoice"><span class="nav-text">1.6 choice&#x2F;endchoice  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-7-menuconfig"><span class="nav-text">1.7 menuconfig  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-8-comment"><span class="nav-text">1.8 comment  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-9-source"><span class="nav-text">1.9 source  </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E8%87%AA%E5%AE%9A%E4%B9%89%E4%B8%80%E4%B8%AAKconfig%E6%96%87%E4%BB%B6"><span class="nav-text">2. 自定义一个Kconfig文件</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/d26cc426.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV05-02-U-Boot-06-02-menuconfig | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV05-02-U-Boot-06-02-menuconfig
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-02-16 17:58:56" itemprop="dateCreated datePublished" datetime="2025-02-16T17:58:56+08:00">2025-02-16</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/" itemprop="url" rel="index"><span itemprop="name">LV05-系统镜像</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>10k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>38 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>uboot的图形配置界面？make menuconfig是怎么执行的？若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="3">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4" target="_blank">kernel/git/stable/linux.git - Linux kernel stable tree</a></td>        <td align="left">linux kernel源码(官网,tag 4.19.71)</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<p>在前面的学习中我们知道 uboot 可以通过 mx6ull_alpha_emmc_defconfig 来配置，或者通过文件 mx6ull_alpha_emmc.h 来配置 uboot。还有另外一种配置 uboot 的方法，就是图形化配置，以前的 uboot 是不支持图形化配置，只有 Linux 内核才支持图形化配置。不过不知道从什么时候开始， uboot 也支持图形化配置了，这里我们就来学习一下如何通过图形化配置 uboot，并且学习一下图形化配置的原理，因为后面学习 Linux 驱动开发的时候可能要修改图形配置文件。（这里还是以默认的mx6ull_14x14_evk_defconfig配置文件来学习）</p>
+<h1 id="一、u-boot图形配置界面"><a href="#一、u-boot图形配置界面" class="headerlink" title="一、u-boot图形配置界面"></a><font size=3>一、u-boot图形配置界面</font></h1><h2 id="1-菜单说明"><a href="#1-菜单说明" class="headerlink" title="1. 菜单说明"></a><font size=3>1. 菜单说明</font></h2><p>uboot 或 Linux 内核可以通过输入“make menuconfig”来打开图形化配置界面， menuconfig 是一套图形化的配置工具，需要 ncurses 库支持。 ncurses 库提供了一系列的 API 函数供调用者生成基于文本的图形界面，因此需要先在 ubuntu 中安装 ncurses 库，命令如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install build-essential</span><br><span class="line">sudo apt-get install libncurses5-dev</span><br></pre></td></tr></table></figure>
+
+<p>menuconfig 重点会用到两个文件： .config 和 Kconfig， .config 文件前面已经说了，这个文件保存着 uboot 的配置项，使用 menuconfig 配置完 uboot 以后肯定要更新.config 文件。 Kconfig文件是图形界面的描述文件，也就是描述界面应该有什么内容，很多目录下都会有 Kconfig 文件。</p>
+<p>在打开图形化配置界面之前，要先使用“make xxx_defconfig”对 uboot 进行一次默认配置，只需要一次即可。如果使用“ make clean”清理了工程的话就那就需要重新使用“ make xxx_defconfig”再对 uboot 进行一次配置。进入 uboot 根目录，输入如下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- mx6ull_14x14_evk_defconfig</span><br><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig</span><br></pre></td></tr></table></figure>
+
+<p>打开后的图形化界面如图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20250209091829362.png" alt="image-20250209091829362"  />
+
+<p>这就是主界面，主界面上方的英文就是简单的操作说明，操作方法如下 ：</p>
+<p>（1）通过键盘上的“ ↑ ”和“ ↓ ”键来选择要配置的菜单，后面跟着“—&gt;”表示此配置项是有子配置项的，按下回车键就可以进入子配置项。 按下“ Enter ”键进入子菜单。</p>
+<p>（2）菜单中高亮的字母就是此菜单的热键，在键盘上按下此高亮字母对应的键可以快速选中对应的菜单。</p>
+<p>（3）选中子菜单以后按下“ Y ”键就会将相应的代码编译进 uboot 中，菜单前面变为“&lt; * &gt;”。按下“ N ”键不编译相应的代码，按下“ M ”键就会将相应的代码编译为模块，菜单前面变为“&lt; M &gt;”。也可以通过 “ space ” 键进行切换。</p>
+<p>（4）按两下 “ Esc ” 键退出，也就是返回到上一级.</p>
+<p>（5）按下 “ ? ” 键查看此菜单的帮助信息。</p>
+<p>（6）按下“ &#x2F; ” 键打开搜索框，可以在搜索框输入要搜索的内容。</p>
+<p>（7）在配置界面下方会有五个按钮，这五个按钮的功能如下：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;Select&gt;：选中按钮，和“Enter”键的功能相同，负责选中并进入某个菜单。</span><br><span class="line">&lt;Exit&gt;  ：退出按钮，和按两下“Esc”键功能相同，退出当前菜单，返回到上一级。</span><br><span class="line">&lt;Help&gt;  ：帮助按钮，查看选中菜单的帮助信息。</span><br><span class="line">&lt;Save&gt;  ：保存按钮，保存修改后的配置文件。</span><br><span class="line">&lt;Load&gt;  ：加载按钮，加载指定的配置文件。</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-配置实例"><a href="#2-配置实例" class="headerlink" title="2. 配置实例"></a><font size=3>2. 配置实例</font></h2><h3 id="2-1-开启dns命令"><a href="#2-1-开启dns命令" class="headerlink" title="2.1 开启dns命令"></a><font size=3>2.1 开启dns命令</font></h3><p>我们以 dns 命令为例，来看一下怎么实现图形界面对uboot的配置。我们按以下配置路径找到dns配置项：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Command line interface  ---&gt; </span><br><span class="line">	[*] Network commands  ---&gt;</span><br><span class="line">		[ ]   dns</span><br></pre></td></tr></table></figure>
+
+<p>这个dns配置项，此配置项用于配置 uboot 的 dns 命令，进入以后如图 ：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20250209092457401.png" alt="image-20250209092457401"  />
+
+<p>从图中可以看出， uboot 中有很多和网络有关的命令，比如 bootp、 tftpboot、 dhcp 等等。选中 dns，然后按下键盘上的“Y”键，此时 dns 前面的“[    ]”就会变成了“[ * ]”。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20250209092624310.png" alt="image-20250209092624310"  />
+
+<p>每个选项有 3 种编译选项：编译进 uboot 中(也就是编译进 u-boot.bin 中)、取消编译(也就是不编译这个功能模块)、编译为模块。按下“Y”键表示编译进 uboot 中，此时“[   ]”变成了“[ * ]”；按下“N”表示不编译，“[    ]”默认表示不编译；有些功能模块是支持编译为模块的，这个一般在 Linux 内核里面很常用，后边学习linux就会学到， uboot 下面不使用，如果要将某个功能编译为模块，那就按下“M”，此时“[     ]”就会变为“&lt; M &gt;”。</p>
+<blockquote>
+<p>Tips：一个小疑问？</p>
+<p>后面我们移植自己的开发板的时候，会创建 mx6ull_alpha_emmc.h ，这个文件里面我们配置使能了 dhcp 和 ping 命令，但是在上图中 dhcp 和 ping 前面的“[     ]”并不是“[ * ]”，也就是说不编译 dhcp 和 ping命令，这不是冲突了吗？实际情况是 dhcp 和 ping 命令是会编译的。之所以在图中没有体现出来时因为我们是直接在mx6ull_alipha_emmc.h 中定义的宏 CONFIG_CMD_PING 和CONFIG_CMD_DHCP，而 menuconfig 是通过读取.config 文件来判断使能了哪些功能， .config里面并没有宏CONFIG_CMD_PING和CONFIG_CMD_DHCP，所以menuconfig就会识别出错。</p>
+</blockquote>
+<p>选中 dns，然后按下“H”或者“?”键可以打开 dns 命令的提示信息，如图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20250209092839200.png" alt="image-20250209092839200"  />
+
+<h3 id="2-2-退出配置界面"><a href="#2-2-退出配置界面" class="headerlink" title="2.2 退出配置界面"></a><font size=3>2.2 退出配置界面</font></h3><p>按两下 ESC 键即可退出提示界面，相当于返回上一层。选择 dns 命令以后，按两下 ESC 键（按两下 ESC 键相当于返回上一层），退出当前配置项，进入到上一层配置项。如果没有要修改的就按两下 ESC 键，退出到主配界面，如果也没有其他要修改的，那就再次按两下 ESC 键退出menuconfig 配置界面。如果修改过配置的话，在退出主界面的时候会有如图所示提示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20250209092933255.png" alt="image-20250209092933255"  />
+
+<p>询问是否保存新的配置文件，通过键盘的←或→键来选择“Yes”项，然后按下键盘上的回车键确认保存。至此，我们就完成了通过图形界面使能了 uboot 的 dns 命令，打开.config文件，会发现多了“CONFIG_CMD_DNS&#x3D;y”这一行，如图中的 552 行所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20250209093059717.png" alt="image-20250209093059717"  />
+
+<h3 id="2-3-编译源码"><a href="#2-3-编译源码" class="headerlink" title="2.3 编译源码"></a><font size=3>2.3 编译源码</font></h3><p>配置完成后，直接使用如下命令编译 uboot：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make V=0 ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -j16</span><br></pre></td></tr></table></figure>
+
+<p>需要注意的是千万<strong>不要使用</strong>下边的两个命令</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- disclean</span><br><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- mx6ull_14x14_evk_defconfig</span><br></pre></td></tr></table></figure>
+
+<p>上边的disclean命令会清理工程，会删除掉.config 文件！通过图形化界面配置所有配置项都会被删除，结果就是竹篮打水一场空。有什么办法避免吗？当然有啦，我们的 mx6ull_14x14_evk_defconfig 文件内容其实就是一小部分的.config，我们可以直接把.config重命名，替换掉原来的mx6ull_14x14_evk_defconfig文件，这样就可以啦。</p>
+<h3 id="2-4-dns命令测试"><a href="#2-4-dns命令测试" class="headerlink" title="2.4 dns命令测试"></a><font size=3>2.4 dns命令测试</font></h3><p>编译完成以后烧写到 SD 卡中，重启开发板进入 uboot 命令模式，输入“?”查看是否有“dns”命令，一般肯定有的。使用 dns 命令来查看一下百度官网“<a target="_blank" rel="noopener" href="http://www.baidu.com”的/">www.baidu.com”的</a> IP 地址。注意！如果要与外部互联网通信，比如百度官网，这个时候要保证开发板能访问到外部互联网。 如果我们的开发板和电脑直接用网线连接的，那么肯定无法连接到外部网络， 这个时候 dns命令查看百度官网也会失败！所以开发板一定要连接到路由器上，而且要保证你的路由器能访问外网，比如手机连接到这个路由器上以后可以正常访问互联网。</p>
+<p>要先设置一下 dns 服务器的 IP 地址，也就是设置环境变量 dnsip 的值，命令如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">=&gt; setenv dnsip 114.114.114.114</span><br><span class="line">=&gt; saveenv</span><br></pre></td></tr></table></figure>
+
+<p>设置好以后就可以使用 dns 命令查看百度官网的 IP 地址了，输入命令：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">=&gt; dns www.baidu.com</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230804224326123.png"  />
+
+<p>可以看出，“<a target="_blank" rel="noopener" href="http://www.baidu.com”/">www.baidu.com”</a> 的 IP 地址为 14.215.177.38，说明 dns 命令工作正常。这个就是通过图形化命令来配置 uboot，一般用来使能一些命令还是很方便的，这样就不需要到处找命令的配置宏是什么，然后在到配置文件里面去定义。</p>
+<h1 id="二、图形配置界面原理"><a href="#二、图形配置界面原理" class="headerlink" title="二、图形配置界面原理"></a><font size=3>二、图形配置界面原理</font></h1><p>上面的图形界面怎么实现的？又是怎么实现配置的？接下来就来看一下这个make menuconfig的配置原理。</p>
+<h2 id="1-config目标"><a href="#1-config目标" class="headerlink" title="1. %config目标"></a><font size=3>1. %config目标</font></h2><p>我们可以在顶层 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/Makefile">Makefile</a> 找到 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/Makefile#L502">%config</a> 这个配置项：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">%config: scripts_basic outputmakefile FORCE</span></span><br><span class="line">	<span class="variable">$(Q)</span><span class="variable">$(MAKE)</span> <span class="variable">$(build)</span>=scripts/kconfig <span class="variable">$@</span></span><br></pre></td></tr></table></figure>
+
+<p>其中：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Q=@       <span class="comment"># 或为空</span></span><br><span class="line">MAKE=make</span><br><span class="line">@=%config <span class="comment"># make menuconfig的话，这里 @ 表示的就是menuconfig</span></span><br></pre></td></tr></table></figure>
+
+<p>build定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/Kbuild.include#L182">Kbuild.include - scripts&#x2F;Kbuild.include</a> 中，定义如下：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">###</span></span><br><span class="line"><span class="comment"># Shorthand for $(Q)$(MAKE) -f scripts/Makefile.build obj=</span></span><br><span class="line"><span class="comment"># Usage:</span></span><br><span class="line"><span class="comment"># $(Q)$(MAKE) $(build)=dir</span></span><br><span class="line">build := -f <span class="variable">$(srctree)</span>/scripts/Makefile.build obj</span><br></pre></td></tr></table></figure>
+
+<p>这里的 srctree 的值就是<code>.</code>，所以这里的build其实就是：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">build := -f ./scripts/Makefile.build obj</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这个%config在前面分析顶层 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/Makefile">Makefile</a> 时有分析过，可以看这个笔记《LV05-02-U-Boot-06-01-顶层Makefile基础解析.md》——make xxx_defconfig这个过程的分析。</p>
+</blockquote>
+<p>所以，这里简单展开的话就是：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">%config: scripts_basic outputmakefile FORCE</span></span><br><span class="line">	@make -f ./scripts/Makefile.build obj=scripts/kconfig <span class="variable">$@</span> </span><br></pre></td></tr></table></figure>
+
+<p>这里其实就是会调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/Makefile.build">Makefile.build - scripts&#x2F;Makefile.build</a> 这个makefile文件去完成对应的目标创建，在调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/Makefile.build">Makefile.build - scripts&#x2F;Makefile.build</a> 的时候还会传入参数，至少会有 obj 这个变量。</p>
+<h2 id="2-config的依赖分析"><a href="#2-config的依赖分析" class="headerlink" title="2. %config的依赖分析"></a><font size=3>2. %config的依赖分析</font></h2><h3 id="2-1-FORCE"><a href="#2-1-FORCE" class="headerlink" title="2.1 FORCE"></a><font size=3>2.1 FORCE</font></h3><p>在顶层 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/Makefile">Makefile</a> 中 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/Makefile#L1978">FORCE</a>定义如下：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">PHONY += FORCE</span><br><span class="line"><span class="section">FORCE:</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Declare the contents of the .PHONY variable as phony.  We keep that</span></span><br><span class="line"><span class="comment"># information in a variable so we can use it in if_changed and friends.</span></span><br><span class="line"><span class="meta"><span class="keyword">.PHONY</span>: $(PHONY)</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看出 FORCE 是没有规则和依赖的，所以每次都会重新生成 FORCE。当 FORCE 作为 其他目标的依赖时，由于 FORCE 总是被更新过的，因此依赖所在的规则总是会执行的。</p>
+<h3 id="2-2-scripts-basic"><a href="#2-2-scripts-basic" class="headerlink" title="2.2 scripts_basic"></a><font size=3>2.2 scripts_basic</font></h3><h4 id="2-2-1-依赖规则分析"><a href="#2-2-1-依赖规则分析" class="headerlink" title="2.2.1 依赖规则分析"></a><font size=3>2.2.1 依赖规则分析</font></h4><p>在顶层 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/Makefile">Makefile</a> 中 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/Makefile#L421">scripts_basic</a> 定义如下：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Basic helpers built in scripts/</span></span><br><span class="line">PHONY += scripts_basic</span><br><span class="line"><span class="section">scripts_basic:</span></span><br><span class="line">	<span class="variable">$(Q)</span><span class="variable">$(MAKE)</span> <span class="variable">$(build)</span>=scripts/basic</span><br><span class="line">	<span class="variable">$(Q)</span>rm -f .tmp_quiet_recordmcount</span><br></pre></td></tr></table></figure>
+
+<p>这是scripts_basic 的规则，其对应的命令用到了变量 Q、MAKE 和 build。这里展开就是：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Basic helpers built in scripts/</span></span><br><span class="line">PHONY += scripts_basic</span><br><span class="line"><span class="section">scripts_basic:</span></span><br><span class="line">	@make -f <span class="variable">$(srctree)</span>/scripts/Makefile.build obj=scripts/basic <span class="comment"># 也可以没有@，视配置而定</span></span><br><span class="line">	@rm -f .tmp_quiet_recordmcount</span><br></pre></td></tr></table></figure>
+
+<p>可以看到这里也是调用了 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/Makefile.build">Makefile.build - scripts&#x2F;Makefile.build</a> ，并且 obj&#x3D;scripts&#x2F;basic</p>
+<h4 id="2-2-2-Makefile-build"><a href="#2-2-2-Makefile-build" class="headerlink" title="2.2.2 Makefile.build"></a><font size=3>2.2.2 Makefile.build</font></h4><p>接下来我们就来看一下Makefile.build 脚本里面都有什么。前面分析到scripts_basic展开后如下：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">@make -f ./scripts/Makefile.build obj=scripts/basic</span><br></pre></td></tr></table></figure>
+
+<p>接下来就来看一下这个命令会怎么执行，最终会得到什么。</p>
+<h5 id="2-2-2-1-src与prefix变量"><a href="#2-2-2-1-src与prefix变量" class="headerlink" title="2.2.2.1 src与prefix变量"></a><font size=3>2.2.2.1 src与prefix变量</font></h5><p>先看一下<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/Makefile.build#L6">Makefile.build - scripts&#x2F;Makefile.build</a>最开始的两个变量：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Modified for U-Boot</span></span><br><span class="line">prefix := tpl</span><br><span class="line">src := <span class="variable">$(<span class="built_in">patsubst</span> <span class="variable">$(prefix)</span>/%,%,<span class="variable">$(obj)</span>)</span></span><br><span class="line"><span class="keyword">ifeq</span> (<span class="variable">$(obj)</span>,<span class="variable">$(src)</span>)</span><br><span class="line">prefix := spl</span><br><span class="line">src := <span class="variable">$(<span class="built_in">patsubst</span> <span class="variable">$(prefix)</span>/%,%,<span class="variable">$(obj)</span>)</span></span><br><span class="line"><span class="keyword">ifeq</span> (<span class="variable">$(obj)</span>,<span class="variable">$(src)</span>)</span><br><span class="line">prefix := .</span><br><span class="line"><span class="keyword">endif</span></span><br><span class="line"><span class="keyword">endif</span></span><br></pre></td></tr></table></figure>
+
+<p>第 2 行，变量 prefix 值为 tpl。</p>
+<p>第 3 行定义了变量 src，这里用到了函数 patsubst，此行代码展开后为：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$(<span class="built_in">patsubst</span> tpl/%,%, scripts/basic)</span></span><br></pre></td></tr></table></figure>
+
+<p>patsubst 是替换函数，格式如下：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$(<span class="built_in">patsubst</span> &lt;pattern&gt;,&lt;replacement&gt;,&lt;text&gt;)</span></span><br></pre></td></tr></table></figure>
+
+<p>此函数用于在 text 中查找符合 pattern 的部分，如果匹配的话就用 replacement 替换掉。 pattern 是可以包含通配符“%”，如果 replacement 中也包含通配符“%”，那么 replacement 中的 这个“%”将是 pattern 中的那个“%”所代表的字符串。函数的返回值为替换后的字符串。因 此，第 3 行就是在“scripts&#x2F;basic”中查找符合“tpl&#x2F;%”的部分，然后将“tpl&#x2F;”取消掉，但是 “scripts&#x2F;basic”没有“tpl&#x2F;”，所以 src&#x3D; scripts&#x2F;basic。</p>
+<p>第 4 行判断变量 obj 和 src 是否相等，相等的话条件成立，很明显，此处条件成立。</p>
+<p>第 6 行和第 3 行一样，只是这里处理的是“spl”，“scripts&#x2F;basic”里面也没有“spl&#x2F;”，所以 src 继续为 scripts&#x2F;basic。</p>
+<p>第 8 行因为变量 obj 和 src 相等，所以 prefix&#x3D;. 。</p>
+<h5 id="2-2-2-2-kbuild-dir与kbuild-file"><a href="#2-2-2-2-kbuild-dir与kbuild-file" class="headerlink" title="2.2.2.2 kbuild-dir与kbuild-file"></a><font size=3>2.2.2.2 kbuild-dir与kbuild-file</font></h5><p>我们继续往下看<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/Makefile.build#L54">Makefile.build - scripts&#x2F;Makefile.build</a>，这里有两个变量：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># The filename Kbuild has precedence over Makefile</span></span><br><span class="line">kbuild-dir := <span class="variable">$(<span class="built_in">if</span> $(<span class="built_in">filter</span> /%,<span class="variable">$(src)</span>)</span>,<span class="variable">$(src)</span>,<span class="variable">$(srctree)</span>/<span class="variable">$(src)</span>)</span><br><span class="line">kbuild-file := <span class="variable">$(<span class="built_in">if</span> $(<span class="built_in">wildcard</span> $(kbuild-<span class="built_in">dir</span>)</span>/Kbuild),$(kbuild-dir)/Kbuild,$(kbuild-dir)/Makefile)</span><br><span class="line"><span class="keyword">include</span> $(kbuild-file)</span><br></pre></td></tr></table></figure>
+
+<p>我们前面分析过srctree&#x3D;.，src&#x3D;scripts&#x2F;basic， 将 kbuild-dir 展开后为：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kbuild-dir := <span class="variable">$(<span class="built_in">if</span> $(<span class="built_in">filter</span> /%, scripts/basic)</span>, scripts/basic, ./scripts/basic)</span><br></pre></td></tr></table></figure>
+
+<p>因为没有以“&#x2F;”为开头的单词，所以$(filter &#x2F;%, scripts&#x2F;basic)的结果为空，kbuild-dir&#x3D;.&#x2F;scripts&#x2F;basic。得到这个变量后，我们将 kbuild-file 展开后为：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kbuild-file := <span class="variable">$(<span class="built_in">if</span> $(<span class="built_in">wildcard</span> ./scripts/basic/Kbuild)</span>, ./scripts/basic/Kbuild, ./scripts/basic/Makefile)</span><br></pre></td></tr></table></figure>
+
+<p>因为 scrpts&#x2F;basic 目录中没有 Kbuild 这个文件，所以 kbuild-file &#x3D; .&#x2F;scripts&#x2F;basic&#x2F;Makefile。最后将第 4 行展开，即：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">include</span> ./scripts/basic/Makefile</span><br></pre></td></tr></table></figure>
+
+<p>也就是读取 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/basic/Makefile">Makefile - scripts&#x2F;basic&#x2F;Makefile</a> 文件。</p>
+<h5 id="2-2-2-3-hostprogs-y"><a href="#2-2-2-3-hostprogs-y" class="headerlink" title="2.2.2.3 hostprogs-y"></a><font size=3>2.2.2.3 hostprogs-y</font></h5><p>接下来看这一行 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/Makefile.build#L82">Makefile.build - scripts&#x2F;Makefile.build - <em>hostprogs-y</em></a> ，这里也会包含一个Makefile文件：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Do not include host rules unless needed</span></span><br><span class="line"><span class="keyword">ifneq</span> ($(hostprogs-y)$(hostprogs-m),)</span><br><span class="line"><span class="keyword">include</span> scripts/Makefile.host</span><br><span class="line"><span class="keyword">endif</span></span><br></pre></td></tr></table></figure>
+
+<p>我们可以看一下这个 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/Makefile.host">Makefile.host - scripts&#x2F;Makefile.host</a> 文件：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># SPDX-License-Identifier: GPL-2.0</span></span><br><span class="line"><span class="comment"># ==========================================================================</span></span><br><span class="line"><span class="comment"># Building binaries on the host system</span></span><br><span class="line"><span class="comment"># Binaries are used during the compilation of the kernel, for example</span></span><br><span class="line"><span class="comment"># to preprocess a data file.</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># Both C and C++ are supported, but preferred language is C for such utilities.</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># Sample syntax (see Documentation/kbuild/makefiles.txt for reference)</span></span><br><span class="line"><span class="comment"># hostprogs-y := bin2hex</span></span><br><span class="line"><span class="comment"># Will compile bin2hex.c and create an executable named bin2hex</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># hostprogs-y    := lxdialog</span></span><br><span class="line"><span class="comment"># lxdialog-objs := checklist.o lxdialog.o</span></span><br><span class="line"><span class="comment"># Will compile lxdialog.c and checklist.c, and then link the executable</span></span><br><span class="line"><span class="comment"># lxdialog, based on checklist.o and lxdialog.o</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># hostprogs-y      := qconf</span></span><br><span class="line"><span class="comment"># qconf-cxxobjs   := qconf.o</span></span><br><span class="line"><span class="comment"># qconf-objs      := menu.o</span></span><br><span class="line"><span class="comment"># Will compile qconf as a C++ program, and menu as a C program.</span></span><br><span class="line"><span class="comment"># They are linked as C++ code to the executable qconf</span></span><br></pre></td></tr></table></figure>
+
+<p>其实这里主要就是把用到的工具的源码在主机上编译出对应的工具，例如mconf、qconf这些。</p>
+<h5 id="2-2-2-4-build"><a href="#2-2-2-4-build" class="headerlink" title="2.2.2.4 __build"></a><font size=3>2.2.2.4 __build</font></h5><p>我们继续向下看<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/Makefile.build#L114">Makefile.build - scripts&#x2F;Makefile.build</a>，会看到这个__build目标：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># We keep a list of all modules in $(MODVERDIR)</span></span><br><span class="line"></span><br><span class="line"><span class="section">__build: $(if <span class="variable">$(KBUILD_BUILTIN)</span>,$(builtin-target) $(lib-target) $(extra-y)) \</span></span><br><span class="line">	 <span class="variable">$(<span class="built_in">if</span> <span class="variable">$(KBUILD_MODULES)</span>,$(obj-m)</span> $(modorder-target)) \</span><br><span class="line">	 $(subdir-ym) <span class="variable">$(always)</span></span><br><span class="line">	@:</span><br></pre></td></tr></table></figure>
+
+<p>__build 是默认目标，因为下面这条命令</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">@make -f ./scripts/Makefile.build obj=scripts/basic</span><br></pre></td></tr></table></figure>
+
+<p>没有指定目标，所以会使用到默认目标：__build。在顶层 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/Makefile#L315">Makefile</a> 中，KBUILD_BUILTIN 为 1，KBUILD_MODULES 为 0，因此展开后目标__build 为：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">__build:$(builtin-target) $(lib-target) $(extra-y) $(subdir-ym) <span class="variable">$(always)</span></span></span><br><span class="line">	@:</span><br></pre></td></tr></table></figure>
+
+<p>可以看出目标__build 有 5 个依赖：builtin-target、lib-target、extra-y、subdir-ym 和 always。 这 5 个依赖的具体内容我们就不通过源码来分析了，直接在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/Makefile.build#L114">Makefile.build - scripts&#x2F;Makefile.build</a> 中输入以下代码：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># We keep a list of all modules in $(MODVERDIR)</span></span><br><span class="line"></span><br><span class="line"><span class="section">__build: $(if <span class="variable">$(KBUILD_BUILTIN)</span>,$(builtin-target) $(lib-target) $(extra-y)) \</span></span><br><span class="line">	 <span class="variable">$(<span class="built_in">if</span> <span class="variable">$(KBUILD_MODULES)</span>,$(obj-m)</span> $(modorder-target)) \</span><br><span class="line">	 $(subdir-ym) <span class="variable">$(always)</span></span><br><span class="line">	@:</span><br><span class="line">	@echo <span class="string">&quot;builtin-target=&quot;</span>$(builtin-target) </span><br><span class="line">	@echo <span class="string">&quot;lib-target=&quot;</span>$(lib-target) </span><br><span class="line">	@echo <span class="string">&quot;extra-y=&quot;</span>$(extra-y)</span><br><span class="line">	@echo <span class="string">&quot;subdir-ym=&quot;</span>$(subdir-ym) </span><br><span class="line">	@echo <span class="string">&quot;always=&quot;</span><span class="variable">$(always)</span></span><br></pre></td></tr></table></figure>
+
+<p>然后我重新执行以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- distclean</span><br><span class="line">make V=1 ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- mx6ull_14x14_evk_defconfig </span><br></pre></td></tr></table></figure>
+
+<p>会看到有如下打印信息出现：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">builtin-target=</span><br><span class="line">lib-target=</span><br><span class="line">extra-y=</span><br><span class="line">subdir-ym=</span><br><span class="line">always=scripts/basic/fixdep</span><br></pre></td></tr></table></figure>
+
+<p>可以看出，只有 always 有效，因此__build 最终为：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">__build:scripts/basic/fixdep</span></span><br><span class="line">	@:</span><br></pre></td></tr></table></figure>
+
+<p>__build 依赖于 scripts&#x2F;basic&#x2F;fixdep，所以要先编译 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/basic/fixdep.c">fixdep.c - scripts&#x2F;basic&#x2F;fixdep.c</a>，生成 fixdep，前面已经读取了 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/basic/Makefile">Makefile - scripts&#x2F;basic&#x2F;Makefile</a> 文件。</p>
+<h5 id="2-2-2-5-总结"><a href="#2-2-2-5-总结" class="headerlink" title="2.2.2.5 总结"></a><font size=3>2.2.2.5 总结</font></h5><p>需要注意的是，在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/Makefile.build">Makefile.build - scripts&#x2F;Makefile.build</a> 文件中将会包含两个Makefile，其中 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/Makefile.host">Makefile.host - scripts&#x2F;Makefile.host</a> 是固定的，会编译出所需要的工具，还有一个受到参数的影响，不同的功能对应不同的Makefile，主要是根据 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/Makefile.build#L54">Makefile.build - scripts&#x2F;Makefile.build - <em>kbuild-file</em></a> 来确定包含哪个Makefile。</p>
+<h4 id="2-2-3-总结"><a href="#2-2-3-总结" class="headerlink" title="2.2.3 总结"></a><font size=3>2.2.3 总结</font></h4><p>总的来说scripts_basic 目标的作用就是编译出 scripts&#x2F;basic&#x2F;fixdep 这个软件。我们可以执行以下命令看一下打印信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- disclean</span><br><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig</span><br></pre></td></tr></table></figure>
+
+<p>然后就会看到以下内容：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">make -f ./scripts/Makefile.build obj=scripts/basic</span><br><span class="line">  cc -Wp,-MD,scripts/basic/.fixdep.d -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer  -std=gnu11     -o scripts/basic/fixdep scripts/basic/fixdep.c  </span><br><span class="line">rm -f .tmp_quiet_recordmcount</span><br></pre></td></tr></table></figure>
+
+<p>可以看到与上面的分析结果一致。这个应用是用来生成<strong>头文件依赖</strong>的，在编译过程中，使用-MD选项可以生成依赖关系文件。这些文件包含了源代码文件和它们之间的依赖关系，通常以 Makefile 的规则格式保存，这样可以在后续的编译过程中更好地管理文件的依赖关系。这在大型项目中是很有用的，因为它可以确保在修改一个源文件后，只重新编译与之相关的文件，而不是整个项目。</p>
+<p>下面是一个简单的例子，假设有一个C语言项目，包含三个源文件：main.c，utils.c，和header.h。main.c 包含了main函数，utils.c包含了一些工具函数，而header.h包含了函数的声明。</p>
+<p>假设我们使用GCC编译器，可以通过以下命令使用-MD选项生成依赖关系文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -MD -o main main.c utils.c</span><br></pre></td></tr></table></figure>
+
+<p>这个命令会生成 main.d文件，内容可能如下：</p>
+<figure class="highlight d"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">main.o: main.c header.h</span><br><span class="line">utils.o: utils.c header.h</span><br></pre></td></tr></table></figure>
+
+<p>这表示在编译main.c时，依赖于main.c和header.h；在编译utils.c时，依赖于utils.c和header.h。这样，如果修改了header.h，只有依赖于它的文件会重新编译，而不是整个项目。</p>
+<p>这对于Makefile来说非常有用，因为它们可以根据这些依赖关系文件来判断哪些文件需要重新编译，从而提高编译效率。<br><code>fixdep</code>是一个用于生成Makefile依赖关系的工具。它主要用于处理头文件之间的依赖关系，以确保在构建U-Boot时，当某个头文件发生变化时，只重新编译与之相关的文件，而不是整个项目。具体来说，<code>fixdep</code>主要完成以下任务：</p>
+<p>（1）解析源代码文件中的#include指令：fixdep分析源代码文件，找到其中包含的头文件。</p>
+<p>（2）生成Makefile规则： 通过分析源代码文件中的 #include 指令，fixdep 生成一个包含依赖关系的 Makefile 规则。这些规则通常包含了源文件和其所依赖的头文件，以及它们之间的关系。</p>
+<p>（3）输出依赖关系： fixdep将生成的 Makefile 规则输出到标准输出或指定的文件中，以便后续的构建工具(如Make)使用。</p>
+<p>例如，在U-Boot的Makefile中可能包含类似如下的使用fixdep的命令：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">depend:</span></span><br><span class="line">    <span class="variable">$(SRCTREE)</span>/scripts/fixdep <span class="variable">$(CFLAGS)</span> <span class="variable">$(CPPFLAGS)</span> <span class="variable">$(SRCARCH)</span> <span class="variable">$(SRC)</span> &gt; .depend</span><br></pre></td></tr></table></figure>
+
+<p>这个命令使用fixdep生成头文件依赖关系，并将结果保存到.depend文件中。在Makefile的其他地方可以包含这个文件，以便Make工具能够使用这些依赖关系。</p>
+<h3 id="2-3-outputmakefile"><a href="#2-3-outputmakefile" class="headerlink" title="2.3 outputmakefile"></a><font size=3>2.3 outputmakefile</font></h3><p>再来看一下这个 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/Makefile#L432">outputmakefile</a> 依赖：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">PHONY += outputmakefile</span><br><span class="line"><span class="comment"># outputmakefile generates a Makefile in the output directory, if using a</span></span><br><span class="line"><span class="comment"># separate output directory. This allows convenient use of make in the</span></span><br><span class="line"><span class="comment"># output directory.</span></span><br><span class="line"><span class="section">outputmakefile:</span></span><br><span class="line"><span class="keyword">ifneq</span> (<span class="variable">$(KBUILD_SRC)</span>,)</span><br><span class="line">	<span class="variable">$(Q)</span>ln -fsn <span class="variable">$(srctree)</span> source</span><br><span class="line">	<span class="variable">$(Q)</span><span class="variable">$(CONFIG_SHELL)</span> <span class="variable">$(srctree)</span>/scripts/mkmakefile \</span><br><span class="line">	    <span class="variable">$(srctree)</span> <span class="variable">$(objtree)</span> <span class="variable">$(VERSION)</span> <span class="variable">$(PATCHLEVEL)</span></span><br><span class="line"><span class="keyword">endif</span></span><br></pre></td></tr></table></figure>
+
+<p>这个没有详细分析，可以加个打印看一眼：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">outputmakefile:</span></span><br><span class="line">	echo <span class="string">&quot;outputmakefile KBUILD_SRC=<span class="variable">$(KBUILD_SRC)</span>&quot;</span></span><br><span class="line"><span class="keyword">ifneq</span> (<span class="variable">$(KBUILD_SRC)</span>,)</span><br><span class="line">	<span class="variable">$(Q)</span>ln -fsn <span class="variable">$(srctree)</span> source</span><br><span class="line">	<span class="variable">$(Q)</span><span class="variable">$(CONFIG_SHELL)</span> <span class="variable">$(srctree)</span>/scripts/mkmakefile \</span><br><span class="line">	    <span class="variable">$(srctree)</span> <span class="variable">$(objtree)</span> <span class="variable">$(VERSION)</span> <span class="variable">$(PATCHLEVEL)</span></span><br><span class="line"><span class="keyword">endif</span></span><br></pre></td></tr></table></figure>
+
+<p>然后执行：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- disclean</span><br><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig</span><br></pre></td></tr></table></figure>
+
+<p>会发现 KBUILD_SRC 值为空：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20250209102416540.png" alt="image-20250209102416540"  />
+
+<p>所以下面的几个命令其实是没有执行的，这里就先不管了。</p>
+<h2 id="3-config分析"><a href="#3-config分析" class="headerlink" title="3. %config分析"></a><font size=3>3. %config分析</font></h2><p>上面已经分析完依赖了，现在再来分析这个 %config 中的命令。</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">%config: scripts_basic outputmakefile FORCE</span></span><br><span class="line">	<span class="variable">$(Q)</span><span class="variable">$(MAKE)</span> <span class="variable">$(build)</span>=scripts/kconfig <span class="variable">$@</span></span><br></pre></td></tr></table></figure>
+
+<p>这里我们可以展开一下：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">%config: scripts_basic outputmakefile FORCE</span></span><br><span class="line">	@make -f <span class="variable">$(srctree)</span>/scripts/Makefile.build obj=scripts/kconfig menuconfig</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，还是要继续分析 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/Makefile.build">Makefile.build - scripts&#x2F;Makefile.build</a> 。按照前面的分析，相关的变量值如下所示：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">src= scripts/kconfig</span><br><span class="line">kbuild-dir = ./scripts/kconfig</span><br><span class="line">kbuild-file = ./scripts/kconfig/Makefile</span><br><span class="line"><span class="keyword">include</span> ./scripts/kconfig/Makefile</span><br></pre></td></tr></table></figure>
+
+<p>可以看出，在这个命令下，Makefilke.build 会读取 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/kconfig/Makefile">Makefile - scripts&#x2F;kconfig&#x2F;Makefile</a> 中的内容，此文件中有如下所示内容：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">menuconfig: <span class="variable">$(obj)</span>/mconf</span></span><br><span class="line">	<span class="variable">$&lt;</span> <span class="variable">$(silent)</span> <span class="variable">$(Kconfig)</span></span><br></pre></td></tr></table></figure>
+
+<p>其中<code>$&lt;</code>表示依赖文件中的第一个文件。也就是 $(obj)&#x2F;mconf，所以其实就是 scripts&#x2F;kconfig&#x2F;mconf文件，silent就是一个静默输出的控制标志，这里先不管。Kconfig&#x3D;Kconfig（<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/scripts/kconfig/Makefile#L15">Makefile - scripts&#x2F;kconfig&#x2F;Makefile · Kconfig</a>），所以这里可以展开：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">menuconfig: scripts/kconfig/mconf</span></span><br><span class="line">	scripts/kconfig/mconf Kconfig </span><br></pre></td></tr></table></figure>
+
+<h3 id="3-1-obj-mconf"><a href="#3-1-obj-mconf" class="headerlink" title="3.1 $(obj)&#x2F;mconf"></a><font size=3>3.1 $(obj)&#x2F;mconf</font></h3><p>先来看这个 $(obj)&#x2F;mconf ，我们知道 obj&#x3D;scripts&#x2F;kconfig，所以这里就是 scripts&#x2F;kconfig&#x2F;mconf，说实话这里我还真没理解，但是看打印信息的话我们可以自己猜测出来这个工具的编译过程，下面有一个自己写的编译实例。uboot的编译系统还是有些复杂，里面其实有很多可以借鉴的地方，感觉目前没必要深挖，越挖东西越多，先这样，后面有空再深入了解。</p>
+<h3 id="3-2-总结"><a href="#3-2-总结" class="headerlink" title="3.2 总结"></a><font size=3>3.2 总结</font></h3><p>编译出mconf后，就可以使用这个可执行程序来读取Kconfig文件了：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">scripts/kconfig/mconf Kconfig </span><br></pre></td></tr></table></figure>
+
+<p>然后就会调用对应的图形库，渲染出一个简单的配置界面。</p>
+<h2 id="4-自定义带Kconfig的工程"><a href="#4-自定义带Kconfig的工程" class="headerlink" title="4. 自定义带Kconfig的工程"></a><font size=3>4. 自定义带Kconfig的工程</font></h2><p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/tree/master/LV41_kconfig/01_kconfig_demo">LV41_kconfig&#x2F;01_kconfig_demo · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国</a></p>
+<h3 id="4-1-mconf-conf的编译"><a href="#4-1-mconf-conf的编译" class="headerlink" title="4.1. mconf&#x2F;conf的编译"></a><font size=3>4.1. mconf&#x2F;conf的编译</font></h3><p>可以看这个：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/blob/master/LV41_kconfig/01_kconfig_demo/scripts/kconfig/Kconfig.mk">LV41_kconfig&#x2F;01_kconfig_demo&#x2F;scripts&#x2F;kconfig&#x2F;Kconfig.mk · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国</a></p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br></pre></td><td class="code"><pre><span class="line">TARGET_mconf    ?= mconf</span><br><span class="line">TARGET_conf     ?= conf</span><br><span class="line"></span><br><span class="line">CROSS_COMPILE   ?=</span><br><span class="line">CC 				:= <span class="variable">$(CROSS_COMPILE)</span>gcc</span><br><span class="line">LD				:= <span class="variable">$(CROSS_COMPILE)</span>ld</span><br><span class="line">OBJCOPY 		:= <span class="variable">$(CROSS_COMPILE)</span>objcopy</span><br><span class="line">OBJDUMP 		:= <span class="variable">$(CROSS_COMPILE)</span>objdump</span><br><span class="line"></span><br><span class="line">HOSTCFLAGS       = -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer  -std=gnu11</span><br><span class="line">COBJ_FLAGS      := <span class="variable">$(HOSTCFLAGS)</span></span><br><span class="line"></span><br><span class="line">OBJ_DIR         ?= ./</span><br><span class="line">SRC_DIR         ?= ./</span><br><span class="line"><span class="comment"># SHELL used by kbuild</span></span><br><span class="line">CONFIG_SHELL    := <span class="variable">$(<span class="built_in">shell</span> <span class="built_in">if</span> [ -x &quot;$$BASH&quot; ]; then echo $$BASH; \</span></span><br><span class="line"><span class="variable">					else <span class="built_in">if</span> [ -x /bin/bash ]; then echo /bin/bash; \</span></span><br><span class="line"><span class="variable">					else echo sh; fi ; fi)</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># lxdialog stuff</span></span><br><span class="line">check-lxdialog  := ./lxdialog/check-lxdialog.sh</span><br><span class="line"></span><br><span class="line"><span class="comment"># Use recursively expanded variables so we do not call gcc unless</span></span><br><span class="line"><span class="comment"># we really need to do so. (Do not call gcc as part of make mrproper)</span></span><br><span class="line">HOST_EXTRACFLAGS        += <span class="variable">$(<span class="built_in">shell</span> <span class="variable">$(CONFIG_SHELL)</span> $(check-lxdialog)</span> -ccflags) \</span><br><span class="line">                    		-DLOCALE</span><br><span class="line"><span class="comment"># Add environment specific flags</span></span><br><span class="line">HOST_EXTRACFLAGS        += <span class="variable">$(<span class="built_in">shell</span> <span class="variable">$(CONFIG_SHELL)</span> ./check.sh <span class="variable">$(CC)</span> <span class="variable">$(HOSTCFLAGS)</span>)</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># generated files seem to need this to find local include files</span></span><br><span class="line">HOSTCFLAGS_zconf.lex.o	:= -I<span class="variable">$(SRC_DIR)</span></span><br><span class="line">HOSTCFLAGS_zconf.tab.o	:= -I<span class="variable">$(SRC_DIR)</span></span><br><span class="line">HOSTLOADLIBES_mconf      = <span class="variable">$(<span class="built_in">shell</span> <span class="variable">$(CONFIG_SHELL)</span> $(check-lxdialog)</span> -ldflags <span class="variable">$(CC)</span>)</span><br><span class="line">HOSTLOADLIBES_conf       = </span><br><span class="line"></span><br><span class="line">COBJ_FLAGS      += <span class="variable">$(HOST_EXTRACFLAGS)</span></span><br><span class="line"></span><br><span class="line">lxdialog        := lxdialog/checklist.o lxdialog/util.o lxdialog/inputbox.o</span><br><span class="line">lxdialog        += lxdialog/textbox.o lxdialog/yesno.o lxdialog/menubox.o</span><br><span class="line"></span><br><span class="line">conf-objs	    := conf.o  zconf.tab.o</span><br><span class="line">mconf-objs      := mconf.o zconf.tab.o <span class="variable">$(lxdialog)</span></span><br><span class="line"></span><br><span class="line"><span class="variable">$(TARGET_mconf)</span>: $(mconf-objs)</span><br><span class="line">	<span class="variable">$(CC)</span> -o <span class="variable">$@</span> $(mconf-objs) <span class="variable">$(HOSTLOADLIBES_mconf)</span></span><br><span class="line"></span><br><span class="line"><span class="variable">$(TARGET_conf)</span>: $(conf-objs)</span><br><span class="line">	<span class="variable">$(CC)</span> -o <span class="variable">$@</span> $(conf-objs) <span class="variable">$(HOSTLOADLIBES_conf)</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="section">zconf.tab.o: zconf.tab.c zconf.lex.c</span></span><br><span class="line">	<span class="variable">$(CC)</span> -Wp,-MD,.<span class="variable">$@</span>.d <span class="variable">$(COBJ_FLAGS)</span> $(HOSTCFLAGS_zconf.tab.o) -c -o <span class="variable">$@</span> zconf.tab.c</span><br><span class="line"></span><br><span class="line"><span class="section">zconf.tab.c:</span></span><br><span class="line">	bison -o <span class="variable">$@</span> -t -l zconf.y</span><br><span class="line"></span><br><span class="line"><span class="section">zconf.lex.c:</span></span><br><span class="line">	flex -o <span class="variable">$@</span> -L zconf.l</span><br><span class="line"></span><br><span class="line"><span class="variable">$(lxdialog)</span>: lxdialog/%.o : lxdialog/%.c</span><br><span class="line">	<span class="variable">$(CC)</span> -Wp,-MD,<span class="variable">$@</span>.d <span class="variable">$(COBJ_FLAGS)</span> -c <span class="variable">$&lt;</span> -o <span class="variable">$@</span></span><br><span class="line"></span><br><span class="line"><span class="variable">$(TARGET_mconf)</span>.o:</span><br><span class="line">	<span class="variable">$(CC)</span> -Wp,-MD,.<span class="variable">$@</span>.d <span class="variable">$(COBJ_FLAGS)</span> -Iscripts/kconfig -c -o <span class="variable">$@</span> mconf.c</span><br><span class="line"></span><br><span class="line"><span class="variable">$(TARGET_conf)</span>.o:</span><br><span class="line">	<span class="variable">$(CC)</span> -Wp,-MD,.<span class="variable">$@</span>.d <span class="variable">$(COBJ_FLAGS)</span> -Iscripts/kconfig -c -o <span class="variable">$@</span> conf.c</span><br><span class="line"></span><br><span class="line"><span class="section">menuconfig: <span class="variable">$(TARGET_mconf)</span></span></span><br><span class="line">	./<span class="variable">$(TARGET_mconf)</span> Kconfig</span><br><span class="line">	@python menu_anno.py .config config.h 0</span><br><span class="line">	@rm -f .config.old .config.cmd</span><br><span class="line"></span><br><span class="line"><span class="section">%_defconfig: <span class="variable">$(TARGET_conf)</span></span></span><br><span class="line">	@if [ -e ./configs/<span class="variable">$@</span> ];then \</span><br><span class="line">		./<span class="variable">$(TARGET_conf)</span>  --defconfig=lxdialog/../configs/<span class="variable">$@</span> Kconfig; \</span><br><span class="line">	<span class="keyword">else</span> \</span><br><span class="line">		echo <span class="string">&quot;<span class="variable">$@</span> not exists&quot;</span>; \</span><br><span class="line">	fi</span><br><span class="line">	@python menu_anno.py .config config.h 0</span><br><span class="line">	@rm -f .config.old .config.cmd</span><br><span class="line"></span><br><span class="line"><span class="meta"><span class="keyword">.PHONY</span>: clean clean_c clean_obj clean_d clean_config</span></span><br><span class="line"></span><br><span class="line"><span class="section">clean: clean_c clean_obj clean_d clean_config</span></span><br><span class="line"></span><br><span class="line"><span class="section">clean_c:</span></span><br><span class="line">	@rm -rvf zconf.lex.c</span><br><span class="line">	@rm -rvf zconf.tab.c</span><br><span class="line"></span><br><span class="line"><span class="section">clean_obj:</span></span><br><span class="line">	@find . -name <span class="variable">$(TARGET_mconf)</span> -exec rm -rvf &#123;&#125; \;</span><br><span class="line">	@find . -name \*.o -exec rm -rvf &#123;&#125; \;</span><br><span class="line"></span><br><span class="line"><span class="section">clean_d:</span></span><br><span class="line">	@find . -name \*.d -exec rm -rvf &#123;&#125; \;</span><br><span class="line"></span><br><span class="line"><span class="section">clean_config:</span></span><br><span class="line">	@rm -rvf .config .config.old config.h</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-自动创建头文件"><a href="#4-2-自动创建头文件" class="headerlink" title="4.2 自动创建头文件"></a><font size=3>4.2 自动创建头文件</font></h3><p>当我们可以正常生成.config文件的时候，可以通过这个文件生成一个config.h头文件，方便C语言工程调用，可以通过python来实现：</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/blob/master/LV41_kconfig/01_kconfig_demo/scripts/kconfig/config_head_create.py">LV41_kconfig&#x2F;01_kconfig_demo&#x2F;scripts&#x2F;kconfig&#x2F;config_head_create.py · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国</a></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python3</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">write_config</span>(<span class="params">config_filename, filename, chipname</span>):</span><br><span class="line">    config_h = <span class="built_in">open</span>(filename, <span class="string">&#x27;w&#x27;</span>)</span><br><span class="line">    config_h.write(<span class="string">&#x27;#ifndef __CONFIG_H__\n&#x27;</span>)</span><br><span class="line">    config_h.write(<span class="string">&#x27;#define __CONFIG_H__\n\n&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    config = <span class="built_in">open</span>(config_filename, <span class="string">&#x27;r&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    empty_line = <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> line <span class="keyword">in</span> config:</span><br><span class="line">        line = line.lstrip(<span class="string">&#x27; &#x27;</span>).replace(<span class="string">&#x27;\n&#x27;</span>, <span class="string">&#x27;&#x27;</span>).replace(<span class="string">&#x27;\r&#x27;</span>, <span class="string">&#x27;&#x27;</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="built_in">len</span>(line) == <span class="number">0</span>:</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> line[<span class="number">0</span>] == <span class="string">&#x27;#&#x27;</span>:</span><br><span class="line">            <span class="keyword">if</span> <span class="built_in">len</span>(line) == <span class="number">1</span>:</span><br><span class="line">                <span class="keyword">if</span> empty_line:</span><br><span class="line">                    <span class="keyword">continue</span></span><br><span class="line"></span><br><span class="line">                config_h.write(<span class="string">&#x27;\n&#x27;</span>)</span><br><span class="line">                empty_line = <span class="number">1</span></span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line"></span><br><span class="line">            line = line[<span class="number">2</span>:]</span><br><span class="line"></span><br><span class="line">            config_h.write(<span class="string">&#x27;/*%s */\n&#x27;</span> % line)</span><br><span class="line">            empty_line = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            empty_line = <span class="number">0</span></span><br><span class="line">            setting = line.split(<span class="string">&#x27;=&#x27;</span>)</span><br><span class="line">            <span class="keyword">if</span> <span class="built_in">len</span>(setting) &gt;= <span class="number">2</span>:</span><br><span class="line">                <span class="keyword">if</span> setting[<span class="number">1</span>] == <span class="string">&#x27;y&#x27;</span>:</span><br><span class="line">                    config_h.write(<span class="string">&#x27;#define %s\n&#x27;</span> % setting[<span class="number">0</span>])</span><br><span class="line">                <span class="keyword">else</span>:</span><br><span class="line">                    config_h.write(<span class="string">&#x27;#define %s %s\n&#x27;</span> % (setting[<span class="number">0</span>], setting[<span class="number">1</span>]))</span><br><span class="line"></span><br><span class="line">    config_h.write(<span class="string">&#x27;\n&#x27;</span>)</span><br><span class="line">    config_h.write(<span class="string">&#x27;#endif\n&#x27;</span>)</span><br><span class="line">    config_h.close()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(sys.argv) &lt; <span class="number">2</span>:</span><br><span class="line">        sys.exit(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    config_filename = sys.argv[<span class="number">1</span>]</span><br><span class="line">    filename = sys.argv[<span class="number">2</span>]</span><br><span class="line">    chipname = sys.argv[<span class="number">3</span>]</span><br><span class="line"></span><br><span class="line">    write_config(config_filename, filename, chipname)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>修改Makefile如下：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line">TARGET          ?= mconf.out</span><br><span class="line"></span><br><span class="line">CROSS_COMPILE   ?=</span><br><span class="line">CC 				:= <span class="variable">$(CROSS_COMPILE)</span>gcc</span><br><span class="line">LD				:= <span class="variable">$(CROSS_COMPILE)</span>ld</span><br><span class="line">OBJCOPY 		:= <span class="variable">$(CROSS_COMPILE)</span>objcopy</span><br><span class="line">OBJDUMP 		:= <span class="variable">$(CROSS_COMPILE)</span>objdump</span><br><span class="line"></span><br><span class="line">HOSTCFLAGS       = -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer  -std=gnu11</span><br><span class="line">COBJ_FLAGS      := <span class="variable">$(HOSTCFLAGS)</span></span><br><span class="line"></span><br><span class="line">OBJ_DIR         ?= ./</span><br><span class="line"></span><br><span class="line"><span class="comment"># SHELL used by kbuild</span></span><br><span class="line">CONFIG_SHELL := <span class="variable">$(<span class="built_in">shell</span> <span class="built_in">if</span> [ -x &quot;$$BASH&quot; ]; then echo $$BASH; \</span></span><br><span class="line"><span class="variable">	  else <span class="built_in">if</span> [ -x /bin/bash ]; then echo /bin/bash; \</span></span><br><span class="line"><span class="variable">	  else echo sh; fi ; fi)</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># lxdialog stuff</span></span><br><span class="line">check-lxdialog  := ./lxdialog/check-lxdialog.sh</span><br><span class="line"></span><br><span class="line"><span class="comment"># Use recursively expanded variables so we do not call gcc unless</span></span><br><span class="line"><span class="comment"># we really need to do so. (Do not call gcc as part of make mrproper)</span></span><br><span class="line">HOST_EXTRACFLAGS += <span class="variable">$(<span class="built_in">shell</span> <span class="variable">$(CONFIG_SHELL)</span> $(check-lxdialog)</span> -ccflags) \</span><br><span class="line">                    -DLOCALE</span><br><span class="line"><span class="comment"># Add environment specific flags</span></span><br><span class="line">HOST_EXTRACFLAGS += <span class="variable">$(<span class="built_in">shell</span> <span class="variable">$(CONFIG_SHELL)</span> ./check.sh <span class="variable">$(CC)</span> <span class="variable">$(HOSTCFLAGS)</span>)</span></span><br><span class="line"></span><br><span class="line">HOSTLOADLIBES_mconf   = <span class="variable">$(<span class="built_in">shell</span> <span class="variable">$(CONFIG_SHELL)</span> $(check-lxdialog)</span> -ldflags <span class="variable">$(CC)</span>)</span><br><span class="line"></span><br><span class="line">COBJ_FLAGS       += <span class="variable">$(HOST_EXTRACFLAGS)</span></span><br><span class="line"></span><br><span class="line">lxdialog        := lxdialog/checklist.o lxdialog/util.o lxdialog/inputbox.o</span><br><span class="line">lxdialog        += lxdialog/textbox.o lxdialog/yesno.o lxdialog/menubox.o</span><br><span class="line">mconf-objs      := mconf.o zconf.tab.o <span class="variable">$(lxdialog)</span></span><br><span class="line"></span><br><span class="line"><span class="variable">$(TARGET)</span>: $(mconf-objs)</span><br><span class="line">	<span class="variable">$(CC)</span> -o <span class="variable">$@</span> $(mconf-objs) <span class="variable">$(HOSTLOADLIBES_mconf)</span></span><br><span class="line"></span><br><span class="line"><span class="section">zconf.tab.o: zconf.tab.c zconf.lex.c</span></span><br><span class="line">	<span class="variable">$(CC)</span> -Wp,-MD,.<span class="variable">$@</span>.d <span class="variable">$(COBJ_FLAGS)</span> -Iscripts/kconfig -c -o zconf.tab.o zconf.tab.c</span><br><span class="line"></span><br><span class="line"><span class="section">zconf.tab.c:</span></span><br><span class="line">	bison -o zconf.tab.c -t -l zconf.y</span><br><span class="line"></span><br><span class="line"><span class="section">zconf.lex.c:</span></span><br><span class="line">	flex -o zconf.lex.c -L zconf.l</span><br><span class="line"></span><br><span class="line"><span class="variable">$(lxdialog)</span>: lxdialog/%.o : lxdialog/%.c</span><br><span class="line">	<span class="variable">$(CC)</span> -Wp,-MD,<span class="variable">$@</span>.d <span class="variable">$(COBJ_FLAGS)</span> -c <span class="variable">$&lt;</span> -o <span class="variable">$@</span></span><br><span class="line"></span><br><span class="line"><span class="section">mconf.o:</span></span><br><span class="line">	<span class="variable">$(CC)</span> -Wp,-MD,.<span class="variable">$@</span>.d <span class="variable">$(COBJ_FLAGS)</span> -Iscripts/kconfig -c -o mconf.o mconf.c</span><br><span class="line"></span><br><span class="line"><span class="section">menuconfig: <span class="variable">$(TARGET)</span></span></span><br><span class="line">	./<span class="variable">$(TARGET)</span> Kconfig</span><br><span class="line">	@python menu_anno.py .config config.h 0</span><br><span class="line">	@rm -f .config.old .config.cmd</span><br><span class="line"></span><br><span class="line"><span class="meta"><span class="keyword">.PHONY</span>: clean clean_c clean_obj clean_d clean_config</span></span><br><span class="line"></span><br><span class="line"><span class="section">clean: clean_c clean_obj clean_d clean_config</span></span><br><span class="line"></span><br><span class="line"><span class="section">clean_c:</span></span><br><span class="line">	@rm -rvf zconf.lex.c</span><br><span class="line">	@rm -rvf zconf.tab.c</span><br><span class="line"></span><br><span class="line"><span class="section">clean_obj:</span></span><br><span class="line">	@find . -name <span class="variable">$(TARGET)</span> -exec rm -rvf &#123;&#125; \;</span><br><span class="line">	@find . -name \*.o -exec rm -rvf &#123;&#125; \;</span><br><span class="line"></span><br><span class="line"><span class="section">clean_d:</span></span><br><span class="line">	@find . -name \*.d -exec rm -rvf &#123;&#125; \;</span><br><span class="line"></span><br><span class="line"><span class="section">clean_config:</span></span><br><span class="line">	@rm -rvf .config .config.old config.h</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-功能完善"><a href="#4-3-功能完善" class="headerlink" title="4.3 功能完善"></a><font size=3>4.3 功能完善</font></h3><p>其实直接把uboot中的scripts目录拷贝出来，写好对应的顶层Makefile，是可以实现menuconfig的，我这里拷贝了一份，并且重新编写了Makefile，只能实现make menuconfig，也许以后会用于app的编译：</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/tree/master/LV41_kconfig/02_kconfig_uboot">LV41_kconfig&#x2F;02_kconfig_uboot · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国</a></p>
+<p>这个的话就可以和其他的工程结合到一起，方便扩展。</p>
+<h1 id="三、Kconfig基本语法"><a href="#三、Kconfig基本语法" class="headerlink" title="三、Kconfig基本语法"></a><font size=3>三、Kconfig基本语法</font></h1><p>这里是借用了之前的笔记，用的是2016版本的uboot，这里只是学习语法，版本什么的都无所谓。</p>
+<h2 id="1-Kconfig-语法简介"><a href="#1-Kconfig-语法简介" class="headerlink" title="1. Kconfig 语法简介  "></a><font size=3>1. Kconfig 语法简介  </font></h2><p>我们已经知道了 scripts&#x2F;kconfig&#x2F;mconf 会调用 uboot 根目录下的 Kconfig 文件开始构建图形化配置界面，接下来简单学习一下 Kconfig 的语法。因为后面学习 Linux 驱动开发的时候可能会涉及到修改 Kconfig，对于 Kconfig 语法我们不需要太深入的去研究，关于 Kconfig的详细语法介绍，可以参考 linux 内核源码(不知为何 uboot 源码中没有这个文件)中的文件Documentation&#x2F;kbuild&#x2F;kconfig-language.txt，本节我们大概了解其原理即可。打开 uboot 根目录下的 Kconfig，这个 Kconfig 文件就是顶层 Kconfig，我们就以这个文件为例来简单学习一下 Kconfig语法。  </p>
+<h3 id="1-1-mainmenu"><a href="#1-1-mainmenu" class="headerlink" title="1.1 mainmenu  "></a><font size=3>1.1 mainmenu  </font></h3><p>mainmenu 就是主菜单，也就是输入“make ARCH&#x3D;arm CROSS_COMPILE&#x3D;arm-linux-gnueabihf- menuconfig”以后打开的默认界面，在顶层 Kconfig 中有如下代码：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mainmenu &quot;U-Boot $UBOOTVERSION Configuration&quot;</span><br></pre></td></tr></table></figure>
+
+<p>上述代码就是定义了一个名为“U-Boot $UBOOTVERSION Configuration”的主菜单，其中UBOOTVERSION&#x3D;2016.03，因此主菜单名为“U-Boot 2016.03 Configuration”，如图所示：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805065326598.png" alt="image-20230805065326598"  />
+
+<h3 id="1-2-调用其他目录下的-Kconfig-文件"><a href="#1-2-调用其他目录下的-Kconfig-文件" class="headerlink" title="1.2 调用其他目录下的 Kconfig 文件"></a><font size=3>1.2 调用其他目录下的 Kconfig 文件</font></h3><p>和 makefile 一样， Kconfig 也可以调用其他子目录中的 Kconfig 文件，调用方法如下：  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">source &quot;xxx/Kconfig&quot; </span><br></pre></td></tr></table></figure>
+
+<p>其中 xxx 为具体的目录名，相对路径，以u-boot源码顶层目录为根目录。在顶层 Kconfig 中有如下代码：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">source &quot;common/Kconfig&quot;</span><br><span class="line"></span><br><span class="line">source &quot;cmd/Kconfig&quot;</span><br><span class="line"></span><br><span class="line">source &quot;dts/Kconfig&quot;</span><br><span class="line"></span><br><span class="line">source &quot;net/Kconfig&quot;</span><br><span class="line"></span><br><span class="line">source &quot;drivers/Kconfig&quot;</span><br><span class="line"></span><br><span class="line">source &quot;fs/Kconfig&quot;</span><br><span class="line"></span><br><span class="line">source &quot;lib/Kconfig&quot;</span><br><span class="line"></span><br><span class="line">source &quot;test/Kconfig&quot;</span><br></pre></td></tr></table></figure>
+
+<p>可以看出，顶层 Kconfig 文件调用了很多其他子目录下的 Kcofig 文件，这些子目录下的 Kconfig 文件在主菜单中生成各自的菜单项。  </p>
+<h3 id="1-3-menu-endmenu-条目"><a href="#1-3-menu-endmenu-条目" class="headerlink" title="1.3 menu&#x2F;endmenu 条目  "></a><font size=3>1.3 menu&#x2F;endmenu 条目  </font></h3><p>menu 用于生成菜单， endmenu 就是菜单结束标志，这两个一般是成对出现的。在顶层Kconfig 中有如下代码：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805070033763.png" alt="image-20230805070033763"  />
+
+<p>有两个 menu&#x2F;endmenu 代码块，这两个代码块就是两个子菜单，第 14 行的“menu “General setup””表示子菜单“General setup”。后边的的“menu “Boot images””表示子菜单“Boot images”。体现在主菜单界面中就如上图所示了。</p>
+<p>在“ General setup”菜单上面还有 “ Architecture select (ARM architecture)”和“ ARM architecture”这两个子菜单，但是在顶层 Kconfig 中并没有看到这两个子菜单对应的 menu&#x2F;endmenu 代码块，那这两个子菜单是怎么来的呢？这两个子菜单就是 arch&#x2F;Kconfig 文件生成的。包括主界面中的“Boot timing”、“Console recording”等等这些子菜单，都是分别由顶层Kconfig 所调用的 common&#x2F;Kconfig、 cmd&#x2F;Kconfig 等这些子 Kconfig 文件来创建的。  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805070731647.png" alt="image-20230805070731647"  />
+
+<h3 id="1-4-config-条目"><a href="#1-4-config-条目" class="headerlink" title="1.4 config 条目  "></a><font size=3>1.4 config 条目  </font></h3><p>顶层 Kconfig 中的“General setup”子菜单内容如下：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805070853149.png" alt="image-20230805070853149"  />
+
+<p>可以看出，在 menu&#x2F;endmenu 代码块中有大量的“config xxxx”的代码块，也就是 config 条目。 config 条目就是“General setup”菜单的具体配置项，如上图所示。“config LOCALVERSION”对应着第一个配置项，“config LOCALVERSION_AUTO”对应着第二个配置项，以此类推。我们以 “ config LOCALVERSION ” 和 “ config LOCALVERSION_AUTO”这两个为例来分析一下 config 配置项的语法：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805071051567.png" alt="image-20230805071051567"  />
+
+<p>第 16 和 26 行，这两行都以 config 关键字开头，后面跟着 LOCALVERSION 和LOCALVERSION_AUTO，这两个就是配置项名字。假如我们使能了 LOCALVERSION_AUTO这个功能，那么就会下.config 文件中生成 CONFIG_LOCALVERSION_AUTO，这个在上一小节学习如何使能 dns 命令的时候了解过了。由此可知， .config 文件中的“CONFIG_xxx” (xxx 就是具体的配置项名字)就是 Kconfig 文件中 config 关键字后面的配置项名字加上“CONFIG_”前缀。  </p>
+<p>config 关键字下面的这几行是配置项属性，17~24 行是 LOCALVERSION 的属性。27~44 行是 LOCALVERSION_AUTO 的属性。属性里面描述了配置项的类型、输入提示、依赖关系、帮助信息和默认值等。</p>
+<p>第 17 行的 string 是变量类型，也就是“CONFIG_ LOCALVERSION”的变量类型。可以为：bool、 tristate、 string、 hex 和 int，一共 5 种。最常用的是 bool、 tristate 和 string 这三种。string 后面的“Local version - append to U-Boot release”就是这个配置项在图形界面上的显示出来的标题。  </p>
+<details class="folding-tag" blue><summary> 点击查看三种类型 </summary>
+              <div class='content'>
+              <p>（1）bool 类型有两种值： y 和 n，当为 y 的时候表示使能这个配置项，当为 n 的时候就禁止这个配置项。如下图所示：</p><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805071706114.png" alt="image-20230805071706114"  /><p>（2）tristate 类型有三种值： y、 m 和 n，其中 y 和 n 的涵义与 bool 类型一样， m 表示将这个配置项编译为模块，这种的在linux内核中使用较多。 </p><p>（3）string 为字符串类型，所以 LOCALVERSION 是个字符串变量，用来存储本地字符串，选中以后即可输入用户定义的本地版本号，如下图：</p><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805071444814.png" alt="image-20230805071444814"  />
+              </div>
+            </details>
+
+<p>第 18 行， help 表示帮助信息，告诉我们配置项的含义，当我们按下“h”或“?”弹出来的帮助界面就是 help 的内容。</p>
+<p>第 27 行，说明“CONFIG_LOCALVERSION_AUTO”是个 bool 类型，可以通过按下 Y 或 N 键来使能或者禁止 CONFIG_LOCALVERSION_AUTO。</p>
+<p>第 28 行，“default y”表示 CONFIG_LOCALVERSION_AUTO 的默认值就是 y，所以这一行默认会被选中。  </p>
+<h3 id="1-5-depends-on-和-select"><a href="#1-5-depends-on-和-select" class="headerlink" title="1.5 depends on 和 select  "></a><font size=3>1.5 depends on 和 select  </font></h3><p>打开 arch&#x2F;Kconfig 文件，在里面有这如下代码：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805072312327.png" alt="image-20230805072312327"  />
+
+<p>第 9 行，“depends on”说明“SYS_GENERIC_BOARD”项依赖于“HAVE_GENERIC_BOARD”,也就是说“HAVE_GENERIC_BOARD”被选中以后“ SYS_GENERIC_BOARD”才能被选中。</p>
+<p>第 17~20 行，“select”表示方向依赖，当选中“ARC”以后， “HAVE_PRIVATE_LIBGCC”、 “HAVE_GENERIC_BOARD”、 “SYS_GENERIC_BOARD” 和 “SUPPORT_OF_CONTROL” 这四个也会被选中。  </p>
+<h3 id="1-6-choice-endchoice"><a href="#1-6-choice-endchoice" class="headerlink" title="1.6 choice&#x2F;endchoice  "></a><font size=3>1.6 choice&#x2F;endchoice  </font></h3><p>在 arch&#x2F;Kconfig 文件中有如下代码：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805072532230.png" alt="image-20230805072532230"  />
+
+<p>choice&#x2F;endchoice 代码段定义了一组可选择项，将多个类似的配置项组合在一起，供用户单选或者多选。上图中的代码就是选择处理器架构，可以从 ARC、 ARM、 AVR32 等这些架构中选择，这里是单选。在 uboot 图形配置界面上选择“Architecture select”，进入以后如图 </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805072748488.png" alt="image-20230805072748488"  />
+
+<p>可以在图中通过移动光标来选择所使用的 CPU 架构。第 12 行的 prompt 给出这个choice&#x2F;endchoice 段的提示信息为“Architecture select”。  </p>
+<h3 id="1-7-menuconfig"><a href="#1-7-menuconfig" class="headerlink" title="1.7 menuconfig  "></a><font size=3>1.7 menuconfig  </font></h3><p>menuconfig 和 menu 很类似，但是 menuconfig 是个带选项的菜单，其一般用法为：  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">menuconfig MODULES</span><br><span class="line">    bool &quot;菜单&quot;</span><br><span class="line">    if MODULES</span><br><span class="line">    # ...</span><br><span class="line">    endif # MODULES</span><br></pre></td></tr></table></figure>
+
+<p>第 1 行，定义了一个可选的菜单 MODULES，只有选中了 MODULES 第 3~5 行 if 到 endif之间的内容才会显示。在顶层 Kconfig 中有如下代码：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805073012950.png" alt="image-20230805073012950" style="zoom:50%;" />
+
+<p>第 74~99 行使用 menuconfig 实现了一个菜单，路径如下：  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">General setup</span><br><span class="line">	[*] Configure standard U-Boot features (expert users)  ---&gt;</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805073137961.png" alt="image-20230805073137961" style="zoom:50%;" />
+
+<p>从图可以看到，前面有“[ ]”说明这个菜单是可选的，当选中这个菜单以后就可以进入到子选项中，也就是图示代码中的第 83~99 行所描述的菜单，如下所示：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805073302638.png" alt="image-20230805073302638" style="zoom:50%;" />
+
+<p>如果不选择“Configure standard U-Boot features (expert users)”，那么图示代码中的第 83~99 行所描述的菜单就不会显示出来，进去以后是空白的。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805073346439.png" alt="image-20230805073346439" style="zoom:50%;" />
+
+<h3 id="1-8-comment"><a href="#1-8-comment" class="headerlink" title="1.8 comment  "></a><font size=3>1.8 comment  </font></h3><p>comment 用于注释，也就是在图形化界面中显示一行注释，打开文件 drivers&#x2F;mtd&#x2F;nand&#x2F;Kconfig，有如下所示代码：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805073631961.png" alt="image-20230805073631961"  />
+
+<p>右侧的路径为【&rarr; Device Drivers &rarr; NAND Device Support】，可以看出，在配置项“Configure Arasan Nand”下面有一行注释，注释内容为“*** Generic NAND options ***”。  </p>
+<h3 id="1-9-source"><a href="#1-9-source" class="headerlink" title="1.9 source  "></a><font size=3>1.9 source  </font></h3><p>source 用于读取另一个 Kconfig，比如：  </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">source &quot;arch/Kconfig&quot;</span><br></pre></td></tr></table></figure>
+
+<p>基本上常用的语法就是这些，因为 uboot 相比 Linux 内核要小很多，所以配置项也要少很多，所以使用 uboot 来学习 Kconfig。一般不会修改 uboot中的 Kconfig 文件，甚至都不会使用 uboot 的图形化界面配置工具，本小节学习 Kconfig 的目的主要还是为了 Linux 内核作准备。</p>
+<h2 id="2-自定义一个Kconfig文件"><a href="#2-自定义一个Kconfig文件" class="headerlink" title="2. 自定义一个Kconfig文件"></a><font size=3>2. 自定义一个Kconfig文件</font></h2><p>这里就不写详细过程了，可以看代码仓库：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/blob/master/LV41_kconfig/02_kconfig_uboot/Kconfig">LV41_kconfig&#x2F;02_kconfig_uboot&#x2F;Kconfig · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国</a>。最终的效果过如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-06-02-menuconfig/img/image-20230805190016466-1739698285739-16.png" alt="image-20230805190016466" style="zoom:50%;" />
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/d26cc426.html">LV05-02-U-Boot-06-02-menuconfig</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2025年02月16日 - 17:58</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/d26cc426.html" title="LV05-02-U-Boot-06-02-menuconfig">https://sumumm.github.io/post/d26cc426.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/" rel="tag"><i class="fa fa-tag"></i> LV05-系统镜像</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/8aabaa38.html" rel="prev" title="LV06-09-调试与优化-01-代码优化">
+                  <i class="fa fa-angle-left"></i> LV06-09-调试与优化-01-代码优化
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/2349a0a4.html" rel="next" title="LV06-08-linux定时器-01-内核定时器">
+                  LV06-08-linux定时器-01-内核定时器 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="怎么保护共享资源，防止竞争？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-06-并发与竞争-02-并发控制">
+<meta property="og:url" content="https://sumumm.github.io/post/4af1eda3.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="怎么保护共享资源，防止竞争？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250121105044537.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250121105204784.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122095804419.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122100058803.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122100356113.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122103229395.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122103247395.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250121165825048.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250121165930968.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122111048057.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122111333006.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122110709727.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122111727299.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122111851029.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122151244602.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122151319872.png">
+<meta property="article:published_time" content="2025-01-24T15:59:53.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.053Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250121105044537.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/4af1eda3.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/4af1eda3.html","path":"post/4af1eda3.html","title":"LV06-06-并发与竞争-02-并发控制"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-06-并发与竞争-02-并发控制 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%8E%9F%E5%AD%90%E6%93%8D%E4%BD%9C"><span class="nav-text">一、原子操作</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BB%80%E4%B9%88%E6%98%AF%E5%8E%9F%E5%AD%90%E6%93%8D%E4%BD%9C"><span class="nav-text">1. 什么是原子操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%9B%B8%E5%85%B3%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8EAPI"><span class="nav-text">2. 相关数据结构与API</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-atomic-t"><span class="nav-text">2.1 atomic_t</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%8E%9F%E5%AD%90%E6%95%B4%E5%BD%A2%E6%93%8D%E4%BD%9CAPI"><span class="nav-text">2.2 原子整形操作API</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E5%8E%9F%E5%AD%90%E4%BD%8D%E6%93%8D%E4%BD%9C-API"><span class="nav-text">2.3 原子位操作 API  </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%8E%9F%E5%AD%90%E6%93%8D%E4%BD%9Cdemo"><span class="nav-text">3. 原子操作demo</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-demo%E6%BA%90%E7%A0%81"><span class="nav-text">3.1 demo源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E9%AA%8C%E8%AF%81"><span class="nav-text">3.2 开发板验证</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E8%87%AA%E6%97%8B%E9%94%81"><span class="nav-text">二、自旋锁</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BB%80%E4%B9%88%E6%98%AF%E8%87%AA%E6%97%8B%E9%94%81"><span class="nav-text">1. 什么是自旋锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E8%87%AA%E6%97%8B%E9%94%81%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="nav-text">1.1 自旋锁的基本概念</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E8%87%AA%E6%97%8B%E9%94%81%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-text">1.2 自旋锁的实现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%9F%AD%E6%97%B6%E9%97%B4%E5%8A%A0%E9%94%81%E5%9C%BA%E6%99%AF%EF%BC%9F"><span class="nav-text">2. 短时间加锁场景？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%9B%B8%E5%85%B3%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8EAPI"><span class="nav-text">3. 相关数据结构与API</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-struct-spinlock"><span class="nav-text">3.1 struct spinlock</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E8%87%AA%E6%97%8B%E9%94%81%E7%9B%B8%E5%85%B3-API"><span class="nav-text">3.2 自旋锁相关 API  </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%85%B6%E4%BB%96%E7%B1%BB%E5%9E%8B%E7%9A%84%E9%94%81"><span class="nav-text">4. 其他类型的锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E8%AF%BB%E5%86%99%E8%87%AA%E6%97%8B%E9%94%81"><span class="nav-text">4.1 读写自旋锁</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-1-%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="nav-text">4.1.1 基本概念</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-2-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="nav-text">4.1.2 数据结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-3-%E7%9B%B8%E5%85%B3API"><span class="nav-text">4.1.3 相关API</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E9%A1%BA%E5%BA%8F%E9%94%81"><span class="nav-text">4.2 顺序锁  </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-1-%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="nav-text">4.2.1 基本概念</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-2-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="nav-text">4.2.2 数据结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-3-%E7%9B%B8%E5%85%B3API"><span class="nav-text">4.2.3 相关API</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%AD%BB%E9%94%81%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">5. 死锁问题？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E4%BB%80%E4%B9%88%E6%98%AF%E6%AD%BB%E9%94%81"><span class="nav-text">5.1 什么是死锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E8%BF%9B%E7%A8%8B%E5%88%87%E6%8D%A2"><span class="nav-text">5.2 进程切换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-%E8%87%AA%E6%97%8B%E9%94%81%E7%9A%84%E6%AD%BB%E9%94%81"><span class="nav-text">5.3 自旋锁的死锁</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#5-3-1-%E6%83%85%E5%86%B5%E4%B8%80"><span class="nav-text">5.3.1 情况一</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-3-2-%E6%83%85%E5%86%B5%E4%BA%8C"><span class="nav-text">5.3.2 情况二</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="nav-text">6. 注意事项</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-%E8%87%AA%E6%97%8B%E9%94%81demo"><span class="nav-text">7. 自旋锁demo</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#7-1-%E6%AD%A3%E5%B8%B8%E4%BD%BF%E7%94%A8%E7%9A%84demo1"><span class="nav-text">7.1 正常使用的demo1</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#7-1-1-demo%E6%BA%90%E7%A0%81"><span class="nav-text">7.1.1 demo源码</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#7-1-1-1-sdriver-demo-c"><span class="nav-text">7.1.1.1 sdriver_demo.c</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#7-1-1-2-app-demo-c"><span class="nav-text">7.1.1.2 app_demo.c</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#7-1-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E9%AA%8C%E8%AF%81"><span class="nav-text">7.1.2 开发板验证</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-2-%E6%AD%A3%E5%B8%B8%E4%BD%BF%E7%94%A8%E7%9A%84demo2"><span class="nav-text">7.2 正常使用的demo2</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#7-2-1-demo%E6%BA%90%E7%A0%81"><span class="nav-text">7.2.1 demo源码</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#7-2-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E9%AA%8C%E8%AF%81"><span class="nav-text">7.2.2 开发板验证</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-3-%E6%AD%BB%E9%94%81%E7%9A%84demo"><span class="nav-text">7.3 死锁的demo</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#7-3-1-demo%E6%BA%90%E7%A0%81"><span class="nav-text">7.3.1 demo源码</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#7-3-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E9%AA%8C%E8%AF%81"><span class="nav-text">7.3.2 开发板验证</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E4%BF%A1%E5%8F%B7%E9%87%8F"><span class="nav-text">三、信号量</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BB%80%E4%B9%88%E6%98%AF%E4%BF%A1%E5%8F%B7%E9%87%8F"><span class="nav-text">1. 什么是信号量</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E4%B8%80%E4%B8%AA%E4%BE%8B%E5%AD%90"><span class="nav-text">1.1 一个例子</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E4%BF%A1%E5%8F%B7%E9%87%8F"><span class="nav-text">1.2 信号量</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BF%A1%E5%8F%B7%E9%87%8F%E7%9A%84%E7%89%B9%E7%82%B9"><span class="nav-text">2. 信号量的特点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%9B%B8%E5%85%B3%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8EAPI-1"><span class="nav-text">3. 相关数据结构与API</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-struct-semaphore"><span class="nav-text">3.1 struct semaphore</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E7%9B%B8%E5%85%B3API"><span class="nav-text">3.2 相关API</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B"><span class="nav-text">3.3 使用示例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%BF%A1%E5%8F%B7%E9%87%8Fdemo"><span class="nav-text">4. 信号量demo</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-demo%E6%BA%90%E7%A0%81"><span class="nav-text">4.1 demo源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E9%AA%8C%E8%AF%81"><span class="nav-text">4.2 开发板验证</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E4%BA%92%E6%96%A5%E9%94%81"><span class="nav-text">四、互斥锁</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BB%80%E4%B9%88%E6%98%AF%E4%BA%92%E6%96%A5%E9%94%81"><span class="nav-text">1. 什么是互斥锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%9B%B8%E5%85%B3%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8EAPI-1"><span class="nav-text">2. 相关数据结构与API</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-struct-mutex"><span class="nav-text">2.1 struct mutex</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E4%BA%92%E6%96%A5%E9%94%81%E7%9B%B8%E5%85%B3API"><span class="nav-text">2.2 互斥锁相关API</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B"><span class="nav-text">2.3 使用示例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="nav-text">3. 注意事项</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%BA%92%E6%96%A5%E9%94%81demo"><span class="nav-text">4. 互斥锁demo</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-demo%E6%BA%90%E7%A0%81-1"><span class="nav-text">4.1 demo源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E9%AA%8C%E8%AF%81-1"><span class="nav-text">4.2 开发板验证</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/4af1eda3.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-06-并发与竞争-02-并发控制 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-06-并发与竞争-02-并发控制
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-01-24 23:59:53" itemprop="dateCreated datePublished" datetime="2025-01-24T23:59:53+08:00">2025-01-24</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>15k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>55 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>怎么保护共享资源，防止竞争？若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="3">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4" target="_blank">kernel/git/stable/linux.git - Linux kernel stable tree</a></td>        <td align="left">linux kernel源码(官网,tag 4.19.71)</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、原子操作"><a href="#一、原子操作" class="headerlink" title="一、原子操作"></a><font size=3>一、原子操作</font></h1><h2 id="1-什么是原子操作"><a href="#1-什么是原子操作" class="headerlink" title="1. 什么是原子操作"></a><font size=3>1. 什么是原子操作</font></h2><p>“原子” 是化学世界中不可再分的最小微粒， 一切物质都由原子组成。 在 Linux 内核中的原子操作可以理解为“不可被拆分的操作” ， 就是不能被更高等级中断抢夺优先的操作。   </p>
+<p>一般原子操作用于变量或者位操作。假如现在要对无符号整形变量 a 赋值，值为 3，对于 C 语言来讲很简单，直接就是：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">a = <span class="number">3</span></span><br></pre></td></tr></table></figure>
+
+<p>但是 C 语言要先编译为成汇编指令， ARM 架构不支持直接对寄存器进行读写操作，比如要借助寄存器 R0、 R1 等来完成赋值操作。假设变量 a 的地址为 0X3000000，“a&#x3D;3”这一行 C语言可能会被编译为如下所示的汇编代码：  </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ldr r0, =0X30000000 /* 变量 a 地址 */</span><br><span class="line">ldr r1, = 3         /* 要写入的值 */</span><br><span class="line">str r1, [r0]        /* 将 3 写入到 a 变量中 */</span><br></pre></td></tr></table></figure>
+
+<p>只是一个简单的举例说明，实际的结果要比示例代码复杂的多。从上述代码可以看出， C 语言里面简简单单的一句“a&#x3D;3”，编译成汇编文件以后变成了 3 句，那么程序在执行的时候肯定是按照汇编语句一条一条的执行。假设现在线程 A要向 a 变量写入 10 这个值，而线程 B 也要向 a 变量写入 20 这个值，我们理想中的执行顺序如图所示：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250121105044537.png" alt="image-20250121105044537"  />
+
+<p>按照上图所示的流程，确实可以实现线程 A 将 a 变量设置为 10，线程 B 将 a 变量设置为 20。但是实际上的执行流程可能如下所示：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250121105204784.png" alt="image-20250121105204784"  />
+
+<p>按照图这个图所示的流程，线程 A 最终将变量 a 设置为了 20，而并不是要求的 10！线程B 没有问题。这就是一个最简单的设置变量值的并发与竞争的例子，要解决这个问题就<strong>要保证那三行汇编指令作为一个整体运行，也就是作为一个原子存在</strong>。</p>
+<h2 id="2-相关数据结构与API"><a href="#2-相关数据结构与API" class="headerlink" title="2. 相关数据结构与API"></a><font size=3>2. 相关数据结构与API</font></h2><p>Linux 内核提供了一组原子操作 API 函数来完成此功能， Linux 内核提供了两组原子操作 API 函数，一组是对整形变量进行操作的，一组是对位进行操作的，我们接下来看一下这些 API 函数和相关的数据结构。 </p>
+<h3 id="2-1-atomic-t"><a href="#2-1-atomic-t" class="headerlink" title="2.1 atomic_t"></a><font size=3>2.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/types.h#L178">atomic_t</a></font></h3><p>在 Linux 内核中使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/types.h#L178">atomic_t</a> 和 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/types.h#L181">atomic64_t</a> 结构体分别来完成 32 位系统和 64 位系统的<strong>整形数据原子操作</strong>， 两个结构体定义在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/types.h#L181">types.h - include&#x2F;linux&#x2F;types.h</a> 文件中  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">	<span class="type">int</span> counter;</span><br><span class="line">&#125; <span class="type">atomic_t</span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_64BIT</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">	<span class="type">long</span> counter;</span><br><span class="line">&#125; <span class="type">atomic64_t</span>;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-原子整形操作API"><a href="#2-2-原子整形操作API" class="headerlink" title="2.2 原子整形操作API"></a><font size=3>2.2 原子整形操作API</font></h3><p>如果要使用原子操作 API 函数，首先要先定义一个 atomic_t 的变量，如下所示 ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">atomic_t</span> a; <span class="comment">// 定义 a</span></span><br></pre></td></tr></table></figure>
+
+<p>也可以在定义原子变量的时候给原子变量赋初值，如下所示 :</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">atomic_t</span> b = ATOMIC_INIT(<span class="number">0</span>); <span class="comment">//定义原子变量 b 并赋初值为 0</span></span><br></pre></td></tr></table></figure>
+
+<p>原子变量有了，接下来就是对原子变量进行操作，比如读、写、增加、减少等等， Linux 内核提供了大量的原子操作 API 函数，其实这些大部分都是宏：</p>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ATOMIC_INIT(int i)</td>
+<td>定义原子变量的时候对其初始化， 赋值为 i</td>
+</tr>
+<tr>
+<td>int atomic_read(atomic_t *v)</td>
+<td>读取 v 的值， 并且返回。</td>
+</tr>
+<tr>
+<td>void atomic_set(atomic_t *v, int i)</td>
+<td>向原子变量 v 写入 i 值。</td>
+</tr>
+<tr>
+<td>void atomic_add(int i, atomic_t *v)</td>
+<td>原子变量 v 加上 i 值。</td>
+</tr>
+<tr>
+<td>void atomic_sub(int i, atomic_t *v)</td>
+<td>原子变量 v 减去 i 值。</td>
+</tr>
+<tr>
+<td>void atomic_inc(atomic_t *v)</td>
+<td>原子变量 v 加 1</td>
+</tr>
+<tr>
+<td>void atomic_dec(atomic_t *v)</td>
+<td>原子变量 v 减 1</td>
+</tr>
+<tr>
+<td>int atomic_dec_return(atomic_t *v)</td>
+<td>原子变量 v 减 1， 并返回 v 的值。</td>
+</tr>
+<tr>
+<td>int atomic_inc_return(atomic_t *v)</td>
+<td>原子变量 v 加 1， 并返回 v 的值。</td>
+</tr>
+<tr>
+<td>int atomic_sub_and_test(int i, atomic_t *v)</td>
+<td>原子变量 v 减 i， 如果结果为 0 就返回真， 否则返回假</td>
+</tr>
+<tr>
+<td>int atomic_dec_and_test(atomic_t *v)</td>
+<td>原子变量 v 减 1， 如果结果为 0 就返回真， 否则返回假</td>
+</tr>
+<tr>
+<td>int atomic_inc_and_test(atomic_t *v)</td>
+<td>原子变量 v 加 1， 如果结果为 0 就返回真， 否则返回假</td>
+</tr>
+<tr>
+<td>int atomic_add_negative(int i, atomic_t *v)</td>
+<td>原子变量 v 加 i， 如果结果为负就返回真， 否则返回</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>这些都分散定义在这些头文件，它们是：</p>
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/atomic.h">atomic.h - include&#x2F;linux&#x2F;atomic.h</a></p>
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/asm-generic/atomic.h">atomic.h - include&#x2F;asm-generic&#x2F;atomic.h</a></p>
+</blockquote>
+<p>相应的也提供了 64 位原子变量的操作 API 函数，这里我们就不详细了解，和上表中的 API 函数有用法一样，只是将“atomic_”前缀换为“atomic64_”，将 int 换为 long long。如果使用的是 64 位的 SOC，那么就要使用 64 位的原子操作函数。原子变量和相应的 API 函数使用起来很简单，参考如下:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">atomic_t</span> v = ATOMIC_INIT(<span class="number">0</span>); <span class="comment">/* 定义并初始化原子变零 v=0 */</span></span><br><span class="line"><span class="type">atomic_set</span>(&amp;v, <span class="number">10</span>);          <span class="comment">/* 设置 v=10 */</span></span><br><span class="line"><span class="type">atomic_read</span>(&amp;v);             <span class="comment">/* 读取 v 的值，肯定是 10 */</span></span><br><span class="line"><span class="type">atomic_inc</span>(&amp;v);              <span class="comment">/* v 的值加 1， v=11 */</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-原子位操作-API"><a href="#2-3-原子位操作-API" class="headerlink" title="2.3 原子位操作 API  "></a><font size=3>2.3 原子位操作 API  </font></h3><p>位操作也是很常用的操作， Linux 内核也提供了一系列的原子位操作 API 函数，只不过原子位操作不像原子整形变量那样有个 atomic_t 的数据结构，原子位操作是直接对内存进行操作， API 函数如下：</p>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>void set_bit(int nr, void *p)</td>
+<td>将 p 地址的第 nr 位置 1。</td>
+</tr>
+<tr>
+<td>void clear_bit(int nr,void *p)</td>
+<td>将 p 地址的第 nr 位清零。</td>
+</tr>
+<tr>
+<td>void change_bit(int nr, void *p)</td>
+<td>将 p 地址的第 nr 位进行翻转。</td>
+</tr>
+<tr>
+<td>int test_bit(int nr, void *p)</td>
+<td>获取 p 地址的第 nr 位的值。</td>
+</tr>
+<tr>
+<td>int test_and_set_bit(int nr, void *p)</td>
+<td>将 p 地址的第 nr 位置 1，并且返回 nr 位原来的值。</td>
+</tr>
+<tr>
+<td>int test_and_clear_bit(int nr, void *p)</td>
+<td>将 p 地址的第 nr 位清零，并且返回 nr 位原来的值。</td>
+</tr>
+<tr>
+<td>int test_and_change_bit(int nr, void *p)</td>
+<td>将 p 地址的第 nr 位翻转，并且返回 nr 位原来的值。</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Tips：</p>
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/asm-generic/bitops/atomic.h#L14">atomic.h - include&#x2F;asm-generic&#x2F;bitops&#x2F;atomic.h</a></p>
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/asm-generic/bitops/non-atomic.h#L104">non-atomic.h - include&#x2F;asm-generic&#x2F;bitops&#x2F;non-atomic.h</a></p>
+</blockquote>
+<h2 id="3-原子操作demo"><a href="#3-原子操作demo" class="headerlink" title="3. 原子操作demo"></a><font size=3>3. 原子操作demo</font></h2><h3 id="3-1-demo源码"><a href="#3-1-demo源码" class="headerlink" title="3.1 demo源码"></a><font size=3>3.1 demo源码</font></h3><p>在 xxx_open()函数和 xxx_release()函数中加入原子整形变量 v 的赋值代码， 并且在 open()函数中加入原子整形变量 v 的判断代码， 从而实现同一时间内只允许一个应用打开该设备节点， 以此来防止共享资源竞争的产生。  </p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/07_concurrency/03_atomic">07_concurrency&#x2F;03_atomic · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<h3 id="3-2-开发板验证"><a href="#3-2-开发板验证" class="headerlink" title="3.2 开发板验证"></a><font size=3>3.2 开发板验证</font></h3><p>我们将编译得到的sdriver_demo.ko、app_demo.out拷贝到开发板。</p>
+<ul>
+<li>（1）加载驱动</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">insmod sdriver_demo.ko</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122095804419.png" alt="image-20250122095804419"  />
+
+<ul>
+<li>（2）1个应用程序访问 设备节点</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./app_demo.out /dev/sdevchr 2 0 sumu1</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122100058803.png" alt="image-20250122100058803"  />
+
+<p>在open的时候，原子变量变为0，在release的时候，原子变量的值恢复到1。</p>
+<ul>
+<li>（3）2个应用程序访问 设备节点</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">./app_demo.out /dev/sdevchr 2 0 sumu1 &amp;</span><br><span class="line">./app_demo.out /dev/sdevchr 2 0 sumu2 &amp;</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122100356113.png" alt="image-20250122100356113"  />
+
+<p>可以看到应用程序在打开第二次 &#x2F;dev&#x2F;sdevchr 文件的时候， 出现了“can’t open file &#x2F;dev&#x2F;sdevchr !”打印， 证明文件打开失败， 只有在第一个应用关闭相应的文件之后， 下一个应用才能打开， 通过限制同一时间内设备访问数量， 来对共享资源进行保护。  </p>
+<h1 id="二、自旋锁"><a href="#二、自旋锁" class="headerlink" title="二、自旋锁"></a><font size=3>二、自旋锁</font></h1><h2 id="1-什么是自旋锁"><a href="#1-什么是自旋锁" class="headerlink" title="1. 什么是自旋锁"></a><font size=3>1. 什么是自旋锁</font></h2><h3 id="1-1-自旋锁的基本概念"><a href="#1-1-自旋锁的基本概念" class="headerlink" title="1.1 自旋锁的基本概念"></a><font size=3>1.1 自旋锁的基本概念</font></h3><p>原子操作只能对整形变量或者位进行保护，但是，在实际的使用环境中怎么可能只有整形变量或位这么简单的临界区呢？</p>
+<p>举个例子，设备结构体变量就不是整型变量，我们对于结构体中成员变量的操作也要保证原子性，在线程 A 对结构体变量使用期间，应该禁止其他的线程来访问此结构体变量，这些工作原子操作都不能胜任，这个时候怎么办？这就到了这一部分要学习的自旋锁了。  </p>
+<p>自旋锁是为了保护共享资源提出的一种锁机制。 自旋锁（spin lock） 是一种非阻塞锁， 也就是说， 如果某线程需要获取锁， 但该锁已经被其他线程占用时， 该线程不会被挂起， 而是在不断的消耗 CPU 资源， 不停的试图获取锁。  </p>
+<blockquote>
+<p>也就是，当一个线程要访问某个共享资源的时候首先要先获取相应的锁， 锁只能被一个线程持有，只要此线程不释放持有的锁，那么其他的线程就不能获取此锁。对于自旋锁而言，如果自旋锁正在被线程 A 持有，线程 B 想要获取自旋锁，那么线程 B 就会处于忙 <strong>循环-旋转-等待</strong> 状态，线程 B 不会进入休眠状态或者说去做其他的处理，而是会一直傻傻的在那里“转圈圈”的等待锁可用。</p>
+</blockquote>
+<p>比如现在有个公用电话亭，一次肯定只能进去一个人打电话，现在电话亭里面有人正在打电话，相当于获得了自旋锁。此时我们到了电话亭门口，因为里面有人，所以我们不能进去打电话，相当于没有获取自旋锁，这个时候我们肯定是站在原地等待，我们可能因为无聊的等待而转圈圈消遣时光，反正就是哪里也不能去，要一直等到里面的人打完电话出来。终于，里面的人打完电话出来了，相当于释放了自旋锁，这个时候我们就可以使用电话亭打电话了，相当于获取到了自旋锁。</p>
+<h3 id="1-2-自旋锁的实现"><a href="#1-2-自旋锁的实现" class="headerlink" title="1.2 自旋锁的实现"></a><font size=3>1.2 自旋锁的实现</font></h3><p> linux上的自旋锁有三种实现：</p>
+<ul>
+<li>（1）在单cpu，不可抢占内核中，自旋锁为空操作。</li>
+<li>（2）在单cpu，可抢占内核中，自旋锁实现为“禁止内核抢占”，并不实现“自旋”。</li>
+<li>（3）在多cpu，可抢占内核中，自旋锁实现为“禁止内核抢占” + “自旋”。</li>
+</ul>
+<h2 id="2-短时间加锁场景？"><a href="#2-短时间加锁场景？" class="headerlink" title="2. 短时间加锁场景？"></a><font size=3>2. 短时间加锁场景？</font></h2><p>在有些场景中， 同步资源(用来保持一致性的两个或多个资源)的锁定时间很短， 为了这一小段时间去切换线程， 线程挂起和恢复现场的花费可能会让系统得不偿失。 如果计算机有多个CPU 核心， 能够让两个或以上的线程同时并行执行， 这样我们就可以让后面那个请求锁的线程不放弃 CPU 的执行时间， 直到持有锁的线程释放锁， 后面请求锁的线程才可以获取锁。  </p>
+<p>为了让后面那个请求锁的线程“稍等一下”， 我们需让它进行自旋， 如果在自旋完成后前面锁定同步资源的线程已经释放了锁， 那么该线程便不必阻塞， 并且直接获取同步资源， 从而避免切换线程的开销。 这就是自旋锁。   </p>
+<p>从这里我们可以看到自旋锁的一个缺点：那就等待自旋锁的线程会一直处于自旋状态，这样会浪费处理器时间，降低系统性能，<strong>所以自旋锁的持有时间不能太长</strong>。自旋锁适用于短时期的轻量级加锁，如果遇到需要长时间持有锁的场景那就需要换其他的方法了，我们后面再说。</p>
+<h2 id="3-相关数据结构与API"><a href="#3-相关数据结构与API" class="headerlink" title="3. 相关数据结构与API"></a><font size=3>3. 相关数据结构与API</font></h2><h3 id="3-1-struct-spinlock"><a href="#3-1-struct-spinlock" class="headerlink" title="3.1 struct spinlock"></a><font size=3>3.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/spinlock_types.h#L61">struct spinlock</a></font></h3><p>Linux 内核使用结构体 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/spinlock_types.h#L61">struct spinlock</a> 表示自旋锁：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">spinlock</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">raw_spinlock</span> <span class="title">rlock</span>;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_DEBUG_LOCK_ALLOC</span></span><br><span class="line"><span class="meta"># <span class="keyword">define</span> LOCK_PADSIZE (offsetof(struct raw_spinlock, dep_map))</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">			u8 __padding[LOCK_PADSIZE];</span><br><span class="line">			<span class="class"><span class="keyword">struct</span> <span class="title">lockdep_map</span> <span class="title">dep_map</span>;</span></span><br><span class="line">		&#125;;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	&#125;;</span><br><span class="line">&#125; <span class="type">spinlock_t</span>;</span><br></pre></td></tr></table></figure>
+
+<p>在使用自旋锁之前，肯定要先定义一个自旋锁变量，定义方法如下所示：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">spinlock_t</span> lock; <span class="comment">// 定义自旋锁</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-自旋锁相关-API"><a href="#3-2-自旋锁相关-API" class="headerlink" title="3.2 自旋锁相关 API  "></a><font size=3>3.2 自旋锁相关 API  </font></h3><p>自旋锁相关函数定义在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/spinlock.h">spinlock.h - include&#x2F;linux&#x2F;spinlock.h</a> ：</p>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DEFINE_SPINLOCK(spinlock_t lock)</td>
+<td>定义并初始化一个自选变量。</td>
+</tr>
+<tr>
+<td>int spin_lock_init(spinlock_t *lock)</td>
+<td>初始化自旋锁。</td>
+</tr>
+<tr>
+<td>void spin_lock(spinlock_t *lock)</td>
+<td>获取指定的自旋锁，也叫做加锁。</td>
+</tr>
+<tr>
+<td>void spin_unlock(spinlock_t *lock)</td>
+<td>释放指定的自旋锁。</td>
+</tr>
+<tr>
+<td>int spin_trylock(spinlock_t *lock)</td>
+<td>尝试获取指定的自旋锁，如果没有获取到就返回 0</td>
+</tr>
+<tr>
+<td>int spin_is_locked(spinlock_t *lock)</td>
+<td>检查指定的自旋锁是否被获取，如果没有被获取就返回非 0，否则返回 0。</td>
+</tr>
+</tbody></table>
+<p>表中的自旋锁API函数适用于SMP或支持抢占的单CPU下线程之间的并发访问，也就是用于线程与线程之间，被自旋锁保护的临界区一定不能调用任何能够引起睡眠和阻塞的API 函数，否则的话会可能会导致<strong>死锁</strong>现象的发生。</p>
+<h2 id="4-其他类型的锁"><a href="#4-其他类型的锁" class="headerlink" title="4. 其他类型的锁"></a><font size=3>4. 其他类型的锁</font></h2><p>在自旋锁的基础上还衍生出了其他特定场合使用的锁，这些锁在驱动中其实用的不多，更多的是在 Linux 内核中使用。</p>
+<h3 id="4-1-读写自旋锁"><a href="#4-1-读写自旋锁" class="headerlink" title="4.1 读写自旋锁"></a><font size=3>4.1 读写自旋锁</font></h3><h4 id="4-1-1-基本概念"><a href="#4-1-1-基本概念" class="headerlink" title="4.1.1 基本概念"></a><font size=3>4.1.1 基本概念</font></h4><p>现在有个学生信息表，此表存放着学生的年龄、家庭住址、班级等信息，此表可以随时被修改和读取。此表肯定是数据，那么必须要对其进行保护，如果我们现在使用自旋锁对其进行保护。每次只能一个读操作或者写操作，但是，实际上此表是可以并发读取的。只需要保证在修改此表的时候没人读取，或者在其他人读取此表的时候没有人修改此表就行了。也就是此表的读和写不能同时进行，但是可以多人并发的读取此表。像这样，当某个数据结构符合读&#x2F;写或生产者&#x2F;消费者模型的时候就可以使用读写自旋锁。  </p>
+<p>读写自旋锁为读和写操作提供了不同的锁，一次只能允许一个写操作，也就是只能一个线程持有写锁，而且不能进行读操作。但是当没有写操作的时候允许一个或多个线程持有读锁，可以进行并发的读操作。</p>
+<h4 id="4-1-2-数据结构"><a href="#4-1-2-数据结构" class="headerlink" title="4.1.2 数据结构"></a><font size=3>4.1.2 数据结构</font></h4><p>Linux 内核使用  <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/rwlock_types.h#L20">rwlock_t</a> 结构体表示读写锁，结构体定义如下：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">	<span class="type">arch_rwlock_t</span> raw_lock;</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_DEBUG_SPINLOCK</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span> magic, owner_cpu;</span><br><span class="line">	<span class="type">void</span> *owner;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_DEBUG_LOCK_ALLOC</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">lockdep_map</span> <span class="title">dep_map</span>;</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">&#125; <span class="type">rwlock_t</span>;</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-1-3-相关API"><a href="#4-1-3-相关API" class="headerlink" title="4.1.3 相关API"></a><font size=3>4.1.3 相关API</font></h4><p>读写锁操作 API 函数分为两部分，一个是给读使用的，一个是给写使用的，这些 API 函数如下：</p>
+<ul>
+<li>初始化</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DEFINE_RWLOCK(rwlock_t lock)</td>
+<td>定义并初始化读写锁</td>
+</tr>
+<tr>
+<td>void rwlock_init(rwlock_t *lock)</td>
+<td>初始化读写锁。</td>
+</tr>
+</tbody></table>
+<ul>
+<li>读锁</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>void read_lock(rwlock_t *lock)</td>
+<td>获取读锁。</td>
+</tr>
+<tr>
+<td>void read_unlock(rwlock_t *lock)</td>
+<td>释放读锁。</td>
+</tr>
+<tr>
+<td>void read_lock_irq(rwlock_t *lock)</td>
+<td>禁止本地中断，并且获取读锁。</td>
+</tr>
+<tr>
+<td>void read_unlock_irq(rwlock_t *lock)</td>
+<td>打开本地中断，并且释放读锁。</td>
+</tr>
+<tr>
+<td>void read_lock_irqsave(rwlock_t *lock, unsigned long flags)</td>
+<td>保存中断状态，禁止本地中断，并获取读锁。</td>
+</tr>
+<tr>
+<td>void read_unlock_irqrestore(rwlock_t *lock, unsigned long flags)</td>
+<td>将中断状态恢复到以前的状态，并且激活本地中断，释放读锁。</td>
+</tr>
+<tr>
+<td>void read_lock_bh(rwlock_t *lock)</td>
+<td>关闭下半部，并获取读锁。</td>
+</tr>
+<tr>
+<td>void read_unlock_bh(rwlock_t *lock)</td>
+<td>打开下半部，并释放读锁。</td>
+</tr>
+</tbody></table>
+<ul>
+<li>写锁</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>void write_lock(rwlock_t *lock)</td>
+<td>获取写锁。</td>
+</tr>
+<tr>
+<td>void write_unlock(rwlock_t *lock)</td>
+<td>释放写锁。</td>
+</tr>
+<tr>
+<td>void write_lock_irq(rwlock_t *lock)</td>
+<td>禁止本地中断，并且获取写锁。</td>
+</tr>
+<tr>
+<td>void write_unlock_irq(rwlock_t *lock)</td>
+<td>打开本地中断，并且释放写锁。</td>
+</tr>
+<tr>
+<td>void write_lock_irqsave(rwlock_t *lock, unsigned long flags)</td>
+<td>保存中断状态，禁止本地中断，并获取写锁。</td>
+</tr>
+<tr>
+<td>void write_unlock_irqrestore(rwlock_t *lock, unsigned long flags)</td>
+<td>将中断状态恢复到以前的状态，并且激活本地中断，释放读锁。</td>
+</tr>
+<tr>
+<td>void write_lock_bh(rwlock_t *lock)</td>
+<td>关闭下半部，并获取读锁。</td>
+</tr>
+<tr>
+<td>void write_unlock_bh(rwlock_t *lock)</td>
+<td>打开下半部，并释放读锁。</td>
+</tr>
+</tbody></table>
+<h3 id="4-2-顺序锁"><a href="#4-2-顺序锁" class="headerlink" title="4.2 顺序锁  "></a><font size=3>4.2 顺序锁  </font></h3><h4 id="4-2-1-基本概念"><a href="#4-2-1-基本概念" class="headerlink" title="4.2.1 基本概念"></a><font size=3>4.2.1 基本概念</font></h4><p>顺序锁在读写锁的基础上衍生而来的，使用读写锁的时候读操作和写操作不能同时进行。使用顺序锁的话可以允许在写的时候进行读操作，也就是实现同时读写，但是不允许同时进行并发的写操作。虽然顺序锁的读和写操作可以同时进行，但是如果在读的过程中发生了写操作，最好重新进行读取，保证数据完整性。顺序锁保护的资源不能是指针，因为如果在写操作的时候可能会导致指针无效，而这个时候恰巧有读操作访问指针的话就可能导致意外发生，比如读取野指针导致系统崩溃。   </p>
+<h4 id="4-2-2-数据结构"><a href="#4-2-2-数据结构" class="headerlink" title="4.2.2 数据结构"></a><font size=3>4.2.2 数据结构</font></h4><p>Linux 内核使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/seqlock.h#L407">seqlock_t</a>结构体表示顺序锁 ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">seqcount</span> <span class="title">seqcount</span>;</span></span><br><span class="line">	<span class="type">spinlock_t</span> lock;</span><br><span class="line">&#125; <span class="type">seqlock_t</span>;</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-2-3-相关API"><a href="#4-2-3-相关API" class="headerlink" title="4.2.3 相关API"></a><font size=3>4.2.3 相关API</font></h4><ul>
+<li>初始化</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DEFINE_SEQLOCK(seqlock_t sl)</td>
+<td>定义并初始化顺序锁</td>
+</tr>
+<tr>
+<td>void seqlock_ini seqlock_t *sl)</td>
+<td>初始化顺序锁。</td>
+</tr>
+</tbody></table>
+<ul>
+<li>顺序写操作</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>void write_seqlock(seqlock_t *sl)</td>
+<td>获取写顺序锁。</td>
+</tr>
+<tr>
+<td>void write_sequnlock(seqlock_t *sl)</td>
+<td>释放写顺序锁。</td>
+</tr>
+<tr>
+<td>void write_seqlock_irq(seqlock_t *sl)</td>
+<td>禁止本地中断，并且获取写顺序锁</td>
+</tr>
+<tr>
+<td>void write_sequnlock_irq(seqlock_t *sl)</td>
+<td>打开本地中断，并且释放写顺序锁。</td>
+</tr>
+<tr>
+<td>void write_seqlock_irqsave(seqlock_t *sl, unsigned long flags)</td>
+<td>保存中断状态，禁止本地中断，并获取写顺序锁。</td>
+</tr>
+<tr>
+<td>void write_sequnlock_irqrestore(seqlock_t *sl, unsigned long flags)</td>
+<td>将中断状态恢复到以前的状态，并且激活本地中断，释放写顺序锁。</td>
+</tr>
+<tr>
+<td>void write_seqlock_bh(seqlock_t *sl)</td>
+<td>关闭下半部，并获取写读锁。</td>
+</tr>
+<tr>
+<td>void write_sequnlock_bh(seqlock_t *sl)</td>
+<td>打开下半部，并释放写读锁。</td>
+</tr>
+</tbody></table>
+<ul>
+<li>顺序读操作</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>unsigned read_seqbegin(const seqlock_t *sl)</td>
+<td>读单元访问共享资源的时候调用此函数，此函数会返回顺序锁的顺序号。</td>
+</tr>
+<tr>
+<td>unsigned read_seqretry(const seqlock_t *sl, unsigned start)</td>
+<td>读结束以后调用此函数检查在读的过程中有没有对资源进行写操作，如果有的话就要重读</td>
+</tr>
+</tbody></table>
+<h2 id="5-死锁问题？"><a href="#5-死锁问题？" class="headerlink" title="5. 死锁问题？"></a><font size=3>5. 死锁问题？</font></h2><h3 id="5-1-什么是死锁"><a href="#5-1-什么是死锁" class="headerlink" title="5.1 什么是死锁"></a><font size=3>5.1 什么是死锁</font></h3><p>死锁是指两个或多个事物在同一资源上相互占用， 并请求锁定对方的资源， 从而导致恶性循环的现象。 当多个进程因竞争资源而造成的一种僵局（互相等待） ， 若无外力作用， 这些进程都将无法向前推进， 这种情况就是死锁。  </p>
+<h3 id="5-2-进程切换"><a href="#5-2-进程切换" class="headerlink" title="5.2 进程切换"></a><font size=3>5.2 进程切换</font></h3><ul>
+<li>在非抢占式内核中，如果一个进程在内核态运行，其只有在以下两种情况会被切换：</li>
+</ul>
+<p>（1）其运行完成（返回用户空间）</p>
+<p>（2）主动让出cpu（即主动调用schedule或内核中的任务阻塞——这同样也会导致调用schedule）</p>
+<ul>
+<li>在抢占式内核中，如果一个进程在内核态运行，其只有在以下四种情况会被切换：</li>
+</ul>
+<p>（1）其运行完成（返回用户空间）</p>
+<p>（2）主动让出cpu（即主动调用schedule或内核中的任务阻塞——这同样也会导致调用schedule）</p>
+<p>（3）当从中断处理程序正在执行，且返回内核空间之前（此时可抢占标志premptcount须为0） 。</p>
+<p>（4）当内核代码再一次具有可抢占性的时候，如解锁及使能软中断等。</p>
+<blockquote>
+<p>禁止内核抢占只是关闭“可抢占标志”，而不是禁止进程切换。显式使用schedule或进程阻塞（此也会导致调用schedule）时，还是会发生进程调度的。</p>
+</blockquote>
+<h3 id="5-3-自旋锁的死锁"><a href="#5-3-自旋锁的死锁" class="headerlink" title="5.3 自旋锁的死锁"></a><font size=3>5.3 自旋锁的死锁</font></h3><h4 id="5-3-1-情况一"><a href="#5-3-1-情况一" class="headerlink" title="5.3.1 情况一"></a><font size=3>5.3.1 情况一</font></h4><p>对于多核抢占与多核非抢占的情况，在使用自旋锁时，其情况基本是一致的。因为在多核抢占的情况下，使用自旋锁会禁止内核抢占，这样多核抢占就相当于多核非抢占的情况。</p>
+<p>自旋锁会自动禁止抢占，也就说当线程 A得到锁以后会暂时禁止内核抢占。如果线程 A 在持有锁期间进入了休眠状态，那么进程 A 会自动放弃 CPU 使用权。进程 B 开始运行，进程 B 也想要获取锁，但是此时锁被 A 进程持有，而且内核抢占还被禁止了！进程 B 无法被调度出去，那么进程 A 就无法运行，锁也就无法释放，好了，死锁发生了！ 如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122103229395.png" alt="image-20250122103229395"  />
+
+<blockquote>
+<p>在单cpu内核上不会出现上述情况，因为单cpu上的自旋锁实际没有“自旋功能”。</p>
+</blockquote>
+<p>相应的解决办法是， 在自旋锁的使用过程中要尽可能短的时间内拥有自旋锁， 而且不能在临界区中调用导致线程休眠的函数。</p>
+<h4 id="5-3-2-情况二"><a href="#5-3-2-情况二" class="headerlink" title="5.3.2 情况二"></a><font size=3>5.3.2 情况二</font></h4><p>第二种情况是进程 A 拥有自旋锁， 中断到来， CPU 执行中断函数， 进程A切换到中断处理函数， 在中断处理函数中又需要获得自旋锁， 访问共享资源， 此时中断处理函数无法获得锁， 只能自旋， 如下图所示：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122103247395.png" alt="image-20250122103247395"  />
+
+<p>对于中断引发的死锁， 最好的解决方法就是在获取锁之前关闭本地中断， Linux 内核在  <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/spinlock.h">spinlock.h - include&#x2F;linux&#x2F;spinlock.h</a> 文件中提供了相应的 API 函数  :</p>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>void spin_lock_irq(spinlock_t *lock)</td>
+<td>禁止本地中断， 并获取自旋锁。</td>
+</tr>
+<tr>
+<td>void spin_unlock_irq(spinlock_t *lock)</td>
+<td>激活本地中断， 并释放自旋锁。</td>
+</tr>
+<tr>
+<td>void spin_lock_irqsave(spinlock_t *lock, unsigned long flags)</td>
+<td>恢复中断状态， 关闭中断并获取自旋锁。</td>
+</tr>
+<tr>
+<td>void spin_unlock_irqrestore(spinlock_t *lock, unsigned long flags)</td>
+<td>将中断状态恢复到以前的状态， 打开中断并释放自旋锁</td>
+</tr>
+<tr>
+<td>void spin_lock_bh(spinlock_t *lock)</td>
+<td>关闭下半部， 获取自旋锁</td>
+</tr>
+<tr>
+<td>void spin_unlock_bh(spinlock_t *lock)</td>
+<td>打开下半部， 获取自旋锁</td>
+</tr>
+</tbody></table>
+<p>由于 Linux 内核运行是非常复杂的， 很难确定某个时刻的中断状态， 因此建议使用spin_lock_irqsave 、spin_unlock_irqrestore， 因为这一组函数会保存中断状态， 在释放锁的时候会恢复中断状态。  </p>
+<h2 id="6-注意事项"><a href="#6-注意事项" class="headerlink" title="6. 注意事项"></a><font size=3>6. 注意事项</font></h2><p>①、因为在等待自旋锁的时候处于“自旋”状态，因此锁的持有时间不能太长，一定要短，否则的话会降低系统性能。如果临界区比较大，运行时间比较长的话要选择其他的并发处理方式，比如稍后要学习的信号量和互斥体。</p>
+<p>②、自旋锁保护的临界区内不能调用任何可能导致线程休眠的 API 函数，否则的话可能导致死锁。</p>
+<p>③、不能递归申请自旋锁，因为一旦通过递归的方式申请一个我们正在持有的锁，那么我们就必须“自旋”，等待锁被释放，然而正处于“自旋”状态，根本没法释放锁。结果就是自己把自己锁死了！</p>
+<p>④、在编写驱动程序的时候我们必须考虑到驱动的可移植性，因此不管用的是单核的还是多核的 SOC，都将其当做多核 SOC 来编写驱动程序。</p>
+<h2 id="7-自旋锁demo"><a href="#7-自旋锁demo" class="headerlink" title="7. 自旋锁demo"></a><font size=3>7. 自旋锁demo</font></h2><p>加了锁之后，内部休眠太久的话，会卡死并产生崩溃，崩溃应该是死锁导致的，但是要是把锁加在内部循环的地方，会有不一样的效果，大概可以演示自旋锁的效果。这里有两个正常demo，两个异常的demo，异常的两个可以当做死锁的实例。</p>
+<h3 id="7-1-正常使用的demo1"><a href="#7-1-正常使用的demo1" class="headerlink" title="7.1 正常使用的demo1"></a><font size=3>7.1 正常使用的demo1</font></h3><h4 id="7-1-1-demo源码"><a href="#7-1-1-demo源码" class="headerlink" title="7.1.1 demo源码"></a><font size=3>7.1.1 demo源码</font></h4><h5 id="7-1-1-1-sdriver-demo-c"><a href="#7-1-1-1-sdriver-demo-c" class="headerlink" title="7.1.1.1 sdriver_demo.c"></a><font size=3>7.1.1.1 sdriver_demo.c</font></h5><details class="folding-tag" blue><summary> 点击查看详情 </summary>
+              <div class='content'>
+              <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br><span class="line">280</span><br><span class="line">281</span><br><span class="line">282</span><br><span class="line">283</span><br><span class="line">284</span><br><span class="line">285</span><br><span class="line">286</span><br><span class="line">287</span><br><span class="line">288</span><br><span class="line">289</span><br><span class="line">290</span><br><span class="line">291</span><br><span class="line">292</span><br><span class="line">293</span><br><span class="line">294</span><br><span class="line">295</span><br><span class="line">296</span><br><span class="line">297</span><br><span class="line">298</span><br><span class="line">299</span><br><span class="line">300</span><br><span class="line">301</span><br><span class="line">302</span><br><span class="line">303</span><br><span class="line">304</span><br><span class="line">305</span><br><span class="line">306</span><br><span class="line">307</span><br><span class="line">308</span><br><span class="line">309</span><br><span class="line">310</span><br><span class="line">311</span><br><span class="line">312</span><br><span class="line">313</span><br><span class="line">314</span><br><span class="line">315</span><br><span class="line">316</span><br><span class="line">317</span><br><span class="line">318</span><br><span class="line">319</span><br><span class="line">320</span><br><span class="line">321</span><br><span class="line">322</span><br><span class="line">323</span><br><span class="line">324</span><br><span class="line">325</span><br><span class="line">326</span><br><span class="line">327</span><br><span class="line">328</span><br><span class="line">329</span><br><span class="line">330</span><br><span class="line">331</span><br><span class="line">332</span><br><span class="line">333</span><br><span class="line">334</span><br><span class="line">335</span><br><span class="line">336</span><br><span class="line">337</span><br><span class="line">338</span><br><span class="line">339</span><br><span class="line">340</span><br><span class="line">341</span><br><span class="line">342</span><br><span class="line">343</span><br><span class="line">344</span><br><span class="line">345</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/init.h&gt;</span> <span class="comment">/* module_init module_exit */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/module.h&gt;</span> <span class="comment">/* MODULE_LICENSE */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/fs.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/cdev.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/uaccess.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/delay.h&gt;</span> <span class="comment">/* msleep等延时函数 */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./timestamp_autogenerated.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./version_autogenerated.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./sdrv_common.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// #undef PRT</span></span><br><span class="line"><span class="comment">// #undef PRTE</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> PRT</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PRT printk</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> PRTE</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PRTE printk</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CHRDEV_NAME <span class="string">&quot;sdev&quot;</span>    <span class="comment">/* 设备名,cat /proc/devices 查看与设备号的对应关系 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CLASS_NAME  <span class="string">&quot;sclass&quot;</span>  <span class="comment">/* 类名，在 /sys/class 中显示的名称 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DEVICE_NAME <span class="string">&quot;sdevchr&quot;</span> <span class="comment">/* 设备节点名，在 /sys/class/class_name/ 中显示的名称以及 /dev/ 下显示的节点名 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BUFSIZE     32        <span class="comment">/* 设置最大偏移量为32 */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CMD_TEST0 _IO(<span class="string">&#x27;S&#x27;</span>, 0)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CMD_TEST1 _IOW(<span class="string">&#x27;S&#x27;</span>, 1, int)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CMD_TEST2 _IOR(<span class="string">&#x27;S&#x27;</span>, 2, int)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CMD_TEST3 _IOW(<span class="string">&#x27;S&#x27;</span>, 3, int)</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> __<span class="title">CMD_TEST</span>&#123;</span></span><br><span class="line">	<span class="type">int</span> a;</span><br><span class="line">	<span class="type">int</span> b;</span><br><span class="line">	<span class="type">int</span> c;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> __<span class="title">CHAR_DEVICE</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="type">dev_t</span> dev_num;         <span class="comment">// 定义dev_t类型（32位大小）的变量dev_num,用来存放设备号</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">cdev</span> <span class="title">s_cdev</span>;</span>    <span class="comment">// 定义cdev结构体类型的变量scdev</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="keyword">class</span> *<span class="keyword">class</span>;</span>   <span class="comment">// 定于struct class *类型结构体变量 class，表示要创建的类</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">device</span> *<span class="title">device</span>;</span> <span class="comment">// 设备</span></span><br><span class="line">    <span class="type">char</span> buf[BUFSIZE];     <span class="comment">// 设置数据存储数组mem</span></span><br><span class="line">    ulong run_cnt;         <span class="comment">// 竞争测试用的一个共享数据</span></span><br><span class="line">    <span class="type">spinlock_t</span> s_lock;     <span class="comment">// 自旋锁</span></span><br><span class="line">&#125; _CHAR_DEVICE;</span><br><span class="line"></span><br><span class="line">_CHAR_DEVICE g_chrdev = &#123;<span class="number">0</span>&#125;;  <span class="comment">//定义一个device_test结构体变量</span></span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">scdev_ops_open</span><span class="params">(<span class="keyword">struct</span> inode *pInode, <span class="keyword">struct</span> file *pFile)</span></span><br><span class="line">&#123;</span><br><span class="line">    PRT(<span class="string">&quot;This is scdev_ops_open!\n&quot;</span>);</span><br><span class="line">    pFile-&gt;private_data = &amp;g_chrdev;  <span class="comment">//设置私有数据</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">scdev_ops_read</span><span class="params">(<span class="keyword">struct</span> file *pFile, <span class="type">char</span> __user *buf, <span class="type">size_t</span> size, <span class="type">loff_t</span> *off)</span></span><br><span class="line">&#123;</span><br><span class="line">    </span><br><span class="line">    <span class="type">loff_t</span> offset = *off; <span class="comment">// 将读取数据的偏移量赋值给loff_t类型变量p</span></span><br><span class="line">    <span class="type">size_t</span> count = size;</span><br><span class="line">    _CHAR_DEVICE *p_chrdev=(_CHAR_DEVICE *)pFile-&gt;private_data; <span class="comment">//在write函数中读取private_data</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (offset &gt; BUFSIZE)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (count &gt; BUFSIZE - offset)</span><br><span class="line">    &#123;</span><br><span class="line">        count = BUFSIZE - offset;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (copy_to_user(buf, p_chrdev-&gt;buf + offset, count))</span><br><span class="line">    &#123; </span><br><span class="line">        <span class="comment">// 将mem中的值写入buf，并传递到用户空间</span></span><br><span class="line">        PRT(<span class="string">&quot;copy_to_user error!\n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">#<span class="keyword">if</span> 0</span></span><br><span class="line">    <span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; BUFSIZE; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        PRT(<span class="string">&quot;buf[%d] %c\n&quot;</span>, i, p_chrdev-&gt;buf[i]); <span class="comment">// 将mem中的值打印出来</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    PRT(<span class="string">&quot;read offset is %llu, count is %d\n&quot;</span>, offset, count);</span><br><span class="line">    <span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">    *off = *off + count; <span class="comment">// 更新偏移值</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">scdev_ops_write</span><span class="params">(<span class="keyword">struct</span> file *pFile, <span class="type">const</span> <span class="type">char</span> __user *buf, <span class="type">size_t</span> size, <span class="type">loff_t</span> *off)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">loff_t</span> offset = *off; <span class="comment">// 将读取数据的偏移量赋值给loff_t类型变量p</span></span><br><span class="line">    <span class="type">size_t</span> count = size;</span><br><span class="line">    <span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    _CHAR_DEVICE *p_chrdev=(_CHAR_DEVICE *)pFile-&gt;private_data; <span class="comment">//在write函数中读取private_data</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (offset &gt; BUFSIZE)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (count &gt; BUFSIZE - offset)</span><br><span class="line">    &#123;</span><br><span class="line">        count = BUFSIZE - offset;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (copy_from_user(p_chrdev-&gt;buf + offset, buf, count))</span><br><span class="line">    &#123; </span><br><span class="line">        <span class="comment">// 将buf中的值，从用户空间传递到内核空间</span></span><br><span class="line">        PRT(<span class="string">&quot;copy_to_user error \n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 将拷贝的数据转化为10进制数</span></span><br><span class="line">    kstrtoul_from_user(buf, count, <span class="number">10</span>, &amp;p_chrdev-&gt;run_cnt);</span><br><span class="line">    spin_lock(&amp;p_chrdev-&gt;s_lock);</span><br><span class="line">    <span class="keyword">for</span> (i = p_chrdev-&gt;run_cnt; i &gt; <span class="number">0</span>; i--)</span><br><span class="line">    &#123;</span><br><span class="line">        PRT(<span class="string">&quot;addr=0x%px run_cnt=%ld current is %d\n&quot;</span>, &amp;p_chrdev-&gt;run_cnt, p_chrdev-&gt;run_cnt, i); <span class="comment">// 循环打印数据</span></span><br><span class="line">        mdelay(<span class="number">200</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    spin_unlock(&amp;p_chrdev-&gt;s_lock);</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> 0</span></span><br><span class="line">    <span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; BUFSIZE; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        PRT(<span class="string">&quot;buf[%d] %c\n&quot;</span>, i, p_chrdev-&gt;buf[i]); <span class="comment">// 将mem中的值打印出来</span></span><br><span class="line">    &#125;</span><br><span class="line">    PRT(<span class="string">&quot;write offset is %llu, count is %d\n&quot;</span>, offset, count); <span class="comment">// 打印写入的值</span></span><br><span class="line">    <span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">    *off = *off + count;                         <span class="comment">// 更新偏移值</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">scdev_ops_release</span><span class="params">(<span class="keyword">struct</span> inode *pInode, <span class="keyword">struct</span> file *pFile)</span></span><br><span class="line">&#123;</span><br><span class="line">    PRT(<span class="string">&quot;This is scdev_ops_release!\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">loff_t</span> <span class="title function_">scdev_ops_llseek</span><span class="params">(<span class="keyword">struct</span> file *pFile, <span class="type">loff_t</span> offset, <span class="type">int</span> whence)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">loff_t</span> new_offset = <span class="number">0</span>; <span class="comment">// 定义loff_t类型的新的偏移值</span></span><br><span class="line">    <span class="keyword">switch</span> (whence)    <span class="comment">// 对lseek函数传递的whence参数进行判断</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">case</span> SEEK_SET:</span><br><span class="line">            <span class="keyword">if</span> (offset &lt; <span class="number">0</span> || offset &gt; BUFSIZE)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> -EINVAL; <span class="comment">// EINVAL=22 表示无效参数</span></span><br><span class="line">            &#125;</span><br><span class="line">            new_offset = offset; <span class="comment">// 如果whence参数为SEEK_SET，则新偏移值为offset</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> SEEK_CUR:</span><br><span class="line">            <span class="keyword">if</span> ((pFile-&gt;f_pos + offset &lt; <span class="number">0</span>) || (pFile-&gt;f_pos + offset &gt; BUFSIZE))</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> -EINVAL;</span><br><span class="line">            &#125;</span><br><span class="line">            new_offset = pFile-&gt;f_pos + offset; <span class="comment">// 如果whence参数为SEEK_CUR，则新偏移值为pFile-&gt;f_pos + offset，pFile-&gt;f_pos为当前的偏移值</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> SEEK_END:</span><br><span class="line">            <span class="keyword">if</span> (pFile-&gt;f_pos + offset &lt; <span class="number">0</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> -EINVAL;</span><br><span class="line">            &#125;</span><br><span class="line">            new_offset = BUFSIZE + offset; <span class="comment">// 如果whence参数为SEEK_END，则新偏移值为BUFSIZE + offset，BUFSIZE为最大偏移量</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    pFile-&gt;f_pos = new_offset; <span class="comment">// 更新pFile-&gt;f_pos偏移值</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> new_offset;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">long</span> <span class="title function_">scdev_ops_ioctl</span><span class="params">(<span class="keyword">struct</span> file *pFile, <span class="type">unsigned</span> <span class="type">int</span> cmd, <span class="type">unsigned</span> <span class="type">long</span> arg)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> val = <span class="number">0</span>;<span class="comment">//定义 int 类型向应用空间传递的变量 val</span></span><br><span class="line">    <span class="keyword">switch</span>(cmd)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">case</span> CMD_TEST0:</span><br><span class="line">            PRT(<span class="string">&quot;this is CMD_TEST0\n&quot;</span>);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> CMD_TEST1:</span><br><span class="line">            PRT(<span class="string">&quot;this is CMD_TEST1\n&quot;</span>);</span><br><span class="line">            PRT(<span class="string">&quot;arg is %ld\n&quot;</span>,arg);<span class="comment">//打印应用空间传递来的 arg 参数</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> CMD_TEST2:</span><br><span class="line">            val = <span class="number">1</span>;<span class="comment">//将要传递的变量 val 赋值为 1</span></span><br><span class="line">            PRT(<span class="string">&quot;this is CMD_TEST2\n&quot;</span>);</span><br><span class="line">            <span class="keyword">if</span>(copy_to_user((<span class="type">int</span> *)arg, &amp;val, <span class="keyword">sizeof</span>(val)) != <span class="number">0</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="comment">//通过 copy_to_user 向用户空间传递数据</span></span><br><span class="line">                PRT(<span class="string">&quot;copy_to_user error \n&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> CMD_TEST3:</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="class"><span class="keyword">struct</span> __<span class="title">CMD_TEST</span> <span class="title">cmd_test3</span> =</span> &#123;<span class="number">0</span>&#125;;</span><br><span class="line">            <span class="keyword">if</span> (copy_from_user(&amp;cmd_test3, (<span class="type">int</span> *)arg, <span class="keyword">sizeof</span>(cmd_test3)) != <span class="number">0</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                PRT(<span class="string">&quot;copy_from_user error\n&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            PRT(<span class="string">&quot;cmd_test3.a = %d\n&quot;</span>, cmd_test3.a);</span><br><span class="line">            PRT(<span class="string">&quot;cmd_test3.b = %d\n&quot;</span>, cmd_test3.b);</span><br><span class="line">            PRT(<span class="string">&quot;cmd_test3.c = %d\n&quot;</span>, cmd_test3.c);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> <span class="title">g_scdev_ops</span> =</span> &#123;</span><br><span class="line">    .owner = THIS_MODULE,<span class="comment">//将owner字段指向本模块，可以避免在模块的操作正在被使用时卸载该模块</span></span><br><span class="line">	.open = scdev_ops_open,</span><br><span class="line">	.read = scdev_ops_read,</span><br><span class="line">	.write = scdev_ops_write,</span><br><span class="line">	.release = scdev_ops_release,</span><br><span class="line">    .llseek = scdev_ops_llseek,</span><br><span class="line">    .unlocked_ioctl = scdev_ops_ioctl,</span><br><span class="line">&#125;; <span class="comment">// 定义file_operations结构体类型的变量g_cdev_dev_ops</span></span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">scdev_create</span><span class="params">(_CHAR_DEVICE *p_chrdev)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> ret;          <span class="comment">// 定义int类型的变量ret，用来判断函数返回值</span></span><br><span class="line">    <span class="type">int</span> major, minor; <span class="comment">// 定义int类型的主设备号major和次设备号minor</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 初始化自旋锁 */</span></span><br><span class="line">	spin_lock_init(&amp;p_chrdev-&gt;s_lock);</span><br><span class="line"></span><br><span class="line">    ret = alloc_chrdev_region(&amp;p_chrdev-&gt;dev_num, <span class="number">0</span>, <span class="number">1</span>, CHRDEV_NAME); <span class="comment">// 自动获取设备号，设备名为chrdev_name</span></span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;alloc_chrdev_region is error!ret=%d\n&quot;</span>, ret);</span><br><span class="line">        <span class="keyword">goto</span> err_alloc_devno;</span><br><span class="line">    &#125;</span><br><span class="line">    major = MAJOR(p_chrdev-&gt;dev_num); <span class="comment">// 使用MAJOR()函数获取主设备号</span></span><br><span class="line">    minor = MINOR(p_chrdev-&gt;dev_num); <span class="comment">// 使用MINOR()函数获取次设备号</span></span><br><span class="line">    PRT(<span class="string">&quot;major is %d, minor is %d !\n&quot;</span>, major, minor);</span><br><span class="line"></span><br><span class="line">    cdev_init(&amp;p_chrdev-&gt;s_cdev, &amp;g_scdev_ops); <span class="comment">// 使用cdev_init()函数初始化p_chrdev-&gt;s_cdev结构体，并链接到 cdev_ops 结构体</span></span><br><span class="line">    p_chrdev-&gt;s_cdev.owner = THIS_MODULE;          <span class="comment">// 将owner字段指向本模块，可以避免在模块的操作正在被使用时卸载该模块</span></span><br><span class="line">    ret = cdev_add(&amp;p_chrdev-&gt;s_cdev, p_chrdev-&gt;dev_num, <span class="number">1</span>); <span class="comment">// 使用cdev_add()函数进行字符设备的添加</span></span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;cdev_add is error !ret=%d\n&quot;</span>, ret);</span><br><span class="line">        <span class="keyword">goto</span> err_cdev_add;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    p_chrdev-&gt;<span class="class"><span class="keyword">class</span> =</span> class_create(THIS_MODULE, CLASS_NAME); <span class="comment">// 使用class_create进行类的创建，类名称为 class_dev</span></span><br><span class="line">    <span class="keyword">if</span>(IS_ERR(p_chrdev-&gt;class))</span><br><span class="line">    &#123;</span><br><span class="line">        ret = PTR_ERR(p_chrdev-&gt;class);</span><br><span class="line">        <span class="keyword">goto</span> err_class_create;</span><br><span class="line">    &#125;</span><br><span class="line">    p_chrdev-&gt;device = device_create(p_chrdev-&gt;class, <span class="literal">NULL</span>, p_chrdev-&gt;dev_num, <span class="literal">NULL</span>, <span class="string">&quot;%s&quot;</span>, DEVICE_NAME); <span class="comment">// 使用device_create进行设备的创建，设备名称为 device_dev</span></span><br><span class="line">    <span class="keyword">if</span>(IS_ERR(p_chrdev-&gt;device))</span><br><span class="line">    &#123;</span><br><span class="line">        ret = PTR_ERR(p_chrdev-&gt;class);</span><br><span class="line">        <span class="keyword">goto</span> err_device_create;</span><br><span class="line">    &#125;</span><br><span class="line">    PRT(<span class="string">&quot;scdev_create /dev/%s success!\n&quot;</span>, DEVICE_NAME);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    <span class="comment">// 一些列的错误处理</span></span><br><span class="line">err_device_create:</span><br><span class="line">    class_destroy(p_chrdev-&gt;class);   <span class="comment">// 删除创建的类</span></span><br><span class="line">err_class_create:</span><br><span class="line">    cdev_del(&amp;p_chrdev-&gt;s_cdev);      <span class="comment">// 使用cdev_del()函数进行字符设备的删除</span></span><br><span class="line">err_cdev_add:</span><br><span class="line">    unregister_chrdev_region(p_chrdev-&gt;dev_num, <span class="number">1</span>); <span class="comment">//注销设备号</span></span><br><span class="line">err_alloc_devno:</span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">scdev_destroy</span><span class="params">(_CHAR_DEVICE *p_chrdev)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 需要注意的是， 字符设备的注册要放在申请字符设备号之后，</span></span><br><span class="line">    <span class="comment">// 字符设备的删除要放在释放字符驱动设备号之前。</span></span><br><span class="line">    cdev_del(&amp;p_chrdev-&gt;s_cdev);                    <span class="comment">// 使用cdev_del()函数进行字符设备的删除</span></span><br><span class="line">    unregister_chrdev_region(p_chrdev-&gt;dev_num, <span class="number">1</span>); <span class="comment">// 释放字符驱动设备号</span></span><br><span class="line">    device_destroy(p_chrdev-&gt;class, p_chrdev-&gt;dev_num); <span class="comment">// 删除创建的设备</span></span><br><span class="line">    class_destroy(p_chrdev-&gt;class);                 <span class="comment">// 删除创建的类</span></span><br><span class="line">    PRT(<span class="string">&quot;scdev_destroy success!\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdrv_demo_init</span></span><br><span class="line"><span class="comment"> * @note   注册驱动</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> __init <span class="type">int</span> <span class="title function_">sdrv_demo_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> ret = <span class="number">0</span>;</span><br><span class="line">	printk(<span class="string">&quot;*** [%s:%d]Build Time: %s %s, git version:%s ***\n&quot;</span>, __FUNCTION__,</span><br><span class="line">           __LINE__, KERNEL_KO_DATE, KERNEL_KO_TIME, KERNEL_KO_VERSION);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 注册字符设备</span></span><br><span class="line">    ret = scdev_create(&amp;g_chrdev);</span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>) </span><br><span class="line">    &#123;</span><br><span class="line">        PRT(<span class="string">&quot;Failed to scdev_create!ret=%d\n&quot;</span>, ret);</span><br><span class="line">        <span class="keyword">goto</span> err_scdev_create;</span><br><span class="line">    &#125;</span><br><span class="line">    PRT(<span class="string">&quot;sdrv_demo module init success!\n&quot;</span>);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">err_scdev_create:</span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdrv_demo_exit</span></span><br><span class="line"><span class="comment"> * @note   注销驱动</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> __exit <span class="type">void</span> <span class="title function_">sdrv_demo_exit</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 注销字符设备</span></span><br><span class="line">    scdev_destroy(&amp;g_chrdev);</span><br><span class="line">    PRT(<span class="string">&quot;sdrv_demo module exit!\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">module_init(sdrv_demo_init); <span class="comment">// 将__init定义的函数指定为驱动的入口函数</span></span><br><span class="line">module_exit(sdrv_demo_exit); <span class="comment">// 将__exit定义的函数指定为驱动的出口函数</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 模块信息(通过 modinfo xxx.ko 查看) */</span></span><br><span class="line">MODULE_LICENSE(<span class="string">&quot;GPL v2&quot;</span>);            <span class="comment">/* 源码的许可证协议 */</span></span><br><span class="line">MODULE_AUTHOR(<span class="string">&quot;sumu&quot;</span>);               <span class="comment">/* 字符串常量内容为模块作者说明 */</span></span><br><span class="line">MODULE_DESCRIPTION(<span class="string">&quot;Description&quot;</span>);   <span class="comment">/* 字符串常量内容为模块功能说明 */</span></span><br><span class="line">MODULE_ALIAS(<span class="string">&quot;module&#x27;s other name&quot;</span>); <span class="comment">/* 字符串常量内容为模块别名 */</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<h5 id="7-1-1-2-app-demo-c"><a href="#7-1-1-2-app-demo-c" class="headerlink" title="7.1.1.2 app_demo.c"></a><font size=3>7.1.1.2 app_demo.c</font></h5><details class="folding-tag" blue><summary> 点击查看详情 </summary>
+              <div class='content'>
+              <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/stat.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/ioctl.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BUFSIZE   32 <span class="comment">/* 设置最大偏移量为64, 方便打印完整的内存空间数据*/</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">usage_info</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;+++++++++++++++++++++++++++++++++++++++++\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;+       help information  @sumu          +\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;+++++++++++++++++++++++++++++++++++++++++\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;help:\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;use format: ./app_name /dev/device_name arg1 ... \n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;            ./app_demo.out /dev/sdevice run_cnt # run_cnt为运行次数 \n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;command info:\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;  (1)load module  : insmod module_name.ko\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;  (2)unload module: rmmod module_name.ko\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;  (3)show module  : lsmod\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;  (4)view device  : cat /proc/devices\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;  (5)create device node: mknod /dev/device_name c major_num secondary_num \n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;  (6)show device node  : ls /dev/device_name \n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;  (7)show device vlass  : ls /sys/class \n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;+++++++++++++++++++++++++++++++++++++++++\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> ret = <span class="number">0</span>;</span><br><span class="line">    <span class="type">int</span> fd = <span class="number">-1</span>;</span><br><span class="line">    <span class="type">pid_t</span> pid = <span class="number">0</span>; <span class="comment">//用于保存 fork 函数返回的父、子线程的PID</span></span><br><span class="line">    <span class="type">char</span> *filename = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="type">char</span> writebuf[BUFSIZE] = &#123;<span class="number">0</span>&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;*** Build Time: %s %s,Git Version: %s Git Remote: %s***\n&quot;</span>, </span><br><span class="line">            __DATE__, __TIME__, GIT_VERSION, GIT_PATH);</span><br><span class="line">    <span class="comment">// ./xxx.out /dev/sdevice x x x</span></span><br><span class="line">    <span class="keyword">if</span> (argc &lt;= <span class="number">2</span>) </span><br><span class="line">    &#123;</span><br><span class="line">        usage_info();</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 解析参数</span></span><br><span class="line">    filename = argv[<span class="number">1</span>];</span><br><span class="line">    <span class="built_in">snprintf</span> (writebuf, <span class="keyword">sizeof</span>(writebuf), <span class="string">&quot;%s&quot;</span>, argv[<span class="number">2</span>]);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%s %s %s\n&quot;</span>, argv[<span class="number">0</span>], filename, argv[<span class="number">2</span>]);</span><br><span class="line">    <span class="comment">// 创建子进程</span></span><br><span class="line">    pid = fork();</span><br><span class="line">    <span class="keyword">if</span> (pid &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;fork error!!\n&quot;</span>); <span class="comment">// fork 函数执行错误</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (<span class="number">0</span> == pid) <span class="comment">// 子进程</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;This is child process!\n&quot;</span>);</span><br><span class="line">        <span class="comment">/* 打开驱动文件 */</span></span><br><span class="line">        fd = open(filename, O_RDWR);</span><br><span class="line">        <span class="keyword">if</span> (fd &lt; <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;can&#x27;t open file %s !\n&quot;</span>, filename);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">/* 向设备驱动写数据 */</span></span><br><span class="line">        ret = write(fd, writebuf, <span class="built_in">strlen</span>(writebuf));</span><br><span class="line">        <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;write file %s failed!\n&quot;</span>, filename);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 关闭设备 */</span></span><br><span class="line">        ret = close(fd);</span><br><span class="line">        <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;can&#x27;t close file %s !\n&quot;</span>, filename);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">#<span class="keyword">if</span> 1</span></span><br><span class="line">    <span class="keyword">else</span> <span class="comment">// 父进程</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;This is parent process!\n&quot;</span>);</span><br><span class="line">        <span class="comment">/* 打开驱动文件 */</span></span><br><span class="line">        fd = open(filename, O_RDWR);</span><br><span class="line">        <span class="keyword">if</span> (fd &lt; <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;can&#x27;t open file %s !\n&quot;</span>, filename);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">/* 向设备驱动写数据 */</span></span><br><span class="line">        ret = write(fd, writebuf, <span class="built_in">strlen</span>(writebuf));</span><br><span class="line">        <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;write file %s failed!\n&quot;</span>, filename);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 关闭设备 */</span></span><br><span class="line">        ret = close(fd);</span><br><span class="line">        <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;can&#x27;t close file %s !\n&quot;</span>, filename);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<h4 id="7-1-2-开发板验证"><a href="#7-1-2-开发板验证" class="headerlink" title="7.1.2 开发板验证"></a><font size=3>7.1.2 开发板验证</font></h4><p>我们将编译得到的sdriver_demo.ko、app_demo.out拷贝到开发板。</p>
+<ul>
+<li>（1）加载驱动</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">insmod sdriver_demo.ko</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250121165825048.png" alt="image-20250121165825048"  />
+
+<ul>
+<li>（2）这里换了种写法，app_demo.out 会创建子进程运行</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./app_demo.out /dev/sdevchr 10</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250121165930968.png" alt="image-20250121165930968"  />
+
+<p>可以看到不再是像之前竞争演示那样交替打印了，是等一个打完再打另一个。</p>
+<h3 id="7-2-正常使用的demo2"><a href="#7-2-正常使用的demo2" class="headerlink" title="7.2 正常使用的demo2"></a><font size=3>7.2 正常使用的demo2</font></h3><p>这个demo是定义了一个变量，操作它的时候，用自旋锁锁定，保证操作的时候不会被打断而出现问题，相当于前面的原子操作，但是比原子操作能保护的范围更大些。</p>
+<h4 id="7-2-1-demo源码"><a href="#7-2-1-demo源码" class="headerlink" title="7.2.1 demo源码"></a><font size=3>7.2.1 demo源码</font></h4><p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/07_concurrency/04_spin_lock_3">07_concurrency&#x2F;04_spin_lock_3 · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<h4 id="7-2-2-开发板验证"><a href="#7-2-2-开发板验证" class="headerlink" title="7.2.2 开发板验证"></a><font size=3>7.2.2 开发板验证</font></h4><p>我们将编译得到的sdriver_demo.ko、app_demo.out拷贝到开发板。</p>
+<ul>
+<li>（1）加载驱动</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">insmod sdriver_demo.ko</span><br></pre></td></tr></table></figure>
+
+
+
+<ul>
+<li>（2）这里换了种写法，app_demo.out 会创建子进程运行</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./app_demo.out /dev/sdevchr 2 # 这个参数没啥意义，我在内部写死了</span><br></pre></td></tr></table></figure>
+
+<p>usleep(1000*200*6)时，父子进程依次运行：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122111048057.png" alt="image-20250122111048057"  />
+
+<p>usleep(1000*200*2)时，子进程运行失败：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122111333006.png" alt="image-20250122111333006"  />
+
+<blockquote>
+<p>修改app_demo.c中下图位置的休眠时间可以控制子进程的运行时间，当父进程运行完再运行子进程时，子进程运行正常，当父进程未运行完毕就开始运行子进程，子进程就会打开节点失败，达到共享资源保护的目的。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122110709727.png" alt="image-20250122110709727"  />
+</blockquote>
+<h3 id="7-3-死锁的demo"><a href="#7-3-死锁的demo" class="headerlink" title="7.3 死锁的demo"></a><font size=3>7.3 死锁的demo</font></h3><h4 id="7-3-1-demo源码"><a href="#7-3-1-demo源码" class="headerlink" title="7.3.1 demo源码"></a><font size=3>7.3.1 demo源码</font></h4><p>这个demo是第一种情况， 即拥有自旋锁的进程 A 在内核态休眠了， 内核调度 B 进程， 碰巧 B 进程也要获得自旋锁， 依次产生死锁。  </p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/07_concurrency/04_spin_lock_1">07_concurrency&#x2F;04_spin_lock_1 · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/07_concurrency/04_spin_lock_2">07_concurrency&#x2F;04_spin_lock_2 · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<h4 id="7-3-2-开发板验证"><a href="#7-3-2-开发板验证" class="headerlink" title="7.3.2 开发板验证"></a><font size=3>7.3.2 开发板验证</font></h4><p>这个demo是在内核进行长时间休眠，会导致崩溃，先不管了，知道死锁的原理就可以了。崩溃的信息可以看这里，这里有一个：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/blob/master/07_concurrency/04_spin_lock_1/debug_log.md">07_concurrency&#x2F;04_spin_lock_1&#x2F;debug_log.md · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<h1 id="三、信号量"><a href="#三、信号量" class="headerlink" title="三、信号量"></a><font size=3>三、信号量</font></h1><h2 id="1-什么是信号量"><a href="#1-什么是信号量" class="headerlink" title="1. 什么是信号量"></a><font size=3>1. 什么是信号量</font></h2><h3 id="1-1-一个例子"><a href="#1-1-一个例子" class="headerlink" title="1.1 一个例子"></a><font size=3>1.1 一个例子</font></h3><p>举个例子，某个停车场有 100 个停车位，这 100 个停车位大家都可以用，对于大家来说这100 个停车位就是共享资源。假设现在这个停车场正常运行，我们要把车停到这个这个停车场肯定要先看一下现在停了多少车了？还有没有停车位？当前停车数量就是一个信号量，具体的停车数量就是这个信号量值，当这个值到 100 的时候说明停车场满了。停车场满的时我们可以等一会看看有没有其他的车开出停车场，当有车开出停车场的时候停车数量就会减一，也就是说信号量减一，此时我们就可以把车停进去了，我们把车停进去以后停车数量就会加一，也就是信号量加一。这就是一个典型的使用信号量进行共享资源管理的案例，在这个案例中使用的就是计数型信号量。  </p>
+<h3 id="1-2-信号量"><a href="#1-2-信号量" class="headerlink" title="1.2 信号量"></a><font size=3>1.2 信号量</font></h3><p>信号量是操作系统中最典型的用于同步和互斥的手段， <strong>本质上是一个全局变量</strong>， 信号量的值表示控制访问资源的线程数， 可以根据实际情况来自行设置。</p>
+<p>如果在初始化的时候将信号量量值设置为大于 1， 那么这个信号量就是<strong>计数型信号量</strong>， 允许多个线程同时访问共享资源，不能用于互斥访问。</p>
+<p>如果将信号量量值设置为 1， 那么这个信号量就是<strong>二值信号量</strong>， 同一时间内只允许一个线程访问共享资源， 可以用于互斥访问。</p>
+<p>注意！ 信号量的值不能小于 0。 当信号量的值为 0 时， 想访问共享资源的线程必须等待， 直到信号量大于 0 时， 等待的线程才可以访问。 当访问共享资源时， 信号量执行“减一”操作， 访问完成后再执行“加一” 操作 。</p>
+<h2 id="2-信号量的特点"><a href="#2-信号量的特点" class="headerlink" title="2. 信号量的特点"></a><font size=3>2. 信号量的特点</font></h2><p>相比于自旋锁，信号量可以使线程进入休眠状态，比如 A 与 B、 C 合租了一套房子，这个房子只有一个卫生间，一次只能一个人使用。某一天早上 A 去上卫生间了，过了一会 B 也想用卫生间，因为 A 在卫生间里面，所以 B 只能等到 A 用来了才能进去。 B 要么就一直在卫生间门口等着，等 A 出来，这个时候就相当于自旋锁。 B 也可以告诉 A，让 A 出来以后通知他一下，然后 B 继续回房间睡觉，这个时候相当于信号量。</p>
+<p>可以看出，使用信号量会提高处理器的使用效率，毕竟不用一直傻乎乎的在那里“自旋”等待。但是，信号量的开销要比自旋锁大，因为信号量使线程进入休眠状态以后会切换线程，切换线程就会有开销。总结一下信号量的特点：  </p>
+<p>①、因为信号量可以使等待资源线程进入休眠状态，因此适用于那些占用资源比较久的场合。</p>
+<p>②、因此信号量不能用于中断中，因为信号量会引起休眠，中断不能休眠。</p>
+<p>③、如果共享资源的持有时间比较短，那就不适合使用信号量了，因为频繁的休眠、切换线程引起的开销要远大于信号量带来的那点优势。</p>
+<h2 id="3-相关数据结构与API-1"><a href="#3-相关数据结构与API-1" class="headerlink" title="3. 相关数据结构与API"></a><font size=3>3. 相关数据结构与API</font></h2><h3 id="3-1-struct-semaphore"><a href="#3-1-struct-semaphore" class="headerlink" title="3.1 struct semaphore"></a><font size=3>3.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/semaphore.h#L16">struct semaphore</a></font></h3><p>Linux 内核使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/semaphore.h#L16">struct semaphore</a> 结构体表示信号量：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Please don&#x27;t access any members of this structure directly */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">semaphore</span> &#123;</span></span><br><span class="line">	<span class="type">raw_spinlock_t</span>		lock;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span>		count;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>	<span class="title">wait_list</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-相关API"><a href="#3-2-相关API" class="headerlink" title="3.2 相关API"></a><font size=3>3.2 相关API</font></h3><p>信号量相关的API函数声明可以在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/semaphore.h">semaphore.h - include&#x2F;linux&#x2F;semaphore.h</a> 中找到：</p>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DEFINE_SEAMPHORE(name)</td>
+<td>定义一个信号量，并且设置信号量的值为 1。</td>
+</tr>
+<tr>
+<td>void sema_init(struct semaphore *sem, int val)</td>
+<td>初始化信号量 sem，设置信号量值为 val。</td>
+</tr>
+<tr>
+<td>void down(struct semaphore *sem)</td>
+<td>获取信号量，因为会导致休眠，因此不能在中断中使用。</td>
+</tr>
+<tr>
+<td>int down_trylock(struct semaphore *sem);</td>
+<td>尝试获取信号量，如果能获取到信号量就获取，并且返回 0。如果不能就返回非 0，并且不会进入休眠。</td>
+</tr>
+<tr>
+<td>int down_interruptible(struct semaphore *sem)</td>
+<td>获取信号量，和 down 类似，只是使用 down 进入休眠状态的线程不能被信号打断。而使用此函数进入休眠以后是可以被信号打断的。</td>
+</tr>
+<tr>
+<td>void up(struct semaphore *sem)</td>
+<td>释放信号量</td>
+</tr>
+</tbody></table>
+<h3 id="3-3-使用示例"><a href="#3-3-使用示例" class="headerlink" title="3.3 使用示例"></a><font size=3>3.3 使用示例</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">semaphore</span> <span class="title">sem</span>;</span> <span class="comment">/* 定义信号量 */</span></span><br><span class="line">sema_init(&amp;sem, <span class="number">1</span>); <span class="comment">/* 初始化信号量 */</span></span><br><span class="line">down(&amp;sem); <span class="comment">/* 申请信号量 */</span></span><br><span class="line"><span class="comment">/* 临界区 */</span></span><br><span class="line">up(&amp;sem); <span class="comment">/* 释放信号量 */</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="4-信号量demo"><a href="#4-信号量demo" class="headerlink" title="4. 信号量demo"></a><font size=3>4. 信号量demo</font></h2><h3 id="4-1-demo源码"><a href="#4-1-demo源码" class="headerlink" title="4.1 demo源码"></a><font size=3>4.1 demo源码</font></h3><p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/07_concurrency/05_semaphore">07_concurrency&#x2F;05_semaphore · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<h3 id="4-2-开发板验证"><a href="#4-2-开发板验证" class="headerlink" title="4.2 开发板验证"></a><font size=3>4.2 开发板验证</font></h3><p>我们将编译得到的sdriver_demo.ko、app_demo.out拷贝到开发板。</p>
+<ul>
+<li>（1）加载驱动</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">insmod sdriver_demo.ko</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>（2）app_demo.out 会创建子进程运行</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./app_demo.out /dev/sdevchr 2</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122111727299.png" alt="image-20250122111727299"  />
+
+<p>可以看到是一个执行完再执行另一个。没有信号量保护的时候是这样的：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122111851029.png" alt="image-20250122111851029"  />
+
+<h1 id="四、互斥锁"><a href="#四、互斥锁" class="headerlink" title="四、互斥锁"></a><font size=3>四、互斥锁</font></h1><h2 id="1-什么是互斥锁"><a href="#1-什么是互斥锁" class="headerlink" title="1. 什么是互斥锁"></a><font size=3>1. 什么是互斥锁</font></h2><p>比如公司部门里， 我在使用着打印机打印东西的同时（还没有打印完） ， 别人刚好也在此刻使用打印机打印东西， 如果不做任何处理的话，打印出来的东西肯定是错乱的。 那么怎么解决这种情况呢？ 只要我在打印着的时候别人是不允许打印的， 只有等我打印结束后别人才允许打印。 这个过程有点类似于， 把打印机放在一个房间里， 给这个房间安把锁， 这个锁默认是打开的。 当 A 需要打印时， 他先过来检查这把锁有没有锁着， 没有的话就进去， 同时上锁在房间里打印。 而在这时， 刚好 B 也需要打印， B 同样先检查锁， 发现锁是锁住的， 他就在门外等着。 而当 A 打印结束后， 他会开锁出来， 这时候 B 才进去上锁打印。 </p>
+<p>现在应该就知道互斥锁是什么了，也可以叫互斥体，后面我还是叫互斥锁吧。互斥锁会导致休眠， 所以在中断里面不能用互斥锁。 <strong>同一时刻只能有一个线程持有互斥锁，并且只有持有者才可以解锁， 并且不允许递归上锁和解锁。</strong></p>
+<p>我们将信号量量值设置为 1， 最终实现的就是互斥效果，虽然两者功能相同但是具体的实现方式是不同的， 但是使用互斥锁效率更高、更简洁， 所以如果使用到的信号量“量值”为 1， 一般将其修改为使用互斥锁实现。</p>
+<p>当有多个线程几乎同时修改某一个共享数据的时候， 需要进行同步控制。 线程同步能够保证多个线程安全访问竞争资源， 最简单的同步机制是引入互斥锁。 互斥锁为资源引入一个状态：锁定或者非锁定。 某个线程要更改共享数据时， 先将其锁定， 此时资源的状态为“锁定” ， 其他线程不能更改； 直到该线程释放资源， 将资源的状态变成“非锁定” ， 其他的线程才能再次锁定该资源。 互斥锁保证了每次只有一个线程进行写入操作， 从而保证了多线程情况下数据的正确性， 能够保证多个线程访问共享数据不会出现资源竞争及数据错误。</p>
+<h2 id="2-相关数据结构与API-1"><a href="#2-相关数据结构与API-1" class="headerlink" title="2. 相关数据结构与API"></a><font size=3>2. 相关数据结构与API</font></h2><h3 id="2-1-struct-mutex"><a href="#2-1-struct-mutex" class="headerlink" title="2.1 struct mutex"></a><font size=3>2.1 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mutex.h#L53">struct mutex</a></font></h3><p>Linux 内核使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mutex.h#L53">struct mutex</a> 来表示互斥锁：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">mutex</span> &#123;</span></span><br><span class="line">	<span class="type">atomic_long_t</span>		owner;</span><br><span class="line">	<span class="type">spinlock_t</span>		wait_lock;</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_MUTEX_SPIN_ON_OWNER</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">optimistic_spin_queue</span> <span class="title">osq</span>;</span> <span class="comment">/* Spinner MCS lock */</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>	<span class="title">wait_list</span>;</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_DEBUG_MUTEXES</span></span><br><span class="line">	<span class="type">void</span>			*magic;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_DEBUG_LOCK_ALLOC</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">lockdep_map</span>	<span class="title">dep_map</span>;</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-互斥锁相关API"><a href="#2-2-互斥锁相关API" class="headerlink" title="2.2 互斥锁相关API"></a><font size=3>2.2 互斥锁相关API</font></h3><p>相关的API在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mutex.h">mutex.h - include&#x2F;linux&#x2F;mutex.h</a> 中有对应的声明或者定义：</p>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DEFINE_MUTEX(name)</td>
+<td>定义并初始化一个 mutex 变量。</td>
+</tr>
+<tr>
+<td>void mutex_init(mutex *lock)</td>
+<td>初始化 mutex。</td>
+</tr>
+<tr>
+<td>void mutex_lock(struct mutex *lock)</td>
+<td>获取 mutex，也就是给 mutex 上锁。如果获取不到就进休眠。</td>
+</tr>
+<tr>
+<td>void mutex_unlock(struct mutex *lock)</td>
+<td>释放 mutex，也就给 mutex 解锁。</td>
+</tr>
+<tr>
+<td>int mutex_trylock(struct mutex *lock)</td>
+<td>尝试获取 mutex，如果成功就返回 1，如果失败就返回 0。</td>
+</tr>
+<tr>
+<td>int mutex_is_locked(struct mutex *lock)</td>
+<td>判断 mutex 是否被获取，如果是的话就返回1，否则返回 0。</td>
+</tr>
+<tr>
+<td>int mutex_lock_interruptible(struct mutex *lock)</td>
+<td>使用此函数获取信号量失败进入休眠以后可以被信号打断。</td>
+</tr>
+</tbody></table>
+<h3 id="2-3-使用示例"><a href="#2-3-使用示例" class="headerlink" title="2.3 使用示例"></a><font size=3>2.3 使用示例</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">mutex</span> <span class="title">lock</span>;</span> <span class="comment">/* 定义一个互斥体 */</span></span><br><span class="line">mutex_init(&amp;lock); <span class="comment">/* 初始化互斥体 */</span></span><br><span class="line"></span><br><span class="line">mutex_lock(&amp;lock); <span class="comment">/* 上锁 */</span></span><br><span class="line"><span class="comment">/* 临界区 */</span></span><br><span class="line">mutex_unlock(&amp;lock); <span class="comment">/* 解锁 */</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="3-注意事项"><a href="#3-注意事项" class="headerlink" title="3. 注意事项"></a><font size=3>3. 注意事项</font></h2><p>在使用 mutex 的时候要注意如下几点：  </p>
+<p>①、 mutex 可以导致休眠，因此不能在中断中使用 mutex，中断中只能使用自旋锁。</p>
+<p>②、和信号量一样， mutex 保护的临界区可以调用引起阻塞的 API 函数。</p>
+<p>③、因为一次只有一个线程可以持有 mutex，因此，必须由 mutex 的持有者释放 mutex。并且 mutex 不能递归上锁和解锁。</p>
+<h2 id="4-互斥锁demo"><a href="#4-互斥锁demo" class="headerlink" title="4. 互斥锁demo"></a><font size=3>4. 互斥锁demo</font></h2><h3 id="4-1-demo源码-1"><a href="#4-1-demo源码-1" class="headerlink" title="4.1 demo源码"></a><font size=3>4.1 demo源码</font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br><span class="line">280</span><br><span class="line">281</span><br><span class="line">282</span><br><span class="line">283</span><br><span class="line">284</span><br><span class="line">285</span><br><span class="line">286</span><br><span class="line">287</span><br><span class="line">288</span><br><span class="line">289</span><br><span class="line">290</span><br><span class="line">291</span><br><span class="line">292</span><br><span class="line">293</span><br><span class="line">294</span><br><span class="line">295</span><br><span class="line">296</span><br><span class="line">297</span><br><span class="line">298</span><br><span class="line">299</span><br><span class="line">300</span><br><span class="line">301</span><br><span class="line">302</span><br><span class="line">303</span><br><span class="line">304</span><br><span class="line">305</span><br><span class="line">306</span><br><span class="line">307</span><br><span class="line">308</span><br><span class="line">309</span><br><span class="line">310</span><br><span class="line">311</span><br><span class="line">312</span><br><span class="line">313</span><br><span class="line">314</span><br><span class="line">315</span><br><span class="line">316</span><br><span class="line">317</span><br><span class="line">318</span><br><span class="line">319</span><br><span class="line">320</span><br><span class="line">321</span><br><span class="line">322</span><br><span class="line">323</span><br><span class="line">324</span><br><span class="line">325</span><br><span class="line">326</span><br><span class="line">327</span><br><span class="line">328</span><br><span class="line">329</span><br><span class="line">330</span><br><span class="line">331</span><br><span class="line">332</span><br><span class="line">333</span><br><span class="line">334</span><br><span class="line">335</span><br><span class="line">336</span><br><span class="line">337</span><br><span class="line">338</span><br><span class="line">339</span><br><span class="line">340</span><br><span class="line">341</span><br><span class="line">342</span><br><span class="line">343</span><br><span class="line">344</span><br><span class="line">345</span><br><span class="line">346</span><br><span class="line">347</span><br><span class="line">348</span><br><span class="line">349</span><br><span class="line">350</span><br><span class="line">351</span><br><span class="line">352</span><br><span class="line">353</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/init.h&gt;</span> <span class="comment">/* module_init module_exit */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/module.h&gt;</span> <span class="comment">/* MODULE_LICENSE */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/fs.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/cdev.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/uaccess.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/delay.h&gt;</span> <span class="comment">/* ssleep */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/mutex.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./timestamp_autogenerated.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./version_autogenerated.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./sdrv_common.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// #undef PRT</span></span><br><span class="line"><span class="comment">// #undef PRTE</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> PRT</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PRT printk</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> PRTE</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PRTE printk</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CHRDEV_NAME <span class="string">&quot;sdev&quot;</span>    <span class="comment">/* 设备名,cat /proc/devices 查看与设备号的对应关系 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CLASS_NAME  <span class="string">&quot;sclass&quot;</span>  <span class="comment">/* 类名，在 /sys/class 中显示的名称 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DEVICE_NAME <span class="string">&quot;sdevchr&quot;</span> <span class="comment">/* 设备节点名，在 /sys/class/class_name/ 中显示的名称以及 /dev/ 下显示的节点名 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BUFSIZE     32        <span class="comment">/* 设置最大偏移量为32 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MUTEX_FLAG  0         <span class="comment">/* 用于有无信号量的现象对比 */</span></span></span><br><span class="line"><span class="comment">// ioctl 支持的命令定义</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CMD_TEST0 _IO(<span class="string">&#x27;S&#x27;</span>, 0)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CMD_TEST1 _IOW(<span class="string">&#x27;S&#x27;</span>, 1, int)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CMD_TEST2 _IOR(<span class="string">&#x27;S&#x27;</span>, 2, int)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> CMD_TEST3 _IOW(<span class="string">&#x27;S&#x27;</span>, 3, int)</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> __<span class="title">CMD_TEST</span>&#123;</span></span><br><span class="line">	<span class="type">int</span> a;</span><br><span class="line">	<span class="type">int</span> b;</span><br><span class="line">	<span class="type">int</span> c;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> __<span class="title">CHAR_DEVICE</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="type">char</span> dev_name[<span class="number">32</span>];     <span class="comment">// 设备名称， /dev/dev-name</span></span><br><span class="line">    <span class="type">dev_t</span> dev_num;         <span class="comment">// 定义dev_t类型（32位大小）的变量dev_num,用来存放设备号</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">cdev</span> <span class="title">s_cdev</span>;</span>    <span class="comment">// 定义cdev结构体类型的变量scdev</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="keyword">class</span> *<span class="keyword">class</span>;</span>   <span class="comment">// 定于struct class *类型结构体变量 class，表示要创建的类</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">device</span> *<span class="title">device</span>;</span> <span class="comment">// 设备</span></span><br><span class="line">    <span class="type">char</span> buf[BUFSIZE];     <span class="comment">// 设置数据存储数组mem</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">mutex</span> <span class="title">mutex_lock</span>;</span>  <span class="comment">// 互斥锁</span></span><br><span class="line">&#125; _CHAR_DEVICE;</span><br><span class="line"></span><br><span class="line">_CHAR_DEVICE g_chrdev = &#123;<span class="number">0</span>&#125;;  <span class="comment">//定义一个device_test结构体变量</span></span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">scdev_ops_open</span><span class="params">(<span class="keyword">struct</span> inode *pInode, <span class="keyword">struct</span> file *pFile)</span></span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">    PRT(<span class="string">&quot;This is scdev_ops_open!dev name=%s\n&quot;</span>, g_chrdev.dev_name);</span><br><span class="line">    pFile-&gt;private_data = &amp;g_chrdev;  <span class="comment">// 设置私有数据</span></span><br><span class="line">    <span class="meta">#<span class="keyword">if</span> MUTEX_FLAG == 1</span></span><br><span class="line">    <span class="comment">/* 获取互斥锁,可以被信号打断 */</span></span><br><span class="line">    <span class="keyword">if</span> (mutex_lock_interruptible(&amp;g_chrdev.mutex_lock))</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> -ERESTARTSYS;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">#<span class="keyword">if</span> 0</span></span><br><span class="line">    mutex_lock(&amp;g_chrdev.lock); <span class="comment">/* 不能被信号打断 */</span></span><br><span class="line">    <span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">    <span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">scdev_ops_read</span><span class="params">(<span class="keyword">struct</span> file *pFile, <span class="type">char</span> __user *buf, <span class="type">size_t</span> size, <span class="type">loff_t</span> *off)</span></span><br><span class="line">&#123;</span><br><span class="line">    </span><br><span class="line">    <span class="type">loff_t</span> offset = *off; <span class="comment">// 将读取数据的偏移量赋值给loff_t类型变量p</span></span><br><span class="line">    <span class="type">size_t</span> count = size;</span><br><span class="line">    _CHAR_DEVICE *p_chrdev=(_CHAR_DEVICE *)pFile-&gt;private_data; <span class="comment">//在write函数中读取private_data</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (offset &gt; BUFSIZE)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (count &gt; BUFSIZE - offset)</span><br><span class="line">    &#123;</span><br><span class="line">        count = BUFSIZE - offset;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (copy_to_user(buf, p_chrdev-&gt;buf + offset, count))</span><br><span class="line">    &#123; </span><br><span class="line">        <span class="comment">// 将mem中的值写入buf，并传递到用户空间</span></span><br><span class="line">        PRT(<span class="string">&quot;copy_to_user error!\n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">#<span class="keyword">if</span> 0</span></span><br><span class="line">    <span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; BUFSIZE; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        PRT(<span class="string">&quot;buf[%d] %c\n&quot;</span>, i, p_chrdev-&gt;buf[i]); <span class="comment">// 将mem中的值打印出来</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    PRT(<span class="string">&quot;read offset is %llu, count is %d\n&quot;</span>, offset, count);</span><br><span class="line">    <span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">    *off = *off + count; <span class="comment">// 更新偏移值</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">scdev_ops_write</span><span class="params">(<span class="keyword">struct</span> file *pFile, <span class="type">const</span> <span class="type">char</span> __user *buf, <span class="type">size_t</span> size, <span class="type">loff_t</span> *off)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">loff_t</span> offset = *off; <span class="comment">// 将读取数据的偏移量赋值给loff_t类型变量p</span></span><br><span class="line">    <span class="type">size_t</span> count = size;</span><br><span class="line">    _CHAR_DEVICE *p_chrdev=(_CHAR_DEVICE *)pFile-&gt;private_data; <span class="comment">//在write函数中读取private_data</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (offset &gt; BUFSIZE)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (count &gt; BUFSIZE - offset)</span><br><span class="line">    &#123;</span><br><span class="line">        count = BUFSIZE - offset;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (copy_from_user(p_chrdev-&gt;buf + offset, buf, count))</span><br><span class="line">    &#123; </span><br><span class="line">        <span class="comment">// 将buf中的值，从用户空间传递到内核空间</span></span><br><span class="line">        PRT(<span class="string">&quot;copy_to_user error \n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    PRT(<span class="string">&quot;copy_from_user buf is %s\n&quot;</span>, p_chrdev-&gt;buf + offset);</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> 0</span></span><br><span class="line">    <span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; BUFSIZE; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        PRT(<span class="string">&quot;buf[%d] %c\n&quot;</span>, i, p_chrdev-&gt;buf[i]); <span class="comment">// 将mem中的值打印出来</span></span><br><span class="line">    &#125;</span><br><span class="line">    PRT(<span class="string">&quot;write offset is %llu, count is %d\n&quot;</span>, offset, count); <span class="comment">// 打印写入的值</span></span><br><span class="line">    <span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">    *off = *off + count;                         <span class="comment">// 更新偏移值</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">scdev_ops_release</span><span class="params">(<span class="keyword">struct</span> inode *pInode, <span class="keyword">struct</span> file *pFile)</span></span><br><span class="line">&#123;</span><br><span class="line">    _CHAR_DEVICE *p_chrdev=(_CHAR_DEVICE *)pFile-&gt;private_data; <span class="comment">//在write函数中读取private_data</span></span><br><span class="line">    <span class="meta">#<span class="keyword">if</span> MUTEX_FLAG == 1</span></span><br><span class="line">    mutex_unlock(&amp;p_chrdev-&gt;mutex_lock);<span class="comment">// 释放互斥锁</span></span><br><span class="line">    <span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">    PRT(<span class="string">&quot;This is scdev_ops_release!dev_name=%s\n&quot;</span>, p_chrdev-&gt;dev_name);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">loff_t</span> <span class="title function_">scdev_ops_llseek</span><span class="params">(<span class="keyword">struct</span> file *pFile, <span class="type">loff_t</span> offset, <span class="type">int</span> whence)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">loff_t</span> new_offset = <span class="number">0</span>; <span class="comment">// 定义loff_t类型的新的偏移值</span></span><br><span class="line">    <span class="keyword">switch</span> (whence)    <span class="comment">// 对lseek函数传递的whence参数进行判断</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">case</span> SEEK_SET:</span><br><span class="line">            <span class="keyword">if</span> (offset &lt; <span class="number">0</span> || offset &gt; BUFSIZE)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> -EINVAL; <span class="comment">// EINVAL=22 表示无效参数</span></span><br><span class="line">            &#125;</span><br><span class="line">            new_offset = offset; <span class="comment">// 如果whence参数为SEEK_SET，则新偏移值为offset</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> SEEK_CUR:</span><br><span class="line">            <span class="keyword">if</span> ((pFile-&gt;f_pos + offset &lt; <span class="number">0</span>) || (pFile-&gt;f_pos + offset &gt; BUFSIZE))</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> -EINVAL;</span><br><span class="line">            &#125;</span><br><span class="line">            new_offset = pFile-&gt;f_pos + offset; <span class="comment">// 如果whence参数为SEEK_CUR，则新偏移值为pFile-&gt;f_pos + offset，pFile-&gt;f_pos为当前的偏移值</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> SEEK_END:</span><br><span class="line">            <span class="keyword">if</span> (pFile-&gt;f_pos + offset &lt; <span class="number">0</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> -EINVAL;</span><br><span class="line">            &#125;</span><br><span class="line">            new_offset = BUFSIZE + offset; <span class="comment">// 如果whence参数为SEEK_END，则新偏移值为BUFSIZE + offset，BUFSIZE为最大偏移量</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    pFile-&gt;f_pos = new_offset; <span class="comment">// 更新pFile-&gt;f_pos偏移值</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> new_offset;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">long</span> <span class="title function_">scdev_ops_ioctl</span><span class="params">(<span class="keyword">struct</span> file *pFile, <span class="type">unsigned</span> <span class="type">int</span> cmd, <span class="type">unsigned</span> <span class="type">long</span> arg)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> val = <span class="number">0</span>;<span class="comment">//定义 int 类型向应用空间传递的变量 val</span></span><br><span class="line">    <span class="keyword">switch</span>(cmd)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">case</span> CMD_TEST0:</span><br><span class="line">            PRT(<span class="string">&quot;this is CMD_TEST0\n&quot;</span>);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> CMD_TEST1:</span><br><span class="line">            PRT(<span class="string">&quot;this is CMD_TEST1\n&quot;</span>);</span><br><span class="line">            PRT(<span class="string">&quot;arg is %ld\n&quot;</span>,arg);<span class="comment">//打印应用空间传递来的 arg 参数</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> CMD_TEST2:</span><br><span class="line">            val = <span class="number">1</span>;<span class="comment">//将要传递的变量 val 赋值为 1</span></span><br><span class="line">            PRT(<span class="string">&quot;this is CMD_TEST2\n&quot;</span>);</span><br><span class="line">            <span class="keyword">if</span>(copy_to_user((<span class="type">int</span> *)arg, &amp;val, <span class="keyword">sizeof</span>(val)) != <span class="number">0</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="comment">//通过 copy_to_user 向用户空间传递数据</span></span><br><span class="line">                PRT(<span class="string">&quot;copy_to_user error \n&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> CMD_TEST3:</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="class"><span class="keyword">struct</span> __<span class="title">CMD_TEST</span> <span class="title">cmd_test3</span> =</span> &#123;<span class="number">0</span>&#125;;</span><br><span class="line">            <span class="keyword">if</span> (copy_from_user(&amp;cmd_test3, (<span class="type">int</span> *)arg, <span class="keyword">sizeof</span>(cmd_test3)) != <span class="number">0</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                PRT(<span class="string">&quot;copy_from_user error\n&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            PRT(<span class="string">&quot;cmd_test3.a = %d\n&quot;</span>, cmd_test3.a);</span><br><span class="line">            PRT(<span class="string">&quot;cmd_test3.b = %d\n&quot;</span>, cmd_test3.b);</span><br><span class="line">            PRT(<span class="string">&quot;cmd_test3.c = %d\n&quot;</span>, cmd_test3.c);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> <span class="title">g_scdev_ops</span> =</span> &#123;</span><br><span class="line">    .owner = THIS_MODULE,<span class="comment">//将owner字段指向本模块，可以避免在模块的操作正在被使用时卸载该模块</span></span><br><span class="line">	.open = scdev_ops_open,</span><br><span class="line">	.read = scdev_ops_read,</span><br><span class="line">	.write = scdev_ops_write,</span><br><span class="line">	.release = scdev_ops_release,</span><br><span class="line">    .llseek = scdev_ops_llseek,</span><br><span class="line">    .unlocked_ioctl = scdev_ops_ioctl,</span><br><span class="line">&#125;; <span class="comment">// 定义file_operations结构体类型的变量g_cdev_dev_ops</span></span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">scdev_create</span><span class="params">(_CHAR_DEVICE *p_chrdev)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> ret;          <span class="comment">// 定义int类型的变量ret，用来判断函数返回值</span></span><br><span class="line">    <span class="type">int</span> major, minor; <span class="comment">// 定义int类型的主设备号major和次设备号minor</span></span><br><span class="line">    <span class="meta">#<span class="keyword">if</span> MUTEX_FLAG == 1</span></span><br><span class="line">	mutex_init(&amp;p_chrdev-&gt;mutex_lock);	<span class="comment">/* 初始化互斥锁 */</span></span><br><span class="line">    <span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">    ret = alloc_chrdev_region(&amp;p_chrdev-&gt;dev_num, <span class="number">0</span>, <span class="number">1</span>, CHRDEV_NAME); <span class="comment">// 自动获取设备号，设备名为chrdev_name</span></span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;alloc_chrdev_region is error!ret=%d\n&quot;</span>, ret);</span><br><span class="line">        <span class="keyword">goto</span> err_alloc_devno;</span><br><span class="line">    &#125;</span><br><span class="line">    major = MAJOR(p_chrdev-&gt;dev_num); <span class="comment">// 使用MAJOR()函数获取主设备号</span></span><br><span class="line">    minor = MINOR(p_chrdev-&gt;dev_num); <span class="comment">// 使用MINOR()函数获取次设备号</span></span><br><span class="line">    <span class="comment">//PRT(&quot;major is %d, minor is %d !\n&quot;, major, minor);</span></span><br><span class="line"></span><br><span class="line">    cdev_init(&amp;p_chrdev-&gt;s_cdev, &amp;g_scdev_ops); <span class="comment">// 使用cdev_init()函数初始化p_chrdev-&gt;s_cdev结构体，并链接到 cdev_ops 结构体</span></span><br><span class="line">    p_chrdev-&gt;s_cdev.owner = THIS_MODULE;          <span class="comment">// 将owner字段指向本模块，可以避免在模块的操作正在被使用时卸载该模块</span></span><br><span class="line">    ret = cdev_add(&amp;p_chrdev-&gt;s_cdev, p_chrdev-&gt;dev_num, <span class="number">1</span>); <span class="comment">// 使用cdev_add()函数进行字符设备的添加</span></span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;cdev_add is error !ret=%d\n&quot;</span>, ret);</span><br><span class="line">        <span class="keyword">goto</span> err_cdev_add;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    p_chrdev-&gt;<span class="class"><span class="keyword">class</span> =</span> class_create(THIS_MODULE, CLASS_NAME); <span class="comment">// 使用class_create进行类的创建，类名称为 class_dev</span></span><br><span class="line">    <span class="keyword">if</span>(IS_ERR(p_chrdev-&gt;class))</span><br><span class="line">    &#123;</span><br><span class="line">        ret = PTR_ERR(p_chrdev-&gt;class);</span><br><span class="line">        <span class="keyword">goto</span> err_class_create;</span><br><span class="line">    &#125;</span><br><span class="line">    p_chrdev-&gt;device = device_create(p_chrdev-&gt;class, <span class="literal">NULL</span>, p_chrdev-&gt;dev_num, <span class="literal">NULL</span>, <span class="string">&quot;%s&quot;</span>, DEVICE_NAME); <span class="comment">// 使用device_create进行设备的创建，设备名称为 device_dev</span></span><br><span class="line">    <span class="keyword">if</span>(IS_ERR(p_chrdev-&gt;device))</span><br><span class="line">    &#123;</span><br><span class="line">        ret = PTR_ERR(p_chrdev-&gt;class);</span><br><span class="line">        <span class="keyword">goto</span> err_device_create;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">snprintf</span> (p_chrdev-&gt;dev_name, <span class="keyword">sizeof</span>(p_chrdev-&gt;dev_name), <span class="string">&quot;/dev/%s&quot;</span>, DEVICE_NAME);</span><br><span class="line">    PRT(<span class="string">&quot;scdev_create %s success!\n&quot;</span>, p_chrdev-&gt;dev_name);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    <span class="comment">// 一些列的错误处理</span></span><br><span class="line">err_device_create:</span><br><span class="line">    class_destroy(p_chrdev-&gt;class);   <span class="comment">// 删除创建的类</span></span><br><span class="line">err_class_create:</span><br><span class="line">    cdev_del(&amp;p_chrdev-&gt;s_cdev);      <span class="comment">// 使用cdev_del()函数进行字符设备的删除</span></span><br><span class="line">err_cdev_add:</span><br><span class="line">    unregister_chrdev_region(p_chrdev-&gt;dev_num, <span class="number">1</span>); <span class="comment">//注销设备号</span></span><br><span class="line">err_alloc_devno:</span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">scdev_destroy</span><span class="params">(_CHAR_DEVICE *p_chrdev)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 需要注意的是， 字符设备的注册要放在申请字符设备号之后，</span></span><br><span class="line">    <span class="comment">// 字符设备的删除要放在释放字符驱动设备号之前。</span></span><br><span class="line">    cdev_del(&amp;p_chrdev-&gt;s_cdev);                    <span class="comment">// 使用cdev_del()函数进行字符设备的删除</span></span><br><span class="line">    unregister_chrdev_region(p_chrdev-&gt;dev_num, <span class="number">1</span>); <span class="comment">// 释放字符驱动设备号</span></span><br><span class="line">    device_destroy(p_chrdev-&gt;class, p_chrdev-&gt;dev_num); <span class="comment">// 删除创建的设备</span></span><br><span class="line">    class_destroy(p_chrdev-&gt;class);                 <span class="comment">// 删除创建的类</span></span><br><span class="line">    PRT(<span class="string">&quot;scdev_destroy success!\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdrv_demo_init</span></span><br><span class="line"><span class="comment"> * @note   注册驱动</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> __init <span class="type">int</span> <span class="title function_">sdrv_demo_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> ret = <span class="number">0</span>;</span><br><span class="line">	printk(<span class="string">&quot;*** [%s:%d]Build Time: %s %s, git version:%s ***\n&quot;</span>, __FUNCTION__,</span><br><span class="line">           __LINE__, KERNEL_KO_DATE, KERNEL_KO_TIME, KERNEL_KO_VERSION);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 注册字符设备</span></span><br><span class="line">    ret = scdev_create(&amp;g_chrdev);</span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>) </span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;Failed to scdev_create!ret=%d\n&quot;</span>, ret);</span><br><span class="line">        <span class="keyword">goto</span> err_scdev_create;</span><br><span class="line">    &#125;</span><br><span class="line">    PRT(<span class="string">&quot;sdrv_demo module init success!\n&quot;</span>);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">err_scdev_create:</span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdrv_demo_exit</span></span><br><span class="line"><span class="comment"> * @note   注销驱动</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> __exit <span class="type">void</span> <span class="title function_">sdrv_demo_exit</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 注销字符设备</span></span><br><span class="line">    scdev_destroy(&amp;g_chrdev);</span><br><span class="line">    PRT(<span class="string">&quot;sdrv_demo module exit!\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">module_init(sdrv_demo_init); <span class="comment">// 将__init定义的函数指定为驱动的入口函数</span></span><br><span class="line">module_exit(sdrv_demo_exit); <span class="comment">// 将__exit定义的函数指定为驱动的出口函数</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 模块信息(通过 modinfo xxx.ko 查看) */</span></span><br><span class="line">MODULE_LICENSE(<span class="string">&quot;GPL v2&quot;</span>);            <span class="comment">/* 源码的许可证协议 */</span></span><br><span class="line">MODULE_AUTHOR(<span class="string">&quot;sumu&quot;</span>);               <span class="comment">/* 字符串常量内容为模块作者说明 */</span></span><br><span class="line">MODULE_DESCRIPTION(<span class="string">&quot;Description&quot;</span>);   <span class="comment">/* 字符串常量内容为模块功能说明 */</span></span><br><span class="line">MODULE_ALIAS(<span class="string">&quot;module&#x27;s other name&quot;</span>); <span class="comment">/* 字符串常量内容为模块别名 */</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="4-2-开发板验证-1"><a href="#4-2-开发板验证-1" class="headerlink" title="4.2 开发板验证"></a><font size=3>4.2 开发板验证</font></h3><p>其实这个现象和信号量是一样的，我们将编译得到的sdriver_demo.ko、app_demo.out拷贝到开发板。</p>
+<ul>
+<li>（1）加载驱动</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">insmod sdriver_demo.ko</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>（2）app_demo.out 会创建子进程运行</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./app_demo.out /dev/sdevchr 2</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122151244602.png" alt="image-20250122151244602"  />
+
+<p>可以看到是一个执行完再执行另一个。没有互斥锁保护的时候是这样的：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-06-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/img/image-20250122151319872.png" alt="image-20250122151319872"  />
+
+
+
+<blockquote>
+<p>参考资料：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/xhjcehust/article/details/26132167">自旋锁在抢占(或非抢占)单核和多核中的作用_多核系统中,任务可以通过自旋锁或者中断的方式独占cpu-CSDN博客</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/4af1eda3.html">LV06-06-并发与竞争-02-并发控制</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2025年01月24日 - 23:59</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/4af1eda3.html" title="LV06-06-并发与竞争-02-并发控制">https://sumumm.github.io/post/4af1eda3.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/4a15a66.html" rel="prev" title="LV06-07-IO模型-01-IO模型简介">
+                  <i class="fa fa-angle-left"></i> LV06-07-IO模型-01-IO模型简介
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/9eb12c76.html" rel="next" title="LV06-06-并发与竞争-01-并发与竞争简介">
+                  LV06-06-并发与竞争-01-并发与竞争简介 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

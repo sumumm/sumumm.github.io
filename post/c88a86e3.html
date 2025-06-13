@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是kernel——mknod源码解析的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV05-03-Kernel-05-01-mknod">
+<meta property="og:url" content="https://sumumm.github.io/post/c88a86e3.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是kernel——mknod源码解析的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-05-01-mknod/img/image-20241206215028381.png">
+<meta property="article:published_time" content="2024-12-17T15:25:13.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.045Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV05-系统镜像">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-05-01-mknod/img/image-20241206215028381.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/c88a86e3.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/c88a86e3.html","path":"post/c88a86e3.html","title":"LV05-03-Kernel-05-01-mknod"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV05-03-Kernel-05-01-mknod | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81mknod%E5%91%BD%E4%BB%A4"><span class="nav-text">一、mknod命令</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%91%BD%E4%BB%A4%E7%AE%80%E4%BB%8B"><span class="nav-text">1. 命令简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%9F%BA%E6%9C%AC%E6%A0%BC%E5%BC%8F"><span class="nav-text">2. 基本格式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-mknod%E5%9C%A8%E5%B9%B2%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">3. mknod在干什么？</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81mknod%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="nav-text">二、mknod源码分析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-makedev"><span class="nav-text">1. makedev</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-mknod%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8"><span class="nav-text">2. mknod系统调用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-do-mknodat%E5%87%BD%E6%95%B0"><span class="nav-text">3. do_mknodat函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-may-mknod%E5%87%BD%E6%95%B0"><span class="nav-text">3.1 may_mknod函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-user-path-create%E5%87%BD%E6%95%B0"><span class="nav-text">3.2 user_path_create函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-vfs-mknod"><span class="nav-text">3.3 vfs_mknod</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E6%80%BB%E7%BB%93"><span class="nav-text">4. 总结</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/c88a86e3.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV05-03-Kernel-05-01-mknod | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV05-03-Kernel-05-01-mknod
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-12-17 23:25:13" itemprop="dateCreated datePublished" datetime="2024-12-17T23:25:13+08:00">2024-12-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/" itemprop="url" rel="index"><span itemprop="name">LV05-系统镜像</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>13 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是kernel——mknod源码解析的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-05-01-mknod/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="2">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+
+
+<h1 id="一、mknod命令"><a href="#一、mknod命令" class="headerlink" title="一、mknod命令"></a><font size=3>一、mknod命令</font></h1><h2 id="1-命令简介"><a href="#1-命令简介" class="headerlink" title="1. 命令简介"></a><font size=3>1. 命令简介</font></h2><p>mknod命令是Linux系统中用于创建设备文件节点和命名管道的命令。设备文件是Linux系统中用于表示硬件设备或设备驱动程序的特殊文件，它们允许用户空间程序与内核空间中的驱动程序进行交互。mknod命令通过指定设备文件的名称、类型（块设备或字符设备）以及主次设备号来创建设备文件节点。</p>
+<p>在数据处理和分析中，mknod命令通常用于与硬件设备交互，例如读取磁盘数据、控制串口通信等。通过创建设备文件节点，用户空间程序可以像操作普通文件一样操作硬件设备，从而实现数据的读取、写入和控制等功能。</p>
+<h2 id="2-基本格式"><a href="#2-基本格式" class="headerlink" title="2. 基本格式"></a><font size=3>2. 基本格式</font></h2><p>我们前面知道mknod命令用于创建设备节点，命令格式如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mknod 设备名 设备类型 主设备号 次设备号</span><br></pre></td></tr></table></figure>
+
+<p>例如：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkmod /dev/dev_node c 246 0</span><br></pre></td></tr></table></figure>
+
+<p>然后我们就可以看到&#x2F;dev目录下出现了一个名为dev_node的设备节点。那么这中间是怎样的一个过程？</p>
+<h2 id="3-mknod在干什么？"><a href="#3-mknod在干什么？" class="headerlink" title="3. mknod在干什么？"></a><font size=3>3. mknod在干什么？</font></h2><p>我们可以使用strace命令看一下mknod命令执行的时候在干什么。由于在ARM开发板上使用的话，还要移植，这里直接在ubuntu中测试好啦。用之前写的用mknod创建节点的demo来编译一个在ubuntu下运行的就可以了，源码在这里：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/blob/master/04_chrdev_basic/03_chrdev_node/chrdev_node_demo.c">04_chrdev_basic&#x2F;03_chrdev_node&#x2F;chrdev_node_demo.c · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<p>我们可以执行：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=x86_64</span><br></pre></td></tr></table></figure>
+
+<p>然后就会使用ubuntu中的内核进行编译，编译出的驱动可以直接在ubuntu中使用。我们看一下加载模块后的设备号信息：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-05-01-mknod/img/image-20241206215028381.png" alt="image-20241206215028381" />
+
+<p>然后我们用以下命令来追踪一下执行mknod的时候发生了什么：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">strace -o syscall mknod /dev/dev_node c 237 0</span><br></pre></td></tr></table></figure>
+
+<p>然后我们会得到一个名为syscall文件，文件内容如下：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># ......</span><br><span class="line">close(3)                                = 0</span><br><span class="line">mknod(&quot;/dev/dev_node&quot;, S_IFCHR|0666, makedev(0xed, 0)) = 0 = 0</span><br><span class="line">close(1)                                = 0</span><br><span class="line">close(2)                                = 0</span><br><span class="line">exit_group(0)                           = ?</span><br><span class="line">+++ exited with 0 +++</span><br></pre></td></tr></table></figure>
+
+<p>会发现经过一堆的系统调用后，调用了mknod系统调用：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mknod(&quot;/dev/dev_node&quot;, S_IFCHR|0666, makedev(0xed, 0)) = 0</span><br></pre></td></tr></table></figure>
+
+<p>这里就为我们提供了分析的起始点。最后记得删掉创建的节点：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo rm -rf /dev/dev_node</span><br></pre></td></tr></table></figure>
+
+<h1 id="二、mknod源码分析"><a href="#二、mknod源码分析" class="headerlink" title="二、mknod源码分析"></a><font size=3>二、mknod源码分析</font></h1><h2 id="1-makedev"><a href="#1-makedev" class="headerlink" title="1. makedev"></a><font size=3>1. makedev</font></h2><p>makedev是一个库函数，我们可以使用man makedev来查看帮助信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">MAKEDEV(3)                                                                 Linux Programmer&#x27;s Manual                                                                 MAKEDEV(3)</span><br><span class="line"></span><br><span class="line">NAME</span><br><span class="line">       makedev, major, minor - manage a device number</span><br><span class="line"></span><br><span class="line">SYNOPSIS</span><br><span class="line">       #include &lt;sys/sysmacros.h&gt;</span><br><span class="line"></span><br><span class="line">       dev_t makedev(unsigned int maj, unsigned int min);</span><br><span class="line"></span><br><span class="line">       unsigned int major(dev_t dev);</span><br><span class="line">       unsigned int minor(dev_t dev);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="2-mknod系统调用"><a href="#2-mknod系统调用" class="headerlink" title="2. mknod系统调用"></a><font size=3>2. mknod系统调用</font></h2><p>我们在linux下执行 man 2 mknod就可以看到mknod函数的帮助信息：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">NAME</span><br><span class="line">       mknod, mknodat - create a special or ordinary file</span><br><span class="line"></span><br><span class="line">SYNOPSIS</span><br><span class="line">       #include &lt;sys/types.h&gt;</span><br><span class="line">       #include &lt;sys/stat.h&gt;</span><br><span class="line">       #include &lt;fcntl.h&gt;</span><br><span class="line">       #include &lt;unistd.h&gt;</span><br><span class="line"></span><br><span class="line">       int mknod(const char *pathname, mode_t mode, dev_t dev);</span><br></pre></td></tr></table></figure>
+
+<p>mknod命令最终也是通过该系统调用去执行的，它的系统调用定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/namei.c#L3792">namei.c - fs&#x2F;namei.c - <em>SYSCALL_DEFINE3</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SYSCALL_DEFINE3(mknod, <span class="type">const</span> <span class="type">char</span> __user *, filename, <span class="type">umode_t</span>, mode, <span class="type">unsigned</span>, dev)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> do_mknodat(AT_FDCWD, filename, mode, dev);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Linux所有系统调用都是通过宏 SYSCALL_DEFINEn 定义的，关于这个宏的详细说明可以看这里：<a target="_blank" rel="noopener" href="https://lwn.net/Articles/604287/">Anatomy of a system call part 1</a>。这个宏定义在：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/syscalls.h#L216">syscalls.h - include&#x2F;linux&#x2F;syscalls.h - <em>SYSCALL_DEFINE3</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> SYSCALL_DEFINE3(name, ...) SYSCALL_DEFINEx(3, _##name, __VA_ARGS__)</span></span><br></pre></td></tr></table></figure>
+
+<p>看了一下，挺复杂的，先这样吧。</p>
+<h2 id="3-do-mknodat函数"><a href="#3-do-mknodat函数" class="headerlink" title="3. do_mknodat函数"></a><font size=3>3. do_mknodat函数</font></h2><p>接下来我们看do_mknodat函数，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/namei.c#L3742">namei.c - fs&#x2F;namei.c - <em>do_mknodat</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">long</span> <span class="title function_">do_mknodat</span><span class="params">(<span class="type">int</span> dfd, <span class="type">const</span> <span class="type">char</span> __user *filename, <span class="type">umode_t</span> mode,</span></span><br><span class="line"><span class="params">		<span class="type">unsigned</span> <span class="type">int</span> dev)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">dentry</span> *<span class="title">dentry</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">path</span> <span class="title">path</span>;</span></span><br><span class="line">	<span class="type">int</span> error;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span> lookup_flags = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	error = may_mknod(mode);</span><br><span class="line">	<span class="keyword">if</span> (error)</span><br><span class="line">		<span class="keyword">return</span> error;</span><br><span class="line">retry:</span><br><span class="line">	dentry = user_path_create(dfd, filename, &amp;path, lookup_flags); <span class="comment">// 这里进行路径解析并创建新的 dentry</span></span><br><span class="line">	<span class="keyword">if</span> (IS_ERR(dentry))</span><br><span class="line">		<span class="keyword">return</span> PTR_ERR(dentry);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!IS_POSIXACL(path.dentry-&gt;d_inode))</span><br><span class="line">		mode &amp;= ~current_umask();</span><br><span class="line">	error = security_path_mknod(&amp;path, dentry, mode, dev);</span><br><span class="line">	<span class="keyword">if</span> (error)</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line">	<span class="keyword">switch</span> (mode &amp; S_IFMT) &#123; <span class="comment">// 在这里创建inode</span></span><br><span class="line">		<span class="keyword">case</span> <span class="number">0</span>: <span class="keyword">case</span> S_IFREG:</span><br><span class="line">			error = vfs_create(path.dentry-&gt;d_inode,dentry,mode,<span class="literal">true</span>);</span><br><span class="line">			<span class="keyword">if</span> (!error)</span><br><span class="line">				ima_post_path_mknod(dentry);</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="keyword">case</span> S_IFCHR: <span class="keyword">case</span> S_IFBLK:</span><br><span class="line">			error = vfs_mknod(path.dentry-&gt;d_inode,dentry,mode,</span><br><span class="line">					new_decode_dev(dev));</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="keyword">case</span> S_IFIFO: <span class="keyword">case</span> S_IFSOCK:</span><br><span class="line">			error = vfs_mknod(path.dentry-&gt;d_inode,dentry,mode,<span class="number">0</span>);</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">	&#125;</span><br><span class="line">out:</span><br><span class="line">	done_path_create(&amp;path, dentry);</span><br><span class="line">	<span class="keyword">if</span> (retry_estale(error, lookup_flags)) &#123;</span><br><span class="line">		lookup_flags |= LOOKUP_REVAL;</span><br><span class="line">		<span class="keyword">goto</span> retry;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> error;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其实就两步：（1）创建 dentry；（2）创建 inode。</p>
+<h3 id="3-1-may-mknod函数"><a href="#3-1-may-mknod函数" class="headerlink" title="3.1 may_mknod函数"></a><font size=3>3.1 may_mknod函数</font></h3><p>一开始调用了这个may_mknod函数，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/namei.c#L3725">namei.c - fs&#x2F;namei.c - <em>may_mknod</em></a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">may_mknod</span><span class="params">(<span class="type">umode_t</span> mode)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">switch</span> (mode &amp; S_IFMT) &#123;</span><br><span class="line">	<span class="keyword">case</span> S_IFREG:</span><br><span class="line">	<span class="keyword">case</span> S_IFCHR:</span><br><span class="line">	<span class="keyword">case</span> S_IFBLK:</span><br><span class="line">	<span class="keyword">case</span> S_IFIFO:</span><br><span class="line">	<span class="keyword">case</span> S_IFSOCK:</span><br><span class="line">	<span class="keyword">case</span> <span class="number">0</span>: <span class="comment">/* zero mode translates to S_IFREG */</span></span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">case</span> S_IFDIR:</span><br><span class="line">		<span class="keyword">return</span> -EPERM;</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="keyword">return</span> -EINVAL;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到这个函数是在检查模式，我们前面传入的是 S_IFCHR|0666 ，所以这里将会返回0。返回 0 的话，do_mknodat()函数将会继续执行retry之后的部分。</p>
+<h3 id="3-2-user-path-create函数"><a href="#3-2-user-path-create函数" class="headerlink" title="3.2 user_path_create函数"></a><font size=3>3.2 user_path_create函数</font></h3><p>来看一下这个user_path_create函数，它用来创建一个dentry。函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/namei.c#L3690">namei.c - fs&#x2F;namei.c - <em>user_path_create</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">inline</span> <span class="keyword">struct</span> dentry *<span class="title function_">user_path_create</span><span class="params">(<span class="type">int</span> dfd, <span class="type">const</span> <span class="type">char</span> __user *pathname,</span></span><br><span class="line"><span class="params">				<span class="keyword">struct</span> path *path, <span class="type">unsigned</span> <span class="type">int</span> lookup_flags)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> filename_create(dfd, getname(pathname), path, lookup_flags);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(user_path_create);</span><br></pre></td></tr></table></figure>
+
+<p>可以看到这个是一个内联函数，根据前面的参数传递情况，这里参数对应情况为：filename_create函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/namei.c#L3602">namei.c - fs&#x2F;namei.c - <em>filename_create</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">struct</span> dentry *<span class="title function_">filename_create</span><span class="params">(<span class="type">int</span> dfd, <span class="keyword">struct</span> filename *name,</span></span><br><span class="line"><span class="params">				<span class="keyword">struct</span> path *path, <span class="type">unsigned</span> <span class="type">int</span> lookup_flags)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">	name = filename_parentat(dfd, name, lookup_flags, path, &amp;last, &amp;type);</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">	dentry = __lookup_hash(&amp;last, path-&gt;dentry, lookup_flags);</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>filename_create 函数用于在文件系统中创建一个新的文件名。这个函数通常在文件系统操作中被调用，例如创建新文件或目录。</p>
+<p>（1）其中filename_parentat()函数主要是完成的是路径解析的工作，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/namei.c#L2378">namei.c - fs&#x2F;namei.c - <em>filename_parentat</em></a>，其中调用了 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/namei.c#L2362">path_parentat()</a>&rarr;<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/namei.c#L2068">link_path_walk()</a>函数来完成路径解析工作。</p>
+<p>（2）而<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/namei.c#L1528">__lookup_hash()</a>函数（先在系统缓存中查找dentry，如果找不到）则主要通过调用<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/dcache.c#L1683">d_alloc()</a>函数创建新的 dentry 并加入到系统中。</p>
+<h3 id="3-3-vfs-mknod"><a href="#3-3-vfs-mknod" class="headerlink" title="3.3 vfs_mknod"></a><font size=3>3.3 vfs_mknod</font></h3><p>下面重点分析 inode 的创建过程，也就是这一行：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/namei.c#L3770">namei.c - fs&#x2F;namei.c - Linux source code v4.19.71 - Bootlin Elixir Cross Referencer</a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">error = vfs_mknod(path.dentry-&gt;d_inode,dentry,mode, new_decode_dev(dev));</span><br></pre></td></tr></table></figure>
+
+<p>vfs_mknod()函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/namei.c#L3697">namei.c - fs&#x2F;namei.c - <em>vfs_mknod</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">vfs_mknod</span><span class="params">(<span class="keyword">struct</span> inode *dir, <span class="keyword">struct</span> dentry *dentry, <span class="type">umode_t</span> mode, <span class="type">dev_t</span> dev)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> error = may_create(dir, dentry);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (error)</span><br><span class="line">		<span class="keyword">return</span> error;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> ((S_ISCHR(mode) || S_ISBLK(mode)) &amp;&amp; !capable(CAP_MKNOD))</span><br><span class="line">		<span class="keyword">return</span> -EPERM;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!dir-&gt;i_op-&gt;mknod)</span><br><span class="line">		<span class="keyword">return</span> -EPERM;</span><br><span class="line"></span><br><span class="line">	error = devcgroup_inode_mknod(mode, dev);</span><br><span class="line">	<span class="keyword">if</span> (error)</span><br><span class="line">		<span class="keyword">return</span> error;</span><br><span class="line"></span><br><span class="line">	error = security_inode_mknod(dir, dentry, mode, dev);</span><br><span class="line">	<span class="keyword">if</span> (error)</span><br><span class="line">		<span class="keyword">return</span> error;</span><br><span class="line"></span><br><span class="line">	error = dir-&gt;i_op-&gt;mknod(dir, dentry, mode, dev);</span><br><span class="line">	<span class="keyword">if</span> (!error)</span><br><span class="line">		fsnotify_create(dir, dentry);</span><br><span class="line">	<span class="keyword">return</span> error;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(vfs_mknod);</span><br></pre></td></tr></table></figure>
+
+<p>先来看一下函数的参数：</p>
+<ul>
+<li>struct inode *dir：&#x2F;dev目录所指向的inode信息</li>
+<li>struct dentry *dentry：我们要创建的设备文件的 dentry</li>
+<li>umode_t mode：该mode是指的我们要创建的设备文件类型，如我们键入的mknod &#x2F;dev&#x2F;dev_node c 237 0命令，所以我们要创建的是字符设备，也就是说S_ISCHR(mode)等于true。</li>
+<li>dev_t dev：和开始进入mknod系统调用一样都是，dev &#x3D; makedev(237, 0)。</li>
+</ul>
+<p>从vfs_mknod()函数来看，最终会由&#x2F;dev所指向的inode中的i_op中的mknod回调函数进行处理，因此到这里算是分析一部分了。而我们的&#x2F;dev所指向的inode中的i_op中的mknod回调函数到底是什么呢？</p>
+<p>我们来看一下，在vfs_mknod()函数中调用了文件系统相关的函数：dir&rarr;i_op&rarr;mknod()。这是父目录 &#x2F;dev 的 i_op&rarr;mknod 函数，这个函数指针指向的是<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/mm/shmem.c#L2824">shmem_mknod()</a>函数（为什么指向这个函数？是因为&#x2F;dev是一个目录，这个目录对应的文件系统是devtmpfs，而这个devtmpfs文件系统所使用的struct inode_operations操作是shmem_dir_inode_operations，因此会调用到shmem_mknod()函数。）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * File creation. Allocate an inode, and we&#x27;re done..</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">shmem_mknod</span><span class="params">(<span class="keyword">struct</span> inode *dir, <span class="keyword">struct</span> dentry *dentry, <span class="type">umode_t</span> mode, <span class="type">dev_t</span> dev)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">inode</span> *<span class="title">inode</span>;</span></span><br><span class="line">	<span class="type">int</span> error = -ENOSPC;</span><br><span class="line"></span><br><span class="line">	inode = shmem_get_inode(dir-&gt;i_sb, dir, mode, dev, VM_NORESERVE);</span><br><span class="line">	<span class="keyword">if</span> (inode) &#123;</span><br><span class="line">		error = simple_acl_create(dir, inode);</span><br><span class="line">		<span class="keyword">if</span> (error)</span><br><span class="line">			<span class="keyword">goto</span> out_iput;</span><br><span class="line">		error = security_inode_init_security(inode, dir,</span><br><span class="line">						     &amp;dentry-&gt;d_name,</span><br><span class="line">						     shmem_initxattrs, <span class="literal">NULL</span>);</span><br><span class="line">		<span class="keyword">if</span> (error &amp;&amp; error != -EOPNOTSUPP)</span><br><span class="line">			<span class="keyword">goto</span> out_iput;</span><br><span class="line"></span><br><span class="line">		error = <span class="number">0</span>;</span><br><span class="line">		dir-&gt;i_size += BOGO_DIRENT_SIZE;</span><br><span class="line">		dir-&gt;i_ctime = dir-&gt;i_mtime = current_time(dir);</span><br><span class="line">		d_instantiate(dentry, inode); <span class="comment">/* 可简单理解成：  dentry-&gt;d_inode = inode; */</span></span><br><span class="line">		dget(dentry); <span class="comment">/* Extra count - pin the dentry in core */</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> error;</span><br><span class="line">out_iput:</span><br><span class="line">	iput(inode);</span><br><span class="line">	<span class="keyword">return</span> error;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中主要工作是在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/mm/shmem.c#L2182">shmem_get_inode()</a>函数中完成：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">struct</span> inode *<span class="title function_">shmem_get_inode</span><span class="params">(<span class="keyword">struct</span> super_block *sb, <span class="type">const</span> <span class="keyword">struct</span> inode *dir,</span></span><br><span class="line"><span class="params">				     <span class="type">umode_t</span> mode, <span class="type">dev_t</span> dev, <span class="type">unsigned</span> <span class="type">long</span> flags)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">inode</span> *<span class="title">inode</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">shmem_inode_info</span> *<span class="title">info</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">shmem_sb_info</span> *<span class="title">sbinfo</span> =</span> SHMEM_SB(sb);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (shmem_reserve_inode(sb))</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">	inode = new_inode(sb); <span class="comment">/* 在内核空间创建 inode 结构体（分配内存） */</span></span><br><span class="line">	<span class="keyword">if</span> (inode) &#123;</span><br><span class="line">        <span class="comment">/* 下面是各种成员变量的初始化 */</span></span><br><span class="line">		inode-&gt;i_ino = get_next_ino();</span><br><span class="line">		inode_init_owner(inode, dir, mode);</span><br><span class="line">		inode-&gt;i_blocks = <span class="number">0</span>;</span><br><span class="line">		inode-&gt;i_atime = inode-&gt;i_mtime = inode-&gt;i_ctime = current_time(inode);</span><br><span class="line">		inode-&gt;i_generation = prandom_u32();</span><br><span class="line">		info = SHMEM_I(inode);</span><br><span class="line">		<span class="built_in">memset</span>(info, <span class="number">0</span>, (<span class="type">char</span> *)inode - (<span class="type">char</span> *)info);</span><br><span class="line">		spin_lock_init(&amp;info-&gt;lock);</span><br><span class="line">		info-&gt;seals = F_SEAL_SEAL;</span><br><span class="line">		info-&gt;flags = flags &amp; VM_NORESERVE;</span><br><span class="line">		INIT_LIST_HEAD(&amp;info-&gt;shrinklist);</span><br><span class="line">		INIT_LIST_HEAD(&amp;info-&gt;swaplist);</span><br><span class="line">		simple_xattrs_init(&amp;info-&gt;xattrs);</span><br><span class="line">		cache_no_acl(inode);</span><br><span class="line">		</span><br><span class="line">		<span class="keyword">switch</span> (mode &amp; S_IFMT) &#123;</span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">			inode-&gt;i_op = &amp;shmem_special_inode_operations;</span><br><span class="line">			init_special_inode(inode, mode, dev); <span class="comment">/* 这里才是我们要关注的 */</span></span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="comment">// ......</span></span><br><span class="line"></span><br><span class="line">		lockdep_annotate_inode_mutex_key(inode);</span><br><span class="line">	&#125; <span class="keyword">else</span></span><br><span class="line">		shmem_free_inode(sb);</span><br><span class="line">	<span class="keyword">return</span> inode;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>可见在这个函数里面，首先通过<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/inode.c#L914">new_inode()</a>函数在内核空间分配内存，这里不再详细展开。然后对各个成员变量进行初始化，这里我们也不关注，需要关注的地方在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/inode.c#L1982">init_special_inode()</a>函数里面：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">init_special_inode</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="type">umode_t</span> mode, <span class="type">dev_t</span> rdev)</span></span><br><span class="line">&#123;</span><br><span class="line">	inode-&gt;i_mode = mode;</span><br><span class="line">	<span class="keyword">if</span> (S_ISCHR(mode)) &#123;</span><br><span class="line">		inode-&gt;i_fop = &amp;def_chr_fops;</span><br><span class="line">		inode-&gt;i_rdev = rdev;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> (S_ISBLK(mode)) &#123;</span><br><span class="line">		inode-&gt;i_fop = &amp;def_blk_fops;</span><br><span class="line">		inode-&gt;i_rdev = rdev;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> (S_ISFIFO(mode))</span><br><span class="line">		inode-&gt;i_fop = &amp;pipefifo_fops;</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (S_ISSOCK(mode))</span><br><span class="line">		;	<span class="comment">/* leave it no_open_fops */</span></span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		printk(KERN_DEBUG <span class="string">&quot;init_special_inode: bogus i_mode (%o) for&quot;</span></span><br><span class="line">				  <span class="string">&quot; inode %s:%lu\n&quot;</span>, mode, inode-&gt;i_sb-&gt;s_id,</span><br><span class="line">				  inode-&gt;i_ino);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(init_special_inode);</span><br></pre></td></tr></table></figure>
+
+<p>从init_special_inode()函数可以看出来，当执行<code>mknod /dev/dev_node c 237 0</code>命令为<code>/dev/dev_node</code>设备文件生成的<code>inode</code>时，由于指定的设备文件类型为字符类型，所以会为<code>inode</code>进行如下赋值操作：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">inode-&gt;i_fop = &amp;def_chr_fops;</span><br><span class="line">inode-&gt;i_rdev = rdev;</span><br></pre></td></tr></table></figure>
+
+<p>可见这里保存了两个重要的成员变量：文件操作函数集和设备号。而这个文件操作函数集是一个通用的操作集，所有字符驱动文件打开时都会调用，在这个函数里面，通过设备号来找到真正的该设备的文件操作函数集。先看这个 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/char_dev.c#L461">def_chr_fops</a> 的定义：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Dummy default file-operations: the only thing this does</span></span><br><span class="line"><span class="comment"> * is contain the open that then fills in the correct operations</span></span><br><span class="line"><span class="comment"> * depending on the special file...</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> <span class="title">def_chr_fops</span> =</span> &#123;</span><br><span class="line">	.open = chrdev_open,</span><br><span class="line">	.llseek = noop_llseek,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>这个 mknod 系统调用无非就是把文件的设备号保存到新创建的 inode 里面，而真正的驱动相关的文件操作函数集并没有保存在这里面，而是保存在 cdev_map&rarr;probes 数组中，但巧妙之处在于我们可以通过文件的设备号轻松的找到驱动相关的文件操作函数集。最后一点需要说明的是我们回到 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/mm/shmem.c#L2824">shmem_mknod()</a> 函数，这里显式的调用了 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/dcache.h#L319">dget()</a> 函数。其实在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/namei.c#L1542">namei.c - fs&#x2F;namei.c</a>这里通过调用<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/dcache.c#L1683">d_alloc()</a>函数创建新的 dentry 时，已经将将其引用计数设置为1：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/dcache.c#L1646">dcache.c - fs&#x2F;dcache.c</a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dentry-&gt;d_lockref.count = <span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+<p>这里再次调用 dget() 函数就是要保证通过 mknod 函数创建的 inode 永远不会被释放掉（除非 rm &#x2F;dev&#x2F;dev_node)。这样就保证了 lookup_fast()函数总能成功返回。</p>
+<h2 id="4-总结"><a href="#4-总结" class="headerlink" title="4. 总结"></a><font size=3>4. 总结</font></h2><p>当我们输入<code>mknod</code>命令时，实际上会创建设备文件<code>/dev/hello</code>和所对应的<code>inode</code>，以及将主设备号和次设备号形成的设备号保存在<code>inode</code>的<code>i_rdev</code>中。inode信息怎么使用？我们下一节看。</p>
+<blockquote>
+<p>参考资料</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/assiduous_me/article/details/124895820">Linux中mknod命令实现原理以及源码分析-CSDN博客</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/c88a86e3.html">LV05-03-Kernel-05-01-mknod</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年12月17日 - 23:25</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/c88a86e3.html" title="LV05-03-Kernel-05-01-mknod">https://sumumm.github.io/post/c88a86e3.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/" rel="tag"><i class="fa fa-tag"></i> LV05-系统镜像</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/ed4af2e4.html" rel="prev" title="LV05-03-Kernel-05-02-文件描述符分配">
+                  <i class="fa fa-angle-left"></i> LV05-03-Kernel-05-02-文件描述符分配
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/983cf309.html" rel="next" title="LV05-04-根文件系统-04-Debian-01-Debian简介">
+                  LV05-04-根文件系统-04-Debian-01-Debian简介 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

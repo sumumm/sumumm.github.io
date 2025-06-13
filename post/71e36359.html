@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是中断与异常——Cortex A7异常及处理的基础知识的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV04-07-中断与异常-01-异常基础知识">
+<meta property="og:url" content="https://sumumm.github.io/post/71e36359.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是中断与异常——Cortex A7异常及处理的基础知识的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909142958468.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909143622543.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909143650398.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909145759802.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909145956756.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909151143357.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909154701915.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909160752385.png">
+<meta property="article:published_time" content="2024-01-21T08:04:07.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.039Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV04-裸机开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909142958468.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/71e36359.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/71e36359.html","path":"post/71e36359.html","title":"LV04-07-中断与异常-01-异常基础知识"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV04-07-中断与异常-01-异常基础知识 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%BC%82%E5%B8%B8%E5%92%8C%E4%B8%AD%E6%96%AD"><span class="nav-text">一、异常和中断</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%BC%82%E5%B8%B8%E5%92%8C%E4%B8%AD%E6%96%AD%E7%9A%84%E5%BC%95%E5%85%A5"><span class="nav-text">1. 异常和中断的引入</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%B5%8C%E5%85%A5%E5%BC%8F%E4%B8%AD%E7%9A%84%E7%B1%BB%E4%BC%BC%E6%83%85%E5%86%B5"><span class="nav-text">2. 嵌入式中的类似情况</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%BC%82%E5%B8%B8%E5%92%8C%E4%B8%AD%E6%96%AD%E5%A4%84%E7%90%86%E6%B5%81%E7%A8%8B"><span class="nav-text">3. 异常和中断处理流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E6%80%8E%E4%B9%88%E4%BF%9D%E5%AD%98%E7%8E%B0%E5%9C%BA%EF%BC%9F"><span class="nav-text">4. 怎么保存现场？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-ARM-%E5%A4%84%E7%90%86%E5%99%A8%E7%A8%8B%E5%BA%8F%E8%BF%90%E8%A1%8C%E7%9A%84%E8%BF%87%E7%A8%8B"><span class="nav-text">4.1 ARM 处理器程序运行的过程  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E7%A8%8B%E5%BA%8F%E8%A2%AB%E4%B8%AD%E6%96%AD%E6%97%B6%EF%BC%8C%E6%80%8E%E4%B9%88%E4%BF%9D%E5%AD%98%E7%8E%B0%E5%9C%BA"><span class="nav-text">4.2 程序被中断时，怎么保存现场  </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-ARM%E5%A4%84%E7%90%86%E5%99%A8%E7%9A%84%E6%A8%A1%E5%BC%8F%E5%92%8C%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">5. ARM处理器的模式和寄存器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-R0-R15"><span class="nav-text">5.1 R0-R15</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E7%8A%B6%E6%80%81%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">5.2 状态寄存器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-%E5%8D%8F%E5%A4%84%E7%90%86%E5%99%A8CP15"><span class="nav-text">5.3 协处理器CP15  </span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86"><span class="nav-text">二、异常处理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%A6%82%E8%BF%B0"><span class="nav-text">1. 概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%BC%82%E5%B8%B8%E7%9A%84%E7%B1%BB%E5%9E%8B"><span class="nav-text">2. 异常的类型  </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E4%B8%AD%E6%96%AD"><span class="nav-text">2.1 中断</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E7%BB%88%E6%AD%A2%EF%BC%88ABT%EF%BC%89"><span class="nav-text">2.2 终止（ABT）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E5%A4%8D%E4%BD%8D"><span class="nav-text">2.3 复位</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E7%94%9F%E6%88%90%E5%BC%82%E5%B8%B8%E7%9A%84%E6%8C%87%E4%BB%A4"><span class="nav-text">2.4 生成异常的指令</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%BC%82%E5%B8%B8%E4%BC%98%E5%85%88%E7%BA%A7"><span class="nav-text">3. 异常优先级</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8"><span class="nav-text">4. 异常向量表</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-FIQ-and-IRQ"><span class="nav-text">5. FIQ and IRQ  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E8%BF%94%E5%9B%9E%E6%8C%87%E4%BB%A4"><span class="nav-text">6. 返回指令  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-%E5%86%85%E6%A0%B8%E6%80%8E%E4%B9%88%E5%A4%84%E7%90%86%E5%BC%82%E5%B8%B8"><span class="nav-text">7. 内核怎么处理异常</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#7-1-%E4%B8%80%E8%88%AC%E6%89%A7%E8%A1%8C%E7%9A%84%E6%AD%A5%E9%AA%A4"><span class="nav-text">7.1 一般执行的步骤</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-2-%E4%B8%AD%E6%AD%A2%EF%BC%88ABT%EF%BC%89%E5%A4%84%E7%90%86%E7%A8%8B%E5%BA%8F"><span class="nav-text">7.2 中止（ABT）处理程序</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-3-%E6%9C%AA%E5%AE%9A%E4%B9%89%E7%9A%84%E6%8C%87%E4%BB%A4%E5%A4%84%E7%90%86"><span class="nav-text">7.3 未定义的指令处理  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-4-SVC-%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86"><span class="nav-text">7.4 SVC 异常处理  </span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/71e36359.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV04-07-中断与异常-01-异常基础知识 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV04-07-中断与异常-01-异常基础知识
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-01-21 16:04:07" itemprop="dateCreated datePublished" datetime="2024-01-21T16:04:07+08:00">2024-01-21</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV04-裸机开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>9.8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>35 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是中断与异常——Cortex A7异常及处理的基础知识的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows版本</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu版本</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>      </tr>    <tr>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="4">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">在线阅读linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga" target="_blank">nxp-imx/linux-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga</a></td>        <td align="left">NXP linux内核仓库tags中的rel_imx_4.1.15_2.1.0_ga</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.1.15_2.1.0_ga</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>        <tr>        <td align="center" rowspan="5">ARM</td>        <td align="left"><a href="https://developer.arm.com/documentation/ddi0464/latest" target="_blank">Cortex-A7 MPCore Technical Reference Manual</a></td>        <td align="left">Cortex-A7 MPCore技术参考手册</td>    </tr>    <tr>        <td align="left"><a href="https://developer.arm.com/documentation/ddi0406/cd/?lang=en" target="_blank">ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition</a></td>        <td align="left">ARM架构参考手册ARMv7-A和ARMv7-R版</td>    </tr>    <tr>        <td align="left"><a href="https://developer.arm.com/documentation/ihi0069/h/?lang=en" target="_blank">Arm Generic Interrupt Controller Architecture Specification- version 3 and version 4</a></td>        <td align="left">Arm通用中断控制器架构规范-版本3和版本4</td>    </tr>    <tr>        <td align="left"><a href="https://developer.arm.com/documentation/ihi0048/bb/?lang=en" target="_blank">ARM Generic Interrupt Controller Architecture Specification - Version 2.0</a></td>        <td align="left">Arm通用中断控制器架构规范-版本2.0</td>    </tr>    <tr>        <td align="left"><a href="https://developer.arm.com/documentation/den0013/d/?lang=en" target="_blank">ARM Cortex-A Series Programmer's Guide for ARMv7-A</a></td>        <td align="left">Cortex-A系列ARMv7-A编程指南</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、异常和中断"><a href="#一、异常和中断" class="headerlink" title="一、异常和中断"></a><font size=3>一、异常和中断</font></h1><h2 id="1-异常和中断的引入"><a href="#1-异常和中断的引入" class="headerlink" title="1. 异常和中断的引入"></a><font size=3>1. 异常和中断的引入</font></h2><p>有这样的一个场景，我们正在看书，这就是我们主要的任务，现在发生了下边的事：</p>
+<p>（1）水烧开了</p>
+<p>（2）有电话到来</p>
+<p>这些事情发生的时候，我们就不得不去处理，我们该怎么办？</p>
+<p>（1）书中放上书签，合上书（保存现场，以免一会回来找不到自己看到哪里了）</p>
+<p>（2）处理刚才的两件事，水烧开了就将电源关掉，把开水装起来，电话到来，就接听电话，先做哪个？那就看哪个更紧急啦。</p>
+<p>（3）回来继续看书（恢复现场）。</p>
+<p>这些事情就可以被称之为异常，我们正在做的事情会被这些异常情况所打断，我们不得不去处理一下这些异常。</p>
+<h2 id="2-嵌入式中的类似情况"><a href="#2-嵌入式中的类似情况" class="headerlink" title="2. 嵌入式中的类似情况"></a><font size=3>2. 嵌入式中的类似情况</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909142958468.png" alt="image-20230909142958468" style="zoom:50%;" />
+
+<p>CPU 在运行的过程中，也会被各种“异常”打断。这些“异常”有：</p>
+<ul>
+<li><p>① 指令未定义</p>
+</li>
+<li><p>② 指令、数据访问有问题</p>
+</li>
+<li><p>③ SWI(软中断)</p>
+</li>
+<li><p>④ 快中断</p>
+</li>
+<li><p>⑤ 中断</p>
+</li>
+</ul>
+<p>中断也属于一种“异常”，导致中断发生的情况有很多，比如：</p>
+<ul>
+<li><p>① 按键</p>
+</li>
+<li><p>② 定时器</p>
+</li>
+<li><p>③ ADC 转换完成</p>
+</li>
+<li><p>④ UART 发送完数据、收到数据等等</p>
+</li>
+</ul>
+<p>这些众多的“中断源”，汇集到“中断控制器”，由“中断控制器”选择优先级最高的中断并通知 CPU。  </p>
+<h2 id="3-异常和中断处理流程"><a href="#3-异常和中断处理流程" class="headerlink" title="3. 异常和中断处理流程"></a><font size=3>3. 异常和中断处理流程</font></h2><p>arm 对异常(中断)处理过程：</p>
+<ul>
+<li>（1）初始化：</li>
+</ul>
+<p>（a) 设置中断源，让它可以产生中断。</p>
+<p>（b) 设置中断控制器(可以屏蔽某个中断，优先级)。</p>
+<p>（c) 设置 CPU 总开关(使能中断)。</p>
+<ul>
+<li><p>（2）执行其他程序：正常程序</p>
+</li>
+<li><p>（3）产生中断：比如按下按键&rarr;中断控制器&rarr;CPU</p>
+</li>
+<li><p>（4）CPU 每执行完一条指令都会检查有无中断&#x2F;异常产生</p>
+</li>
+<li><p>（5）CPU 发现有中断&#x2F;异常产生，开始处理。对于不同的异常，跳去不同的地址执行程序。这些地址上，只是一条跳转指令，跳去执行某个函数(地址)，这个就是异常向量。（3）（4）（5）都是硬件做的。这些函数做什么事情？软件做的事情如下：</p>
+</li>
+</ul>
+<p>（a) 保存现场(各种寄存器)</p>
+<p>（b) 处理异常(中断)：分辨中断源，再调用不同的处理函数</p>
+<p>（c) 恢复现场  </p>
+<h2 id="4-怎么保存现场？"><a href="#4-怎么保存现场？" class="headerlink" title="4. 怎么保存现场？"></a><font size=3>4. 怎么保存现场？</font></h2><p>答案是栈，中断，中断谁？中断的是当前正在运行的进程、线程。那进程、线程是什么？内核如何切换进程、线程、中断？要理解这些概念，必须理解栈的作用。  </p>
+<h3 id="4-1-ARM-处理器程序运行的过程"><a href="#4-1-ARM-处理器程序运行的过程" class="headerlink" title="4.1 ARM 处理器程序运行的过程  "></a><font size=3>4.1 ARM 处理器程序运行的过程  </font></h3><p>ARM 芯片属于精简指令集计算机(RISC： Reduced Instruction Set Computing)，它所用的指令比较简单，有如下特点：  </p>
+<p>① 对内存只有读、写指令</p>
+<p>② 对于数据的运算是在 CPU 内部实现</p>
+<p>③ 使用 RISC 指令的 CPU 复杂度小一点，易于设计  </p>
+<p>比如对于 a&#x3D;a+b 这样的算式，需要经过下面 4 个步骤才可以实现：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909143622543.png" alt="image-20230909143622543" style="zoom:50%;" />
+
+<p>细看这几个步骤，有些疑问：</p>
+<p>① 读 a，那么 a 的值读出来后保存在 CPU 里面哪里？</p>
+<p>② 读 b，那么 b 的值读出来后保存在 CPU 里面哪里？</p>
+<p>③ a+b 的结果又保存在哪里？  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909143650398.png" alt="image-20230909143650398" style="zoom:50%;" />
+
+<p>我们需要深入 ARM 处理器的内部。简单概括如下，我们先忽略各种 CPU 模式(系统模式、用户模式等等)。  CPU 运行时，先去取得指令，再执行指令：<br>① 把内存 a 的值读入 CPU 寄存器 R0</p>
+<p>② 把内存 b 的值读入 CPU 寄存器 R1</p>
+<p>③ 把 R0、 R1 累加，存入 R0</p>
+<p>④ 把 R0 的值写入内存 a  </p>
+<h3 id="4-2-程序被中断时，怎么保存现场"><a href="#4-2-程序被中断时，怎么保存现场" class="headerlink" title="4.2 程序被中断时，怎么保存现场  "></a><font size=3>4.2 程序被中断时，怎么保存现场  </font></h3><p>CPU 内部的寄存器很重要，如果要暂停一个程序，中断一个程序，就需要把这些寄存器的值保存下来：这就称为保存现场。保存在哪里？内存，这块内存就称之为栈。程序要继续执行，就先从栈中恢复那些 CPU 内部寄存器的值。这个场景并不局限于中断，上图可以概括程序 A、 B 的切换过程，其他情况是类似的： </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909145759802.png" alt="image-20230909145759802" style="zoom:50%;" />
+
+<ul>
+<li>（1）函数调用：</li>
+</ul>
+<p>在函数 A 里调用函数 B，实际就是中断函数 A 的执行。那么需要把函数 A 调用 B 之前瞬间的 CPU 寄存器的值，保存到栈里；再去执行函数 B；函数 B 返回之后，就从栈中恢复函数 A 对应的 CPU 寄存器值，继续执行。</p>
+<ul>
+<li>（2）中断处理</li>
+</ul>
+<p>进程 A 正在执行，这时候发生了中断。CPU 强制跳到中断异常向量地址去执行，这时就需要保存进程 A 被中断瞬间的 CPU 寄存器值，可以保存在进程 A 的内核态栈，也可以保存在进程 A 的内核结构体中。中断处理完毕，要继续运行进程 A 之前，恢复这些值。</p>
+<ul>
+<li>（3）进程切换</li>
+</ul>
+<p>在所谓的多任务操作系统中，我们以为多个程序是同时运行的。如果我们能感知微秒、纳秒级的事件，可以发现操作系统时让这些程序依次执行一小段时间，进程 A 的时间用完了，就切换到进程 B。怎么切换？切换过程是发生在内核态里的，跟中断的处理类似。进程 A 的被切换瞬间的 CPU 寄存器值保存在某个地方；恢复进程 B 之前保存的 CPU 寄存器值，这样就可以运行进程 B 了。所以，在中断处理的过程中，伴存着进程的保存现场、恢复现场。  进程的调度也是使用栈来保存、恢复现场：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909145956756.png" alt="image-20230909145956756" style="zoom:50%;" />
+
+<h2 id="5-ARM处理器的模式和寄存器"><a href="#5-ARM处理器的模式和寄存器" class="headerlink" title="5. ARM处理器的模式和寄存器"></a><font size=3>5. ARM处理器的模式和寄存器</font></h2><h3 id="5-1-R0-R15"><a href="#5-1-R0-R15" class="headerlink" title="5.1 R0-R15"></a><font size=3>5.1 R0-R15</font></h3><p>这个在前边学习过了，在前边学习CortexA7架构的时候有学习过。《LV01-03-Cortex-A7架构-03-Cortex-A寄存器组》</p>
+<h3 id="5-2-状态寄存器"><a href="#5-2-状态寄存器" class="headerlink" title="5.2 状态寄存器"></a><font size=3>5.2 状态寄存器</font></h3><p>这个在前边学习过了，在前边学习CortexA7架构的时候有学习过。《LV01-03-Cortex-A7架构-02-处理器简介与运行模型》</p>
+<h3 id="5-3-协处理器CP15"><a href="#5-3-协处理器CP15" class="headerlink" title="5.3 协处理器CP15  "></a><font size=3>5.3 协处理器CP15  </font></h3><p>协处理器，顾名思义它也是一个处理器，不过它是为了“协助”主处理器而存在的。 ARM 架构里有 16 个协处理器， CP0~CP15。编程时涉及 CP15 比较多。</p>
+<p>CP15 是系统控制协处理器，可控制处理器核的许多功能。它可以包含 16 个32 位主寄存器。对 CP15 的访问受权限控制，并且在用户模式下并非所有寄存器都可用。 CP15 寄存器访问指令指定所需的主寄存器，指令中的其他字段用于更精确地指定更多参数。 CP15 中的 16 个主要寄存器的名称为 c0 至 c15，但通常使用名称来引用。例如， CP15 系统控制寄存器称为 CP15.SCTLR。    </p>
+<p>通过从一个通用寄存器（ Rt）读取或写入位于 CP15 内的一组寄存器（ CRn）中，可以控制系统架构的某些功能。该指令的 Op1， Op2 和 CRm 字段也可以用于选择寄存器或操作。  格式如下所示：  </p>
+<p>(1) 从 CP15 寄存器读值到 ARM 寄存器  </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">MRC p15, Op1, Rt, CRn, CRm, Op2 ; read a CP15 register into an</span><br><span class="line">ARM register</span><br></pre></td></tr></table></figure>
+
+<p>(2) 从 ARM 寄存器写值到 CP15 寄存器</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">MCR p15, Op1, Rt, CRn, CRm, Op2 ; write a CP15 register from an</span><br><span class="line">ARM register</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>System control register (SCTLR)</li>
+</ul>
+<p>SCTLR 是通过 CP15 访问的寄存器，它控制存储器，系统功能，并提供反映处理器核中实现的功能的状态信息。系统控制寄存器只能从 PL1 或更高特权等级访问。  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909151143357.png" alt="image-20230909151143357" style="zoom:50%;" />
+
+<blockquote>
+<p>TE – Thumb 异常使能。这可以控制异常进入 ARM 状态，还是 Thumb 状态。</p>
+<p>NMFI – 是否支持不可屏蔽的 FIQ（ NMFI）支持。</p>
+<p>EE &#x3D;异常字节序。这定义了在异常时的字节序，的 CPSR.E 位的值。</p>
+<p>U – 使用对齐模型。</p>
+<p>FI – FIQ 配置启用。</p>
+<p>V – 该位选择异常向量表的基地址。</p>
+<p>I – 指令缓存使能位。</p>
+<p>Z – 分支预测使能位。</p>
+<p>C – 缓存使能位。</p>
+<p>A – 对齐检查使能位。</p>
+<p>M – 启用 MMU  </p>
+</blockquote>
+<p>引导代码序列的一部分通常将是设置 CP15： SCTLR 系统控制寄存器中的 Z位，以启用分支预测功能。操作的代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">MRC p15, 0, r0, c1, c0, 0 ; Read System Control Register configuration data</span><br><span class="line">ORR r0, r0, #(1 &lt;&lt; 2) ; Set C bit</span><br><span class="line">ORR r0, r0, #(1 &lt;&lt; 12) ; Set I bit</span><br><span class="line">ORR r0, r0, #(1 &lt;&lt; 11) ; Set Z bit</span><br><span class="line">MCR p15, 0, r0, c1, c0, 0 ; Write System Control Register configuration data</span><br></pre></td></tr></table></figure>
+
+<h1 id="二、异常处理"><a href="#二、异常处理" class="headerlink" title="二、异常处理"></a><font size=3>二、异常处理</font></h1><h2 id="1-概述"><a href="#1-概述" class="headerlink" title="1. 概述"></a><font size=3>1. 概述</font></h2><p>异常（ exception）就是发生了意外的情况，它会中止处理器正常的执行流程。发生异常时， 处理器要去执行对应的程序（称为异常处理程序）。异常有很多种，每种都有自己的处理程序，中断是一种异常。处理完异常后，要恢复发生异常之前的、被打断的操作。</p>
+<p>CPU 每执行完一条指令，都会检查一下是否发生了某个异常，若是则中断当前执行流程，转去处理异常。</p>
+<p>其他体系结构可能会将ARM所谓的异常称为陷阱（traps）或中断（ interrupts），但是，在 ARM 体系结构中，这些术语保留用于特定类型的异常。</p>
+<p>所有微处理器都必须响应外部异步事件，例如按下按钮或时钟超时。处理器核可以响应此类事件的速度可能是系统设计中的关键问题，称为中断等待时间（ interrupt latency）。</p>
+<p>很多单片机程序是写一个 main 主循环，在里面不断去查询是否发生了某些事，然后处理这些事。实际上，在许多嵌入式系统中，并没有这样的 main 主循环，系统的所有功能都由中断代码来驱动。发生了某个中断，处理器就去执行对应的函数。复杂的系统有许多中断源，它们具有不同的优先级，并且支持中断嵌套，其中较高优先级的中断可以中断较低优先级的中断。</p>
+<p>在正常程序执行中，程序计数器在地址空间中递增，程序中的分支指令会修改执行流程，例如，函数调用，循环和条件代码。当发生异常时，此预定的执行顺序将中断，并暂时切换到异常处理程序以处理该异常。</p>
+<p>除了响应外部中断外，还有许多其他因素可能导致处理器核发生异常，包括外部（例如，复位），来自内存系统的异常终止以及内部（例如 MMU 生成的异常终止或通过 SVC 指令进行的 OS 调用）异常。处理异常会导致 CPU 核在模式之间切换并将某些寄存器复制到其他寄存器中。 </p>
+<h2 id="2-异常的类型"><a href="#2-异常的类型" class="headerlink" title="2. 异常的类型  "></a><font size=3>2. 异常的类型  </font></h2><p>ARMv7-A 和 ARMv7-R 体系结构支持多种处理器模式，称为 FIQ， IRQ，Supervisor，中止，未定义和系统的六种特权模式以及非特权的用户模式。在特权模式下可以修改 CPSR 寄存器来改变当前的处理器模式，或者在发生异常时自动改变。</p>
+<p>非特权用户模式不能直接影响处理器核的异常行为，但是可以使用 SVC 异常以请求特权服务。这是用户应用程序请求操作系统来完成任务的方式，比如Linux 的用户程序可以执行“ SVC”指令触发异常，从而进入内核。</p>
+<p>发生异常时，内核将保存当前状态和返回地址，进入特定模式，并可能禁用硬件中断。异常程序一般从某个固定的地址开始执行，这个固定的地址被称为“异常向量”。新的处理器允许把异常向量设在任何地方，但是要把它的地址写入某些寄存器，这样 CPU 会去这些寄存器获得地址并跳转执行。  </p>
+<p>存在以下异常类型：中断、终止、  复位、生成异常的指令。</p>
+<h3 id="2-1-中断"><a href="#2-1-中断" class="headerlink" title="2.1 中断"></a><font size=3>2.1 中断</font></h3><p>ARMv7-A 内核提供两种中断，称为 IRQ 和 FIQ。  </p>
+<p>FIQ 的优先级高于 IRQ，并且 FIQ 模式下可用的更多的备份寄存器，因此FIQ 具有一些潜在的速度优势。高优先级保证了它能尽快被处理，有更多备份寄存器可以节省将寄存器保存到堆栈时耗费的时钟周期。</p>
+<p>FIQ、 IRQ 异常通常都与处理器核上的输入引脚相关联：外部硬件会触发一条中断请求线，通过中断控制器去中断处理器。</p>
+<p>FIQ 和 IRQ 都是发给处理器核的物理信号，如果处理器的 CPSR 寄存器中FIQ 和 IRQ 处于打开状态，它将处理相应的异常。</p>
+<p>几乎在所有系统上，通过使用中断控制器连接各种中断源。中断控制器对中断进行仲裁并确定优先级，然后依次提供串行化的单个信号，然后将其连接到内处理器核核的 FIQ 或 IRQ 引脚。</p>
+<p>我们不知道 IRQ 和 FIQ 中断何时发生，它跟处理器当前执行的软件无关，因此将它们分类为异步异常。  </p>
+<h3 id="2-2-终止（ABT）"><a href="#2-2-终止（ABT）" class="headerlink" title="2.2 终止（ABT）"></a><font size=3>2.2 终止（ABT）</font></h3><p>中止可以在指令预取失败（预取中止）或数据访问失败（数据中止）时生成。它们可以来自外部存储器系统，在存储器访问时给出错误响应（可能表明指定的地址不对应于系统中的实际存储器）。另外，中止可以由内核的内存管理单元（ MMU）生成。操作系统可以使用 MMU 中止来为应用程序动态分配内存。  </p>
+<p>预取一条指令时，可以在指令流水线中中将其标记为已中止。仅当内核尝试执行它时，才导致预取中止异常。异常发生在指令执行之前。如果标记为中止的指令到达指令流水线的执行阶段之前刷新了指令流水线，则不会发生中止异常。数据中止异常发生在加载或存储指令执行时，并且是在尝试读取或写入数据之后<br>发生的。</p>
+<p>如果中止是由于指令流的执行或尝试执行而产生的，则中止被描述为同步的，并且返回地址将提供导致该中止的指令的详细信息。异步的中止不是由执行指令生成，异步中止的返回地址可能不提供导致中止的原因的信息。</p>
+<p>ARMv7 体系结构分为精确的和不精确的异步中止。 MMU 产生的中止总是同步的。 ARMv7 体系结构不需要外部中止的类型是同步的。例如，在一个特定的实现上，页表翻译时报告的外部异常中止被认为是精确的，但这并不是所有处理器核都需要的。对于精确的异步中止，中止处理程序可以确定是哪条指令导致了中止，并且在该指令之后没有执行其他指令。这与不精确的异步异常中止相反，异步异常中止是外部存储器系统报告有关无法识别的访问的错误时的结果。在这种情况下，中止处理程序无法确定是哪条指令导致了问题， 或者在产生中止的指令之后是否还会执行其他指令。</p>
+<p>例如，如果缓冲写入从外部存储系统接收到错误响应，则执行存储指令后很可能执行了其他指令。这意味着中止处理程序无法修复此问题并返回到应用程序。它所能做的就是杀死导致问题的应用程序。因此，设备探测需要特殊的处理，因为从外部报告的对不存在区域的读取中止将产生不精确的同步中止，即使将此类存储器标记为“strong odered”或“设备”。</p>
+<p>异步中止的检测由 CPSR A 位控制。如果将 A 位置 1， CPU 核将识别出外部存储系统的异步异常中止，但不会产生中止异常。取而代之的是， 内核将中止挂起状态挂起，直到清除 A 位时才采取异常处理为止。内核代码将使用屏障指令来确保针对正确的应用程序识别未处理的异步中止。如果由于不精确的中止而不得不终止线程，则该线程必须是正确的线程。  </p>
+<h3 id="2-3-复位"><a href="#2-3-复位" class="headerlink" title="2.3 复位"></a><font size=3>2.3 复位</font></h3><p>所有处理器核都有复位输入，并且在复位后将立即执行复位异常。它是最高优先级的异常，无法屏蔽。上电后，此异常用于在处理器核上执行代码以对其进行初始化。  </p>
+<h3 id="2-4-生成异常的指令"><a href="#2-4-生成异常的指令" class="headerlink" title="2.4 生成异常的指令"></a><font size=3>2.4 生成异常的指令</font></h3><p>某些指令的执行会产生异常。通常执行以下指令，以便从更高特权级别的软件中请求服务：  </p>
+<ul>
+<li><p>Supervisor Call（ SVC）指令使用户模式程序可以请求操作系统服务。</p>
+</li>
+<li><p>如果实施了虚拟化扩展，则可以使用 Hypervisor 调用（ HVC）指令，使虚拟机可以请求 Hypervisor 服务。</p>
+</li>
+<li><p>如果实施了安全扩展，则可以使用（ SMC）指令，使普通环境可以请求安全环境服务。</p>
+</li>
+</ul>
+<p>任何试图执行处理器核无法识别的指令都会产生未定义的异常。  </p>
+<h2 id="3-异常优先级"><a href="#3-异常优先级" class="headerlink" title="3. 异常优先级"></a><font size=3>3. 异常优先级</font></h2><p>当异常同时发生时，将依次处理每个异常，然后返回原来执行的应用程序。所有异常不可能同时发生。例如，未定义指令（ Undef）和 supervisor call（ SVC）异常是互斥的，因为它们都是由执行指令触发的。  </p>
+<p><strong>注意</strong>： ARM 体系结构未定义何时采用异步异常。因此，异步异常相对于其他异常（同步和异步）的优先级由芯片厂家决定。  </p>
+<p>所有异常均禁用 IRQ，只有 FIQ 和复位禁用 FIQ。这是由处理器核自动设置CPSR I（ IRQ）和 F（ FIQ）位来完成的。意思是说，发生某个异常时，处理器CPSR 的 IRQ 位就被禁止了，在异常处理期间按键等中断是不会被处理的。这也意味着发生了某个 IRQ 中断后，处理器 CPSR 的 IRQ 位就被禁止，除非我们的代码中再次去开启 CPSR 的 IRQ 位，否则中断无法嵌套。  </p>
+<p>可能同时产生多个异常，但是某些组合是互斥的。预取中止将一条指令标记为无效，因此不能与未定义的指令或 SVC 同时发生（当然， SVC 指令也不能是未定义的指令）。这些指令不会导致任何内存访问，因此不会导致数据中止。该体系结构没有说定义什么时候必须采取异步异常， FIQ， IRQ 或异步异常中止，但是采用 IRQ或数据异常中止不会禁用 FIQ 异常这一事实意味着 FIQ 执行将优先于 IRQ 或异常中止异常。  </p>
+<p>发生异常时，处理器跳转去固定的地址执行代码，每个异常都有对应的固定地址。默认情况下，这些地址位为：从 0x00 到 0x1C，向量表基地址为 0。向量表可以从 0x0 移到 0xFFFF0000。  </p>
+<p>对于带有 Security Extensions 的内核，情况更加复杂，这里我们就先不关心了。下表（ARM® Architecture Reference Manual ARMv7-A and ARMv7-R edition）总结了各种状态下异常的行为，我们只需要关心第 1、 2、 3 列。  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909154701915.png" alt="image-20230909154701915" style="zoom:50%;" />
+
+<p>其实还有一个表，在《ARM® Cortex™-A Series Programmer’s Guide》的11.1.1 Exception priorities，就是这些中断向量的地址可以定义在0xFFFF0000开始的地址的那个表。</p>
+<h2 id="4-异常向量表"><a href="#4-异常向量表" class="headerlink" title="4. 异常向量表"></a><font size=3>4. 异常向量表</font></h2><p>发生异常时， CPU 核将执行与该异常对应的处理程序。异常处理程序在内存中的存储位置称为异常向量。在 ARM 体系结构中，异常向量存储在称为<strong>异常向量表</strong>的表中。因此，用于特定异常的向量可以位于异常向量表起始位置的固定偏移处。该向量表的基地址由特权软件在系统寄存器中指定，以便处理器核可以在发生异常时找到相应的处理程序。</p>
+<p>可以用 ARM 或 Thumb 代码编写异常处理程序。 CP15 SCTLR.TE 位用于指定异常处理程序将使用 ARM 还是 Thumb 指令集。处理异常时，必须保留处理器核先前的模式，状态和寄存器，以便可以在处理异常后恢复原来程序的执行。  </p>
+<p>“向量”里存有一条指令，用来处理某个异常。触发异常时 ARM 核会跳转到某个“向量”，执行其中的指令。这些“向量”汇集在一起，把它们称为“向量表”，它位于内存中的特定位置。默认向量基址为 0x00000000，但大多数 ARM 核允许将向量基址移至 0xFFFF0000（或 HIVECS）。所有 Cortex-A 系列处理器都允许这样做，这是 Linux 内核选择的默认地址。实现安全扩展的内核还可以使用 CP15 向量基地址寄存器为安全状态和非安全状态分别设置向量基地址。</p>
+<p>每个异常只能在向量表中放置一条指令（尽管从理论上讲，可以使用两条 16位 Thumb 指令）。因此，向量表条目几乎总是包含以下两种形式的分支之一。  </p>
+<ul>
+<li><p>① B &lt;label&gt;：这将执行 PC 相对跳转。它可以跳转到当前指令的前后 32MB。</p>
+</li>
+<li><p>② LDR PC， [PC， #offset]：这将从地址相对于异常指令 offset 偏移量的值加载到 PC。这样就可以将异常处理程序放置在 32 位内存地址空间内的任意地址处（但相对于 B 指令，要多花一些额外的指令周期）。</p>
+</li>
+</ul>
+<p>Non-secure 状态下 SCTLR.V 位决定了向量表的基地址，如果 V&#x3D;&#x3D;0 的话，Non-secure VBAR 保存了异常向量基地址；如果 v&#x3D;&#x3D;1 的话，异常向量基地址为 0xFFFF0000。  这一部分在《ARM® Architecture Reference Manual ARMv7-A and ARMv7-R edition》的C3.5 Vector catch debug events有相关说明。</p>
+<h2 id="5-FIQ-and-IRQ"><a href="#5-FIQ-and-IRQ" class="headerlink" title="5. FIQ and IRQ  "></a><font size=3>5. FIQ and IRQ  </font></h2><p>FIQ 很少用到，它只能用于某一个中断：系统中有很多中断，如果某个中断的处理需要有严格的时间保证，可以把它设置为 FIQ。而 IRQ 用于系统中的所有其他中断。</p>
+<p>对 FIQ 的设计是精心考虑的，它是向量表中的最后一项。一般的异常向量里跳转指令，但是 FIQ 向量位于最后一项，处理程序可以直接放置在向量入口位置，并从该地址开始顺序运行。这避免了分支指令和任何相关的延迟，从而加快了 FIQ 响应时间。相对于其他模式， FIQ 模式下可用的备份寄存器数量比较多，从而避免要将寄存器的值保存到栈上，提高了执行速度。</p>
+<p>Linux 通常不使用 FIQ，某些运行 Linux 的系统仍可以使用 FIQ，但是由于Linux 内核从不禁用 FIQ，因此它们比系统中的其他任何事物都具有优先权，因此需要格外小心。  </p>
+<h2 id="6-返回指令"><a href="#6-返回指令" class="headerlink" title="6. 返回指令  "></a><font size=3>6. 返回指令  </font></h2><p>处理异常后，链接寄存器（ LR ）用于为存储返回地址。下表（来自《ARM® Cortex™-A Series Programmer’s Guide》）提供了包含此调整的异常的返回指令。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-01-%E5%BC%82%E5%B8%B8%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20230909160752385.png" alt="image-20230909160752385" style="zoom:50%;" />
+
+<h2 id="7-内核怎么处理异常"><a href="#7-内核怎么处理异常" class="headerlink" title="7. 内核怎么处理异常"></a><font size=3>7. 内核怎么处理异常</font></h2><h3 id="7-1-一般执行的步骤"><a href="#7-1-一般执行的步骤" class="headerlink" title="7.1 一般执行的步骤"></a><font size=3>7.1 一般执行的步骤</font></h3><ul>
+<li>进入异常处理程序</li>
+</ul>
+<p>发生异常时， ARM 内核会自动执行以下操作：  </p>
+<p>（1）将 CPSR 复制到 SPSR_&lt;mode&gt;，比如发生 IRQ 异常时，当前 CPSR 就会被保存到 SPSR_IRQ 里。</p>
+<p>（2）将返回地址存储在新模式的链接寄存器（LR）中。</p>
+<p>（3）将 CPSR 模式位修改为与异常类型相关联的模式。其他 CPSR 模式位设置由 CP15 系统控制寄存器的值确定。 T 位设置为 CP15 TE 位给定的值。J 位被清除， E 位（字节序）被设置为 EE（异常字节序）位的值。这意味着，设置好了 CP15 后，异常处理程序的状态(ARM 或 Thumb)、字节序(小端或大端)就确定了。无论 CPU 核在异常之前处于何种状态，都不会影响到异常处理程序的状态。     </p>
+<p>（4）将 PC 设置为指向异常向量表中的相关指令。 </p>
+<p>在新模式下， CPU 核将访问与该模式关联的寄存器。异常处理程序软件几乎总是需要在进入异常处理程序时立即将寄存器保存到堆栈中。 FIQ 模式具有更多的备份寄存器，因此可以编写不使用堆栈的简单处理程序。在 ARMv6 及更高版本的 ARM 体系结构中，提供了一种特殊的汇编语言指令来帮助保存必要的寄存器，称为 SRS（ store return state 存储返回状态）。该指令将 LR 和 SPSR 压入任何模式的堆栈，所使用的堆栈由指令操作数指定。  </p>
+<ul>
+<li>从异常处理程序返回</li>
+</ul>
+<p>上述步骤完成就可以进入异常处理程序了，那么从异常处理程序返回要做什么？要从异常处理程序返回，必须进行两个单独的操作：  </p>
+<p>（1）从保存的 SPSR 中恢复 CPSR。</p>
+<p>（2）将返回地址写入 PC 寄存器。</p>
+<p>在 ARM 体系结构中，这可以通过使用两类指令从异常中返回：  </p>
+<p>（a）RFE 指令：它将链接寄存器和 SPSR 从当前模式堆栈弹出。</p>
+<p>（b）其他会设置 PC 寄存器指令，并让该指令带有 S 后缀。例如<code>SUBS PC， LR， #offset</code>，注意：“ S”表示从 SPSR 中恢复 CPSR。  </p>
+<p>如果异常处理程序入口，使用堆栈来保存现场，则它可以使用带有“ <code>^</code> ”限定符的加载指令返回。例如，异常处理程序可以使用以下命令在一条指令中返回：  </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">LDMFD sp!, &#123;pc&#125; ^</span><br><span class="line">LDMFD sp!, &#123;R0-R12， pc&#125; ^</span><br></pre></td></tr></table></figure>
+
+<p>在此示例中， <code>^</code>限定符表示 SPSR 同时复制到 CPSR。注意：不能使用 16 位 Thumb 指令从异常中返回，因为这些指令无法还原 CPSR。  </p>
+<h3 id="7-2-中止（ABT）处理程序"><a href="#7-2-中止（ABT）处理程序" class="headerlink" title="7.2 中止（ABT）处理程序"></a><font size=3>7.2 中止（ABT）处理程序</font></h3><p>“中止异常”的处理程序代码在系统之间可能有很大差异。在许多嵌入式系统中，中止异常表示意外错误，处理程序将记录所有诊断信息，报告错误并让应用程序（或系统）退出。</p>
+<p>在使用 MMU 支持虚拟内存的系统中，中止处理程序可以将所需的虚拟页加载到物理内存中。比如一个程序很大，没必要在一开始执行时就把它全部读入内存。等程序执行时发现内存中没数据时，就会触发中止异常，在异常的处理函数中再读入更多的数据。</p>
+<p>CP15 寄存器提供了导致中止异常的存储器访问地址（故障地址寄存器Fault Address Register）和中止的原因（故障状态寄存器 Fault StatusRegister）。原因可能是缺少访问权限，外部中止或地址转换错误。此外，链接寄存器（进行了– 8 或– 4 调整，取决于中止是由指令获取还是数据访问引起的），给出了导致中止异常的指令的地址。通过检查这些寄存器、最后执行的指令，以及系统中可能的其他内容（例如转换表条目），中止异常的处理程序就可以知道应该采取什么处理措施了。  </p>
+<h3 id="7-3-未定义的指令处理"><a href="#7-3-未定义的指令处理" class="headerlink" title="7.3 未定义的指令处理  "></a><font size=3>7.3 未定义的指令处理  </font></h3><p>简单地说，就是 CPU 或协处理器不认识这条指令，执行这样的指令时就会产生“未定义指令异常”。</p>
+<p>如果 CPU 核尝试使用操作码执行一条指令（在 ARM 体系结构规范中描述为UNDEFINED），或者执行了协处理器指令但没有协处理器将其识别为可以执行的指令，则会导致未定义的指令异常。</p>
+<p>在某些系统中，代码可能包含用于协处理器（例如 VFP 协处理器）的指令，但是系统中不存在相应的 VFP 硬件。另外， VFP 硬件有可能无法处理特定指令，而是想调用软件来对其进行仿真。或者，可能会禁用 VFP 硬件，采用异常处理，以便可以启用它，然后重新执行指令。</p>
+<p>使用未定义的指令，可以实现一些仿真器。比如在芯片中，它并未支持某条硬件除法指令，但是我们还可以在代码中使用它。当 CPU 执行这条指令时会发生异常，在异常处理函数中，我们用软件来实现该指令的功能。</p>
+<p>对于不是特别设置的未定义指令，在异常处理函数中不能处理它时，通常做法是记录适当的调试信息，并杀死对应的应用程序。在某些情况下，未定义指令异常的另一个用途是实现用户断点：调试器去修改代码，替换断点位置的指令为一条未定义指令。    </p>
+<h3 id="7-4-SVC-异常处理"><a href="#7-4-SVC-异常处理" class="headerlink" title="7.4 SVC 异常处理  "></a><font size=3>7.4 SVC 异常处理  </font></h3><p>简单地说就是执行 SVC 这条汇编指令时就会触发这个异常， CPU 就会跳转过执行 SVC 异常向量的代码。</p>
+<p>supervisor call（ SVC）通常在用户模式下使用，这使得用户模式的代码能够访问 OS 功能。例如，如果用户代码想要访问系统的特权部分（例如执行文件 I &#x2F; O），则通常将使用 SVC 指令执行此操作。在 Linux 中对文件的open&#x2F;read&#x2F;write 等 APP 层的系统函数，它的本质都是执行 SVC 指令，从而进入 Linux 内核中预设的 SVC 异常处理函数，在内核里操作文件。  </p>
+<p>可以使用寄存器或者操作码中某个字段将参数传递给 SVC 处理程序。发生异常时，异常处理程序可能必须确定内核是处于 ARM 还是 Thumb 状态。特别是 SVC 处理程序，可能必须读取指令集状态。这是通过检查 SPSR T 位完成的。该位设置为 Thumb 状态，清除为 ARM 状态。  </p>
+<p>ARM 和 Thumb 指令集都具有 SVC 指令。从 Thumb 状态调用 SVC 时，必须考虑以下因素：  </p>
+<p>（1）指令地址位于 LR-2，而不是 LR-4；</p>
+<p>（2）指令本身是 16 位的，因此需要半字加载；</p>
+<p>（3）SVC 编号为 8 位而不是 ARM 状态下的 24 位  </p>
+<p>注意： ARM9 等比较老的芯片里，这个异常是 SWI 异常，对应的指令是 SWI。  </p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/71e36359.html">LV04-07-中断与异常-01-异常基础知识</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年01月21日 - 16:04</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/71e36359.html" title="LV04-07-中断与异常-01-异常基础知识">https://sumumm.github.io/post/71e36359.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV04-裸机开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/5b5ddfcd.html" rel="prev" title="LV04-07-中断与异常-02-异常处理实例">
+                  <i class="fa fa-angle-left"></i> LV04-07-中断与异常-02-异常处理实例
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/ccdcfc3c.html" rel="next" title="LV04-06-重定位-02-实现段的重定位">
+                  LV04-06-重定位-02-实现段的重定位 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

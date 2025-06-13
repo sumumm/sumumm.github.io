@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是网络编程——多路复用IO中的poll的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-03-网络编程-07-多路复用IO-02-poll">
+<meta property="og:url" content="https://sumumm.github.io/post/d65955f.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是网络编程——多路复用IO中的poll的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-02-poll/img/image-20220703171421815.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-02-poll/img/image-20220703171650804.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-02-poll/img/image-20220703172628646.png">
+<meta property="article:published_time" content="2024-10-27T03:49:53.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:56.999Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-网络编程">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-02-poll/img/image-20220703171421815.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/d65955f.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/d65955f.html","path":"post/d65955f.html","title":"LV06-03-网络编程-07-多路复用IO-02-poll"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-03-网络编程-07-多路复用IO-02-poll | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81poll%E7%9B%B8%E5%85%B3%E5%87%BD%E6%95%B0"><span class="nav-text">一、poll相关函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-poll-%E5%87%BD%E6%95%B0"><span class="nav-text">1. poll()函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">1.1 函数说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">1.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-ppoll-%E5%87%BD%E6%95%B0"><span class="nav-text">2. ppoll()函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.1 函数说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.2 使用实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81poll-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">二、poll()使用实例</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/d65955f.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-03-网络编程-07-多路复用IO-02-poll | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-03-网络编程-07-多路复用IO-02-poll
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-10-27 11:49:53" itemprop="dateCreated datePublished" datetime="2024-10-27T11:49:53+08:00">2024-10-27</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">LV06-网络编程</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.7k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>13 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是网络编程——多路复用IO中的poll的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-02-poll/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="center">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table> 
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">---</td>        <td align="left">--- <a href="" target="_blank">  <i class="fa fa-external-link-alt"></i></a></td>      </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、poll相关函数"><a href="#一、poll相关函数" class="headerlink" title="一、poll相关函数"></a><font size=3>一、<code>poll</code>相关函数</font></h1><h2 id="1-poll-函数"><a href="#1-poll-函数" class="headerlink" title="1. poll()函数"></a><font size=3>1. <code>poll()</code>函数</font></h2><h3 id="1-1-函数说明"><a href="#1-1-函数说明" class="headerlink" title="1.1 函数说明"></a><font size=3>1.1 函数说明</font></h3><p>在<code>linux</code>下可以使用<code>man 2 poll</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;poll.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">poll</span><span class="params">(<span class="keyword">struct</span> pollfd *fds, <span class="type">nfds_t</span> nfds, <span class="type">int</span> timeout)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于实现<code>I/O</code>多路复用，它与<code>select</code>类似，但是去除了<code>select</code>中文件描述符数量（<code>select</code>一般最大是<code>1024</code>）的限制，并且也取消了<code>select</code>用三个位图描述，而用整体的<code>pollfd</code>结构体指针实现。在<code>poll()</code>函数中，我们需要构造一个<code>struct pollfd</code>类型的数组，每个数组元素指定一个文件描述符以及我们对该文件描述符所关心的条件（数据可读、可写或异常情况）。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>fds</code>：<code>struct pollfd</code>类型的结构体指针变量，我们一般会用它指向一个<code>struct pollfd</code>类型的<strong>数组</strong>，数组中的每个元素都会指定一个文件描述符以及我们对该文件描述符所关心的条件。</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看 struct pollfd 结构体的详细说明 </summary>
+              <div class='content'>
+              <p>我们在使用<code>man</code>手册的时候，下边会有该结构体的原型：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">pollfd</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="type">int</span>   fd;         <span class="comment">/* file descriptor */</span></span><br><span class="line">	<span class="type">short</span> events;     <span class="comment">/* requested events */</span></span><br><span class="line">	<span class="type">short</span> revents;    <span class="comment">/* returned events */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure><p><strong>【成员说明】</strong></p><ul><li><code>fd</code>：<code>int</code>类型，是一个文件描述符，用于表示我们关心的文件描述符。</li><li><code>events</code>：<code>short</code>类型，位掩码，我们初始化<code>events</code>成员来指定需要为文件描述符<code>fd</code>做检查的事件。</li><li><code>revents</code>：<code>short</code>类型，位掩码，当<code>poll()</code>函数返回时，<code>revents</code>变量由<code>poll()</code>函数内部进行设置，用于说明文件描述符<code>fd</code>发生了哪些事件，这里需要注意，<code>poll()</code>没有更改<code>events</code>变量，我们可以对<code>revents</code>进行检查，判断文件描述符<code>fd</code>发生了什么事件。</li></ul><p>我们应将每个数组元素的<code>events</code>成员设置成下表中的一个或几个标志，多个标志通过位或运算符( <code>|</code> )组合起来，通过这些值告诉内核我们关心的是该文件描述符的哪些事件。同样，返回时，<code>revents</code>变量由内核设置为下表所示的一个或几个标志。</p><table>    <tr><td align="center"width=100px>分组</td><td align="center">取值</td><td align="center">是否可作为events的值</td><td align="center">是否可作为revents的值</td><td align="center">说明</td></tr>    <tr><td align="center" rowspan="5" width=100px>第一组</td><td align="left">POLLIN</td><td align="center">&radic;</td><td align="center">&radic;</td><td align="left">有数据可以读取</td></tr>    <tr><td align="left">POLLRDNORM</td><td align="center">&radic;</td><td align="center">&radic;</td><td align="left">有数据可以读取,等同于 POLLIN</td></tr>    <tr><td align="left">POLLRDBAND</td><td align="center">&radic;</td><td align="center">&radic;</td><td align="left">可以读取优先级数据（Linux上通常不使用）</td></tr>    <tr><td align="left">POLLPRI</td><td align="center">&radic;</td><td align="center">&radic;</td><td align="left">可读取高优先级数据</td></tr>    <tr><td align="left">POLLRDHUP</td><td align="center">&radic;</td><td align="center">&radic;</td><td align="left">对端套接字关闭</td></tr>    <tr><td align="center" rowspan="3" width=100px>第二组</td><td align="left">POLLOUT</td><td align="center">&radic;</td><td align="center">&radic;</td><td align="left">可写入数据</td></tr>    <tr><td align="left">POLLWRNORM </td><td align="center">&radic;</td><td align="center">&radic;</td><td align="left">可写入数据,等同于 POLLOUT</td></tr>    <tr><td align="left">POLLWRBAND </td><td align="center">&radic;</td><td align="center">&radic;</td><td align="left">优先级数据可写入</td></tr>    <tr><td align="center" rowspan="3" width=100px>第三组</td><td align="left">POLLERR</td><td align="center"></td><td align="center">&radic;</td><td align="left">有错误发生</td></tr>    <tr><td align="left">POLLHUP</td><td align="center"></td><td align="center">&radic;</td><td align="left">发生挂起</td></tr>    <tr><td align="left">POLLNVAL</td><td align="center"></td><td align="center">&radic;</td><td align="left">文件描述符未打开</td></tr></table><p>其中，第一组标志与数据可读相关；第二组标志与可写数据相关；第三组标志是设定在<code>revents</code>变量中用来返回有关文件描述符的附加信息，如果在<code>events</code>变量中指定了这三个标志，则会被忽略，相当于没有设置。</p><p><strong>【注意】</strong>如果我们对某个文件描述符上的事件不感兴趣，则可将<code>events</code>变量设置为<code>0</code>；另外，将<code>fd</code>变量设置为文件描述符的负值（取文件描述符<code>fd</code>的相反数<code>-fd</code>），将导致对应的<code>events</code>变量被<code>poll()</code>忽略，并且<code>revents</code>变量将总是返回<code>0</code>，这两种方法都可用来关闭对某个文件描述符的检查。</p>
+              </div>
+            </details>
+
+<ul>
+<li><code>nfds</code>：<code>nfds_t</code>类型，指定了<code>fds</code>数组中的元素个数（我的理解就是我们定义的数组中实际可以使用的元素的个数），数据类型<code>nfds_t</code>实际为无符号整形。</li>
+<li><code>timeout</code>：<code>int</code>类型，用于决定<code>poll()</code>函数的阻塞行为，单位为<code>ms</code>。</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看 timeout 用法 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center" width=150px>timeout = -1 </td><td align="left">poll() 会一直阻塞（与 select() 函数的 timeout 等于 NULL 相同），直到 fds 数组中列出的文件描述符有一个达到就绪态或者捕获到一个信号时返回。</td></tr>    <tr><td align="center" width=150px>timeout = 0  </td><td align="left">poll() 不会阻塞，只是执行一次检查看看哪个文件描述符处于就绪态。</td></tr>    <tr><td align="center" width=150px>timeout &gt;0</td><td align="left">表示设置 poll() 函数阻塞时间的上限值，意味着 poll() 函数最多阻塞 timeout 毫秒，直到 fds 数组中列出的文件描述符有一个达到就绪态或者捕获到一个信号为止。</td></tr></table>
+              </div>
+            </details>
+
+<p><strong>【返回值】</strong><code>int</code>类型，返回值与<code>select()</code>类似，有以下几种情况：</p>
+<ul>
+<li>返回<code>-1</code>：表示有错误发生，并且会设置<code>errno</code>表示错误类型。</li>
+<li>返回<code>0</code>：表示该调用在任意一个文件描述符成为就绪态之前就超时了。</li>
+<li>返回一个正整数：表示有一个或多个文件描述符处于就绪态，这个时候的返回值具体表示<code>fds</code>数组中返回的<code>revents</code>变量不为<code>0</code>的<code>struct pollfd</code>对象的数量。</li>
+</ul>
+<p><strong>【使用格式】</strong>后边直接看实例就好。</p>
+<p><strong>【注意事项】</strong></p>
+<p>（1）每当调用<code>poll()</code>函数之后，系统不会清空这个<code>struct pollfd</code>类型数组。</p>
+<h3 id="1-2-使用实例"><a href="#1-2-使用实例" class="headerlink" title="1.2 使用实例"></a><font size=3>1.2 使用实例</font></h3><p>暂无</p>
+<h2 id="2-ppoll-函数"><a href="#2-ppoll-函数" class="headerlink" title="2. ppoll()函数"></a><font size=3>2. <code>ppoll()</code>函数</font></h2><h3 id="2-1-函数说明"><a href="#2-1-函数说明" class="headerlink" title="2.1 函数说明"></a><font size=3>2.1 函数说明</font></h3><p>在<code>linux</code>下可以使用<code>man 2 ppoll</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;poll.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">ppoll</span><span class="params">(<span class="keyword">struct</span> pollfd *fds, <span class="type">nfds_t</span> nfds, <span class="type">const</span> <span class="keyword">struct</span> timespec *tmo_p, <span class="type">const</span> <span class="type">sigset_t</span> *sigmask)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于实现<code>I/O</code>多路复用，该函数是一个 <strong>防止信号干扰的增强型</strong> <code>poll()</code>函数。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>fds</code>：<code>struct pollfd</code>类型的结构体指针变量，该参数与<code>poll()</code>一样，我们一般会用它指向一个<code>struct pollfd</code>类型的<strong>数组</strong>，数组中的每个元素都会指定一个文件描述符以及我们对该文件描述符所关心的条件。</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看 struct pollfd 结构体的详细说明 </summary>
+              <div class='content'>
+              <p>我们在使用<code>man</code>手册的时候，下边会有该结构体的原型：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">pollfd</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="type">int</span>   fd;         <span class="comment">/* file descriptor */</span></span><br><span class="line">	<span class="type">short</span> events;     <span class="comment">/* requested events */</span></span><br><span class="line">	<span class="type">short</span> revents;    <span class="comment">/* returned events */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure><p><strong>【成员说明】</strong></p><ul><li><code>fd</code>：<code>int</code>类型，是一个文件描述符，用于表示我们关心的文件描述符。</li><li><code>events</code>：<code>short</code>类型，位掩码，我们初始化<code>events</code>成员来指定需要为文件描述符<code>fd</code>做检查的事件。</li><li><code>revents</code>：<code>short</code>类型，位掩码，当<code>poll()</code>函数返回时，<code>revents</code>变量由<code>poll()</code>函数内部进行设置，用于说明文件描述符<code>fd</code>发生了哪些事件，这里需要注意，<code>poll()</code>没有更改<code>events</code>变量，我们可以对<code>revents</code>进行检查，判断文件描述符<code>fd</code>发生了什么事件。</li></ul>
+              </div>
+            </details>
+
+<ul>
+<li><code>nfds</code>：<code>nfds_t</code>类型，该参数与<code>poll()</code>一样，指定了<code>fds</code>数组中的元素个数（我的理解就是我们定义的数组中实际可以使用的元素的个数），数据类型<code>nfds_t</code>实际为无符号整形。</li>
+<li><code>tmo_p</code>：<code>struct timespec</code>类型，用于决定<code>ppoll()</code>函数的阻塞行为，如果设置为<code>NULL</code>，那么<code>ppoll()</code>函数将会一直阻塞。</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看 struct timespec 说明 </summary>
+              <div class='content'>
+              <p>在使用<code>man</code>手册的时候，会有该结构体的说明，该结构体的成员如下：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">timespec</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="type">long</span>    tv_sec;         <span class="comment">/* seconds */</span></span><br><span class="line">	<span class="type">long</span>    tv_nsec;        <span class="comment">/* nanoseconds */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<ul>
+<li><code>sigmask</code>：<code>sigset_t</code>类型指针变量，表示信号掩码，指定一个需要屏蔽的信号集。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，返回值与<code>poll()</code>一样，有以下几种情况：</p>
+<ul>
+<li>返回<code>-1</code>：表示有错误发生，并且会设置<code>errno</code>表示错误类型。</li>
+<li>返回<code>0</code>：表示该调用在任意一个文件描述符成为就绪态之前就超时了。</li>
+<li>返回一个正整数：表示有一个或多个文件描述符处于就绪态，这个时候的返回值具体表示<code>fds</code>数组中返回的<code>revents</code>变量不为<code>0</code>的<code>struct pollfd</code>对象的数量。</li>
+</ul>
+<p><strong>【使用格式】</strong><code>none</code></p>
+<p><strong>【注意事项】</strong><code>none</code></p>
+<h3 id="2-2-使用实例"><a href="#2-2-使用实例" class="headerlink" title="2.2 使用实例"></a><font size=3>2.2 使用实例</font></h3><p>暂无</p>
+<h1 id="二、poll-使用实例"><a href="#二、poll-使用实例" class="headerlink" title="二、poll()使用实例"></a><font size=3>二、<code>poll()</code>使用实例</font></h1><p>这里我们就不使用服务器和客户端的例子了（主要是自己觉得客户端关闭的时候，服务器端处理较为麻烦，后边暂时还有更重要的东西要学习，所以这里先写一个其他的实例，后边用到了再补充吧），我们来尝试一种新的方式：读取鼠标和键盘，键盘的话是标准输入，文件描述符为<code>0</code>，那鼠标呢？它其实也是一种输入设备，它对应的设备文件在<code>/dev/intput</code>目录下，我们输入以下命令，查看我当前使用的<code>Ubuntu</code>下边的输入设备：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls /dev/input</span><br></pre></td></tr></table></figure>
+
+<p>然后我们会看到如下信息输出：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-02-poll/img/image-20220703171421815.png" alt="image-20220703171421815" style="zoom:50%;" />
+
+<p>这里有很多个文件，我们怎么知道哪个是鼠标呢？通常情况下是<code>mouseX</code>（<code>X</code>表示序号<code>0</code>、<code>1</code>、<code>2</code>），但也不一定，也有可能是<code>eventX</code>，如何确定到底是哪个设备文件，可以通过对设备文件进行读取来判断，例如<code>od</code>命令：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo od -x /dev/input/event2</span><br></pre></td></tr></table></figure>
+
+<p>注意，这里需要添加<code>sudo</code>，在<code>Ubuntu</code>系统下，普通用户是无法对设备文件进行读取或写入操作。当执行命令之后，移动鼠标或按下鼠标、松开鼠标都会在终端打印出相应的数据的话，这个便是代表鼠标的设备文件啦：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-02-poll/img/image-20220703171650804.png" alt="image-20220703171650804" style="zoom:50%;" />
+
+<p>接下来我们就开始写我们的<code>poll()</code>函数实例，使用<code>poll()</code>来检测键盘和鼠标的数据：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/stat.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;poll.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MOUSE <span class="string">&quot;/dev/input/event2&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">char</span> buf[<span class="number">100</span>];</span><br><span class="line">	<span class="type">int</span> fd = <span class="number">-1</span>;</span><br><span class="line">	<span class="type">int</span> ret = <span class="number">0</span>;</span><br><span class="line">	<span class="type">int</span> flag;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">pollfd</span> <span class="title">fds</span>[2];</span> </span><br><span class="line">	<span class="comment">/* 打开鼠标设备文件 */</span></span><br><span class="line">	fd = open(MOUSE, O_RDONLY | O_NONBLOCK);</span><br><span class="line">	<span class="keyword">if</span> (fd &lt; <span class="number">0</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		perror(<span class="string">&quot;open error&quot;</span>);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 将键盘设置为非阻塞方式 */</span></span><br><span class="line">	flag = fcntl(<span class="number">0</span>, F_GETFL); <span class="comment">/* 先获取原来的flag */</span></span><br><span class="line">	flag |= O_NONBLOCK;       <span class="comment">/* 将O_NONBLOCK标准添加到flag */</span></span><br><span class="line">	fcntl(<span class="number">0</span>, F_SETFL, flag);  <span class="comment">/* 重新设置flag */</span></span><br><span class="line">	<span class="comment">/* 同时读取键盘和鼠标 */</span></span><br><span class="line">	fds[<span class="number">0</span>].fd = <span class="number">0</span>;</span><br><span class="line">	fds[<span class="number">0</span>].events = POLLIN; <span class="comment">/* 只关心数据可读 */</span></span><br><span class="line">	fds[<span class="number">0</span>].revents = <span class="number">0</span>;</span><br><span class="line">	fds[<span class="number">1</span>].fd = fd;</span><br><span class="line">	fds[<span class="number">1</span>].events = POLLIN; <span class="comment">/* 只关心数据可读 */</span></span><br><span class="line">	fds[<span class="number">1</span>].revents = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		ret = poll(fds, <span class="number">2</span>, <span class="number">-1</span>);</span><br><span class="line">		<span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">		&#123;</span><br><span class="line">			perror(<span class="string">&quot;poll error&quot;</span>);</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">else</span> <span class="keyword">if</span> (ret == <span class="number">0</span>)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;poll timeout!\n&quot;</span>);</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">/* 检查键盘是否为就绪态 */</span></span><br><span class="line">		<span class="keyword">if</span>(fds[<span class="number">0</span>].revents &amp; POLLIN)</span><br><span class="line">		&#123;</span><br><span class="line">			ret = read(<span class="number">0</span>, buf, <span class="keyword">sizeof</span>(buf));</span><br><span class="line">			<span class="keyword">if</span> (ret &gt; <span class="number">0</span>)</span><br><span class="line">				<span class="built_in">printf</span>(<span class="string">&quot;keyboard: read&lt;%d&gt;Bytes data!\n&quot;</span>, ret);</span><br><span class="line">		&#125; </span><br><span class="line">		<span class="comment">/* 检查鼠标是否为就绪态 */</span></span><br><span class="line">		<span class="keyword">if</span>(fds[<span class="number">1</span>].revents &amp; POLLIN)</span><br><span class="line">		&#123;</span><br><span class="line">			ret = read(fd, buf, <span class="keyword">sizeof</span>(buf));</span><br><span class="line">			<span class="keyword">if</span> (ret &gt; <span class="number">0</span>)</span><br><span class="line">				<span class="built_in">printf</span>(<span class="string">&quot;mouse: read&lt;%d&gt;Bytes data!\n&quot;</span>, ret);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	close(fd);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后我们执行以下命令，编译和运行程序：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -Wall # 生成可执行文件 a.out </span><br><span class="line">sudo ./a.out     # 执行可执行程序</span><br></pre></td></tr></table></figure>
+
+<p>由于这里用到了鼠标的设备文件，所以这里需要加上<code>sudo</code>然后，终端会有以下信息显示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/LV06-03-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B-07-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8IO-02-poll/img/image-20220703172628646.png" alt="image-20220703172628646" style="zoom:50%;" />
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/d65955f.html">LV06-03-网络编程-07-多路复用IO-02-poll</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年10月27日 - 11:49</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/d65955f.html" title="LV06-03-网络编程-07-多路复用IO-02-poll">https://sumumm.github.io/post/d65955f.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" rel="tag"><i class="fa fa-tag"></i> LV06-网络编程</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/699401d8.html" rel="prev" title="LV06-03-网络编程-07-多路复用IO-03-epoll">
+                  <i class="fa fa-angle-left"></i> LV06-03-网络编程-07-多路复用IO-03-epoll
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/a85de2e8.html" rel="next" title="LV06-03-网络编程-07-多路复用IO-01-select">
+                  LV06-03-网络编程-07-多路复用IO-01-select <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是攻克视频技术课程视频编码——帧间预测：如何减少时间冗余？的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV03-视频编码-04-帧间预测">
+<meta property="og:url" content="https://sumumm.github.io/post/d93fe369.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是攻克视频技术课程视频编码——帧间预测：如何减少时间冗余？的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/00f322905ded67f118f45a29ba2ae46f.jpeg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/224110ddf9b98fffe27e5ccd3908f0fe.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/b5c9c40bd4c595367b02yy0e391b19e6.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/14bd07d243052c8946d7b0424cd11f08.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/60cf4e9be92eab7f1a8a70c4a4d689d6.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/d58f1c91afd0c9d5b5c0f4cae2489637.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/6b23277ec4f2cdca4282178618b7deee.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/5eaf40c83f2653f6879ea691bebe766b.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/2bd2c2e7ff54df61e9fab907a77ca20c.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/6ba9f30f0f40247118f1410ffa3d371b.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/698d3990bd1198802a0bc7fae810a2db.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/98d938ba868cc3c66d0775a44e23458b.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/0973cf8fb02c5f9f0b4b8df2d677c035.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/414225faf7fb28e0216468c9a6a4c112.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/d1ed3e489a0952c2150ea95b5c350bd6.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/b047a08021fe4427665f69f96861ee9b.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/8ab0488387a22dfb630896a8fb5c5d61.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/a8b1918e08f0c312da319d9a6df20ecc.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/fe685a1b694b1d9c053088f3597f1f82.jpg">
+<meta property="article:published_time" content="2024-01-30T23:44:37.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.065Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="极客时间-攻克视频技术">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/00f322905ded67f118f45a29ba2ae46f.jpeg">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/d93fe369.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/d93fe369.html","path":"post/d93fe369.html","title":"LV03-视频编码-04-帧间预测"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV03-视频编码-04-帧间预测 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%B8%A7%E9%97%B4%E7%BC%96%E7%A0%81"><span class="nav-text">一、帧间编码</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%9D%97%E5%A4%A7%E5%B0%8F"><span class="nav-text">1. 块大小</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%8F%82%E8%80%83%E5%B8%A7%E5%92%8C%E8%BF%90%E5%8A%A8%E7%9F%A2%E9%87%8F"><span class="nav-text">2. 参考帧和运动矢量</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%BF%90%E5%8A%A8%E6%90%9C%E7%B4%A2"><span class="nav-text">3. 运动搜索</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%BA%9A%E5%83%8F%E7%B4%A0%E6%8F%92%E5%80%BC"><span class="nav-text">4. 亚像素插值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E4%BA%9A%E5%83%8F%E7%B4%A0%E7%B2%BE%E5%BA%A6%E8%BF%90%E5%8A%A8%E6%90%9C%E7%B4%A2"><span class="nav-text">5. 亚像素精度运动搜索</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E8%BF%90%E5%8A%A8%E7%9F%A2%E9%87%8F%E9%A2%84%E6%B5%8B"><span class="nav-text">6. 运动矢量预测</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-SKIP-%E6%A8%A1%E5%BC%8F"><span class="nav-text">7. SKIP 模式</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%B8%A7%E9%97%B4%E6%A8%A1%E5%BC%8F%E7%9A%84%E9%80%89%E6%8B%A9"><span class="nav-text">二、帧间模式的选择</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E5%B0%8F%E7%BB%93"><span class="nav-text">三、小结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/d93fe369.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV03-视频编码-04-帧间预测 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV03-视频编码-04-帧间预测
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-01-31 07:44:37" itemprop="dateCreated datePublished" datetime="2024-01-31T07:44:37+08:00">2024-01-31</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/" itemprop="url" rel="index"><span itemprop="name">04音视频</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">极客时间-攻克视频技术</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>11k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>40 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是攻克视频技术课程视频编码——帧间预测：如何减少时间冗余？的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">---</td>        <td align="left">--- <a href="" target="_blank">  <i class="fa fa-external-link-alt"></i></a></td>      </tr></table>
+              </div>
+            </details>
+
+<p>上一节课我们一起讨论了帧内预测。帧内预测主要是通过当前编码块它的相邻的已经编码完成的像素预测得到预测块，从而达到减少空间冗余的目的。我们知道在视频编码时主要需要去除 4 个冗余，包括：空间冗余、时间冗余、视觉冗余和信息熵冗余。那么这节课我们接着之前的课程，继续讲讲如何减少时间冗余。</p>
+<p>提醒一下，这节课难度比较高，涉及的知识点又很多，建议你多看几遍。我也会尽量简化过程，把基本的原理讲清楚。你在这里打好了基础，再去学习更高阶的内容就轻松多了。</p>
+<p>我们已知，视频在 1 秒钟内有很多帧图像，其通过帧率来表示。一般来说帧率为 24fps 或者 30fps，也就是指，1 秒钟会有多达 24 帧或者 30 帧图像。</p>
+<p>但是其实在自然状态下，人或者物体的运动速度在 1 秒钟之内引起的画面变化并不大，且自然运动是连续的。所以<strong>前后两帧图像往往变化比较小，这就是视频的时间相关性</strong>。帧间预测就是利用这个特点来进行的。<strong>通过在已经编码的帧里面找到一个块来预测待编码块的像素，从而达到减少时间冗余的目的。</strong></p>
+<p>那么在正式讲解之前，还有三点我需要特别强调一下。</p>
+<p>第一，在帧内预测中，我们是在当前编码的图像内寻找已编码块的像素作为参考像素计算预测块。而帧间预测是在其他已经编码的图像中去寻找参考像素块的。这正是<strong>帧内预测和帧间预测的区别</strong>。</p>
+<p>第二，帧间预测是可以在多个已经编码的图像里面去寻找参考像素块的，我们称之为多参考。<strong>多参考和单参考（只在一帧图像里面寻找参考像素块）其实底层的原理是一样的</strong>，只是多参考需要多搜索几个参考图像去寻找参考块而已，所以<strong>我们讲解的时候就使用单参考讲解。</strong>这样既可以简化过程，你也可以更容易掌握帧间编码的基本原理。</p>
+<p>第三，帧间预测既可以参考前面的图像也可以参考后面的图像（如果参考后面的图像，后面的图像需要提前先编码，然后再编码当前图像）。<strong>只参考前面图像的帧我们称为前向参考帧，也叫 P 帧；参考后面的图像或者前面后面图像都参考的帧，我们称之为双向参考帧，也叫做 B 帧。</strong>B 帧相比 P 帧主要是需要先编码后面的帧，并且 B 帧一个编码块可以有两个预测块，这两个预测块分别由两个参考帧预测得到，最后加权平均得到最终的预测块。<strong>P 帧和 B 帧的底层逻辑基本是一样的。</strong>同样为了简化过程，我们这节课<strong>以 P 帧为例子来讲解底层逻辑。</strong></p>
+<h1 id="一、帧间编码"><a href="#一、帧间编码" class="headerlink" title="一、帧间编码"></a><font size=3>一、帧间编码</font></h1><p>好了，接下来我们就以 H264 标准为基础来聊聊 P 帧的帧间编码过程吧。就从最基础的块大小开始讲起。</p>
+<h2 id="1-块大小"><a href="#1-块大小" class="headerlink" title="1. 块大小"></a><font size=3>1. 块大小</font></h2><p>上节课，我们讲到了帧内预测有亮度 16 x 16、亮度 4 x 4 和色度 8 x 8 这几种块。类似地，在帧间预测也一样有不同的块和子块大小。<strong>相比帧内预测，帧间预测的块划分类型要多很多。</strong>宏块大小 16 x 16，可以划分为 16 x 8，8 x 16， 8 x 8 三种，其中 8 x 8 可以继续划分成 8 x 4，4 x 8 和 4 x 4，这是亮度块的划分。在 YUV 4:2:0 中，色度块宽高大小都是亮度块的一半。亮度宏块的划分方式如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/00f322905ded67f118f45a29ba2ae46f.jpeg" alt="img" style="zoom: 25%;" />
+
+<h2 id="2-参考帧和运动矢量"><a href="#2-参考帧和运动矢量" class="headerlink" title="2. 参考帧和运动矢量"></a><font size=3>2. 参考帧和运动矢量</font></h2><p>在帧间预测中，我们会<strong>在已经编码的帧里面找到一个块来作为预测块，这个已经编码的帧称之为参考帧。</strong>在 H264 标准中，P 帧最多支持从 16 个参考帧中选出一个作为编码块的参考帧，但是同一个帧中的不同块可以选择不同的参考帧，这就是多参考。</p>
+<p>通常在 RTC 场景中，比如 <strong>WebRTC 中，P 帧中的所有块都参考同一个参考帧。并且一般会选择当前编码帧的前一帧来作为参考帧。</strong>为什么呢？</p>
+<p>这是因为自然界的运动一般是连续的，同时在短时间之内的变化相对比较小，所以前面的帧通常是最接近当前编码帧的，并且两者的差距比较小。因此，我们比较容易从前一帧中找到一个跟当前编码块差距很小的块作为预测块，这样编码块减去预测块得到的残差块的像素值很多都是 0，压缩效率是不是就很高了？</p>
+<p>好了，选择好了参考帧之后，我们还有一个问题。虽然运动变化比较小，但是还是有变化啊，比如说下图中的场景。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/224110ddf9b98fffe27e5ccd3908f0fe.jpg" alt="img" style="zoom: 33%;" />
+
+<p>图中的小车在往前开，树是不动的。我们可以看到车相对于树的距离是变化的。那我们怎么来表示这个变化呢？</p>
+<p>或者从编码的角度来讲，右边图像中橙色块的内容跟左边图像中橙色块的内容基本一样。很明显，如果以左边图像为参考帧的话，那么左边图像中的橙色块就是最合适的预测块，但是左右两幅图像橙色块的位置很明显又不同，而这种不同是因为图像中的小车的运动引起的。因此，为了表示这种变化，我们<strong>用运动矢量来表示编码帧中编码块和参考帧中的预测块之间的位置的差值</strong>。</p>
+<p>比如说上面两幅图像中，小车从前一幅图像中的（32，80）的坐标位置，变化到当前图像（80，80）的位置，向前行驶了 48 个像素。很明显，如果我们选用（32，80）这个块作为当前（80，80）这个编码块的预测块的话，是不是就可以得到全为 0 像素的残差块了？这是因为小车本身是没有变化的，变化的只是小车的位置。</p>
+<p>这个位置变化我们怎么表示呢？我们用运动矢量来表示。我们称（32 - 80， 80 - 80）也就是（-48， 0）为运动矢量。我们先<strong>把运动矢量编码到码流当中</strong>，这样解码端只要解码出运动矢量，使用运动矢量就可以在参考帧中找到预测块了，我们再解码出残差（如果有的话），残差块加上预测块就可以恢复出图像块了。</p>
+<p>好了，这就是参考帧和运动矢量。可是还有一个问题：因为我们通过人眼能够看到小车在两幅图像的位置，所以我们可以在参考帧中找到一个与当前编码块相似的块作为预测块，但是<strong>编码器怎么找到这个预测块呢？</strong>它们又没有眼睛。这就是运动搜索算法应该解决的问题啦。我们接下来就来聊聊运动搜索是怎么做的。</p>
+<h2 id="3-运动搜索"><a href="#3-运动搜索" class="headerlink" title="3. 运动搜索"></a><font size=3>3. 运动搜索</font></h2><p>从前面的讨论我们知道，运动搜索的目标就是在参考帧中找到一个块，称之为预测块，且这个预测块与编码块的差距最小。从计算机的角度来说就是，编码块跟这个预测块的差值，也就是残差块的像素绝对值之和（下面我们用 SAD 表示残差块的像素绝对值之和）最小。</p>
+<p>现在是不是目标就清晰很多了。比如说当前编码块大小是 16 x 16，那我们就先去参考帧中找到一个个 16 x 16 的块作为预测块，并用当前编码块减去预测块求得残差块，然后用我们经常做的绝对值求和操作得到两者之间的差距，最后选择差距最小的预测块作为最终的预测块。</p>
+<p>所以，我们运动搜索的方法就很简单了，就是从参考帧中第一个像素开始，将一个个 16 x 16 大小的块都遍历一遍。我们总是可以找到差距最小的块。这种方法我们称之为全搜索算法。</p>
+<p><strong>全搜索算法一定可以搜索到最相似的预测块。</strong>但是你有没有发现这种方法有一个特别大的<strong>缺点就是需要逐个像素去遍历每一个块，非常费时间</strong>。由于帧间预测中每一个 16 x 16 的宏块还可以划分成上面讲的多种不同的子块大小，每一个子块也需要做一遍运动搜索。如果采用这种运动搜索算法的话，那编码一帧的时间将会非常长。</p>
+<p>那有没有速度快一点的搜索算法呢？答案肯定是有的。下面我就来介绍一下常用的两种快速运动搜索算法。</p>
+<p>在讲述快速算法之前我先说明一下，搜索算法中每一个搜索的点都是搜索块的左上角像素点。比如说菱形和六边形搜索的几个点都指的是以该点为左上角像素点的块。如果所搜块大小为 16x16，则指的是以该点为左上角像素点的 16x16 的块。</p>
+<blockquote>
+<p>钻石搜索算法</p>
+</blockquote>
+<p><strong>钻石搜索算法又称为菱形搜索算法。</strong>顾名思义，就是<strong>以一个菱形的模式去寻找最优预测块。</strong>这里我们以亮度 16 x 16 的块的运动搜索为例，将算法的思想分为以下几个步骤：</p>
+<ul>
+<li>（1）从搜索的起始点开始，以起始点作为菱形的中心点。首先以该中心点为左上角像素的 16 x 16 的块作为预测块，求得残差块并求得像素绝对值之和，也就是 SAD。之后对菱形 4 个角的 4 个点分别做同样的操作求得 SAD 值。得到最小的 SAD 值，最小 SAD 值对应的点就是当前最佳匹配点。</li>
+<li>（2）如果最佳匹配点是菱形的中心点，那我们就找到了预测块了，搜索结束。</li>
+<li>（3）如果最佳匹配点不是菱形的中心点，则用以当前最佳匹配点为中心点的菱形继续搜索，重复之前的步骤直到菱形的中心点为最佳匹配点。</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/b5c9c40bd4c595367b02yy0e391b19e6.jpg" alt="img" style="zoom:33%;" />
+
+
+
+<p>例如，上图中：</p>
+<p>第一步，以绿色点（起点）为中心点，搜索绿色点和旁边蓝色线连接的 4 个点，得到的最佳匹配点为橙色点，非中心点。</p>
+<p>第二步，再以橙色点为中心点，搜索橙色点和旁边黄色线连接的 4 个点，最佳匹配点是中心点橙色点，搜索完毕，橙色点为最佳匹配点。</p>
+<blockquote>
+<p>六边形搜索算法</p>
+</blockquote>
+<p>六边形搜索跟钻石搜索差不多，只是搜索模式是六边形的。我们还是以亮度 16 x 16 的块为例来介绍一下，主要有下面几个步骤：</p>
+<ul>
+<li>（1）从搜索的起始点开始，以起始点作为六边形的中心点。求得中心点作为左上角像素的预测块的 SAD 值。之后对六边形的角上的 6 个点做同样的操作求得 SAD 值。得到最小的 SAD 值，而最小 SAD 值对应的点就是当前最佳匹配点。</li>
+<li>（2）如果最佳匹配点是六边形的中心点，那我们就用以该点为中心点的菱形和正方形各进行一次精细化搜索。找到中心点、菱形的 4 个顶点和正方形 4 个顶点中 SAD 最小的点作为最佳匹配点。</li>
+<li>（3）如果最佳匹配点不是六边形的中心点，则用以当前最佳匹配点为中心点的六边形继续搜索，重复之前的步骤直到中心点为最佳匹配点。</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/14bd07d243052c8946d7b0424cd11f08.jpg" alt="img" style="zoom:33%;" />
+
+<p>例如，上图中：</p>
+<p>第一步，以绿色点（起点）为中心点，搜索中心点和旁边蓝色线连接的 6 个点，得到的最佳匹配点为橙色点，非中心点。</p>
+<p>第二步，再以橙色点为中心点，搜索橙色点和旁边黄色线连接的 6 个点，最佳匹配点是是中心点橙色点。</p>
+<p>第三步，再以橙色点为中心点，搜索橙色点和旁边蓝色线连接菱形的 4 个点，最佳匹配点为黑色点。</p>
+<p>第四步，还是以橙色点为中心点，搜索旁边红色线连接的正方形的 4 个点，并与菱形搜索得到的最佳匹配点黑色点比较，找到最后的最佳匹配点为红色点，搜索完毕。</p>
+<p>通过上面的快速搜索算法我们就能够得到编码块在参考帧中的最佳匹配点，<strong>以最佳匹配点为左上角像素的块就是预测块，</strong>并且<strong>预测块左上角像素在参考帧中的坐标 (x1, y1) 与编码块在当前编码帧中的坐标 (x0, y0) 的差值（x1 - x0, y1 - y0）就是运动矢量。</strong></p>
+<p>上面两种运动搜索算法都是以搜索形状的中心点为最佳匹配点结束的。但是还有一个问题我们没有解释，那就是搜索的起始点怎么确定呢？</p>
+<p>其实搜索的起始点可以使用当前编码块的左边块、右边块、左上角块和右上角块的运动矢量预测得到。具体预测方法我们会在下面的运动矢量预测小节里面讲解。其总体的思路就是我们认为，一般一个块最大也就 16 x 16 的大小，而运动的物体一般远大于这个大小，所以相邻块的运动方向大多数是很相似的。因此，<strong>我们一般会通过相邻已经编码块的运动矢量来预测当前块的运动矢量。这个预测的运动矢量也经常用做搜索的起点。</strong></p>
+<p>有了快速运动搜索算法我们就不需要遍历整个参考帧的像素去寻找预测块了，这样速度可以快很多。但是必须要说明一下，就是快速搜索算法也有一个缺点，<strong>它搜索到的预测块不一定是全局最优预测块</strong>，也就是说不一定是最相似的块，有可能是局部最优预测块。</p>
+<p>但是实验数据表明，快速搜索算法相比全搜索算法压缩性能下降非常小，速度却可以提升十几倍到几十倍。所以总的来说，我们可以认为<strong>快速搜索算法是远好于全搜索算法的</strong>，并且一般全搜索算法是不会实际使用的。</p>
+<p>好了，经过上面的讨论，我们已经知道了运动搜索的具体思路了。但是我们还有一个疑问：如果一个物体运动了，比如小车向前行驶了 48 个像素点，那我们就可以通过运动矢量（-48，0）在参考帧中找到小车。我们前面也说了，小车的运动是连续的，<strong>如果小车向前行驶了 48.5 个像素点呢？又或者是向前行驶了 48.25 个像素点呢？</strong>运动矢量选择（-48.5， 0）或者（-48.25，0）吗？可是 0.5 个像素点是什么样的，0.25 个像素点又是什么样的？图像上都没有这种像素点啊，怎么办呢？</p>
+<p>其实没关系的，我们还是可以使用（-48，0）作为运动矢量，只是预测块中的小车位置与我们编码块中的小车位置会相差个 0.5 或者 0.25 个像素，得到的残差会大一些，压缩效率稍微低一些，问题也不大。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/60cf4e9be92eab7f1a8a70c4a4d689d6.jpg" alt="img" style="zoom: 50%;" />
+
+
+
+<p>比如上面图中的小车，如果直接用编码块减去参考块的话，因为两个块中小车的位置没有完全重合，所以残差块不等于 0。这样还是有残差的，因此压缩效率会低一些。</p>
+<p>但是勤劳智慧的人类是不会停止前进的脚步的。为了能够解决这种半个像素或者 1&#x2F;4 个像素的运动带来的压缩效率下降的问题，我们通过对参考帧进行半像素和 1&#x2F;4 像素插值（统称为亚像素插值）的方式来解决。</p>
+<p>什么意思呢？就是<strong>我们用插值的方式将半像素和 1&#x2F;4 像素算出来，也当作一个像素</strong>，这样小车向前行驶 48.5 个像素也好，向前行驶 48.25 个像素也好，都是可以通过运动矢量找到比较准确的位置的。那亚像素插值具体怎么做呢？我们接下来看一下。</p>
+<h2 id="4-亚像素插值"><a href="#4-亚像素插值" class="headerlink" title="4. 亚像素插值"></a><font size=3>4. 亚像素插值</font></h2><p>亚像素插值归根到底还是插值操作，我们在第 3 节课（就缩放算法那节）里面已经讨论过了一些插值算法。亚像素插值的思想跟前面课里的插值算法的思想是一样的，都是通过已经有的像素点经过一定的加权计算得到需要求得的像素。</p>
+<p>在这里，已经有的像素就是整像素（就是图像本身有的像素称为整像素），需要插值求得的就是半像素和 1&#x2F;4 像素。其中半像素通过整像素插值得到，1&#x2F;4 像素又是通过整像素和半像素插值得到的。因此，<strong>我们先通过整像素插值得到半像素，然后再通过半像素和整像素插值得到 1&#x2F;4 像素。</strong>半像素的插值过程可以通过下面的图示表示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/d58f1c91afd0c9d5b5c0f4cae2489637.jpg" alt="img" style="zoom:50%;" />
+
+<p>其中，灰色为整像素点，橙色为水平半像素，黄色为垂直半像素点，绿色为中心半像素点。</p>
+<p>半像素点的插值是以 6 个整像素点使用六抽头插值滤波器计算得到的，滤波器权重系数为：(1&#x2F;32, -5&#x2F;32, 5&#x2F;8, 5&#x2F;8, -5&#x2F;32, 1&#x2F;32)。具体计算方法如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/6b23277ec4f2cdca4282178618b7deee.jpg" alt="img" style="zoom:50%;" />
+
+<p>得到了半像素之后，1&#x2F;4 像素就比较简单，由整像素和半像素求平均值得到，其插值过程可以通过下图表示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/5eaf40c83f2653f6879ea691bebe766b.jpg" alt="img" style="zoom:50%;" />
+
+<p>其中，红色点为 1&#x2F;4 像素点，具体计算方法如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/2bd2c2e7ff54df61e9fab907a77ca20c.jpg" alt="img" style="zoom:50%;" />
+
+<p>整个半像素和 1&#x2F;4 像素的插值过程可以通过下图表示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/6ba9f30f0f40247118f1410ffa3d371b.jpg" alt="img" style="zoom:50%;" />
+
+<p>插值得到了所有的半像素和 1&#x2F;4 像素之后，我们就可以用运动矢量表示 0.5 个像素和 0.25 个像素的移动了，就如之前小车向前行驶了 48.5 个像素。如果只是整像素的图像，那只能表示出向前行驶了 48 个像素或者 49 个像素，没办法表示 48.5 个像素。</p>
+<p>我们用下面的几幅图像来直观地感受一下一个 4x4 的像素块的半像素图像和 1&#x2F;4 像素图像的像素位置。首先来看一幅 4x4 的像素块的像素位置。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/698d3990bd1198802a0bc7fae810a2db.jpg" alt="img" style="zoom: 25%;" />
+
+<p>下面图中的红色的 4x4 像素表示水平半像素图像。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/98d938ba868cc3c66d0775a44e23458b.jpg" alt="img" style="zoom: 25%;" />
+
+<p>下面图中的红色的 4x4 像素表示垂直半像素图像。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/0973cf8fb02c5f9f0b4b8df2d677c035.jpg" alt="img" style="zoom: 25%;" />
+
+<p>下面图中的红色的 4x4 像素表示水平、垂直半像素图像。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/414225faf7fb28e0216468c9a6a4c112.jpg" alt="img" style="zoom: 25%;" />
+
+<p>下面图中的绿色的 4x4 像素表示水平 1&#x2F;4 像素图像。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/d1ed3e489a0952c2150ea95b5c350bd6.jpg" alt="img" style="zoom:25%;" />
+
+<p>下面图中的绿色的 4x4 像素表示垂直 1&#x2F;4 像素图像。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/b047a08021fe4427665f69f96861ee9b.jpg" alt="img" style="zoom:25%;" />
+
+<p>下面图中的绿色的 4x4 像素表示水平、垂直 1&#x2F;4 像素图像。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/8ab0488387a22dfb630896a8fb5c5d61.jpg" alt="img" style="zoom:25%;" />
+
+<p>有了上面的亚像素插值算法，前面的小车运行 48.5 个像素的问题就可以通过半像素插值在参考帧中插值得到一辆新的小车，从而就可以解决之前预测块和编码块位置不重合的问题。不过，还需要说明一下的就是，<strong>插值得到的小车跟原始的小车的对应像素点的像素值并不是完全一样的，</strong>毕竟插值得到的像素点是利用滤波算法加权平均得到的。</p>
+<p>因此，半像素插值得到的预测块并不一定就比整像素预测块的残差小。只是我们多了很多个半像素预测块和 1&#x2F;4 像素预测块的选择，所以<strong>我们可以在整像素预测块、半像素预测块和 1&#x2F;4 像素预测块里面选择一个最好的。</strong>怎么选择呢？其实是<strong>在整像素运动搜索的基础上，再做一次精细化的亚像素运动搜索。</strong>下面我们就来讲讲亚像素运动搜索的过程是怎样的。</p>
+<h2 id="5-亚像素精度运动搜索"><a href="#5-亚像素精度运动搜索" class="headerlink" title="5. 亚像素精度运动搜索"></a><font size=3>5. 亚像素精度运动搜索</font></h2><p>有了插值得到的亚像素，我们就可以进行亚像素精度的搜索了。一般搜索算法步骤如下：</p>
+<ul>
+<li>（1）先通过快速搜索算法进行整像素运动搜索算法得到整像素的运动矢量（就是我们在运动搜索小节中讲述的内容）。</li>
+<li>（2）对参考帧进行半像素和 1&#x2F;4 像素插值。</li>
+<li>（3）以整像素运动矢量指向的整像素为起点，进行钻石搜索算法，分别求得中心点以及上、下、左、右四个半像素点对应预测块的残差块，得到 SAD 值。取 SAD 值最小的点为最佳匹配点。</li>
+<li>（4）以半像素运动搜索的最佳匹配点为起点，分别求得中心点以及上、下、左、右四个 1&#x2F;4 像素点对应预测块的残差块，得到 SAD 值，并取最小的点为最佳匹配点。</li>
+</ul>
+<p>通过上面亚像素搜索算法得到的最佳匹配点就可以得到最后的运动矢量了。假设整像素运动矢量为 (a0, b0)，半像素最佳匹配点相对于整像素最佳匹配点的运动矢量为 (a1, b1)，1&#x2F;4 像素最佳匹配点相对于半像素最佳匹配点的运动矢量为 (a2, b2)，则最后运动矢量（a，b）的值的计算方法如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/a8b1918e08f0c312da319d9a6df20ecc.jpg" alt="img" style="zoom:50%;" />
+
+<p>相当于原先的运动矢量乘以了 4，即原先 1&#x2F;4 像素的 0.25 变成了 1，0.5 像素变成了 2，1 个像素则变成了 4。这主要是因为我们不用小数形式来表示运动矢量。因为浮点型数据会有精度误差，所以我们通过乘以 4 把它变成整数。</p>
+<p>通过上面的整像素运动搜索和亚像素精度运动搜索，我们就得到了最终的运动矢量了。有了运动矢量之后，我们需要将运动矢量的信息也编码到码流中，并且解码的时候直接取出来用就可以在参考帧中把预测块找出来了。那运动矢量是直接编码到码流中的吗？其实不是的。那是怎么做的呢？接下来我们就来讨论一下运动矢量的预测。</p>
+<h2 id="6-运动矢量预测"><a href="#6-运动矢量预测" class="headerlink" title="6. 运动矢量预测"></a><font size=3>6. 运动矢量预测</font></h2><p>其实，运动矢量跟我们的编码块一样不是直接编码进去的，而是先用周围相邻块的运动矢量预测一个预测运动矢量，称为 MVP。将当前运动矢量与 MVP 的残差称之为 MVD，然后编码到码流中去的。解码端使用同样的运动矢量预测算法得到 MVP，并从码流中解码出运动矢量残差 MVD，<strong>MVP+MVD 就是运动矢量了</strong>。</p>
+<p>那运动矢量预测算法是怎样的呢？我们以 16 x 16 宏块为例通过下图来描述。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/04%E9%9F%B3%E8%A7%86%E9%A2%91/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/LV03-%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81-04-%E5%B8%A7%E9%97%B4%E9%A2%84%E6%B5%8B/img/fe685a1b694b1d9c053088f3597f1f82.jpg" alt="img" style="zoom: 50%;" />
+
+<p>其步骤如下：</p>
+<ul>
+<li>（1）取当前编码宏块的左边块 A、上边块 B、右上块 C。如果右上块不存在或者参考帧与当前编码宏块不同（多参考的时候会存在），则使用左上块 D 替换 C，即 C &#x3D; D。</li>
+<li>（2）求得 A、B、C 块的参考帧有多少个与当前编码块的参考帧相同，记为 count。</li>
+<li>（3）如果 count &gt; 1，则取 A、B、C 块的运动矢量的中值（就是 A、B、C 块运动矢量的 3 个 x 和 3 个 y 分别取中间值作为 MVP 的 x 和 y）。</li>
+<li>（4）如果 count &#x3D; 1，则直接将这个块的运动矢量作为 MVP。</li>
+<li>（5）如果 count &#x3D; 0，并且 B、C 都不存在，A 存在的话，则直接将 A 的运动矢量作为 MVP。</li>
+<li>（6）如果上述条件都不满足，则取 A、B、C 块运动矢量的中值。</li>
+</ul>
+<h2 id="7-SKIP-模式"><a href="#7-SKIP-模式" class="headerlink" title="7. SKIP 模式"></a><font size=3>7. SKIP 模式</font></h2><p>了解了运动矢量的预测算法之后，我们还需要介绍一种比较特殊的模式，也是经常会遇到的一种帧间模式，就是 SKIP 模式。它的定义是这样的，如果运动矢量就是 MVP，也就是说 MVD 为 (0，0)，同时，残差块经过变换量化后系数也都是等于 0，那么当前编码块的模式就是 SKIP。</p>
+<p>相比于 SKIP 模式，其它模式要不就是 MVD 不为 0，要不就是量化后的残差系数不为 0，或者两者都不为 0。所以说 <strong>SKIP 模式是一种特例，由于 MVD 和残差块都是等于 0，因此压缩效率特别高。</strong></p>
+<p>比如说 P 帧中的静止部分，前后两帧不会变化，运动矢量直接为 0，而且残差块像素值本身因为几乎没有变化基本为 0，只有少部分噪声引起的比较小的值，量化后更是全部变成了 0。<strong>这种图像中的静止部分或者是图像中的背景部分大多数时候都是 SKIP 模式。</strong>这种模式非常省码率，且压缩效率非常高。因为需要编码的信息非常少，所以单独在这里跟你讨论一下。</p>
+<h1 id="二、帧间模式的选择"><a href="#二、帧间模式的选择" class="headerlink" title="二、帧间模式的选择"></a><font size=3>二、帧间模式的选择</font></h1><p>好了，到这里基本的帧间编码的知识我们都有了，接下来我们再来总体过一下 P 帧宏块的模式选择的过程。</p>
+<p><strong>编码块帧间模式的选择其实就是参考帧的选择、运动矢量的确定，以及块大小（也就是块划分的方式）的选择，如果 SKIP 单独拿出来算的话就再加上一个判断是不是 SKIP 模式。</strong>我们主要是确定这 4 个东西。</p>
+<p>之前的讨论当中我们都是以当前编码帧的前一帧作为参考帧的，也就是说是单参考的，不涉及到参考帧的选择。其实，如果是多参考的话，编码块在选择参考帧的时候只需要遍历每一个参考帧进行块划分，然后再对每一个块进行运动搜索得到运动矢量就可以了。跟单参考相比就是多了一个参考帧遍历的操作。所以我<strong>们这里还是以单参考帧的方式来讲讲帧间模式的选择过程。</strong></p>
+<p>注意，帧间模式的选择大多数是看编码器的实现的，并且不同编码器实现都会不一样，所以我们只是讲讲其中一种模式选择的思路，具体的细节各个编码器都各不相同。具体选择过程如下：</p>
+<ul>
+<li><p>（1）首先判断当前宏块是不是可以作为 SKIP 块（通过相邻已经编码的块是不是存在 SKIP 块，和当前块使用 MVP 做运动矢量之后，残差块变换量化后是不是都为 0 等算法来判断），如果可以作为 SKIP 块则模式选择结束，不再进行下面的划分了。</p>
+</li>
+<li><p>（2）宏块大小为 16 x 16。首先不划分宏块，直接使用 16 x 16 大小的块，在参考帧中进行运动搜索，得到运动矢量和预测块，通过 MVP 求得 MVD，通过预测块求得残差块，并求得残差块的 SATD 值（残差块经过 Hadamard 变换之后求绝对值再求和），估计 MVD 的编码后占用的字节数，将两个值加起来作为 cost16x16。</p>
+</li>
+<li><p>（3）将 16 x 16 块划分成 4 个 8 x 8 的子块，分别进行运动搜索，并求得每一个 8 x 8 子块的 MVD 和残差块，最后分别得到 4 个子块的 cost8x8。</p>
+</li>
+</ul>
+<p>a. 如果 4 个 8 x 8 子块的 cost8x8 之和小于 16 x 16 块的 cost16x16 的话，我们再分别对每一个 8 x 8 子块划分成 4 个 4 x 4 子块，同样分别进行运动搜索，得到每一个 4 x 4 子块的 cost4x4。如果 4 个 cost4x4 之和小于 cost8x8，则将 8 x 8 块划分成 4 x 8 和 8 x 4 两种子块分别求得 cost4x8 和 cost8x4，再根据 4 个 cost4x4、2 个 cost4x8 和 2 个 cost8x4 的大小，选择最终的 8x8 划分的方式，并将对应的 cost 值更新到 cost8x8。否则不划分 8 x 8 子块。</p>
+<p>b. 如果 4 个 8 x 8 子块的最新的 cost8x8 之和还是小于 cost16x16 的话，则再将 16 x 16 划分成两个 8 x 16 和 16 x 8 子块，并分别求得 cost8x16 和 cost16x8，对比 8x8、16x8、8x16 的 cost 值，并决定最终 16 x 16 块的划分方式。</p>
+<p>c. 否则的话，不划分 16 x 16 的块。</p>
+<ul>
+<li>（4）得到了编码宏块的帧间模式之后，我们还需要对编码宏块进行帧内模式的选择。是的，没错。在 P 帧和 B 帧中的宏块也是可以使用帧内模式的，所以我们需要看是帧间模式 cost 更小还是帧内模式 cost 更小。这也回答了我们在第 4 节课（就是编码原理那节）里留的思考题。如果帧内模式更小则使用帧内模式；如果是帧间模式更小则使用帧间模式。但是一般来说 P 帧和 B 帧宏块决策出来绝大多数还是帧间模式的。</li>
+</ul>
+<h1 id="三、小结"><a href="#三、小结" class="headerlink" title="三、小结"></a><font size=3>三、小结</font></h1><p>好了，这节课到这里就要结束了。我们现在来回顾一下这节课的知识点。我们通过一步步分析如何在参考帧中准确地找到预测块的方式，讲解了帧间预测中最重要的一些知识点。其主要包括以下 5 个方面：</p>
+<p>（1）宏块的划分。为了能够更准确的找到预测块，我们可以将 16 x 16 的宏块继续划分成更小的子块来做运动搜索。因为图像有的地方静止的背景画面或者平坦的区域可以直接选用最大的块来搜索预测块；而有的地方细节很多，图像中的物体运动方向也各不相同，可能就需要划分成更小的块来做运动搜索。这样每一个块都拥有自己独立的运动矢量，并且得到的预测块更接近于编码块，从而有利于提高压缩效率。</p>
+<p>（2）参考帧和运动矢量。在 RTC 场景中我们一般选择单参考，并且一般选择当前编码图像的前一帧作为参考帧。运动矢量是用来表示参考帧中预测块与编码帧中编码块位置的相对距离的。</p>
+<p>（3）运动搜索。运动矢量是通过运动搜索得到的，而运动搜索是在参考帧中进行的。通常我们会使用钻石搜索和六边形搜索等快速运动搜索算法。一般不会使用全搜索算法。其中钻石搜索算法更简单，步骤更少，所以如果需要编码速度快，一般选择钻石搜索。六边形搜索步骤更多，更精细，要求编码质量高，同时对速度要求不高的时候，可以选择六边形搜索。</p>
+<p>（4）亚像素插值和亚像素精度搜索。光做整像素运动搜索不太能够准确的处理连续运动场景。为了能够处理好这种连续运动的问题，我们对参考帧进行亚像素插值得到半像素和 1&#x2F;4 像素图像。然后在整像素搜索的基础上在亚像素图像上做亚像素精度的运动搜索。实验数据证明，半像素和 1&#x2F;4 像素精度的运动搜索相比整像素精度的运动搜索可以明显地提高压缩效率。</p>
+<p>（5）在最后我们大体讲了一下编码块帧间预测模式的具体选择过程，并单独讲解了一下 SKIP 模式。SKIP 模式是一种比较特殊的模式，由于 MVD 和残差块都是等于 0，因此其压缩效率特别高。</p>
+<p>最后，我再次强调一下，今天的课程内容非常多。你需要多看几遍才能有比较好的理解。如果你是视频编码的应用工程师的话，掌握其中的思想就可以了；如果你是视频编码算法工程师的话可以先阅读几遍文章，之后再通过阅读编码器具体代码来熟练掌握。实际上，真正的帧间预测过程要比我讲述的内容复杂的多，有很多繁琐的细节，同时每一个编码器的具体实现也不一样，需要你自己课后慢慢学习。</p>
+<p>参考资料：<a target="_blank" rel="noopener" href="https://blog.csdn.net/leixiaohua1020/article/details/45936267">x264源代码简单分析：宏块分析（Analysis）部分-帧间宏块（Inter）_x264_mb_analyse_intra()-CSDN博客</a></p>
+<blockquote>
+<p>思考题：P 帧的第一个宏块的 MVP 怎么得到呢？</p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/d93fe369.html">LV03-视频编码-04-帧间预测</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年01月31日 - 07:44</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/d93fe369.html" title="LV03-视频编码-04-帧间预测">https://sumumm.github.io/post/d93fe369.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/%E6%9E%81%E5%AE%A2%E6%97%B6%E9%97%B4-%E6%94%BB%E5%85%8B%E8%A7%86%E9%A2%91%E6%8A%80%E6%9C%AF/" rel="tag"><i class="fa fa-tag"></i> 极客时间-攻克视频技术</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/5bb1b6bc.html" rel="prev" title="LV03-视频编码-05-变换量化">
+                  <i class="fa fa-angle-left"></i> LV03-视频编码-05-变换量化
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/e4c325ee.html" rel="next" title="LV03-视频编码-03-帧内预测">
+                  LV03-视频编码-03-帧内预测 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

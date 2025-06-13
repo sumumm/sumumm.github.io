@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是kernel——虚拟文件系统简介的相关笔记。若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV05-03-Kernel-06-VFS-01-虚拟文件系统简介">
+<meta property="og:url" content="https://sumumm.github.io/post/ef6421f1.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是kernel——虚拟文件系统简介的相关笔记。若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-06-VFS-01-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B/img/image-20241223135834973.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-06-VFS-01-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B/img/image-20241224143356829.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-06-VFS-01-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B/img/image-20241224113347161.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-06-VFS-01-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B/img/image-20241224150355499.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-06-VFS-01-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B/img/image-20241224152029569.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-06-VFS-01-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B/img/image-20241224172623454.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-06-VFS-01-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B/img/image-20241223150725227.png">
+<meta property="article:published_time" content="2024-12-24T15:02:38.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.046Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV05-系统镜像">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-06-VFS-01-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B/img/image-20241223135834973.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/ef6421f1.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/ef6421f1.html","path":"post/ef6421f1.html","title":"LV05-03-Kernel-06-VFS-01-虚拟文件系统简介"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV05-03-Kernel-06-VFS-01-虚拟文件系统简介 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-text">一、文件系统</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BB%80%E4%B9%88%E6%98%AF%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-text">1. 什么是文件系统</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-file-system%E2%80%99s-architecture"><span class="nav-text">2. file system’s architecture</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-file-system-components"><span class="nav-text">3. file system components</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%B8%B8%E8%A7%81%E7%9A%84%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-text">4. 常见的文件系统</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E7%A3%81%E7%9B%98%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-text">4.1 磁盘文件系统</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E7%BD%91%E7%BB%9C%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-text">4.2 网络文件系统</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E4%B8%93%E6%9C%89-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-text">4.3 专有&#x2F;虚拟文件系统</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-linux%E4%B8%AD%E6%94%AF%E6%8C%81%E7%9A%84%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-text">4.4 linux中支持的文件系统</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-text">二、虚拟文件系统</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-VFS%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">1. VFS是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%AE%83%E6%9C%89%E4%BB%80%E4%B9%88%E7%94%A8%EF%BC%9F"><span class="nav-text">2. 它有什么用？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%B0%81%E5%9C%A8%E4%BD%BF%E7%94%A8VFS"><span class="nav-text">3. 谁在使用VFS</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-VFS%E5%92%8C%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E6%98%AF%E4%BB%80%E4%B9%88%E5%85%B3%E7%B3%BB%EF%BC%9F"><span class="nav-text">4. VFS和文件系统是什么关系？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-VFS%E5%9C%A8linux%E4%B8%AD%E7%9A%84%E4%BD%8D%E7%BD%AE"><span class="nav-text">5. VFS在linux中的位置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E4%B8%A4%E4%B8%AA%E7%A4%BA%E4%BE%8B"><span class="nav-text">6. 两个示例</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-%E6%8E%A5%E5%8F%A3%E9%80%82%E9%85%8D%E7%A4%BA%E4%BE%8B"><span class="nav-text">6.1 接口适配示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-%E8%B7%A8%E8%AE%BE%E5%A4%87-%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%A4%BA%E4%BE%8B"><span class="nav-text">6.2 跨设备&#x2F;文件系统示例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81VFS%E7%9A%84%E6%9E%84%E6%88%90"><span class="nav-text">三、VFS的构成</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%BB%9F%E4%B8%80%E6%96%87%E4%BB%B6%E6%A8%A1%E5%9E%8B"><span class="nav-text">1. 统一文件模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-Superblock"><span class="nav-text">1.1 Superblock</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-Index-node"><span class="nav-text">1.2 Index node</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-Directory-entry"><span class="nav-text">1.3 Directory entry</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-File"><span class="nav-text">1.4 File</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-5-VFS%E6%8A%BD%E8%B1%A1%E7%BB%84%E4%BB%B6%E5%85%B3%E7%B3%BB"><span class="nav-text">1.5 VFS抽象组件关系</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-VFS%E7%94%B1%E4%BB%80%E4%B9%88%E6%9E%84%E6%88%90%EF%BC%9F"><span class="nav-text">2. VFS由什么构成？</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/ef6421f1.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV05-03-Kernel-06-VFS-01-虚拟文件系统简介 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV05-03-Kernel-06-VFS-01-虚拟文件系统简介
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-12-24 23:02:38" itemprop="dateCreated datePublished" datetime="2024-12-24T23:02:38+08:00">2024-12-24</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/" itemprop="url" rel="index"><span itemprop="name">LV05-系统镜像</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>10k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>36 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是kernel——虚拟文件系统简介的相关笔记。若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-06-VFS-01-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="2">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、文件系统"><a href="#一、文件系统" class="headerlink" title="一、文件系统"></a><font size=3>一、文件系统</font></h1><p>在《02IMX6ULL平台&#x2F;LV06-驱动开发&#x2F;LV06-01-驱动程序-01-驱动程序基础.md》中大概了解过文件系统，这里再深入了解一下。</p>
+<h2 id="1-什么是文件系统"><a href="#1-什么是文件系统" class="headerlink" title="1. 什么是文件系统"></a><font size=3>1. 什么是文件系统</font></h2><p>先来看看什么叫文件系统。直接查百度吧，操作系统中负责管理和存储文件信息的软件机构称为文件管理系统，简称<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/4827215">文件系统</a>。但其实维基百科的解释可能更为精准一些：<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/File_system">File system</a>：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">In computing, a file system or filesystem (often abbreviated to FS or fs) governs file organization and access. A local file system is a capability of an operating system that services the applications running on the same computer. A distributed file system is a protocol that provides file access between networked computers.</span><br><span class="line">A file system provides a data storage service that allows applications to share mass storage. Without a file system, applications could access the storage in incompatible ways that lead to resource contention, data corruption and data loss.</span><br><span class="line">There are many file system designs and implementations – with various structure and features and various resulting characteristics such as speed, flexibility, security, size and more.</span><br><span class="line">Files systems have been developed for many types of storage devices, including hard disk drives (HDDs), solid-state drives (SSDs), magnetic tapes and optical discs.</span><br><span class="line">A portion of the computer main memory can be set up as a RAM disk that serves as a storage device for a file system. File systems such as tmpfs can store files in virtual memory.</span><br><span class="line">A virtual file system provides access to files that are either computed on request, called virtual files (see procfs and sysfs), or are mapping into another, backing storage.</span><br></pre></td></tr></table></figure>
+
+<p>这里就不翻译了，前面学习单片机的时候，肯定会接触到SPI FLASH、SD卡等存储介质，我们是可以将文件存放在这些存储设备上的，一开始的时候，我们将数据直接写入到某个地址中，然后读取的时候再从这个地址读出来，这已经很底层了。但是这是很麻烦的，需要很懂底层的原理才行，后来会接触到fatfs文件系统，这个系统其实就是一堆的api函数，需要我们实现一些对存储介质的初始化、读写相关操作，当我们移植完成后，它会代替我们完成对存储介质的操作，而我们只需要给出一个文件名，它就可以替我们找到这个文件在存储介质中的位置，而不是自己去记文件存放的地址，这对于不懂底层原理的开发者来说就很方便了。</p>
+<p>所以其实文件系统是用于存储和组织文件的一种机制，便于对文件进行方便的查找与访问。文件系统是对文件存储设备的空间进行组织和分配，负责文件存储并对存入的文件进行保护和检索的系统。它负责为用户建立文件，存入、读出、修改、转储文件，控制文件的存取，当用户不再使用时撤销文件等。</p>
+<blockquote>
+<p>简单来说，文件系统是用来管理存储设备（storage devices，storage medium，比如机械硬盘HDD，SSD，磁带，光盘，SD卡等）上存储的数据的。</p>
+</blockquote>
+<h2 id="2-file-system’s-architecture"><a href="#2-file-system’s-architecture" class="headerlink" title="2. file system’s architecture"></a><font size=3>2. file system’s architecture</font></h2><p>来啊看一下文件系统的结构，还是看<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/File_system">File system</a>，维基百科不一定能访问，这里贴一下原文：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">A local file system&#x27;s architecture can be described as layers of abstraction even though a particular file system design may not actually separate the concepts.[7]</span><br><span class="line">The logical file system layer provides relatively high-level access via an application programming interface (API) for file operations including open, close, read and write – delegating operations to lower layers. This layer manages open file table entries and per-process file descriptors.[8] It provides file access, directory operations, security and protection.[7]</span><br><span class="line">The virtual file system, an optional layer, supports multiple concurrent instances of physical file systems, each of which called a file system implementation.[8]</span><br><span class="line">The physical file system layer provides relatively low-level access to a storage device (e.g. disk). It reads and writes data blocks, provides buffering and other memory management and controls placement of blocks in specific locations on the storage medium. This layer uses device drivers or channel I/O to drive the storage device.[7]</span><br></pre></td></tr></table></figure>
+
+<p>翻译一下大概就是：</p>
+<blockquote>
+<p>本地文件系统的体系结构可以被描述为抽象层，即使特定的文件系统设计实际上可能没有分离这些概念。</p>
+<p>逻辑文件系统层通过应用程序编程接口（API）为文件操作提供相对高级的访问，包括打开、关闭、读和写——将操作委托给较低的层。这一层管理打开的文件表项和每个进程的文件描述符提供文件访问、目录操作、安全保护等功能。</p>
+<p>虚拟文件系统是一个可选层，它支持物理文件系统的多个并发实例，每个实例称为一个文件系统实现。</p>
+<p>物理文件系统层提供对存储设备（如磁盘）的相对低级的访问。它读取和写入数据块，提供缓冲和其他内存管理，并控制块在存储介质上特定位置的放置。该层使用设备驱动程序或通道I&#x2F;O来驱动存储设备。</p>
+</blockquote>
+<p>其实VFS这一层是可选的（optional，即不是必须的）。这个接口对多个并行的物理文件系统实例（每一个都叫做文件系统的实现）提供支持。意思是： <strong>如果只有一个文件系统，那么我可以不要VFS，但是在有多个文件系统的时候，VFS就不可或缺了，其在中间起协调、管理作用。</strong></p>
+<p>有一个资料就是参考资料中的【7】<a target="_blank" rel="noopener" href="https://www.cs.jhu.edu/~yairamir/cs418/os7/sld004.htm">The File System</a>，是个PPT好像，对文件系统有一些说明，这里描述了文件系统的结构：<a target="_blank" rel="noopener" href="https://www.cs.jhu.edu/~yairamir/cs418/os7/sld025.htm">File System Architecture</a></p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-06-VFS-01-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B/img/image-20241223135834973.png" alt="image-20241223135834973"  />
+
+<h2 id="3-file-system-components"><a href="#3-file-system-components" class="headerlink" title="3. file system components"></a><font size=3>3. file system components</font></h2><ul>
+<li>Device Drivers</li>
+</ul>
+<p>（1）直接与外围设备（磁盘、磁带等）通信。</p>
+<p>（2）负责在设备上启动物理I&#x2F;O操作。</p>
+<p>（3）处理I&#x2F;O请求的完成。</p>
+<p>（4）安排对设备的访问以优化性能。</p>
+<ul>
+<li>Basic File System</li>
+</ul>
+<p>（1）使用特定的设备驱动程序。</p>
+<p>（2）处理与物理设备交换的数据块。</p>
+<p>（3）与磁盘上块的位置有关。</p>
+<p>（4）与主存中的缓冲块有关。</p>
+<ul>
+<li>Logical File System</li>
+</ul>
+<p>负责向用户提供前面讨论的界面，包括：文件访问、目录操作、安全与保护。</p>
+<h2 id="4-常见的文件系统"><a href="#4-常见的文件系统" class="headerlink" title="4. 常见的文件系统"></a><font size=3>4. 常见的文件系统</font></h2><h3 id="4-1-磁盘文件系统"><a href="#4-1-磁盘文件系统" class="headerlink" title="4.1 磁盘文件系统"></a><font size=3>4.1 磁盘文件系统</font></h3><p>磁盘文件系统是指本地主机中实际可以访问到的文件系统，包括硬盘、CD-ROM、DVD、USB存储器、磁盘阵列等。常见文件系统格式有：</p>
+<ul>
+<li>Ext系列：</li>
+</ul>
+<p>（1）Ext：专门为Linux设计的第一个文件系统，最大支持2GB的容量。</p>
+<p>（2）Ext2：由Rémy Card设计，用以代替Ext，最大支持32TB的容量，单个文件最大限制为2TB。</p>
+<p>（3）Ext3：一种日志文件系统，最大支持32TB的容量，单个文件最大限制为16TB。</p>
+<p>（4）Ext4：Theodore Tso领导的开发团队实现，是许多Linux发行版的默认文件系统，提供了良好的性能和可靠性。它支持大文件、大分区、文件压缩、在线碎片整理等特性。最大支持1EB的容量，单个文件最大限制也为16TB。</p>
+<ul>
+<li><p>JFS：IBM开发的一种文件系统，用于大型数据库和文件服务器，支持文件系统级别的压缩。JFS2是一种字节级日志文件系统，主要是为满足服务器的高吞吐量和可靠性需求而设计、开发的。</p>
+</li>
+<li><p>XFS：由SGI开发，用于高性能的写入密集型应用，如数据库和文件服务器。XFS支持非常大的文件和卷，以及高并发操作，最大支持8 exbibytes的文件系统容量。</p>
+</li>
+<li><p>ReiserFS：一种性能优异的文件系统，特别是在小文件写入和大数量文件系统操作方面表现出色。</p>
+</li>
+<li><p>Btrfs：一种现代化的文件系统，支持高级特性，如数据完整性校验、快照、文件系统级压缩和写入时复制（COW）。</p>
+</li>
+<li><p>ZFS：由Sun Microsystems开发，以其数据完整性、可扩展性和性能而闻名。ZFS是一个复杂的文件系统，提供了类似RAID的数据保护特性。</p>
+</li>
+<li><p>FAT系列：</p>
+</li>
+</ul>
+<p>（1）FAT：一种较旧的文件系统，广泛用于USB闪存驱动器和移动存储设备。</p>
+<p>（2）FAT16：采用16位的文件分配表，支持最大2GB的分区。</p>
+<p>（3）FAT32：采用32位的文件分配表，突破了FAT16的容量限制，但运行速度相对较慢。</p>
+<p>（4）VFAT：长文件名系统，与Windows系统兼容，支持长文件名。</p>
+<ul>
+<li><p>NTFS：微软Windows的默认文件系统。Linux可以通过第三方驱动如ntfs-3g来读取和写入NTFS文件系统。</p>
+</li>
+<li><p>exFAT：专为闪存存储设计的文件系统，支持大于4GB的文件和大容量存储设备。Linux对exFAT的支持正在逐渐改善。</p>
+</li>
+<li><p>ISO9660：光盘的标准化文件系统，广泛用于数据CD和DVD。</p>
+</li>
+<li><p>UDF：通用磁盘格式，常用于光学介质和DVD视频。</p>
+</li>
+</ul>
+<h3 id="4-2-网络文件系统"><a href="#4-2-网络文件系统" class="headerlink" title="4.2 网络文件系统"></a><font size=3>4.2 网络文件系统</font></h3><p>网络文件系统是可以远程访问的文件系统，这种文件系统在服务器端仍是本地的磁盘文件系统，客户机通过网络远程访问数据。常见文件系统格式有：</p>
+<ul>
+<li>NFS（Network File System）：由Sun开发并发展起来的一项在不同机器、不同操作系统之间通过网络共享文件的技术。</li>
+<li>SMB&#x2F;CIFS：由微软开发的网络文件系统协议，用于Windows和Linux之间的文件共享。</li>
+<li>AFP（Apple Filling Protocol）：Apple文件归档协议，用于Mac和Linux之间的文件共享。</li>
+<li>WebDAV：基于HTTP协议的网络文件系统，允许用户通过Web浏览器访问和修改服务器上的文件。</li>
+</ul>
+<h3 id="4-3-专有-虚拟文件系统"><a href="#4-3-专有-虚拟文件系统" class="headerlink" title="4.3 专有&#x2F;虚拟文件系统"></a><font size=3>4.3 专有&#x2F;虚拟文件系统</font></h3><p>专有&#x2F;虚拟文件系统是不驻留在磁盘上的文件系统。常见格式有：</p>
+<ul>
+<li>TMPFS：基于内存的临时文件系统，通常用于存储临时文件。</li>
+<li>PROCFS（Process File System）：进程文件系统，用于管理内存存储目录&#x2F;proc，存储当前内核运行状态的一系列特殊文件。</li>
+<li>SYSFS：与PROCFS一样，也是基于内存的虚拟文件系统，用来管理内存存储目录&#x2F;sysfs。</li>
+<li>LOOPBACKFS（Loopback File System）：回送文件系统，允许用户将文件当作块设备来处理。</li>
+<li>SWAP：虽然不是传统意义上的文件系统，但swap空间在Linux中用于虚拟内存，允许系统在物理内存不足时使用磁盘空间作为临时存储。</li>
+</ul>
+<h3 id="4-4-linux中支持的文件系统"><a href="#4-4-linux中支持的文件系统" class="headerlink" title="4.4 linux中支持的文件系统"></a><font size=3>4.4 linux中支持的文件系统</font></h3><p>我们可以使用下面的命令查看当前linux系统支持的文件系统：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /proc/filesystems</span><br></pre></td></tr></table></figure>
+
+<p><code>/proc/filesystems</code> 文件列出了当前内核支持的所有文件系统。</p>
+<h1 id="二、虚拟文件系统"><a href="#二、虚拟文件系统" class="headerlink" title="二、虚拟文件系统"></a><font size=3>二、虚拟文件系统</font></h1><p>前面其实已经提到了VFS，它其实就是虚拟文件系统，在学习linux的时候会接触到，下面来了解一下。</p>
+<h2 id="1-VFS是什么？"><a href="#1-VFS是什么？" class="headerlink" title="1. VFS是什么？"></a><font size=3>1. VFS是什么？</font></h2><p>VFS，全称：Virtual File System，即<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/10986803?fromtitle=VFS&fromid=7519887">虚拟文件系统</a>，但是其还有一个称呼：<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Virtual_file_system">virtual filesystem switch</a> （它是维基百科的定义）。</p>
+<p>虚拟文件系统是操作系统内核中的一种抽象层，它提供了一个统一的接口，使得不同的文件系统可以被操作系统内核一致地处理。VFS允许操作系统支持多种文件系统，而无需为每种文件系统编写特定的代码。通过VFS，操作系统可以透明地与各种文件系统交互，而无需关心底层文件系统的具体实现细节。</p>
+<blockquote>
+<p>Tips：</p>
+<p>A Virtual File System (VFS) or virtual filesystem switch is an abstract layer on top of a more concrete file system。</p>
+<p>翻译一下就是：VFS是一个在更具体文件系统之上的抽象层。</p>
+</blockquote>
+<p>需要知道的是VFS是一种<strong>软件机制</strong>，只存在于内存中，每次系统初始化期间Linux都会先在内存中构造一棵VFS的目录树（也就是源码中的namespace）。</p>
+<h2 id="2-它有什么用？"><a href="#2-它有什么用？" class="headerlink" title="2. 它有什么用？"></a><font size=3>2. 它有什么用？</font></h2><p>其实前面解决VFS是什么问题的时候就大概可以知道了：</p>
+<p>（1）使得用户应用能够访问不同类型的具体文件系统，比如，一个VFS能够用来访问一个本地或者网络存储设备且同时不需要让用户知道区别；</p>
+<p>（2）VFS可以用来连接（brige）Windows，经典的Mac OS以及Unix文件系统，使得应用能够访问这些类型的本地文件系统上的文件，而不需要知道他们正在访问的是哪个文件系统；</p>
+<p>（3）VFS明确了内核（kernel）和具体文件系统之间的接口（或者说契约contract），所以通过实现对应的契约，我们就能够很轻松的给内核添加对新文件系统的支持；</p>
+<blockquote>
+<p>Tips：</p>
+<p>其实有一个更贴切的描述：To ease the addition of new file systems and provide a generic file API, VFS, a virtual file system layer, was added to the Linux kernel. The extended file system (ext), was released in April 1992 as the first file system using the VFS API and was included in Linux version 0.96c.</p>
+<p>上面这段可以在这里看到：<a target="_blank" rel="noopener" href="https://www.diskinternals.com/glossary/ext2/">Ext2 Linux File System | DiskInternals</a> 或者在维基百科：<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Ext2">ext2</a></p>
+</blockquote>
+<h2 id="3-谁在使用VFS"><a href="#3-谁在使用VFS" class="headerlink" title="3. 谁在使用VFS"></a><font size=3>3. 谁在使用VFS</font></h2><p>（1）device drivers，设备驱动（可以看维基百科：<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Device_driver">Device driver</a>)</p>
+<p>（2）filesystems，文件系统</p>
+<h2 id="4-VFS和文件系统是什么关系？"><a href="#4-VFS和文件系统是什么关系？" class="headerlink" title="4. VFS和文件系统是什么关系？"></a><font size=3>4. VFS和文件系统是什么关系？</font></h2><p>前面了解文件系统结构的时候其实已经说明了： <strong>如果只有一个文件系统，那么我可以不要VFS，但是在有多个文件系统的时候，VFS就不可或缺了，其在中间起协调、管理作用。</strong></p>
+<p>大概可以这么理解吧，就是不同的文件系统，它的实现方式可能多少有些区别，但是一个系统中存储介质可能使用的是不同的文件系统，比如硬盘1使用FAT32，硬盘2使用NTFS，那么他们的接口多少可能会有些区别，但是对于开发人员来说，还要去记这些区别就显得很麻烦，就相当于在文件系统上层又加了一层，将各个接口统一，这一层就是VFS了。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-06-VFS-01-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B/img/image-20241224143356829.png" alt="image-20241224143356829"  />
+
+
+
+<h2 id="5-VFS在linux中的位置"><a href="#5-VFS在linux中的位置" class="headerlink" title="5. VFS在linux中的位置"></a><font size=3>5. VFS在linux中的位置</font></h2><p>虚拟文件系统在linux架构中位于哪里？</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-06-VFS-01-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B/img/image-20241224113347161.png" alt="image-20241224113347161"  />
+
+<p>Linux系统的User使用GLIBC（POSIX标准、GUN C运行时库）作为应用程序的运行时库，然后通过操作系统，将其转换为系统调用SCI（system-call interface），SCI是操作系统内核定义的系统调用接口，这层抽象允许用户程序的 I&#x2F;O 操作转换为内核的接口调用。VFS提供了一个抽象层，将POSIX API接口与不同存储设备的具体接口实现进行了分离，使得底层的文件系统类型、设备类型对上层应用程序透明。</p>
+<h2 id="6-两个示例"><a href="#6-两个示例" class="headerlink" title="6. 两个示例"></a><font size=3>6. 两个示例</font></h2><h3 id="6-1-接口适配示例"><a href="#6-1-接口适配示例" class="headerlink" title="6.1 接口适配示例"></a><font size=3>6.1 接口适配示例</font></h3><p>用户写入一个文件，使用 POSIX 标准的 write 接口，会被操作系统接管，转调 sys_write 这个系统调用（属于SCI层）。然后 VFS 层接受到这个调用，通过自身抽象的模型，转换为对给定文件系统、给定设备的操作，这一关键性的步骤是VFS的核心，需要有统一的模型，使得对任意支持的文件系统都能实现系统的功能。这就是VFS提供的统一的文件模型（common file model），底层具体的文件系统负责具体实现这种文件模型，负责完成POSIX API的功能，并最终实现对物理存储设备的操作。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-06-VFS-01-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B/img/image-20241224150355499.png" alt="image-20241224150355499"  />
+
+<p>VFS这一层建模和抽象是有必要的，如果放在SCI层会导致操作系统的系统调用的功能过于复杂，易出bug。那么就只能让底层文件系统都遵循统一实现，这对于已经出现的各种存储设备来说天然就有不同的特性，也是无法实现的。因此VFS这样一层抽象是有其必要性的。</p>
+<h3 id="6-2-跨设备-文件系统示例"><a href="#6-2-跨设备-文件系统示例" class="headerlink" title="6.2 跨设备&#x2F;文件系统示例"></a><font size=3>6.2 跨设备&#x2F;文件系统示例</font></h3><p>VFS为不同设备或文件系统间的访问提供了媒介，下面的示意图和代码中，用户通过cp命令进行文件的拷贝，对用户来说是不用关心底层是否跨越文件系统和设备的，具体都通过VFS抽象层实现对不同文件系统的读写操作。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-06-VFS-01-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B/img/image-20241224152029569.png" alt="image-20241224152029569"  />
+
+<h1 id="三、VFS的构成"><a href="#三、VFS的构成" class="headerlink" title="三、VFS的构成"></a><font size=3>三、VFS的构成</font></h1><h2 id="1-统一文件模型"><a href="#1-统一文件模型" class="headerlink" title="1. 统一文件模型"></a><font size=3>1. 统一文件模型</font></h2><p>文件是存储在硬盘上的，硬盘的最小存储单位叫做扇区sector，每个扇区存储512字节。操作系统读取硬盘的时候，不会一个个扇区地读取，这样效率太低，而是一次性连续读取多个扇区，即一次性读取一个块block。这种由多个扇区组成的块，是文件存取的最小单位。块的大小，最常见的是4KB，即连续八个sector组成一个block。</p>
+<p>文件数据存储在块中，那么还必须找到一个地方存储文件的元信息，比如文件的创建者、文件的创建日期、文件的大小等等。这种存储文件元信息的区域就叫做<code>inode</code>，中文译名为<code>索引节点</code>，也叫<code>i节点</code>。</p>
+<blockquote>
+<p>Tips：</p>
+<p>元信息&rarr;inode</p>
+<p>数据&rarr; block</p>
+</blockquote>
+<p>VFS为了提供对不同底层文件系统的统一接口，需要有一个高度的抽象和建模，这就是VFS的核心设计——<strong>统一文件模型</strong>。目前的Linux系统的VFS都是源于Unix家族，因此这里所说的VFS对所有Unix家族的系统都适用。Unix家族的VFS的文件模型定义了四种对象，这四种对象构建起了统一文件模型。</p>
+<ul>
+<li>superblock：存储文件系统基本的元数据。如文件系统类型、大小、状态，以及其他元数据相关的信息（元元数据）一个超级块对应一个文件系统(已经安装的文件系统类型如ext2，此处是实际的文件系统，不是VFS)。之前我们已经说了文件系统用于管理这些文件的数据格式和操作之类的，系统文件有系统文件自己的文件系统，同时对于不同的磁盘分区也有可以是不同的文件系统。</li>
+<li>index node（inode）：保存一个文件相关的元数据。包括文件的所有者（用户、组）、访问时间、文件类型等，但不包括这个文件的名称。文件和目录均有具体的inode对应。</li>
+<li>directory entry（dentry）：保存了文件（目录）名称和具体的inode的对应关系，用来粘合二者，同时可以实现目录与其包含的文件之间的映射关系。另外也作为缓存的对象，缓存最近最常访问的文件或目录，提示系统性能。</li>
+<li>file：一组逻辑上相关联的数据，被一个进程打开并关联使用。</li>
+</ul>
+<p>统一文件模型是一个标准，各种具体文件系统的实现必须以此模型定义的各种概念来实现。</p>
+<h3 id="1-1-Superblock"><a href="#1-1-Superblock" class="headerlink" title="1.1 Superblock"></a><font size=3>1.1 Superblock</font></h3><p><strong>静态</strong>：superblock保存了一个文件系统的最基础的元信息，一般都保存在底层存储设备的开头；</p>
+<p><strong>动态</strong>：挂载之后会读取文件系统的superblock并常驻内存，部分字段是动态创建时设置的。</p>
+<p>superblock对应的结构体定义在 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/include/linux/fs.h?h=linux-4.19.y&id=e7d2672c66e4d3675570369bf20856296da312c4#n1369">fs.h « linux « include - <em>struct super_block</em></a></p>
+<h3 id="1-2-Index-node"><a href="#1-2-Index-node" class="headerlink" title="1.2 Index node"></a><font size=3>1.2 Index node</font></h3><p><strong>静态</strong>：创建文件系统时生成inode，保存在具体存储设备上，记录了文件系统的元信息；</p>
+<p><strong>动态：</strong>VFS在内存中使用inode数据结构，来管理文件系统的文件对象，记录了文件对象的详细信息，部分字段与关联的文件对象有关，会动态创建；</p>
+<p><strong>索引节点inode</strong>：保存的其实是实际的数据的一些信息，这些信息称为“元数据”(也就是对文件属性的描述)。例如：文件大小，设备标识符，用户标识符，用户组标识符，文件模式，扩展属性，文件读取或修改的时间戳，链接数量，指向存储该内容的磁盘区块的指针，文件分类等等。</p>
+<blockquote>
+<p>Tips：数据分成：元数据+数据本身</p>
+<p>注意：inode有两种，一种是VFS的 inode，一种是具体文件系统的inode。前者在内存中，后者在磁盘中。所以每次其实是将磁盘中的inode调进填充内存中的inode，这样才是算使用了磁盘文件inode。</p>
+</blockquote>
+<p>inode怎样生成的？每个inode节点的大小，一般是128字节或256字节。inode节点的总数，在格式化时就给定(现代OS可以动态变化)，一般每2KB就设置一个inode。一般文件系统中很少有文件小于2KB的，所以预定按照2KB分，一般inode是用不完的。所以inode在文件系统安装的时候会有一个默认数量，后期会根据实际的需要发生变化。</p>
+<p>inode号：inode号是唯一的，表示不同的文件。其实在Linux内部的时候，访问文件都是通过inode号来进行的，所谓文件名仅仅是给用户容易使用的。当我们打开一个文件的时候，首先，系统找到这个文件名对应的inode号；然后，通过inode号，得到inode信息，最后，由inode找到文件数据所在的block，现在可以处理文件数据了。</p>
+<p>inode和文件的关系：当创建一个文件的时候，就给文件分配了一个inode。一个inode只对应一个实际文件，一个文件也会只有一个inode。inodes最大数量就是文件的最大数量。</p>
+<p>inode对应的结构体定义在 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/include/linux/fs.h?h=linux-4.19.y&id=e7d2672c66e4d3675570369bf20856296da312c4#n593">fs.h « linux « include - <em>struct inode</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">inode</span> &#123;</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">inode_operations</span>	*<span class="title">i_op</span>;</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">hlist_head</span>	<span class="title">i_dentry</span>;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">rcu_head</span>		<span class="title">i_rcu</span>;</span></span><br><span class="line">	&#125;;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span>	*<span class="title">i_fop</span>;</span>	<span class="comment">/* former -&gt;i_op-&gt;default_file_ops */</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">&#125; __randomize_layout;</span><br></pre></td></tr></table></figure>
+
+<p>i_dentry字段指定当前inode标识的文件对象的名称，也就是dentry，是一个链表的，因为可能由多个dentry都指向这个inode（硬链接）。然后除了文件的一些权限信息、访问时间、大小等信息之外，最重要的就是记录了inode和file对象所提供的操作，分别是i_fop和i_op。<br>inode在内存中创建后会有inode cache进行缓存，并执行延迟的write back策略保存到底层存储设备。</p>
+<h3 id="1-3-Directory-entry"><a href="#1-3-Directory-entry" class="headerlink" title="1.3 Directory entry"></a><font size=3>1.3 Directory entry</font></h3><p>目录项：目录项是描述文件的逻辑属性，只存在于内存中，并没有实际对应的磁盘上的描述，更确切的说是存在于内存的目录项缓存，为了提高查找性能而设计。注意不管是文件夹还是最终的文件，都是属于目录项，所有的目录项在一起构成一颗庞大的目录树。</p>
+<p>dentry是用来记录具体的文件名与对应的inode间的对应关系的，同时可以用来实现硬链接、缓存、多级目录等树状文件系统的特性。VFS的dentry设计上就是为了实现整个文件系统树状层次结构的，每个文件系统拥有一个没有父dentry的根目录（root dentry），这个dentry会被superblock引用，用来作为进行树形结构的查找入口。其余的所有dentry都是有唯一的父dentry，并可以由若干个子dentry。示例：对于一个文件”&#x2F;home&#x2F;user&#x2F;a”，会存在“&#x2F;”、“home”、“user”、“a”四个dentry，依次构成父子关系，每个dentry也都有一个inode与之关联，存储了具体的数据。</p>
+<p>dentry没有在磁盘等底层存储设备上存储，是一个动态创建的内存数据结构，主要是为了构建出树状组织结构而设计，用来进行文件、目录的查找。dentry创建之后会被操作系统进行缓存，目的是为了提升对文件系统进行操作的性能。</p>
+<p>dentry的结构定义在 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/include/linux/dcache.h?h=linux-4.19.y&id=e7d2672c66e4d3675570369bf20856296da312c4#n88">dcache.h « linux « include - <em>struct dentry</em></a>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">dentry</span> &#123;</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">inode</span> *<span class="title">d_inode</span>;</span>		<span class="comment">/* Where the name belongs to - NULL is</span></span><br><span class="line"><span class="comment">					 * negative */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">char</span> d_iname[DNAME_INLINE_LEN];	<span class="comment">/* small names */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Ref lookup also touches following */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">lockref</span> <span class="title">d_lockref</span>;</span>	<span class="comment">/* per-dentry lock and refcount */</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">dentry_operations</span> *<span class="title">d_op</span>;</span></span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">&#125; __randomize_layout;</span><br></pre></td></tr></table></figure>
+
+<p>其中最重要的有两个字段，一个是d_inode指针指向了当前dentry关联的inode。另一个就是d_op字段，指向了一系列dentry支持的操作的集合。</p>
+<ul>
+<li>dentry在需要使用时动态创建，并会被缓存。每个dentry有三种状态：</li>
+</ul>
+<p>（1）used：与一个inode关联，正处于被VFS使用的状态，不能被损坏和丢弃</p>
+<p>（2）unused：与inode关联，但处于被缓存状态，没有被VFS使用</p>
+<p>（3）negative：没有与具体的inode关联（相当于是一个无效的路径）</p>
+<ul>
+<li>dentry由于会被动态创建，为了提升系统性能，设计了一个dentry cache进行缓存，包括三个部分：</li>
+</ul>
+<p>（1）used dentries 链表：记录每个正在使用的dentry，将其关联的inode的i_dentry字段指向的dentry链表连接起来形成一个dentry链表的链表</p>
+<p>（2）LRU双向环链表：用于维护unused和negative状态的dentry对象，从头部插入，离头部越近就是最近访问过的。当需要删除dentry时，从队列尾部删除最旧的dentry</p>
+<p>（3）hash table和hash function：用来快速查询一个给定的路径到dentry对象</p>
+<h3 id="1-4-File"><a href="#1-4-File" class="headerlink" title="1.4 File"></a><font size=3>1.4 File</font></h3><p>文件对象描述的是进程已经打开的文件。因为一个文件可以被多个进程打开，所以一个文件可以存在多个文件对象。但是由于文件是唯一的，那么inode就是唯一的，目录项也是定的！</p>
+<p>进程其实是通过文件描述符来操作文件的，注意每个文件都有一个32位的数字来表示下一个读写的字节位置，这个数字叫做文件位置。一般情况下打开文件后，打开位置都是从0开始，除非一些特殊情况。Linux用file结构体来保存打开的文件的位置，所以file称为打开的文件描述。file结构形成一个双链表，称为系统打开文件表。</p>
+<p>文件对象是打开一个具体文件之后创建的一个内存数据结构，与具体的进程和用户相联系。一个文件对象包括的内容就是编程语言支持设置的各种文件打开的flag、mode，文件名称、当前的偏移等，其中非常重要的一个字段就是f_op，指向了当前文件所支持的操作集合。</p>
+<p>file结构体定义在<a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/include/linux/fs.h?h=linux-4.19.y&id=e7d2672c66e4d3675570369bf20856296da312c4#n891">fs.h « linux « include - <em>struct file</em></a>。</p>
+<h3 id="1-5-VFS抽象组件关系"><a href="#1-5-VFS抽象组件关系" class="headerlink" title="1.5 VFS抽象组件关系"></a><font size=3>1.5 VFS抽象组件关系</font></h3><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-06-VFS-01-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B/img/image-20241224172623454.png" alt="image-20241224172623454"  />
+
+<p>每个打开的文件对用户来说有一个文件描述符，也就是VFS抽象的file object。file object指向一个dentry，dentry指向新的dentry或一个inode，inode最终代表了一个具体存储设备上的数据。</p>
+<h2 id="2-VFS由什么构成？"><a href="#2-VFS由什么构成？" class="headerlink" title="2. VFS由什么构成？"></a><font size=3>2. VFS由什么构成？</font></h2><p>上面已经了解了统一文件模型，现在再来看这个问题，大概就好理解一点了。这里主要参考的是这个文章【8】<a target="_blank" rel="noopener" href="https://aeb.win.tue.nl/linux/lk/lk-8.html">The Linux kernel: The Linux Virtual File System</a>和【9】<a target="_blank" rel="noopener" href="http://www.linux-tutorial.info/?page_id=426">虚拟文件系统 |Linux 教程</a>。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-03-Kernel-06-VFS-01-%E8%99%9A%E6%8B%9F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B/img/image-20241223150725227.png" alt="image-20241223150725227"  />
+
+<p>VFS用 <strong>superblocks 和 inodes</strong> 来描述系统文件（和EXT2的文件系统使用 superblocks，inodes非常相似）。其中 inodes 用来描述系统内的文件和目录。</p>
+<p>每个文件系统在初始化的时候，它会用VFS注册它自己（我理解的是：<strong>每个真实文件系统挂载上来时，都会在VFS上登记备案</strong> ），这通常发生在操作系统在系统引导（system boot time）时初始化它自己的过程。</p>
+<blockquote>
+<p>【9】<a target="_blank" rel="noopener" href="http://www.linux-tutorial.info/?page_id=426">虚拟文件系统 |Linux 教程</a>中有这么一段：</p>
+<p>The real file systems are either built into the kernel itself or are built as loadable modules. File System modules are loaded as the system needs them, so, for example, if the VFAT file system is implemented as a kernel module, then it is only loaded when a VFAT file system is mounted. When a block device based file system is mounted, and this includes the root file system, the VFS must read its superblock. Each file system type’s superblock read routine must work out the file system’s topology and map that information onto a VFS superblock data structure. The VFS keeps a list of the mounted file systems in the system together with their VFS superblocks. Each VFS superblock contains information and pointers to routines that perform particular functions. So, for example, the superblock representing a mounted EXT2 file system contains a pointer to the EXT2 specific inode reading routine. This EXT2 inode read routine, like all of the file system specific inode read routines, fills out the fields in a VFS inode. Each VFS superblock contains a pointer to the first VFS inode on the file system. For the root file system, this is the inode that represents the “&#x2F;“ directory. This mapping of information is very efficient for the EXT2 file system but moderately less so for other file systems.</p>
+</blockquote>
+<p>这一段说的大概是：</p>
+<p>（1）真实文件系统要么在内核中构建（意思就是直接装在内核里面成为一部分了），要么以可加载模块的方式被构建。文件系统模块只有在系统需要他们的时候，才会被加载。比如，VFAT 文件系统被实现成一个内核模块，只有当一个VFAT 文件系统被挂载的时候，它才会被加载。</p>
+<p>（2）当一个基于块设备的文件系统被加载，且这包含根文件系统，VFS就必须读取它的superblocks（应该是叫超级块），每个文件系统类型的超级块read routine必须算出文件系统的拓扑结构，并且把这个信息映射到VFS的超级块数据结构中。</p>
+<p>（3）VFS保持着一个在系统（意思就是操作系统）中被挂载文件系统的列表以及他们的VFS超级块。每个VFS超级块包含到routines（指令集 a list of instructions that enable a computer to perform a particular task）的信息和指针。</p>
+<p>那上图的cache和directory cache又是什么呢？</p>
+<blockquote>
+<p>【9】<a target="_blank" rel="noopener" href="http://www.linux-tutorial.info/?page_id=426">虚拟文件系统 |Linux 教程</a>中有这么一段：</p>
+<p>As the system’s processes access directories and files, system routines are called that traverse the VFS inodes in the system.</p>
+<p>For example, typing ls for a directory or cat for a file cause the the Virtual File System to search through the VFS inodes that represent the file system. As every file and directory on the system is represented by a VFS inode, then a number of inodes will be being repeatedly accessed. These inodes are kept in the inode cache which makes access to them quicker. If an inode is not in the inode cache, then a file system specific routine must be called in order to read the appropriate inode. The action of reading the inode causes it to be put into the inode cache and further accesses to the inode keep it in the cache. The less used VFS inodes get removed from the cache.</p>
+<p>All of the Linux file systems use a common buffer cache to cache data buffers from the underlying devices to help speed up access by all of the file systems to the physical devices holding the file systems.</p>
+<p>This buffer cache is independent of the file systems and is integrated into the mechanisms that the Linux kernel uses to allocate and read and write data buffers. It has the distinct advantage of making the Linux file systems independent from the underlying media and from the device drivers that support them. All block structured devices register themselves with the Linux kernel and present a uniform, block based, usually asynchronous interface. Even relatively complex block devices such as SCSI devices do this. As the real file systems read data from the underlying physical disks, this results in requests to the block device drivers to read physical blocks from the device that they control. Integrated into this block device interface is the buffer cache. As blocks are read by the file systems they are saved in the global buffer cache shared by all of the file systems and the Linux kernel. Buffers within it are identified by their block number and a unique identifier for the device that read it. So, if the same data is needed often, it will be retrieved from the buffer cache rather than read from the disk, which would take somewhat longer. Some devices support read ahead where data blocks are speculatively read just in case they are needed.</p>
+<p>The VFS also keeps a cache of directory lookups so that the inodes for frequently used directories can be quickly found.</p>
+<p>As an experiment, try listing a directory that you have not listed recently. The first time you list it, you may notice a slight pause but the second time you list its contents the result is immediate. The directory cache does not store the inodes for the directories itself; these should be in the inode cache, the directory cache simply stores the mapping between the full directory names and their inode numbers.</p>
+</blockquote>
+<p>大概就是再说：</p>
+<p>（1）所有的linux文件系统都使用一个常用的buffer cache（缓冲区缓存）来缓存来自底层设备的data buffers，这样可以加速文件系统对保有这个文件系统的物理设备的访问。</p>
+<p>（2）VFS也保有了一个文件夹查找（directory lookups）缓存（cache），以便经常被使用的文件夹的inodes能够被快速找到。（所以，通常在ls一个最近从没打开或者ls过的文件夹时，会有一点点停顿，但第二次就会立马显示结果。）</p>
+<p>（3）文件夹缓存不存储针对文件夹本身的inodes（这些应该放在inodes 缓存中），它存储了整个文件夹名字和他们的inode号之间的映射。</p>
+<p>（4）系统中的每个文件或者文件夹都是用一个VFS inode表示的，放在inode cache里面的inode会被更快的访问，如果某个inode不在cache中，那么一个文件系统的指定routine（指令集）就会被调用来读取对应的inode。读取这个inode使得它被放进缓存中，进一步的访问会将它保持在缓存中。此外，更少被用到的VFS inodes会从cache中移除。</p>
+<blockquote>
+<p>参考资料</p>
+<p>【1】<a target="_blank" rel="noopener" href="https://github.com/sumumm/linux-0.12/blob/master/docs/%E7%AC%AC12%E7%AB%A0-%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/%E7%AC%AC12%E7%AB%A0-%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F.md">linux-0.12&#x2F;docs&#x2F;第12章-文件系统&#x2F;第12章-文件系统.md at master · sumumm&#x2F;linux-0.12 · GitHub</a></p>
+<p>【2】<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_35995514/article/details/120992822">【Linux】VFS 虚拟文件系统 详解-CSDN博客</a></p>
+<p>【3】<a target="_blank" rel="noopener" href="https://linux.cn/article-10884-1.html">技术|详解 Linux 中的虚拟文件系统</a></p>
+<p>【4】[<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_39278265/article/details/88839027">高级操作系统] VFS详解（虚拟文件系统）_操作系统vfs层-CSDN博客</a></p>
+<p>【5】<a target="_blank" rel="noopener" href="https://www.cnblogs.com/smartjourneys/p/7258226.html">Linux文件系统1—概述 - jasonactions - 博客园</a></p>
+<p>【6】<a target="_blank" rel="noopener" href="https://blog.csdn.net/chungle2011/article/details/80281226">Linux文件系统2—VFS的四个主要对象_vfs主要由哪几种类型的对象组成-CSDN博客</a></p>
+<p>【7】<a target="_blank" rel="noopener" href="https://www.cs.jhu.edu/~yairamir/cs418/os7/sld004.htm">The File System</a></p>
+<p>【8】<a target="_blank" rel="noopener" href="https://aeb.win.tue.nl/linux/lk/lk-8.html">The Linux kernel: The Linux Virtual File System</a></p>
+<p>【9】<a target="_blank" rel="noopener" href="http://www.linux-tutorial.info/?page_id=426">虚拟文件系统 |Linux 教程</a></p>
+<p>【10】<a target="_blank" rel="noopener" href="https://blog.csdn.net/jinking01/article/details/90669534">linux的VFS详解-CSDN博客</a></p>
+<p>【11】<a target="_blank" rel="noopener" href="https://developer.ibm.com/tutorials/l-linux-filesystem/?mhsrc=ibmsearch_a&mhq=Anatomy%20of%20the%20Linux%20file%20system">Anatomy of the Linux file system - IBM Developer</a></p>
+<p>【12】<a target="_blank" rel="noopener" href="https://blog.csdn.net/xie__jin__cheng/article/details/142729227">文件系统、常见类型及其特点_文件系统类型-CSDN博客</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/ef6421f1.html">LV05-03-Kernel-06-VFS-01-虚拟文件系统简介</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年12月24日 - 23:02</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/ef6421f1.html" title="LV05-03-Kernel-06-VFS-01-虚拟文件系统简介">https://sumumm.github.io/post/ef6421f1.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/" rel="tag"><i class="fa fa-tag"></i> LV05-系统镜像</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/ec4382c8.html" rel="prev" title="LV05-03-kernel-06-VFS-02-VFS的四大对象">
+                  <i class="fa fa-angle-left"></i> LV05-03-kernel-06-VFS-02-VFS的四大对象
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/fc0914ce.html" rel="next" title="LV01-21-C语言-JSON-02-cJSON">
+                  LV01-21-C语言-JSON-02-cJSON <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

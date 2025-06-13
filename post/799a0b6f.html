@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是线程同步——条件变量的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV05-03-线程同步-05-条件变量">
+<meta property="og:url" content="https://sumumm.github.io/post/799a0b6f.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是线程同步——条件变量的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-07-02T13:52:15.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:56.994Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV05-操作系统">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/799a0b6f.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/799a0b6f.html","path":"post/799a0b6f.html","title":"LV05-03-线程同步-05-条件变量"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV05-03-线程同步-05-条件变量 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%9D%A1%E4%BB%B6%E5%8F%98%E9%87%8F"><span class="nav-text">一、条件变量</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C"><span class="nav-text">二、基本操作</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%9D%A1%E4%BB%B6%E5%8F%98%E9%87%8F%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-text">1. 条件变量初始化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-pthread-cond-init"><span class="nav-text">1.1 pthread_cond_init() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">1.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">1.1.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-PTHREAD-COND-INITIALIZER"><span class="nav-text">1.2 PTHREAD_COND_INITIALIZER </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">1.2.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">1.2.2 使用实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%80%9A%E7%9F%A5%E5%92%8C%E7%AD%89%E5%BE%85"><span class="nav-text">2. 通知和等待</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-pthread-cond-signal"><span class="nav-text">2.1 pthread_cond_signal() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.1.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-pthread-cond-broadcast"><span class="nav-text">2.2 pthread_cond_broadcast() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.2.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.2.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-pthread-cond-wait"><span class="nav-text">2.3 pthread_cond_wait() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.3.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.3.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-pthread-cond-timedwait"><span class="nav-text">2.4 pthread_cond_timedwait() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">2.4.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.4.2 使用实例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%88%A4%E6%96%AD%E6%9D%A1%E4%BB%B6"><span class="nav-text">3. 判断条件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E9%94%80%E6%AF%81%E6%9D%A1%E4%BB%B6%E5%8F%98%E9%87%8F"><span class="nav-text">4. 销毁条件变量</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-pthread-cond-destroy"><span class="nav-text">4.1 pthread_cond_destroy() </span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-1-%E5%87%BD%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="nav-text">4.1.1 函数说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">4.1.2 使用实例</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E6%9D%A1%E4%BB%B6%E5%8F%98%E9%87%8F%E7%9A%84%E5%B1%9E%E6%80%A7"><span class="nav-text">三、条件变量的属性</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E4%BD%BF%E7%94%A8%E4%BE%8B%E7%A8%8B"><span class="nav-text">四、使用例程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B1"><span class="nav-text">1. 使用实例1</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B2"><span class="nav-text">2. 使用实例2</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/799a0b6f.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV05-03-线程同步-05-条件变量 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV05-03-线程同步-05-条件变量
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-07-02 21:52:15" itemprop="dateCreated datePublished" datetime="2023-07-02T21:52:15+08:00">2023-07-02</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" itemprop="url" rel="index"><span itemprop="name">LV05-操作系统</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>20 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是线程同步——条件变量的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: none -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150>---</td>        <td align="left"><a href="" target="_blank">---<i class="fa fa-external-link-alt"></i> </a></td>      </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、条件变量"><a href="#一、条件变量" class="headerlink" title="一、条件变量"></a><font size=3>一、条件变量</font></h1><p>条件变量是线程可用的另一种同步机制。条件变量用于自动阻塞线程，知道某个特定事件发生或某个条件满足为止，通常情况下，条件变量是和互斥锁一起搭配使用的，这是因为条件的检测是在互斥锁的保护下进行的，也就是说条件本身是由互斥锁保护的，线程在改变条件状态之前必须先锁住互斥锁，不然就可能引发线程不安全的问题。</p>
+<p>条件变量就相当于生产者和消费者模的式，生产者这边负责生产产品、而消费者负责消费产品，对于消费者来说，没有产品的时候只能等待产品出来，有产品就使用它。</p>
+<h1 id="二、基本操作"><a href="#二、基本操作" class="headerlink" title="二、基本操作"></a><font size=3>二、基本操作</font></h1><h2 id="1-条件变量初始化"><a href="#1-条件变量初始化" class="headerlink" title="1. 条件变量初始化"></a><font size=3>1. 条件变量初始化</font></h2><h3 id="1-1-pthread-cond-init"><a href="#1-1-pthread-cond-init" class="headerlink" title="1.1 pthread_cond_init() "></a><font size=3>1.1 pthread_cond_init() </font></h3><h4 id="1-1-1-函数说明"><a href="#1-1-1-函数说明" class="headerlink" title="1.1.1 函数说明"></a><font size=3>1.1.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_cond_init</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="comment">/* man 手册中的声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_cond_init</span><span class="params">(<span class="type">pthread_cond_t</span> *<span class="keyword">restrict</span> cond, <span class="type">const</span> <span class="type">pthread_condattr_t</span> *<span class="keyword">restrict</span> attr)</span>;</span><br><span class="line"><span class="comment">/* 一些资料中的声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_cond_init</span><span class="params">(<span class="type">pthread_cond_t</span> *cond, <span class="type">const</span> <span class="type">pthread_condattr_t</span> *attr)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>额……，😥跟上边一样，使用常见的声明格式把，毕竟参数都是一样的，但是常见的还是更容易理解一些。</p>
+<p><strong>【函数说明】</strong>该函数是以动态方式初始化一个条件变量。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>cond</code>：<code>pthread_cond_t *</code>类型，指向需要进行初始化操作的<strong>条件变量对象</strong>。</li>
+<li><code>attr</code>：<code>const pthread_condattr_t *</code>类型，指向一个<code>pthread_condattr_t</code>类型对象，该对象用于描述条件变量的属性，若将参数<code>attr</code>设置为<code>NULL</code>，则表示条件变量的属性设置为默认值，在这种情况下其实就等价于<code>PTHREAD_COND_INITIALIZER</code>这种方式初始化，而不同之处在于，使用宏不进行错误检查。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，成功返回<code>0</code>；失败将返回一个非<code>0</code>的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">pthread_cond_t</span> cond;<span class="comment">/* 定义全局变量 */</span></span><br><span class="line">pthread_cond_init(&amp;cond, <span class="literal">NULL</span>);<span class="comment">/* 初始化条件变量 */</span></span><br><span class="line"><span class="comment">/* 或者 */</span></span><br><span class="line"><span class="type">pthread_cond_t</span> *cond = <span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(<span class="type">pthread_cond_t</span>)); <span class="comment">/* 定义为全局指针变量 */</span></span><br><span class="line">pthread_cond_init(cond, <span class="literal">NULL</span>);<span class="comment">/* 初始化条件变量 */</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong></p>
+<p>（1）在使用条件变量之前必须对条件变量进行初始化操作，使用<code>PTHREAD_COND_INITIALIZER</code>宏或者函数<code>pthread_cond_init()</code>都行；</p>
+<p>（2） 对已经初始化的条件变量再次进行初始化，将可能会导致未定义行为。</p>
+<h4 id="1-1-2-使用实例"><a href="#1-1-2-使用实例" class="headerlink" title="1.1.2 使用实例"></a><font size=3>1.1.2 使用实例</font></h4><p>暂无。</p>
+<h3 id="1-2-PTHREAD-COND-INITIALIZER"><a href="#1-2-PTHREAD-COND-INITIALIZER" class="headerlink" title="1.2 PTHREAD_COND_INITIALIZER "></a><font size=3>1.2 PTHREAD_COND_INITIALIZER </font></h3><h4 id="1-2-1-函数说明"><a href="#1-2-1-函数说明" class="headerlink" title="1.2.1 函数说明"></a><font size=3>1.2.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man 3 pthread_cond_init</code>命令查看该宏的定义格式。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">pthread_cond_t</span> cond = PTHREAD_COND_INITIALIZER; <span class="comment">/* cond为条件变量名称，符合变量标识符定义规则即可。*/</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该宏用于使用默认属性初始化一个条件变量。</p>
+<p><strong>【定义原型】</strong>该宏定义在<code>pthread.h</code>文件中，可以在终端中使用以下命令查看<code>pthread.h</code>文件位置：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">locate pthread.h # 若出现locate 命令未安装之类的，按照提示安装即可</span><br></pre></td></tr></table></figure>
+
+<p>定义形式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Conditional variable handling.  */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PTHREAD_COND_INITIALIZER &#123; &#123; 0, 0, 0, 0, 0, (void *) 0, 0, 0 &#125; &#125;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【返回值】</strong><code>none</code></p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">pthread_cond_t</span> cond = PTHREAD_COND_INITIALIZER; </span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong></p>
+<p>（1）<code>PTHREAD_COND_INITIALIZER</code>宏已经携带了条件变量默认属性。</p>
+<p>（2）只适用于在定义的时候就直接进行初始化，对于其它情况则不能使用这种方式。</p>
+<h4 id="1-2-2-使用实例"><a href="#1-2-2-使用实例" class="headerlink" title="1.2.2 使用实例"></a><font size=3>1.2.2 使用实例</font></h4><p>暂无。</p>
+<h2 id="2-通知和等待"><a href="#2-通知和等待" class="headerlink" title="2. 通知和等待"></a><font size=3>2. 通知和等待</font></h2><h3 id="2-1-pthread-cond-signal"><a href="#2-1-pthread-cond-signal" class="headerlink" title="2.1 pthread_cond_signal() "></a><font size=3>2.1 pthread_cond_signal() </font></h3><h4 id="2-1-1-函数说明"><a href="#2-1-1-函数说明" class="headerlink" title="2.1.1 函数说明"></a><font size=3>2.1.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man 3 pthread_cond_signal</code>命令查看该宏的定义格式。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_cond_signal</span><span class="params">(<span class="type">pthread_cond_t</span> *cond)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>函数向条件变量发送信号（至少唤醒一个线程）。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>cond</code>：<code>pthread_cond_t *</code>类型，指向已经初始化过的<strong>条件变量对象</strong>。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，成功返回<code>0</code>；失败将返回一个非<code>0</code>的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">pthread_cond_t</span> cond;<span class="comment">/* 定义全局变量 */</span></span><br><span class="line">pthread_cond_init(&amp;cond, <span class="literal">NULL</span>);<span class="comment">/* 初始化条件变量 */</span></span><br><span class="line"></span><br><span class="line">pthread_cond_signal(&amp;cond);<span class="comment">/* 向条件变量发送信号 */</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong>对阻塞于<code>pthread_cond_wait()</code>的多个线程，<code>pthread_cond_signal()</code>函数至少能唤醒一个线程。</p>
+<h4 id="2-1-2-使用实例"><a href="#2-1-2-使用实例" class="headerlink" title="2.1.2 使用实例"></a><font size=3>2.1.2 使用实例</font></h4><p>暂无。</p>
+<h3 id="2-2-pthread-cond-broadcast"><a href="#2-2-pthread-cond-broadcast" class="headerlink" title="2.2 pthread_cond_broadcast() "></a><font size=3>2.2 pthread_cond_broadcast() </font></h3><h4 id="2-2-1-函数说明"><a href="#2-2-1-函数说明" class="headerlink" title="2.2.1 函数说明"></a><font size=3>2.2.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_cond_broadcast</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_cond_broadcast</span><span class="params">(<span class="type">pthread_cond_t</span> *cond)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数向条件变量发送信号（唤醒所有线程，这叫线程的<strong>惊群效应</strong>）。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>cond</code>：<code>pthread_cond_t *</code>类型，指向已经初始化过的<strong>条件变量对象</strong>。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，成功返回<code>0</code>；失败将返回一个非<code>0</code>的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">pthread_cond_t</span> cond;<span class="comment">/* 定义全局变量 */</span></span><br><span class="line">pthread_cond_init(&amp;cond, <span class="literal">NULL</span>);<span class="comment">/* 初始化条件变量 */</span></span><br><span class="line"></span><br><span class="line">pthread_cond_broadcast(&amp;cond);<span class="comment">/* 向条件变量发送信号 */</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong></p>
+<p>（1）对阻塞于<code>pthread_cond_wait()</code>的多个线程，<code>pthread_cond_broadcast()</code>函数能唤醒所有线程。</p>
+<p>（2）使用<code>pthread_cond_broadcast()</code>函数总能产生正确的结果，唤醒所有等待状态的线程，但函数<code>pthread_cond_signal()</code>会更为高效，因为它只需确保至少唤醒一个线程即可。</p>
+<p>（3）当调用<code>pthread_cond_broadcast()</code>同时唤醒所有线程时，由于互斥锁也只能被某一线程锁住，其它线程获取锁失败又会陷入阻塞。</p>
+<h4 id="2-2-2-使用实例"><a href="#2-2-2-使用实例" class="headerlink" title="2.2.2 使用实例"></a><font size=3>2.2.2 使用实例</font></h4><p>暂无。</p>
+<h3 id="2-3-pthread-cond-wait"><a href="#2-3-pthread-cond-wait" class="headerlink" title="2.3 pthread_cond_wait() "></a><font size=3>2.3 pthread_cond_wait() </font></h3><h4 id="2-3-1-函数说明"><a href="#2-3-1-函数说明" class="headerlink" title="2.3.1 函数说明"></a><font size=3>2.3.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_cond_wait</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="comment">/* man 手册中的声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_cond_wait</span><span class="params">(<span class="type">pthread_cond_t</span> *<span class="keyword">restrict</span> cond, <span class="type">pthread_mutex_t</span> *<span class="keyword">restrict</span> mutex)</span>;</span><br><span class="line"><span class="comment">/* 一些资料中的声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_cond_wait</span><span class="params">(<span class="type">pthread_cond_t</span> *cond, <span class="type">pthread_mutex_t</span> *mutex)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>程序中使用条件变量，当判断某个条件不满足时，调用此函数将线程设置为等待状态（阻塞）。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>cond</code>：<code>pthread_cond_t *</code>类型，指向需要进行初始化操作的<strong>条件变量对象</strong>。</li>
+<li><code>mutex</code>：<code>pthread_mutex_t *</code>类型，指向一个互斥锁对象；前边说过的，条件变量通常是和互斥锁一起使用，因为条件的检测（条件检测通常是需要访问共享资源的）是在互斥锁的保护下进行的，也就是说条件本身是由互斥锁保护的。</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看函数内部对互斥锁的使用规则 </summary>
+              <div class='content'>
+              <p>在<code>pthread_cond_wait()</code>函数内部会对参数<code>mutex</code>所指定的互斥锁进行操作，通常情况下，条件判断以及<code>pthread_cond_wait()</code>函数调用均在互斥锁的保护下，也就是说，在此之前线程已经对互斥锁加锁了。</p><p>调用<code>pthread_cond_wait()</code>函数时，调用者把互斥锁传递给函数，函数会自动把调用线程放到等待条件的线程列表上，然后将互斥锁解锁；当<code>pthread_cond_wait()</code>被唤醒返回时，会再次锁住互斥锁。</p>
+              </div>
+            </details>
+
+<p><strong>【返回值】</strong><code>int</code>类型，成功返回<code>0</code>；失败将返回一个非<code>0</code>的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line"><span class="type">pthread_cond_t</span> cond;<span class="comment">/* 定义全局变量 */</span></span><br><span class="line"><span class="type">pthread_mutex_t</span> mutex;<span class="comment">/* 定义全局变量 */</span></span><br><span class="line">pthread_cond_init(&amp;cond, <span class="literal">NULL</span>);<span class="comment">/* 初始化条件变量 */</span></span><br><span class="line">pthread_mutex_init(&amp;mutex, <span class="literal">NULL</span>);<span class="comment">/* 初始化互斥锁 */</span></span><br><span class="line"></span><br><span class="line">pthread_mutex_lock(&amp;mutex);</span><br><span class="line"><span class="comment">/* 等待信号的条件 */</span></span><br><span class="line"><span class="keyword">while</span>(&lt;表达式&gt;)</span><br><span class="line">&#123;</span><br><span class="line">    pthread_cond_wait(&amp;cond, &amp;mutex);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/* 中间为共享资源的访问操作 */</span></span><br><span class="line">pthread_mutex_unlock(&amp;mutex);</span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong>条件变量并不保存状态信息，只是传递应用程序状态信息的一种通讯机制。如果调用<code>pthread_cond_signal()</code>和<code>pthread_cond_broadcast()</code>向指定条件变量发送信号时，若无任何线程等待该条件变量，这个信号也就会自动消失。</p>
+<h4 id="2-3-2-使用实例"><a href="#2-3-2-使用实例" class="headerlink" title="2.3.2 使用实例"></a><font size=3>2.3.2 使用实例</font></h4><p>暂无。</p>
+<h3 id="2-4-pthread-cond-timedwait"><a href="#2-4-pthread-cond-timedwait" class="headerlink" title="2.4 pthread_cond_timedwait() "></a><font size=3>2.4 pthread_cond_timedwait() </font></h3><h4 id="2-4-1-函数说明"><a href="#2-4-1-函数说明" class="headerlink" title="2.4.1 函数说明"></a><font size=3>2.4.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_cond_timedwait</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="comment">/* man 手册中的声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_cond_timedwait</span><span class="params">(<span class="type">pthread_cond_t</span> *<span class="keyword">restrict</span> cond,</span></span><br><span class="line"><span class="params">                           <span class="type">pthread_mutex_t</span> *<span class="keyword">restrict</span> mutex,</span></span><br><span class="line"><span class="params">                           <span class="type">const</span> <span class="keyword">struct</span> timespec *<span class="keyword">restrict</span> abstime)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>还是这样一个函数，我们直接忽略<code>restrict</code>的存在好吧😆，反正都一样。</p>
+<p><strong>【函数说明】</strong>程序中使用条件变量，当判断某个条件不满足时，调用此函数将线程设置为等待状态（阻塞），等待条件变量的同时可以设置等待超时，超时就会退出，不会再继续等待。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>cond</code>：<code>pthread_cond_t *</code>类型，指向已经初始化过的<strong>条件变量对象</strong>。</li>
+<li><code>mutex</code>：<code>pthread_mutex_t *</code>类型，指向一个互斥锁对象。</li>
+<li><code>abstime</code>：<code>struct timespec *</code>类型，表示等待的时间，它是一个绝对值，也就是距离<code>1970-1-1</code> 日的时间值，而不是一个时间段。比如说当前时间为<code>2022-5-1 12:00:00.000</code>，我们想通过这个函数设置最大超时为<code>2500ms</code>，那么就需要设置<code>abstime</code>时间为<code>2022-5-1 12:00:02.500</code>。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，成功返回<code>0</code>；失败将返回一个非<code>0</code>的错误码。</p>
+<p><strong>【使用格式】</strong><code>none</code></p>
+<p><strong>【注意事项】</strong>此函数时间设定个人感觉还是很复杂的，暂时还木有用到过，后边用到了再补充。</p>
+<h4 id="2-4-2-使用实例"><a href="#2-4-2-使用实例" class="headerlink" title="2.4.2 使用实例"></a><font size=3>2.4.2 使用实例</font></h4><p>暂无。</p>
+<h2 id="3-判断条件"><a href="#3-判断条件" class="headerlink" title="3. 判断条件"></a><font size=3>3. 判断条件</font></h2><p>使用条件变量，都会有与之相关的判断条件，通常情况下，会涉及到一个或多个共享变量。条件的判断必须使用<code>while</code>循环，而不是<code>if</code>语句，这是一种通用的设计原则：当线程从<code>pthread_cond_wait()</code>返回时，并不能确定判断条件的状态，应该立即重新检查判断条件，如果条件不满足，那就继续休眠等待。</p>
+<p>从<code>pthread_cond_wait()</code>返回后，并不能确定判断条件是真还是假，其理由如下：</p>
+<p>（1）当有多于一个线程在等待条件变量时，任何线程都有可能会率先醒来获取互斥锁，率先醒来获取到互斥锁的线程可能会对共享变量进行修改，进而改变判断条件的状态。</p>
+<p>（2）可能会发出虚假的通知。</p>
+<h2 id="4-销毁条件变量"><a href="#4-销毁条件变量" class="headerlink" title="4. 销毁条件变量"></a><font size=3>4. 销毁条件变量</font></h2><p>定义了条件变量之后，当不再需要条件变量时，应该将其销毁。</p>
+<h3 id="4-1-pthread-cond-destroy"><a href="#4-1-pthread-cond-destroy" class="headerlink" title="4.1 pthread_cond_destroy() "></a><font size=3>4.1 pthread_cond_destroy() </font></h3><h4 id="4-1-1-函数说明"><a href="#4-1-1-函数说明" class="headerlink" title="4.1.1 函数说明"></a><font size=3>4.1.1 函数说明</font></h4><p>在<code>linux</code>下可以使用<code>man pthread_cond_destroy</code>命令查看该函数的帮助手册。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Compile and link with -pthread. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="type">int</span> <span class="title function_">pthread_cond_destroy</span><span class="params">(<span class="type">pthread_cond_t</span> *cond)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于销毁一个不再使用的条件变量（条件变量对象实际上变成了未初始化的对象）。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><code>cond</code>：<code>pthread_cond_t *</code>类型，指向已经初始化过的条件变量对象。</li>
+</ul>
+<p><strong>【返回值】</strong><code>int</code>类型，用成功时返回<code>0</code>；失败将返回一个非<code>0</code>值的错误码。</p>
+<p><strong>【使用格式】</strong>一般情况下基本使用格式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需要包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 至少应该有的语句 */</span></span><br><span class="line">pthread_cond_destroy(&amp;cond);<span class="comment">/* 具体看定义的方式，是变量还是指针变量，指针变量则不需要&amp;符号。*/</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong></p>
+<p>（1）对没有进行初始化的条件变量进行销毁，也将可能会导致未定义行为。</p>
+<p>（2）对某个条件变量而言，仅当没有任何线程等待它时，将其销毁才是最安全的。</p>
+<p>（3）经<code>pthread_cond_destroy()</code>销毁的条件变量，可以再次调用<code>pthread_cond_init()</code>对其进行重新初始化。</p>
+<p>（4）高版本的<code>Ubuntu</code>中需要确保条件变量没有线程在使用的情况下才能销毁，否则会导致程序卡死，至少我使用的<code>Ubuntu21.04(64位)</code>就是这样的。</p>
+<h4 id="4-1-2-使用实例"><a href="#4-1-2-使用实例" class="headerlink" title="4.1.2 使用实例"></a><font size=3>4.1.2 使用实例</font></h4><p>暂无。</p>
+<h1 id="三、条件变量的属性"><a href="#三、条件变量的属性" class="headerlink" title="三、条件变量的属性"></a><font size=3>三、条件变量的属性</font></h1><p>条件变量与前边的各种锁一样，都可以设置属性，调用<code>pthread_cond_init()</code>函数初始化条件变量时，可以设置条件变量的属性，通过参数<code>attr</code>指定。条件变量包括两个属性：<strong>进程共享属性</strong>和<strong>时钟属性</strong>。由于还没有用到过，暂时先提一下，后边用到了再补充笔记。</p>
+<h1 id="四、使用例程"><a href="#四、使用例程" class="headerlink" title="四、使用例程"></a><font size=3>四、使用例程</font></h1><p>例程这里，我们模拟消费者与生产者关系。</p>
+<h2 id="1-使用实例1"><a href="#1-使用实例1" class="headerlink" title="1. 使用实例1"></a><font size=3>1. 使用实例1</font></h2><p>本实例是一个生产者，一个消费者，也就是说，这个例程有一个消费者线程，一个生产者线程，通过条件变量来实现同步。</p>
+<details class="folding-tag" blue><summary> 点击查看实例 </summary>
+              <div class='content'>
+              <figure class="highlight c"><figcaption><span>test.c</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span><span class="comment">/* pthread_create pthread_exit pthread_cancel pthread_self */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span> <span class="comment">/* sleep */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span> <span class="comment">/* strerror */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span> <span class="comment">/* malloc */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> macro_judge 1    <span class="comment">/* macro为1时进行Head是否为空的判断，测试消费者线程会怎样的情况,为1时，不会有信号丢失，为0时，会有信号丢失 */</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">product</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="type">int</span> num;              <span class="comment">/* 产品编号 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">product</span> * <span class="title">next</span>;</span><span class="comment">/* 下一个产品 */</span></span><br><span class="line">&#125;;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">product</span> * <span class="title">Head</span> =</span> <span class="literal">NULL</span>;<span class="comment">/* 定义一个产品线的头 */</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 静态方式初始化互斥锁 */</span></span><br><span class="line"><span class="type">pthread_mutex_t</span> lock  = PTHREAD_MUTEX_INITIALIZER;</span><br><span class="line"><span class="comment">/* 初始化条件变量 */</span></span><br><span class="line"><span class="type">pthread_cond_t</span> hasProduct = PTHREAD_COND_INITIALIZER;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 相关函数实现 */</span></span><br><span class="line"><span class="type">void</span> *<span class="title function_">producer</span><span class="params">(<span class="type">void</span> *arg)</span>;</span><br><span class="line"><span class="type">void</span> *<span class="title function_">consumer</span><span class="params">(<span class="type">void</span> *arg)</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 主函数 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> ret;</span><br><span class="line">	<span class="type">pthread_t</span> tid1, tid2;</span><br><span class="line">	<span class="comment">/* 1. 创建线程 */</span></span><br><span class="line">	ret = pthread_create(&amp;tid1, <span class="literal">NULL</span>, producer, <span class="literal">NULL</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;Create producer thread ,ret=%d,tid1=%lu\n&quot;</span>, ret, tid1);</span><br><span class="line">	sleep(<span class="number">5</span>);<span class="comment">/* 先生产几件产品，然后再开启消费者线程 */</span></span><br><span class="line">	ret = pthread_create(&amp;tid2, <span class="literal">NULL</span>, consumer, (<span class="type">void</span> *)<span class="number">1</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;Create consumer thread ,ret=%d,tid2=%lu\n&quot;</span>, ret, tid2);</span><br><span class="line">	sleep(<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		sleep(<span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 生产者线程 */</span></span><br><span class="line"><span class="type">void</span> *<span class="title function_">producer</span><span class="params">(<span class="type">void</span> *arg)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">/* 定义一个产品的结构体指针变量 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">product</span> * <span class="title">pd</span>;</span></span><br><span class="line">	<span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">	<span class="comment">/* 设置线程分离，结束后自动回收 */</span></span><br><span class="line">	pthread_detach(pthread_self());</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is a producer thread test!\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 生产产品 */</span></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="comment">/* 申请内存 */</span></span><br><span class="line">		pd = (<span class="keyword">struct</span> product *)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> product));</span><br><span class="line">		<span class="comment">/* 判断内存是否申请成功 */</span></span><br><span class="line">		<span class="keyword">if</span>(pd == <span class="literal">NULL</span>)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="built_in">printf</span>(<span class="string">&quot;product malloc failed!\n&quot;</span>);</span><br><span class="line">			pthread_exit(<span class="string">&quot;product thread malloc failed!&quot;</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		pd-&gt;num = i++;</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;product %d is producing!\n&quot;</span>, pd-&gt;num);</span><br><span class="line">		pthread_mutex_lock(&amp;lock);  <span class="comment">/* 获取互斥锁 */</span></span><br><span class="line">		pd-&gt;next = Head;</span><br><span class="line">		Head = pd;</span><br><span class="line">		<span class="comment">/* 发送产品生产完成信号 */</span></span><br><span class="line">		pthread_cond_signal(&amp;hasProduct);</span><br><span class="line">		pthread_mutex_unlock(&amp;lock);<span class="comment">/* 解除互斥锁 */</span></span><br><span class="line">		sleep(<span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 退出线程 */</span></span><br><span class="line">	pthread_exit(<span class="string">&quot;producer thread return!&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 消费者线程 */</span></span><br><span class="line"><span class="type">void</span> *<span class="title function_">consumer</span><span class="params">(<span class="type">void</span> *arg)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">/* 设置线程分离，结束后自动回收 */</span></span><br><span class="line">	pthread_detach(pthread_self());</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is a consumer thread test!\n&quot;</span>);</span><br><span class="line">	<span class="comment">/* 定义一个产品的结构体指针变量 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">product</span> * <span class="title">pd</span>;</span></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		pthread_mutex_lock(&amp;lock);<span class="comment">/* 获取互斥锁 */</span></span><br><span class="line">		<span class="comment">/* 等待产品生产完成信号 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> macro_judge == 1</span></span><br><span class="line">		<span class="keyword">while</span>(Head == <span class="literal">NULL</span>)</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">		&#123;</span><br><span class="line">			<span class="comment">/* 没有资源的时候进行等待，等待的时候会解除互斥锁，然后进入休眠，信号到了再重新获取互斥锁 */</span></span><br><span class="line">			pthread_cond_wait(&amp;hasProduct,&amp;lock);</span><br><span class="line">		&#125;</span><br><span class="line">		pd = Head;</span><br><span class="line">		Head = pd-&gt;next;</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;%d,Take product %d\n&quot;</span>, (<span class="type">int</span>)arg, pd-&gt;num);</span><br><span class="line">		<span class="built_in">free</span>(pd);<span class="comment">/* 释放内存 */</span></span><br><span class="line">		pthread_mutex_unlock(&amp;lock);<span class="comment">/* 解除互斥锁 */</span></span><br><span class="line">	&#125;</span><br><span class="line">	pthread_exit(<span class="string">&quot;consumer thread return!&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>程序中的宏<code>macro_judge</code>用于决定在消费者线程中是否添加产品余量的<code>while</code>循环：</p><ul><li>若<code>macro_judge</code>为<code>0</code>，则不进行判断，直接进行等信号到来，但是这样，消费者线程开启之前的信号就全部丢失了。</li><li>若<code>macro_judge</code>为<code>1</code>，则加入判断，这样即便是消费者线程开启之前到来的信号也会被处理掉。</li></ul><div class="tabs" id="tabname4"><ul class="nav-tabs"><li class="tab active"><a href="#tabname4-1">macro_judge == 0</a></li><li class="tab"><a href="#tabname4-2">macro_judge == 1</a></li></ul><div class="tab-content"><div class="tab-pane active" id="tabname4-1"><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -Wall -l pthread # 生成可执行文件 a.out 有一个警告，是线程创建传参造成的，正常现象</span><br><span class="line">./a.out # 执行可执行程序</span><br></pre></td></tr></table></figure><p>然后，终端会有以下信息显示：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">Create producer thread ,ret=0,tid1=139928004916800</span><br><span class="line">This is a producer thread test!</span><br><span class="line">product 0 is producing!</span><br><span class="line">product 1 is producing!</span><br><span class="line">product 2 is producing!</span><br><span class="line">product 3 is producing!</span><br><span class="line">product 4 is producing!</span><br><span class="line">Create consumer thread ,ret=0,tid2=139927996524096</span><br><span class="line">This is a consumer thread test!</span><br><span class="line">product 5 is producing!</span><br><span class="line">1,Take product 5</span><br><span class="line">product 6 is producing!</span><br><span class="line">1,Take product 6</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">后边的省略 ......</span></span><br></pre></td></tr></table></figure><p>根据结果发现，消费者线程启动前发出的商品信号丢失了，消费者线程并未获取到。</p></div><div class="tab-pane" id="tabname4-2"><p>在终端执行以下命令编译程序：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -Wall -l pthread # 生成可执行文件 a.out  有一个警告，是线程创建传参造成的，正常现象</span><br><span class="line">./a.out # 执行可执行程序</span><br></pre></td></tr></table></figure><p>然后，终端会有以下信息显示：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">Create producer thread ,ret=0,tid1=140716674655808</span><br><span class="line">This is a producer thread test!</span><br><span class="line">product 0 is producing!</span><br><span class="line">product 1 is producing!</span><br><span class="line">product 2 is producing!</span><br><span class="line">product 3 is producing!</span><br><span class="line">product 4 is producing!</span><br><span class="line">Create consumer thread ,ret=0,tid2=140716666263104</span><br><span class="line">This is a consumer thread test!</span><br><span class="line">1,Take product 4</span><br><span class="line">1,Take product 3</span><br><span class="line">1,Take product 2</span><br><span class="line">1,Take product 1</span><br><span class="line">1,Take product 0</span><br><span class="line">product 5 is producing!</span><br><span class="line">1,Take product 5</span><br><span class="line">product 6 is producing!</span><br><span class="line">1,Take product 6</span><br><span class="line">product 7 is producing!</span><br><span class="line">1,Take product 7</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">后边的省略 ......</span></span><br></pre></td></tr></table></figure><p>经打印结果发现，所有的信号都被消费者线程获取到了。</p></div></div></div>
+              </div>
+            </details>
+
+<h2 id="2-使用实例2"><a href="#2-使用实例2" class="headerlink" title="2. 使用实例2"></a><font size=3>2. 使用实例2</font></h2><p>本实例是一个生产者，三个消费者，也就是说，这个例程有三个消费者线程，一个生产者线程，通过条件变量来实现同步。</p>
+<details class="folding-tag" blue><summary> 点击查看实例 </summary>
+              <div class='content'>
+              <figure class="highlight c"><figcaption><span>test.c</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span><span class="comment">/* pthread_create pthread_exit pthread_cancel pthread_self */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span> <span class="comment">/* sleep */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span> <span class="comment">/* strerror */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span> <span class="comment">/* malloc */</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">product</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="type">int</span> num;              <span class="comment">/* 产品编号 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">product</span> * <span class="title">next</span>;</span><span class="comment">/* 下一个产品 */</span></span><br><span class="line">&#125;;</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">product</span> * <span class="title">Head</span> =</span> <span class="literal">NULL</span>;<span class="comment">/* 定义一个产品线的头 */</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> macro_judge 0     <span class="comment">/* 0,不进行Head == NULL的判断；1,Head == NULL */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> broadcast 1       <span class="comment">/* 0,信号只能唤醒一个线程；1,信号将唤醒所有线程 */</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 静态方式初始化互斥锁 */</span></span><br><span class="line"><span class="type">pthread_mutex_t</span> lock  = PTHREAD_MUTEX_INITIALIZER;</span><br><span class="line"><span class="comment">/* 初始化条件变量 */</span></span><br><span class="line"><span class="type">pthread_cond_t</span> hasProduct = PTHREAD_COND_INITIALIZER;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 相关函数实现 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">testConditionVariable</span><span class="params">(<span class="type">void</span>)</span>;</span><br><span class="line"><span class="type">void</span> *<span class="title function_">producer</span><span class="params">(<span class="type">void</span> *arg)</span>;</span><br><span class="line"><span class="type">void</span> *<span class="title function_">consumer</span><span class="params">(<span class="type">void</span> *arg)</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 主函数 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> ret;</span><br><span class="line">	<span class="type">pthread_t</span> tid1, tid2, tid3, tid4;</span><br><span class="line">	<span class="comment">/* 1. 创建线程 */</span></span><br><span class="line">	ret = pthread_create(&amp;tid1, <span class="literal">NULL</span>, producer, <span class="literal">NULL</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;Create producer thread ,ret=%d,tid1=%lu\n&quot;</span>, ret, tid1);</span><br><span class="line">	ret = pthread_create(&amp;tid2, <span class="literal">NULL</span>, consumer, (<span class="type">void</span> *)<span class="number">1</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;Create consumer thread ,ret=%d,tid2=%lu\n&quot;</span>, ret, tid2);</span><br><span class="line">	ret = pthread_create(&amp;tid3, <span class="literal">NULL</span>, consumer, (<span class="type">void</span> *)<span class="number">2</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;Create consumer thread ,ret=%d,tid3=%lu\n&quot;</span>, ret, tid3);</span><br><span class="line">	ret = pthread_create(&amp;tid4, <span class="literal">NULL</span>, consumer, (<span class="type">void</span> *)<span class="number">3</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;Create consumer thread ,ret=%d,tid4=%lu\n&quot;</span>, ret, tid4);</span><br><span class="line">	sleep(<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		sleep(<span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 生产者线程 */</span></span><br><span class="line"><span class="type">void</span> *<span class="title function_">producer</span><span class="params">(<span class="type">void</span> *arg)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">/* 定义一个产品的结构体指针变量 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">product</span> * <span class="title">pd</span>;</span></span><br><span class="line">	<span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">	<span class="comment">/* 设置线程分离，结束后自动回收 */</span></span><br><span class="line">	pthread_detach(pthread_self());</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is a producer thread test!\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 生产产品 */</span></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="comment">/* 申请内存 */</span></span><br><span class="line">		pd = (<span class="keyword">struct</span> product *)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> product));</span><br><span class="line">		<span class="comment">/* 判断内存是否申请成功 */</span></span><br><span class="line">		<span class="keyword">if</span>(pd == <span class="literal">NULL</span>)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="built_in">printf</span>(<span class="string">&quot;product malloc failed!\n&quot;</span>);</span><br><span class="line">			pthread_exit(<span class="string">&quot;product thread malloc failed!&quot;</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		pd-&gt;num = i++;</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;product %d is producing!\n&quot;</span>, pd-&gt;num);</span><br><span class="line">		pthread_mutex_lock(&amp;lock);  <span class="comment">/* 获取互斥锁 */</span></span><br><span class="line">		pd-&gt;next = Head;</span><br><span class="line">		Head = pd;</span><br><span class="line">		<span class="comment">/* 发送产品生产完成信号 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> broadcast == 1</span></span><br><span class="line">		pthread_cond_broadcast(&amp;hasProduct);<span class="comment">/* 注意此函数发送的信号会被所有等待信号的线程得到 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line">		pthread_cond_signal(&amp;hasProduct);<span class="comment">/* 注意此函数发送的信号只会被一个线程得到 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">		pthread_mutex_unlock(&amp;lock);<span class="comment">/* 解除互斥锁 */</span></span><br><span class="line">		sleep(<span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 退出线程 */</span></span><br><span class="line">	pthread_exit(<span class="string">&quot;producer thread return!&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 消费者线程 */</span></span><br><span class="line"><span class="type">void</span> *<span class="title function_">consumer</span><span class="params">(<span class="type">void</span> *arg)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">/* 设置线程分离，结束后自动回收 */</span></span><br><span class="line">	pthread_detach(pthread_self());</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;This is a consumer thread test!\n&quot;</span>);</span><br><span class="line">	<span class="comment">/* 定义一个产品的结构体指针变量 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">product</span> * <span class="title">pd</span>;</span></span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		pthread_mutex_lock(&amp;lock);<span class="comment">/* 获取互斥锁 */</span></span><br><span class="line">		<span class="comment">/* 等待产品生产完成信号 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> macro_judge == 1</span></span><br><span class="line">		<span class="keyword">while</span>(Head == <span class="literal">NULL</span>)</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">		&#123;</span><br><span class="line">			<span class="comment">/* 没有资源的时候进行等待，等待的时候会解除互斥锁，然后进入休眠，信号到了再重新获取互斥锁 */</span></span><br><span class="line">			pthread_cond_wait(&amp;hasProduct,&amp;lock);</span><br><span class="line">		&#125;</span><br><span class="line">		pd = Head;</span><br><span class="line">		Head = pd-&gt;next;</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;%d,Take product %d\n&quot;</span>, (<span class="type">int</span>)arg, pd-&gt;num);</span><br><span class="line">		<span class="built_in">free</span>(pd);<span class="comment">/* 释放内存 */</span></span><br><span class="line">		pthread_mutex_unlock(&amp;lock);<span class="comment">/* 解除互斥锁 */</span></span><br><span class="line">	&#125;</span><br><span class="line">	pthread_exit(<span class="string">&quot;consumer thread return!&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这里有两个宏，一共有四种情况测试，这里就不再放自己的测试情况了，只分析一下两个宏定义的作用：</p><p>程序中的宏<code>macro_judge</code>用于决定在消费者线程中是否添加产品余量的<code>while</code>循环：</p><table>    <tr><td align="left" width=150px>macro_judge为0</td><td align="left">不进行Head == NULL的判断，直接进行等信号到来，但是这样，消费者线程开启之前的信号就全部丢失了。</td></tr>    <tr><td align="left" width=150px>macro_judge为1</td><td align="left">进行Head == NULL的判断，这样即便是消费者线程开启之前到来的信号也会被处理掉。</td></tr></table><p>程序中的宏<code>broadcast</code>用于决定生产者线程中发出信号后，唤醒多少线程：</p><table>    <tr><td align="left" width=150px>broadcast为0</td><td align="left">则将信号广播给1个线程，只会有1个线程会被唤醒。</td></tr>    <tr><td align="left" width=150px>broadcast为1</td><td align="left">则将信号广播给所有线程，所有线程都会被唤醒开始抢夺信号。</td></tr></table><p>【注意事项】<code>broadcast = 1</code>时，若<code>macro_judge = 0</code>，则会发生段错误，若<code>macro_judge = 1</code>时正常。 发生原因：例如生产<code>2</code>件产品时，信号广播给所有线程，三个线程都会抢这两个信号，总有一个抢不到，若不进行判断，访问一个空指针，自然会出现内存访问错误 从而报段错误。</p>
+              </div>
+            </details>
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/799a0b6f.html">LV05-03-线程同步-05-条件变量</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年07月02日 - 21:52</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/799a0b6f.html" title="LV05-03-线程同步-05-条件变量">https://sumumm.github.io/post/799a0b6f.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV05-%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" rel="tag"><i class="fa fa-tag"></i> LV05-操作系统</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/2d62d275.html" rel="prev" title="LV05-04-线程应用-01-线程池">
+                  <i class="fa fa-angle-left"></i> LV05-04-线程应用-01-线程池
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/ea6738ea.html" rel="next" title="LV05-03-线程同步-04-读写锁">
+                  LV05-03-线程同步-04-读写锁 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

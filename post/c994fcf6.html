@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是ARM基础知识——ARM的存储模型、工作模式、寄存器与异常等基础知识相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV08-01-ARM体系-02-ARM基础知识">
+<meta property="og:url" content="https://sumumm.github.io/post/c994fcf6.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是ARM基础知识——ARM的存储模型、工作模式、寄存器与异常等基础知识相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV08-ARM%E5%9F%BA%E7%A1%80/LV08-01-ARM%E4%BD%93%E7%B3%BB-02-ARM%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20220727171949227.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV08-ARM%E5%9F%BA%E7%A1%80/LV08-01-ARM%E4%BD%93%E7%B3%BB-02-ARM%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20220727181412555.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV08-ARM%E5%9F%BA%E7%A1%80/LV08-01-ARM%E4%BD%93%E7%B3%BB-02-ARM%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/1.gif">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV08-ARM%E5%9F%BA%E7%A1%80/LV08-01-ARM%E4%BD%93%E7%B3%BB-02-ARM%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20220727193932479.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV08-ARM%E5%9F%BA%E7%A1%80/LV08-01-ARM%E4%BD%93%E7%B3%BB-02-ARM%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20220727194458397.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV08-ARM%E5%9F%BA%E7%A1%80/LV08-01-ARM%E4%BD%93%E7%B3%BB-02-ARM%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/2.gif">
+<meta property="article:published_time" content="2023-07-06T14:59:21.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.001Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV08-ARM基础">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV08-ARM%E5%9F%BA%E7%A1%80/LV08-01-ARM%E4%BD%93%E7%B3%BB-02-ARM%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20220727171949227.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/c994fcf6.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/c994fcf6.html","path":"post/c994fcf6.html","title":"LV08-01-ARM体系-02-ARM基础知识"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV08-01-ARM体系-02-ARM基础知识 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81ARM%E5%AD%98%E5%82%A8%E6%A8%A1%E5%9E%8B"><span class="nav-text">一、ARM存储模型</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B"><span class="nav-text">1. 数据类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%95%B0%E6%8D%AE%E5%AD%98%E5%82%A8"><span class="nav-text">2. 数据存储</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%85%B3%E4%BA%8E%E5%AD%97%E8%8A%82%E5%BA%8F"><span class="nav-text">3. 关于字节序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E6%8C%87%E4%BB%A4%E5%AD%98%E5%82%A8"><span class="nav-text">4. 指令存储</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81ARM%E5%B7%A5%E4%BD%9C%E6%A8%A1%E5%BC%8F"><span class="nav-text">二、ARM工作模式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81ARM%E5%AF%84%E5%AD%98%E5%99%A8%E7%BB%84%E7%BB%87"><span class="nav-text">三、ARM寄存器组织</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%AF%84%E5%AD%98%E5%99%A8%E7%9A%84%E6%A6%82%E5%BF%B5"><span class="nav-text">1. 寄存器的概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-ARM%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">2. ARM寄存器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%B8%8D%E5%90%8C%E6%A8%A1%E5%BC%8F%E4%B8%8B%E7%9A%84%E5%AF%84%E5%AD%98%E5%99%A8%E7%BB%84"><span class="nav-text">3. 不同模式下的寄存器组</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%B8%93%E7%94%A8%E5%AF%84%E5%AD%98%E5%99%A8%E8%AF%B4%E6%98%8E"><span class="nav-text">4. 专用寄存器说明</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-R13-SP-Stack-Pointer"><span class="nav-text">4.1 R13(SP,Stack Pointer)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-R14-LR-Link-Register"><span class="nav-text">4.2 R14(LR,Link Register)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-R15-PC-Program-Counter"><span class="nav-text">4.3 R15(PC,Program Counter)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-CPSR%E5%92%8CSPSR"><span class="nav-text">5. CPSR和SPSR</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81ARM%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86"><span class="nav-text">四、ARM异常处理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BB%80%E4%B9%88%E6%98%AF%E5%BC%82%E5%B8%B8%EF%BC%9F"><span class="nav-text">1. 什么是异常？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-ARM%E5%BC%82%E5%B8%B8%E6%BA%90"><span class="nav-text">2. ARM异常源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-ARM%E5%BC%82%E5%B8%B8%E6%A8%A1%E5%BC%8F"><span class="nav-text">3. ARM异常模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%BC%82%E5%B8%B8%E5%93%8D%E5%BA%94"><span class="nav-text">4. 异常响应</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8"><span class="nav-text">5. 异常向量表</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%BC%82%E5%B8%B8%E4%BC%98%E5%85%88%E7%BA%A7"><span class="nav-text">6. 异常优先级</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-FIQ%E5%92%8CIRQ"><span class="nav-text">7. FIQ和IRQ</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86%E5%AE%9E%E4%BE%8B"><span class="nav-text">8. 异常处理实例</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/c994fcf6.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV08-01-ARM体系-02-ARM基础知识 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV08-01-ARM体系-02-ARM基础知识
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-07-06 22:59:21" itemprop="dateCreated datePublished" datetime="2023-07-06T22:59:21+08:00">2023-07-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV08-ARM%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">LV08-ARM基础</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>6.5k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>24 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是ARM基础知识——ARM的存储模型、工作模式、寄存器与异常等基础知识相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV08-ARM%E5%9F%BA%E7%A1%80/LV08-01-ARM%E4%BD%93%E7%B3%BB-02-ARM%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr>    <tr>        <td align="center" width=150>Keil(MDK)</td>        <td align="left">Keil uVision V4.54.0.0</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">---</td>        <td align="left">--- <a href="" target="_blank">  <i class="fa fa-external-link-alt"></i></a></td>      </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、ARM存储模型"><a href="#一、ARM存储模型" class="headerlink" title="一、ARM存储模型"></a><font size=3>一、<code>ARM</code>存储模型</font></h1><h2 id="1-数据类型"><a href="#1-数据类型" class="headerlink" title="1. 数据类型"></a><font size=3>1. 数据类型</font></h2><p><code>ARM</code>采用<code>32</code>位架构，基本数据类型有以下三种：</p>
+<table>
+    <tr><td align="center" >Byte		</td><td align="center">8bits</td></tr>
+    <tr><td align="center">Halfword </td><td align="center">16bits</td></tr>
+    <tr><td align="center">Word		</td><td align="center">32bits</td></tr>
+</table>
+
+
+<h2 id="2-数据存储"><a href="#2-数据存储" class="headerlink" title="2. 数据存储"></a><font size=3>2. 数据存储</font></h2><p>  <code>Word</code>型数据在内存的起始地址必须是<code>4</code>的整数倍。<code>Halfword</code>型数据在内存的起始地址必须是<code>2</code>的整数倍。即<strong>数据本身是多少位在内存存储时就应该多少位对齐</strong>。</p>
+<h2 id="3-关于字节序"><a href="#3-关于字节序" class="headerlink" title="3. 关于字节序"></a><font size=3>3. 关于字节序</font></h2><p>字节序在前边其实已经接触过了，主要分为两种：</p>
+<table>
+    <tr><td align="center">大端对齐</td><td align="left">低地址存放高位，高地址存放低位</td></tr>
+    <tr><td align="center">小端对齐</td><td align="left">低地址存放低位，高地址存放高位</td></tr>
+</table>
+
+
+<p><strong>【注意】</strong>在<code>ARM</code>中，一般使用小端对齐。</p>
+<p>例如，以<code>a = 0x12345678</code>为例，</p>
+<ul>
+<li>大端对齐</li>
+</ul>
+<table>
+    <tr><td align="center">地址</td><td align="center">数据</td></tr>
+    <tr><td align="center">N+0 </td><td align="center">0x12</td></tr>
+    <tr><td align="center">N+1 </td><td align="center">0x34</td></tr>
+    <tr><td align="center">N+2 </td><td align="center">0x56</td></tr>
+    <tr><td align="center">N+3 </td><td align="center">0x78</td></tr>
+</table>
+
+
+<ul>
+<li>小端对齐</li>
+</ul>
+<table>
+    <tr><td align="center">地址</td><td align="center">数据</td></tr>
+    <tr><td align="center">N+0 </td><td align="center">0x78</td></tr>
+    <tr><td align="center">N+1 </td><td align="center">0x56</td></tr>
+    <tr><td align="center">N+2 </td><td align="center">0x34</td></tr>
+    <tr><td align="center">N+3 </td><td align="center">0x12</td></tr>
+</table>
+
+
+<h2 id="4-指令存储"><a href="#4-指令存储" class="headerlink" title="4. 指令存储"></a><font size=3>4. 指令存储</font></h2><p>处理器处于<code>ARM</code>状态时，所有指令在内存的起始地址必须是<code>4</code>的整数倍。程序计数器<code>PC</code>值由其<code>[31:2]</code>决定，<code>[1:0]</code>位未定义。处理器处于<code>Thumb</code>状态时，所有指令在内存的起始地址必须是<code>2</code>的整数倍。程序计数器<code>PC</code>值由其<code>[31:1]</code>决定，<code>[0]</code>位未定义。</p>
+<p>总的来说就是<strong>指令本身是多少位在内存存储时就应该多少位对齐</strong>。</p>
+<h1 id="二、ARM工作模式"><a href="#二、ARM工作模式" class="headerlink" title="二、ARM工作模式"></a><font size=3>二、<code>ARM</code>工作模式</font></h1><p>以前的 <code>ARM</code>处理器有 <code>7</code>种运行模型： <code>User</code>、 <code>FIQ</code>、 <code>IRQ</code>、 <code>Supervisor(SVC)</code>、 <code>Abort</code>、 <code>Undef</code>和 <code>System</code>，其中 <code>User</code>是非特权模式，其余 <code>6</code>种都是特权模式。但新的 <code>Cortex-A</code>架构加入了<code>TrustZone</code>安全扩展，所以就新加了一种运行模式： <code>Monitor</code>，新的处理器架构还支持虚拟化扩展，因此又加入了另一个运行模式： <code>Hyp</code>，所以 <code>Cortex-A</code>系列的处理器最多可以有<code>9</code>种模式：</p>
+<table>
+    <tr><td align="left">user</td><td align="left">用户模式，大部分程序运行时候的非特权模式，一般在执行上层的应用程序时ARM处于该模式。</td></tr>
+    <tr><td align="left">FIQ</td><td align="left">快速中断模式，进入FIQ中断异常，当一个高优先级中断产生后ARM将进入这种模式。</td></tr>
+    <tr><td align="left">IRQ</td><td align="left">一般中断模式，当一个低优先级中断产生后ARM将进入这种模式。</td></tr>
+    <tr><td align="left">Supervisor(SVC)</td><td align="left">超级管理员，它主要是用来管理调用指令被执行或者reset的时候，当复位或执行软中断指令后ARM将进入这种模式。</td></tr>
+    <tr><td align="left">Monitor(MON)</td><td align="left">监视模式，为了安全而扩展出的用于执行安全监控代码的模式。</td></tr>
+    <tr><td align="left">Abort(ABT)</td><td align="left">数据访问终止模式，当产生存取异常时ARM将进入这种模式。</td></tr>
+    <tr><td align="left">Hyp(HYP)</td><td align="left">是一个超级的监视者的模式，它比超级管理员要稍微低一点，它主要是用来做一些虚拟化的扩展。</td></tr>
+    <tr><td align="left">Undef(UND)</td><td align="left">它就是未定义的指令执行的时候，比如说一条指令是CPU不识别的，就叫做未定义， 当执行这种未定义的指令时ARM将进入这种模式。</td></tr>
+    <tr><td align="left">System(SYS)</td><td align="left">系统模式，当系统自己异常的时候，就会发生这样的模式，它有一个特点就是可以进行各个模式的切换，在不同的状态的时候，访问的寄存器就有可能不一样，这个模式用到的寄存器与用户模式是共享的，只是访问级别不一样。</td></tr>
+</table>
+
+
+<p>上边的所有工作模式中，除了 <code>User</code>也就是用户模式以外，其它<code>8</code>种运行模式都是特权模式。这几个运行模式可以通过软件进行任意切换，也可以通过中断或者异常来进行切换。</p>
+<p>大多数的程序都运行在用户模式，用户模式下是不能访问系统所有资源的，有些资源是受限的，要想访问这些受限的资源就必须进行模式切换。但是用<strong>户模式是不能直接进行切换的</strong>，<strong>用户模式下需要借助异常来完成模式切换</strong>，当要切换模式的时候，应用程序可以产生异常，在异常的处理过程中完成处理器模式切换。</p>
+<p>当中断或者异常发生以后，处理器就会进入到相应的异常模式种，每一种模式都有一组寄存器供异常处理程序使用，这样的目的是为了保证在进入异常 模式以后，用户模式下的寄存器不会被破坏。</p>
+<h1 id="三、ARM寄存器组织"><a href="#三、ARM寄存器组织" class="headerlink" title="三、ARM寄存器组织"></a><font size=3>三、<code>ARM</code>寄存器组织</font></h1><h2 id="1-寄存器的概念"><a href="#1-寄存器的概念" class="headerlink" title="1. 寄存器的概念"></a><font size=3>1. 寄存器的概念</font></h2><p> 寄存器是处理器内部的存储器，是没有地址的。它一般用于暂时存放参与运算的数据和运算结果， 包括通用寄存器、专用寄存器、控制寄存器。</p>
+<h2 id="2-ARM寄存器"><a href="#2-ARM寄存器" class="headerlink" title="2. ARM寄存器"></a><font size=3>2. <code>ARM</code>寄存器</font></h2><p><code>ARM</code>架构提供了 <code>16</code>个 <code>32</code>位的通用寄存器 (<code>R0~R15</code>)供软件使用，前 <code>15</code>个 (<code>R0~R14</code>)可以用作通用的数据存储， <code>R15</code>是程序计数器 <code>PC(Program Counter)</code>，用于存储当前取址指令的地址。另外 <code>ARM</code>还提供了一个当前程序状态寄存器 <code>CPSR</code>和一个备份程序状态寄存器 <code>SPSR</code>，<code> SPSR</code>寄存器就是 <code>CPSR</code>寄存器的备份。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV08-ARM%E5%9F%BA%E7%A1%80/LV08-01-ARM%E4%BD%93%E7%B3%BB-02-ARM%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20220727171949227.png" alt="image-20220727171949227" style="zoom:50%;" />
+
+<h2 id="3-不同模式下的寄存器组"><a href="#3-不同模式下的寄存器组" class="headerlink" title="3. 不同模式下的寄存器组"></a><font size=3>3. 不同模式下的寄存器组</font></h2><p>在上边介绍的寄存器中，有些是所有模式所共用的同一个物理寄存器，有一些是各模式自己所独立拥有的，各个模式所拥有的寄存器如下表：</p>
+<table>
+<tr><td align="center" style="font-weight: bold;">User</td><td align="center" style="font-weight: bold;">SYS</td><td align="center" style="font-weight: bold;">FIQ</td><td align="center" style="font-weight: bold;">IRQ</td><td align="center" style="font-weight: bold;">ABT</td><td align="center" style="font-weight: bold;">SVC</td><td align="center" style="font-weight: bold;">UND</td><td align="center" style="font-weight: bold;">MON</td><td align="center" style="font-weight: bold;">HYP</td></tr>
+<tr><td align="center">R0</td><td align="center">R0</td><td align="center">R0</td><td align="center">R0</td><td align="center">R0</td><td align="center">R0</td><td align="center">R0</td><td align="center">R0</td><td align="center">R0</td></tr>
+<tr><td align="center">R1</td><td align="center">R1</td><td align="center">R1</td><td align="center">R1</td><td align="center">R1</td><td align="center">R1</td><td align="center">R1</td><td align="center">R1</td><td align="center">R1</td></tr>
+<tr><td align="center">R2</td><td align="center">R2</td><td align="center">R2</td><td align="center">R2</td><td align="center">R2</td><td align="center">R2</td><td align="center">R2</td><td align="center">R2</td><td align="center">R2</td></tr>
+<tr><td align="center">R3</td><td align="center">R3</td><td align="center">R3</td><td align="center">R3</td><td align="center">R3</td><td align="center">R3</td><td align="center">R3</td><td align="center">R3</td><td align="center">R3</td></tr>
+<tr><td align="center">R4</td><td align="center">R4</td><td align="center">R4</td><td align="center">R4</td><td align="center">R4</td><td align="center">R4</td><td align="center">R4</td><td align="center">R4</td><td align="center">R4</td></tr>
+<tr><td align="center">R5</td><td align="center">R5</td><td align="center">R5</td><td align="center">R5</td><td align="center">R5</td><td align="center">R5</td><td align="center">R5</td><td align="center">R5</td><td align="center">R5</td></tr>
+<tr><td align="center">R6</td><td align="center">R6</td><td align="center">R6</td><td align="center">R6</td><td align="center">R6</td><td align="center">R6</td><td align="center">R6</td><td align="center">R6</td><td align="center">R6</td></tr>
+<tr><td align="center">R7</td><td align="center">R7</td><td align="center">R7</td><td align="center">R7</td><td align="center">R7</td><td align="center">R7</td><td align="center">R7</td><td align="center">R7</td><td align="center">R7</td></tr>
+<tr><td align="center">R8</td><td align="center">R8</td><td align="center" bgcolor=#87CEFA>R8_fiq</td><td align="center">R8</td><td align="center">R8</td><td align="center">R8</td><td align="center">R8</td><td align="center">R8</td><td align="center">R8</td></tr>
+<tr><td align="center">R9</td><td align="center">R9</td><td align="center" bgcolor=#87CEFA>R9_fiq</td><td align="center">R9</td><td align="center">R9</td><td align="center">R9</td><td align="center">R9</td><td align="center">R9</td><td align="center">R9</td></tr>
+<tr><td align="center">R10</td><td align="center">R10</td><td align="center" bgcolor=#87CEFA>R10_fiq</td><td align="center">R10</td><td align="center">R10</td><td align="center">R10</td><td align="center">R10</td><td align="center">R10</td><td align="center">R10</td></tr>
+<tr><td align="center">R11</td><td align="center">R11</td><td align="center" bgcolor=#87CEFA>R11_fiq</td><td align="center">R11</td><td align="center">R11</td><td align="center">R11</td><td align="center">R11</td><td align="center">R11</td><td align="center">R11</td></tr>
+<tr><td align="center">R12</td><td align="center">R12</td><td align="center" bgcolor=#87CEFA>R12_fiq</td><td align="center">R12</td><td align="center">R12</td><td align="center">R12</td><td align="center">R12</td><td align="center">R12</td><td align="center">R12</td></tr>
+<tr><td align="center">R13(SP)</td><td align="center">R13(SP)</td><td align="center" bgcolor=#87CEFA>SP_fiq</td><td align="center" bgcolor=#87CEFA>SP_irq</td><td align="center" bgcolor=#87CEFA>SP_abt</td><td align="center" bgcolor=#87CEFA>SP_svc</td><td align="center" bgcolor=#87CEFA>SP_und</td><td align="center" bgcolor=#87CEFA>SP_mon</td><td align="center" bgcolor=#87CEFA>SP_hyp</td></tr>
+<tr><td align="center">R14(LR)</td><td align="center">R14(LR)</td><td align="center" bgcolor=#87CEFA>LR_fiq</td><td align="center" bgcolor=#87CEFA>LR_irq</td><td align="center" bgcolor=#87CEFA>LR_abt</td><td align="center" bgcolor=#87CEFA>LR_svc</td><td align="center" bgcolor=#87CEFA>LR_und</td><td align="center" bgcolor=#87CEFA>LR_mon</td><td align="center">R14(LR)</td></tr>
+<tr><td align="center">R15(PC)</td><td align="center">R15(PC)</td><td align="center">R15(PC)</td><td align="center">R15(PC)</td><td align="center">R15(PC) </td><td align="center">R15(PC)</td><td align="center">R15(PC)</td><td align="center">R15(PC)</td><td align="center">R15(PC)</td></tr>
+<tr><td align="center">CPSR</td><td align="center">CPSR</td><td align="center">CPSR</td><td align="center">CPSR</td><td align="center">CPSR</td><td align="center">CPSR</td><td align="center">CPSR</td><td align="center">CPSR</td><td align="center">CPSR</td></tr>
+<tr><td align="center">-</td><td align="center">-</td><td align="center" bgcolor=#87CEFA>SPSR_fiq </td><td align="center" bgcolor=#87CEFA>SPSR_irq </td><td align="center" bgcolor=#87CEFA>SPSR_abt</td><td align="center" bgcolor=#87CEFA>SPSR_svc </td><td align="center" bgcolor=#87CEFA>SPSR_und</td><td align="center" bgcolor=#87CEFA>SPSR_mon </td><td align="center" bgcolor=#87CEFA>SPSR_hyp</td></tr>
+<tr><td align="center">-</td><td align="center">-</td><td align="center">-</td><td align="center">-</td><td align="center">-</td><td align="center">-</td><td align="center">-</td><td align="center">-</td><td align="center" bgcolor=#87CEFA>ELR_hyp</td></tr>
+</table>
+
+
+<h2 id="4-专用寄存器说明"><a href="#4-专用寄存器说明" class="headerlink" title="4. 专用寄存器说明"></a><font size=3>4. 专用寄存器说明</font></h2><h3 id="4-1-R13-SP-Stack-Pointer"><a href="#4-1-R13-SP-Stack-Pointer" class="headerlink" title="4.1 R13(SP,Stack Pointer)"></a><font size=3>4.1 <code>R13(SP,Stack Pointer)</code></font></h3><p> 栈指针，用于存储当前模式下的栈顶地址。</p>
+<h3 id="4-2-R14-LR-Link-Register"><a href="#4-2-R14-LR-Link-Register" class="headerlink" title="4.2 R14(LR,Link Register)"></a><font size=3>4.2 <code>R14(LR,Link Register)</code></font></h3><p>链接寄存器，一般有以下两种用途：</p>
+<p>（1）执行跳转指令(<code>BL/BLX</code>)时，<code>LR</code>会自动保存跳转指令下一条指令的地址，当程序需要返回时将<code>LR</code>的值复制到<code>PC</code>即可实现程序返回。</p>
+<p>（2）产生异常时，对应异常模式下的<code>LR</code>会自动保存被异常打断的指令的下一条指令的地址，异常处理结束后将<code>LR</code>的值复制到<code>PC</code>可实现程序返回。</p>
+<p>当执行跳转指令或产生异常时，<code>LR</code>寄存器中不会凭空产生一个返回地址其原理是当执行跳转指令或产生异常时，处理器内部会将<code>PC</code>寄存器中的值拷贝到<code>LR</code>寄存器中，然后再将<code>LR</code>寄存器中的值自减<code>4</code>。</p>
+<details class="folding-tag" blue><summary> 点击查看 LR 在 BL 和 IRQ 中断的不同 </summary>
+              <div class='content'>
+              <ul><li>BL</li></ul><p>当执行<code>BL</code>指令时，<strong>指令执行过程中</strong>处理器内部就会将<code>PC</code>寄存器的值<strong>拷贝</strong>到<code>LR</code>寄存器，然后再将<code>LR</code>寄存器中的值自减<code>4</code>， 所以<code>LR</code>寄存器中保存的就是<code>BL</code>指令<strong>下一条</strong>指令的地址。</p><ul><li>IRQ中断</li></ul><p>当正在执行一条指令时产生了一个<code>IRQ</code>中断，执行这条指令过程中处理器不会保存返回地址，而是<strong>执行完成后才会保存</strong><code>PC</code>寄存器中的值到<code>LR</code>寄存器，但发生<code>IRQ</code>时正在执行的指令在执行完成后<code>PC</code>的值又会自动增<code>4</code>，所以对于<code>IRQ</code>来说<code>LR</code>中保存的是<strong>被中断打断的指令的下下条指令</strong>的地址。所以我们在写中断处理的时候要注意修正这个问题，否则就会少一条指令。</p>
+              </div>
+            </details>
+
+<p>另外<code>R14</code>也可以作为普通寄存器使用。</p>
+<h3 id="4-3-R15-PC-Program-Counter"><a href="#4-3-R15-PC-Program-Counter" class="headerlink" title="4.3 R15(PC,Program Counter)"></a><font size=3>4.3 <code>R15(PC,Program Counter)</code></font></h3><p>程序计数器，用于存储当前<strong>取址指令的地址</strong>。对于三级流水线的<code>ARM</code>处理器来说，<code>R15</code> 保存着当前执行的指令地址值加<code>8</code> 个字节，这是因为<code>ARM</code>的流水线机制导致的。<code>ARM</code> 处理器的<code>3</code>级流水线为：取指&rarr;译码&rarr;执行，这三级流水线循环执行，比如当前正在执行第一条指令的同时也对第二条指令进行译码，第三条指令也同时被取出存放在<code>R15(PC)</code>中。</p>
+<p>我们以当前正在执行的指令作为参考点的话，也就是以第一条指令为参考点，此时<code>R15(PC)</code>中存放的就是第三条指令，换句话说就是<code>R15(PC)</code>总是指向当前正在执行的指令地址再加上<code>2</code> 条指令的地址。对于<code>32</code> 位的 <code>ARM</code> 处理器，每条指令是 <code>4</code> 个字节，所以有：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">R15 (PC)值 = 当前执行的程序位置 + <span class="number">8</span> 个字节</span><br></pre></td></tr></table></figure>
+
+<h2 id="5-CPSR和SPSR"><a href="#5-CPSR和SPSR" class="headerlink" title="5. CPSR和SPSR"></a><font size=3>5. <code>CPSR</code>和<code>SPSR</code></font></h2><p>所有的处理器模式都共用一个<code>CPSR</code> 物理寄存器，因此<code>CPSR</code> 可以在任何模式下被访问。<code>CPSR</code> 是当前程序状态寄存器，该寄存器包含了条件标志位、中断禁止位、当前处理器模式标志等一些状态位以及一些控制位。</p>
+<p>所有的处理器模式都共用一个<code>CPSR</code>必然会导致冲突，为此，除了<code>User</code> 和<code>Sys</code>这两个模式以外，其他 <code>7</code> 个模式每个都配备了一个专用的物理状态寄存器，叫做<code>SPSR</code>(备份程序状态寄存器)，当特定的异常中断发生时，SPSR 寄存器用来保存当前程序状态寄存器(CPSR)的值，当异常退出以后可以用<code>SPSR</code> 中保存的值来恢复<code>CPSR</code>。因为<code>User</code> 和<code>Sys</code>这两个模式不是异常模式，所以并没有配备<code>SPSR</code>，因此不能在<code>User</code> 和<code>Sys</code> 模式下访问<code>SPSR</code>，会导致不可预知的结果。由于<code>SPSR</code> 是<code>CPSR</code> 的备份，因此<code>SPSR</code> 和<code>CPSR</code> 的寄存器结构相同。结构如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV08-ARM%E5%9F%BA%E7%A1%80/LV08-01-ARM%E4%BD%93%E7%B3%BB-02-ARM%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20220727181412555.png" alt="image-20220727181412555" style="zoom:50%;" />
+
+<ul>
+<li><code>N(bit31)</code>：当两个补码表示的有符号整数运算的时候，<code>N=1</code> 表示运算对的结果为负数，<code>N=0</code>表示结果为正数。</li>
+<li><code>Z(bit30)</code>：<code>Z=1</code> 表示运算结果为零，<code>Z=0</code> 表示运算结果不为零，对于<code>CMP</code> 指令，<code>Z=1</code> 表示进行比较的两个数大小相等。</li>
+<li><code>C(bit29)</code>：在加法指令中，当结果产生了进位，则<code>C=1</code>，表示无符号数运算发生上溢，其它情况下<code>C=0</code>。在减法指令中，当运算中发生借位，则<code>C=0</code>，表示无符号数运算发生下溢，其它情况下<code>C=1</code>。对于包含移位操作的非加减法运算指令，<code>C</code> 中包含最后一次溢出的位的数值，对于其它非加减运算指令，<code>C</code> 位的值通常不受影响。</li>
+<li><code>V(bit28)</code>：对于加减法运算指令，当操作数和运算结果表示为二进制的补码表示的带符号数时，<code>V=1</code> 表示符号位溢出，通常其他位不影响<code>V</code>位。</li>
+<li><code>Q(bit27)</code>：仅<code>ARM v5TE_J</code> 架构支持，表示饱和状态，<code>Q=1</code> 表示累积饱和，<code>Q=0</code> 表示累积不饱和。</li>
+<li><code>IT[1:0](bit26:25)</code>：和<code>IT[7:2](bit15:bit10)</code>一起组成<code>IT[7:0]</code>，作为<code>IF-THEN</code> 指令执行状态。</li>
+<li><code>J(bit24)</code>：仅<code>ARM_v5TE-J</code> 架构支持，<code>J=1</code> 表示处于<code>Jazelle</code> 状态，此位通常和<code>T(bit5)</code>位一起表示当前所使用的指令集。</li>
+</ul>
+<table>
+    <tr><td align="center" style="font-weight: bold;">J(bit24)</td><td align="center" style="font-weight: bold;">T(bit5)</td><td align="center" style="font-weight: bold;">指令类型</td></tr>
+    <tr><td align="center">0</td><td align="center">0</td><td align="center">ARM</td></tr>
+    <tr><td align="center">0</td><td align="center">1</td><td align="center">Thumb</td></tr>
+    <tr><td align="center">1</td><td align="center">1</td><td align="center">ThumbEE</td></tr>
+    <tr><td align="center">1</td><td align="center">0</td><td align="center">Jazelle</td></tr>
+</table>
+
+
+<ul>
+<li><code>GE[3:0](bit19</code>：<code>SIMD</code>指令有效，大于或等于。</li>
+<li><code>IT[7:2](bit15)</code>：参考 <code>IT[1:0]</code>。</li>
+<li><code>E(bit9)</code>：大小端控制位， <code>E=1</code>表示大端模式， <code>E=0</code>表示小端模式。</li>
+<li><code>A(bit8)</code>： 禁止异步中断位， <code>A=1</code>表示禁止异步中断。</li>
+<li><code>I(bit7)</code>：<code> I=1</code>禁止 <code>IRQ</code>， <code>I=0</code>使能<code>IRQ</code>。</li>
+<li><code>F(bit6)</code>：<code> F=1</code>禁止 <code>FIQ</code>， <code>F=0</code>使能<code>FIQ</code>。</li>
+<li><code>T(bit5)</code>： 控制指令执行状态，表明本指令是<code>ARM</code>指令还是 <code>Thumb</code>指令，通常和 <code>J(bit24)</code>一起使用表明指令类型，参考 <code>J(bit24)</code>位。</li>
+<li><code>M[4:0]</code> 处理器模式控制位， 取值与模式对应情况如下：</li>
+</ul>
+<table>
+    <tr><td align="center" style="font-weight: bold;">M[4:0]</td><td align="center" style="font-weight: bold;">处理器模式</td></tr>
+    <tr><td align="center">10000</td><td align="left">User模式</td></tr>
+    <tr><td align="center">10001</td><td align="left">FIQ模式</td></tr>
+    <tr><td align="center">10010</td><td align="left">IRQ模式</td></tr>
+    <tr><td align="center">10011</td><td align="left">Supervisor(SVC)模式</td></tr>
+    <tr><td align="center">10110</td><td align="left">Monitor(MON)模式</td></tr>
+    <tr><td align="center">10111</td><td align="left">Abort(ABT)模式</td></tr>
+    <tr><td align="center">11010</td><td align="left">Hyp(HYP)模式</td></tr>
+    <tr><td align="center">11011</td><td align="left">Undef(UND)模式</td></tr>
+    <tr><td align="center">11111</td><td align="left">System(SYS)模式</td></tr>
+</table>
+
+
+<h1 id="四、ARM异常处理"><a href="#四、ARM异常处理" class="headerlink" title="四、ARM异常处理"></a><font size=3>四、<code>ARM</code>异常处理</font></h1><h2 id="1-什么是异常？"><a href="#1-什么是异常？" class="headerlink" title="1. 什么是异常？"></a><font size=3>1. 什么是异常？</font></h2><p>处理器在正常执行程序的过程中可能会遇到一些不正常的事件发生，这时处理器就要将当前的程序暂停下来，转而去处理这个异常的事件，当异常事件处理完成之后再返回到被异常打断的点继续执行程序。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV08-ARM%E5%9F%BA%E7%A1%80/LV08-01-ARM%E4%BD%93%E7%B3%BB-02-ARM%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/1.gif" alt="1" style="zoom:50%;" />
+
+<h2 id="2-ARM异常源"><a href="#2-ARM异常源" class="headerlink" title="2. ARM异常源"></a><font size=3>2. <code>ARM</code>异常源</font></h2><p>导致异常产生的事件称为<strong>异常源</strong>。<code>ARM</code>中的异常源如下：</p>
+<table>
+    <tr><td align="left">FIQ</td><td align="left">快速中断请求引脚有效</td></tr>
+    <tr><td align="left">IRQ</td><td align="left">外部中断请求引脚有效</td></tr>
+    <tr><td align="left">Reset</td><td align="left">复位电平有效</td></tr>
+    <tr><td align="left">Software Interrupt</td><td align="left">执行swi指令</td></tr>
+    <tr><td align="left">Data Abort</td><td align="left">数据终止</td></tr>
+    <tr><td align="left">Prefetch Abort</td><td align="left">指令预取终止</td></tr>
+    <tr><td align="left">Undefined Instruction </td><td align="left">遇到不能处理的指令</td></tr>
+</table>
+
+
+<h2 id="3-ARM异常模式"><a href="#3-ARM异常模式" class="headerlink" title="3. ARM异常模式"></a><font size=3>3. <code>ARM</code>异常模式</font></h2><p>在<code>ARM</code>的基本工作模式中有<code>5</code>个属于异常模式，即<code>ARM</code>遇到异常后会切换成对应的异常模式。异常源对应的异常模式如下：</p>
+<table>
+    <tr><td align="left">异常源  </td><td align="center">FIQ</td><td align="center">IRQ</td><td align="center">Reset/SWI</td><td align="center">Data Abort/Prefetch Abort</td><td align="center">Undef Instruction</td></tr>
+    <tr><td align="left">异常模式</td><td align="center">FIQ</td><td align="center">IRQ</td><td align="center">SVC</td><td align="center">Abort</td><td align="center">Undef</td></tr>
+</table>
+
+
+<h2 id="4-异常响应"><a href="#4-异常响应" class="headerlink" title="4. 异常响应"></a><font size=3>4. 异常响应</font></h2><p>产生异常时，<code>ARM</code>进入异常模式，开始处理异常处理程序，处理完异常后回到原来的用户处理程序：</p>
+<ul>
+<li><p><code>ARM</code>产生异常后的动作（<strong>自动</strong>完成）</p>
+<ul>
+<li>1.拷贝<code>CPSR</code>中的内容到对应异常模式下的<code>SPSR_&lt;mode&gt;</code>。</li>
+<li>2.修改<code>CPSR</code>的值。<br>(1) 修改中断禁止位禁止相应的中断。<br>(2) 修改模式位进入相应的异常模式。<br>(3) 修改状态位进入<code>ARM</code>状态。</li>
+<li>3.保存返回地址到对应异常模式下的<code>LR_&lt;mode&gt;</code>。</li>
+<li>4.设置<code>PC</code>为相应的异常向量（异常向量表对应的地址）。</li>
+</ul>
+</li>
+<li><p><code>ARM</code>异常返回的动作（<strong>自己编写</strong>）</p>
+<ul>
+<li>5.将<code>SPSR_&lt;mode&gt;</code>的值复制给<code>CPSR</code>使处理器恢复之前的状态。</li>
+<li>6.将<code>LR_&lt;mode&gt;</code>的值复制给<code>PC</code>使程序跳转回被打断的地址继续执行。</li>
+</ul>
+</li>
+</ul>
+<p>【注意】整个过程<code>CPSR</code>保存的永远是当前程序运行状态，<code>SPSR</code>只是异常时对原来的<code>CPSR</code>进行备份。</p>
+<h2 id="5-异常向量表"><a href="#5-异常向量表" class="headerlink" title="5. 异常向量表"></a><font size=3>5. 异常向量表</font></h2><p>当发生异常的时候，程序会跳转到异常向量表，异常向量表的本质是内存中的一段代码。异常向量表中<strong>为每个异常源分配了四个字节的存储空间</strong>，遇到异常后处理器自动将<code>PC</code>修改为对应的地址，因为异常向量表空间有限，所以一般我们不会再这里写异常处理程序，而是在<strong>对应的位置写一条跳转指令</strong>使其跳转到指定的异常处理程序的入口。</p>
+<p><strong>【注意】</strong><code>ARM</code>的异常向量表的基地址默认在<code>0x00</code>地址，但可以通过配置协处理器来修改其地址。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV08-ARM%E5%9F%BA%E7%A1%80/LV08-01-ARM%E4%BD%93%E7%B3%BB-02-ARM%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20220727193932479.png" alt="image-20220727193932479" style="zoom:50%;" />
+
+<h2 id="6-异常优先级"><a href="#6-异常优先级" class="headerlink" title="6. 异常优先级"></a><font size=3>6. 异常优先级</font></h2><p>多个异常产生时，同一时刻不能处理好几个异常吧，异常处理的优先级如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV08-ARM%E5%9F%BA%E7%A1%80/LV08-01-ARM%E4%BD%93%E7%B3%BB-02-ARM%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/image-20220727194458397.png" alt="image-20220727194458397" style="zoom:50%;" />
+
+<h2 id="7-FIQ和IRQ"><a href="#7-FIQ和IRQ" class="headerlink" title="7. FIQ和IRQ"></a><font size=3>7. <code>FIQ</code>和<code>IRQ</code></font></h2><p>一般来说，<code>FIQ</code>的响应速度比<code>IRQ</code>快，原因如下：</p>
+<ul>
+<li>（1）<code>FIQ</code>在异常向量表位于最末可直接把异常处理写在异常向量表之后，省去跳转步骤；</li>
+<li>（2）<code>FIQ</code>模式有<code>5</code>个私有寄存器(<code>R8-R12</code>) 执行中断处理程序前无需压栈保存寄存器，可直接处理中断；</li>
+<li>（3）<code>FIQ</code>的优先级高于<code>IRQ</code>：</li>
+</ul>
+<p>两个中断同时发生时先响应FIQ；</p>
+<p><code>FIQ</code>可以打断<code>RIQ</code>，但<code>RIQ</code>不能打断<code>FIQ</code>。</p>
+<h2 id="8-异常处理实例"><a href="#8-异常处理实例" class="headerlink" title="8. 异常处理实例"></a><font size=3>8. 异常处理实例</font></h2><p>这里以<code>IRQ</code>异常为例，具体分析一下异常的处理过程，具体过程如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV08-ARM%E5%9F%BA%E7%A1%80/LV08-01-ARM%E4%BD%93%E7%B3%BB-02-ARM%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86/img/2.gif" alt="2" style="zoom:70%;" />
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/c994fcf6.html">LV08-01-ARM体系-02-ARM基础知识</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年07月06日 - 22:59</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/c994fcf6.html" title="LV08-01-ARM体系-02-ARM基础知识">https://sumumm.github.io/post/c994fcf6.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV08-ARM%E5%9F%BA%E7%A1%80/" rel="tag"><i class="fa fa-tag"></i> LV08-ARM基础</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/aaf5ec56.html" rel="prev" title="LV08-01-ARM体系-03-ARM汇编基础">
+                  <i class="fa fa-angle-left"></i> LV08-01-ARM体系-03-ARM汇编基础
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/de6d45f8.html" rel="next" title="LV08-01-ARM体系-01-ARM处理器与指令集简介">
+                  LV08-01-ARM体系-01-ARM处理器与指令集简介 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

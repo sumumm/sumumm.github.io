@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是Linux中I2C驱动模型的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV10-11-I2C驱动-01-Linux中的I2C驱动">
+<meta property="og:url" content="https://sumumm.github.io/post/b1c68daf.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是Linux中I2C驱动模型的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-11-I2C%E9%A9%B1%E5%8A%A8-01-Linux%E4%B8%AD%E7%9A%84I2C%E9%A9%B1%E5%8A%A8/img/00_SOC%E6%9E%B6%E6%9E%84%E5%9B%BE.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-11-I2C%E9%A9%B1%E5%8A%A8-01-Linux%E4%B8%AD%E7%9A%84I2C%E9%A9%B1%E5%8A%A8/img/image-20220903201758352.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-11-I2C%E9%A9%B1%E5%8A%A8-01-Linux%E4%B8%AD%E7%9A%84I2C%E9%A9%B1%E5%8A%A8/img/image-20220903202953443.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-11-I2C%E9%A9%B1%E5%8A%A8-01-Linux%E4%B8%AD%E7%9A%84I2C%E9%A9%B1%E5%8A%A8/img/image-20220903204424953.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-11-I2C%E9%A9%B1%E5%8A%A8-01-Linux%E4%B8%AD%E7%9A%84I2C%E9%A9%B1%E5%8A%A8/img/image-20220903204512981.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-11-I2C%E9%A9%B1%E5%8A%A8-01-Linux%E4%B8%AD%E7%9A%84I2C%E9%A9%B1%E5%8A%A8/img/640.png">
+<meta property="article:published_time" content="2023-07-08T10:58:37.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.005Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV10-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-11-I2C%E9%A9%B1%E5%8A%A8-01-Linux%E4%B8%AD%E7%9A%84I2C%E9%A9%B1%E5%8A%A8/img/00_SOC%E6%9E%B6%E6%9E%84%E5%9B%BE.jpg">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/b1c68daf.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/b1c68daf.html","path":"post/b1c68daf.html","title":"LV10-11-I2C驱动-01-Linux中的I2C驱动"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV10-11-I2C驱动-01-Linux中的I2C驱动 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81-I2C-%E5%8E%9F%E7%90%86"><span class="nav-text">一、 I2C 原理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-I2C-%E5%8D%8F%E8%AE%AE%E5%8F%8A%E5%8E%9F%E7%90%86"><span class="nav-text">1. I2C 协议及原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%87%A0%E4%B8%AA%E6%A6%82%E5%BF%B5"><span class="nav-text">2. 几个概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-Linux-%E5%86%85%E6%A0%B8%E4%B8%AD%E7%9A%84-I2C"><span class="nav-text">3. Linux 内核中的 I2C </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E5%9B%9B%E4%B8%AA%E5%AF%B9%E8%B1%A1"><span class="nav-text">3.1 四个对象</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E5%9B%9B%E4%B8%AA%E5%AF%B9%E8%B1%A1%E5%85%B3%E7%B3%BB"><span class="nav-text">3.2 四个对象关系</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-I2C-%E5%9C%A8%E7%B3%BB%E7%BB%9F%E7%9A%84%E4%BD%93%E7%8E%B0"><span class="nav-text">4. I2C 在系统的体现</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="nav-text">二、基本数据结构</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-struct-bus-type"><span class="nav-text">1. struct bus_type </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-I2C-%E6%80%BB%E7%BA%BF%E7%9B%B8%E5%85%B3%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">2. I2C 总线相关结构体</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E6%80%BB%E7%BA%BF%E5%AE%9A%E4%B9%89"><span class="nav-text">2.1 总线定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%8C%B9%E9%85%8D%E5%87%BD%E6%95%B0"><span class="nav-text">2.2 匹配函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E2%80%9C%E6%80%BB%E7%BA%BF%E8%AE%BE%E5%A4%87%E2%80%9D"><span class="nav-text">2.3 “总线设备”</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1-struct-i2c-adapter"><span class="nav-text">2.3.1 struct i2c_adapter  </span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E2%80%9C%E6%80%BB%E7%BA%BF%E9%A9%B1%E5%8A%A8%E2%80%9D"><span class="nav-text">2.4 “总线驱动”</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-1-struct-i2c-algorithm"><span class="nav-text">2.4.1 struct i2c_algorithm  </span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-2-%E6%80%BB%E7%BA%BF%E9%A9%B1%E5%8A%A8%E7%9A%84%E5%8A%9F%E8%83%BD"><span class="nav-text">2.4.2 总线驱动的功能</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-I2C-%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E7%9B%B8%E5%85%B3%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">3. I2C 设备驱动相关结构体</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-struct-i2c-driver"><span class="nav-text">3.1 struct i2c_driver </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-struct-device-driver"><span class="nav-text">3.2 struct device_driver </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-struct-i2c-device-id"><span class="nav-text">3.3 struct i2c_device_id </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-struct-of-device-id"><span class="nav-text">3.4 struct of_device_id </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-struct-i2c-msg"><span class="nav-text">3.5 struct i2c_msg </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-I2C-%E8%AE%BE%E5%A4%87%E7%9B%B8%E5%85%B3%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">4. I2C 设备相关结构体</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-struct-i2c-client"><span class="nav-text">4.1 struct i2c_client </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-struct-i2c-board-info"><span class="nav-text">4.2 struct i2c_board_info </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E7%BB%93%E6%9E%84%E4%BD%93%E5%85%B3%E7%B3%BB"><span class="nav-text">5. 结构体关系</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E5%9F%BA%E6%9C%AC%E5%87%BD%E6%95%B0"><span class="nav-text">三、基本函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-I2C-%E6%80%BB%E7%BA%BF%E7%9B%B8%E5%85%B3%E5%87%BD%E6%95%B0"><span class="nav-text">1. I2C 总线相关函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-I2C-%E6%80%BB%E7%BA%BF%E8%AE%BE%E5%A4%87"><span class="nav-text">1.1 I2C 总线设备</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-i2c-add-adapter"><span class="nav-text">1.1 i2c_add_adapter() </span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-i2c-add-numbered-adapter"><span class="nav-text">1.2 i2c_add_numbered_adapter() </span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-i2c-del-adapter"><span class="nav-text">1.3 i2c_del_adapter() </span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-I2C-%E8%AE%BE%E5%A4%87%E7%9B%B8%E5%85%B3%E5%87%BD%E6%95%B0"><span class="nav-text">2. I2C 设备相关函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-i2c-get-adapter"><span class="nav-text">2.1 i2c_get_adapter() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-i2c-put-adapter"><span class="nav-text">2.2 i2c_put_adapter() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-i2c-new-probed-device"><span class="nav-text">2.3 i2c_new_probed_device() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-i2c-new-device"><span class="nav-text">2.4 i2c_new_device() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-i2c-unregister-device"><span class="nav-text">2.5 i2c_unregister_device() </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-I2C-%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E7%9B%B8%E5%85%B3%E5%87%BD%E6%95%B0"><span class="nav-text">3. I2C 设备驱动相关函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-i2c-register-driver"><span class="nav-text">3.1 i2c_register_driver() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-i2c-add-driver"><span class="nav-text">3.2 i2c_add_driver() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-i2c-del-driver"><span class="nav-text">3.3 i2c_del_driver() </span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-I2C-%E6%95%B0%E6%8D%AE%E8%AF%BB%E5%86%99%E5%87%BD%E6%95%B0"><span class="nav-text">4. I2C 数据读写函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-i2c-transfer"><span class="nav-text">4.1 i2c_transfer() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-i2c-master-recv"><span class="nav-text">4.2 i2c_master_recv() </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-i2c-master-send"><span class="nav-text">4.3 i2c_master_send() </span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/b1c68daf.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV10-11-I2C驱动-01-Linux中的I2C驱动 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV10-11-I2C驱动-01-Linux中的I2C驱动
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-07-08 18:58:37" itemprop="dateCreated datePublished" datetime="2023-07-08T18:58:37+08:00">2023-07-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV10-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>8.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>31 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是Linux中I2C驱动模型的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-11-I2C%E9%A9%B1%E5%8A%A8-01-Linux%E4%B8%AD%E7%9A%84I2C%E9%A9%B1%E5%8A%A8/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center" width=150>Linux开发板</td>        <td align="left">华清远见 底板: FS4412_DEV_V5 核心板: FS4412 V2</td>      </tr>    <tr>        <td align="center" width=150>u-boot</td>        <td align="left">2013.01</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向</td><td align="center">参考原文</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">文件</td><td align="center">下载链接</td></tr>    <tr><td align="left">---</td><td align="left"><a href="https://wwz.lanzouy.com/iH1vO09jxavi" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<p>学习 platform 总线的时候就说过，  platform  是虚拟出来的一条总线，目的是为了实现总线、设备、驱动框架。对于  I2C  而言，不需要虚拟出一条总线，直接使用  I2C 总线即可。   </p>
+<h1 id="一、-I2C-原理"><a href="#一、-I2C-原理" class="headerlink" title="一、 I2C 原理"></a><font size=3>一、 I2C 原理</font></h1><h2 id="1-I2C-协议及原理"><a href="#1-I2C-协议及原理" class="headerlink" title="1. I2C 协议及原理"></a><font size=3>1. I2C 协议及原理</font></h2><p>这一部分可以看 学习单片机的时候的相关笔记。</p>
+<h2 id="2-几个概念"><a href="#2-几个概念" class="headerlink" title="2. 几个概念"></a><font size=3>2. 几个概念</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-11-I2C%E9%A9%B1%E5%8A%A8-01-Linux%E4%B8%AD%E7%9A%84I2C%E9%A9%B1%E5%8A%A8/img/00_SOC架构图.jpg" alt="00_SOC架构图" style="zoom:50%;" />
+
+<p> SOC 芯片平台的外设分为：</p>
+<ul>
+<li>一级外设：外设控制器集成在 SOC 芯片内部。</li>
+<li>二级外设：外设控制器由另一块芯片负责，通过一些通讯总线与 SOC 芯片相连。</li>
+</ul>
+<p>拿 I2C 来说， SOC 中的 I2C 控制器就是一级外设，外部的 MPU6050 等 I2C 器件就属于二级外设，这些 I2C 器件挂在一级外上。 I2C 控制器也被称为 I2C 适配器。</p>
+<h2 id="3-Linux-内核中的-I2C"><a href="#3-Linux-内核中的-I2C" class="headerlink" title="3. Linux 内核中的 I2C "></a><font size=3>3. Linux 内核中的 I2C </font></h2><h3 id="3-1-四个对象"><a href="#3-1-四个对象" class="headerlink" title="3.1 四个对象"></a><font size=3>3.1 四个对象</font></h3><p>在 linux 内核中， I2C 驱动如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-11-I2C%E9%A9%B1%E5%8A%A8-01-Linux%E4%B8%AD%E7%9A%84I2C%E9%A9%B1%E5%8A%A8/img/image-20220903201758352.png" alt="image-20220903201758352" style="zoom:40%;" />
+
+<p>用户空间的就是用户访问 I2C 设备的一些接口，我们目前不用关心这个。</p>
+<p>内核空间将 I2C 分为三层：</p>
+<ul>
+<li>（1） I2C 从设备驱动层</li>
+</ul>
+<p>就是上图中的 driver 驱动层，也简称为 I2C 设备驱动层，里边都是一些挂在 I2C 上的设备的驱动程序。这里边的 driver 和 client 都是需要我们自己来实现的。</p>
+<p>这一层是挂载在I2C总线上的二级外设的驱动，也称客户（client）驱动，实现对二级外设的各种操作，二级外设的几乎所有操作全部依赖于对其自身内部寄存器的读写，对这些二级外设寄存器的读写又依赖于I2C总线的发送和接收。</p>
+<ul>
+<li>（2） I2C 核心层</li>
+</ul>
+<p>主要是承上启下，为 I2C 从设备驱动和 I2C 总线驱动开发提供接口，为 I2C 设备驱动层提供管理多个 i2c_driver 、 i2c_client 对象的数据结构，为 I2C 总线驱动层提供多个 i2c_algorithm 、 i2c_adapter 对象的数据结构。完成它们之间的匹配。</p>
+<ul>
+<li>（3） I2C 总线驱动层</li>
+</ul>
+<p>包括上图中的访问抽象层和硬件实现控制层，这一层是 I2C 总线自身控制器的驱动程序，每个 I2C 适配器都会有自己的驱动程序。一般 SOC 芯片都会提供多个 I2C 总线控制器，也叫I2C适配器（ I2C Adaptor），每个 I2C 总线控制器提供一组 I2C 总线，每一组 I2C 总线被称为一个 I2C通道，这个通道会提供一组 SCL 时钟线和 SDA 数据线，在这两根线上会挂载不同的 I2C 设备。</p>
+<p> Linux 内核里将 I2C 总线控制器叫做<strong>适配器</strong>（ adapter ），适配器驱动主要工作就是提供通过本组 I2C 总线与二级外设进行数据传输的接口，每个二级外设驱动里必须能够获得其对应的 adapter 对象才能实现数据传输。</p>
+<p>这一层的驱动会由 SOC 开发商在第一次移植的时候完成编写，一般我们是不需要编写的。这一层的驱动也会分两个模块编写，一个是 I2C_Adapter 模块，就很类似于 device 模块（因为总线控制器也就相当于一个设备），另一个是 Algorithm 算法模块，在这里会实现 I2C 数据的传输。</p>
+<p>我们在进行 I2C 驱动编写的时候，需要编写两个内核模块，一个是 driver 模块，另一个是 client 模块（表示从设备），类比 platform 总线的话，这里的 Client 模块就相当于 platform 总线中的 device 设备模块。</p>
+<ul>
+<li><p>I2C 的 driver 模块：提供二级外设（也就是从设备）驱动程序的逻辑代码。</p>
+</li>
+<li><p>I2C 的 client 模块：提供二级外设的一些资源信息。</p>
+</li>
+</ul>
+<p>经过上边的分析，在一个 I2C 驱动中，会有四个模块： client 、 driver 、 I2C_Adapter 和 Algorithm 这四个模块，其中 client 和 I2C_Adapter 就相当于设备模块， driver 和 Algorithm 是驱动模块。</p>
+<h3 id="3-2-四个对象关系"><a href="#3-2-四个对象关系" class="headerlink" title="3.2 四个对象关系"></a><font size=3>3.2 四个对象关系</font></h3><p>匹配的时候， client 模块与 driver 模块匹配，一个 driver 可以匹配多个 client ， I2C_Adapter 和 Algorithm 匹配，一个 Algorithm 可以匹配多个 I2C_Adapter ，然后 client 还需要与 I2C_Adapter 模块进行一个一对一的匹配，这样才能完成数据的传输，他们四者之间的关系如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-11-I2C%E9%A9%B1%E5%8A%A8-01-Linux%E4%B8%AD%E7%9A%84I2C%E9%A9%B1%E5%8A%A8/img/image-20220903202953443.png" alt="image-20220903202953443" style="zoom:50%;" />
+
+<ul>
+<li>i2c_client：提供i2c设备的资源信息</li>
+<li>i2c_driver：提供i2c设备的驱动</li>
+<li>i2c_adapter：提供i2c适配器的驱动</li>
+<li>i2c_algorithm：提供i2c的通信方法</li>
+</ul>
+<h2 id="4-I2C-在系统的体现"><a href="#4-I2C-在系统的体现" class="headerlink" title="4. I2C 在系统的体现"></a><font size=3>4. I2C 在系统的体现</font></h2><p>我们进入根文件系统的 &#x2F;sys&#x2F;bus 目录，会发现有 i2c 的一个目录：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-11-I2C%E9%A9%B1%E5%8A%A8-01-Linux%E4%B8%AD%E7%9A%84I2C%E9%A9%B1%E5%8A%A8/img/image-20220903204424953.png" alt="image-20220903204424953" style="zoom:50%;" />
+
+<p>我们进入这个目录，查看一下目录下的文件：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-11-I2C%E9%A9%B1%E5%8A%A8-01-Linux%E4%B8%AD%E7%9A%84I2C%E9%A9%B1%E5%8A%A8/img/image-20220903204512981.png" alt="image-20220903204512981" style="zoom:50%;" />
+
+<p>会发现，目录的结构与我们之前学习 platform 总线的时候是很类似的。</p>
+<h1 id="二、基本数据结构"><a href="#二、基本数据结构" class="headerlink" title="二、基本数据结构"></a><font size=3>二、基本数据结构</font></h1><h2 id="1-struct-bus-type"><a href="#1-struct-bus-type" class="headerlink" title="1. struct bus_type "></a><font size=3>1. struct bus_type </font></h2><p> Linux 系统内核使用 bus_type 结构体表示总线，这个结构体定义在 linux 内核源码的下边这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/device.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，找到 struct bus_type 结构体如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">bus_type</span> &#123;</span></span><br><span class="line">        <span class="type">const</span> <span class="type">char</span>              *name;</span><br><span class="line">        <span class="type">const</span> <span class="type">char</span>              *dev_name;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">device</span>           *<span class="title">dev_root</span>;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">device_attribute</span> *<span class="title">dev_attrs</span>;</span>     <span class="comment">/* use dev_groups instead */</span></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">attribute_group</span> **<span class="title">bus_groups</span>;</span></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">attribute_group</span> **<span class="title">dev_groups</span>;</span></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">attribute_group</span> **<span class="title">drv_groups</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="type">int</span> (*match)(<span class="keyword">struct</span> device *dev, <span class="keyword">struct</span> device_driver *drv);</span><br><span class="line">        <span class="type">int</span> (*uevent)(<span class="keyword">struct</span> device *dev, <span class="keyword">struct</span> kobj_uevent_env *env);</span><br><span class="line">        <span class="type">int</span> (*probe)(<span class="keyword">struct</span> device *dev);</span><br><span class="line">        <span class="type">int</span> (*remove)(<span class="keyword">struct</span> device *dev);</span><br><span class="line">        <span class="type">void</span> (*shutdown)(<span class="keyword">struct</span> device *dev);</span><br><span class="line"></span><br><span class="line">        <span class="type">int</span> (*online)(<span class="keyword">struct</span> device *dev);</span><br><span class="line">        <span class="type">int</span> (*offline)(<span class="keyword">struct</span> device *dev);</span><br><span class="line"></span><br><span class="line">        <span class="type">int</span> (*suspend)(<span class="keyword">struct</span> device *dev, <span class="type">pm_message_t</span> state);</span><br><span class="line">        <span class="type">int</span> (*resume)(<span class="keyword">struct</span> device *dev);</span><br><span class="line"></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">dev_pm_ops</span> *<span class="title">pm</span>;</span> </span><br><span class="line"></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">iommu_ops</span> *<span class="title">iommu_ops</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">subsys_private</span> *<span class="title">p</span>;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">lock_class_key</span> <span class="title">lock_key</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>成员中 match 指向的函数很重要，此函数指针指向的函数就是完成设备和驱动之间匹配的，总线就是使用 match 函数来根据注册的设备来查找对应的驱动，或者根据注册的驱动来查找相应的设备，因此<strong>每一条总线都必须实现此函数</strong>。  match  函数有两个参数：  dev  和  drv ，这两个参数分别为  device  和  device_driver 类型，也就是设备和驱动。  </p>
+<h2 id="2-I2C-总线相关结构体"><a href="#2-I2C-总线相关结构体" class="headerlink" title="2. I2C 总线相关结构体"></a><font size=3>2. I2C 总线相关结构体</font></h2><h3 id="2-1-总线定义"><a href="#2-1-总线定义" class="headerlink" title="2.1 总线定义"></a><font size=3>2.1 总线定义</font></h3><p> I2C 总线是 struct bus_type 定义的一个结构体变量，它定义在 linux 内核源码的下边这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">drivers/i2c/i2c-core.c</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到这个结构体变量的定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">bus_type</span> <span class="title">i2c_bus_type</span> =</span> &#123;</span><br><span class="line">        .name           = <span class="string">&quot;i2c&quot;</span>,</span><br><span class="line">        .match          = i2c_device_match,</span><br><span class="line">        .probe          = i2c_device_probe,</span><br><span class="line">        .remove         = i2c_device_remove,</span><br><span class="line">        .shutdown       = i2c_device_shutdown,</span><br><span class="line">        .pm             = &amp;i2c_device_pm_ops,</span><br><span class="line">&#125;;</span><br><span class="line">EXPORT_SYMBOL_GPL(i2c_bus_type);</span><br></pre></td></tr></table></figure>
+
+<p> I2C 总线对应着 linux 根文件系统的 &#x2F;sys&#x2F;bus 下的一条总线，这个 I2C 总线结构体管理着 I2C 设备与 I2C 驱动的匹配，删除等操作， I2C 总线会调用 i2c_device_match 函数看 I2C 设备和 I2C 驱动是否匹配，如果匹配就调用 i2c_device_probe 函数，进而调用 I2C 驱动的 probe 函数。</p>
+<h3 id="2-2-匹配函数"><a href="#2-2-匹配函数" class="headerlink" title="2.2 匹配函数"></a><font size=3>2.2 匹配函数</font></h3><p> I2C 匹配函数定义在 linux 内核源码的下边这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">drivers/i2c/i2c-core.c</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这文件可以看到这个函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">i2c_device_match</span><span class="params">(<span class="keyword">struct</span> device *dev, <span class="keyword">struct</span> device_driver *drv)</span></span><br><span class="line">&#123;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">i2c_client</span>       *<span class="title">client</span> =</span> i2c_verify_client(dev);</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">i2c_driver</span>       *<span class="title">driver</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!client)</span><br><span class="line">                <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Attempt an OF style match */</span></span><br><span class="line">        <span class="keyword">if</span> (of_driver_match_device(dev, drv))</span><br><span class="line">                <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Then ACPI style match */</span></span><br><span class="line">        <span class="keyword">if</span> (acpi_driver_match_device(dev, drv))</span><br><span class="line">                <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">        driver = to_i2c_driver(drv);</span><br><span class="line">        <span class="comment">/* match on an id table if there is one */</span></span><br><span class="line">        <span class="keyword">if</span> (driver-&gt;id_table)</span><br><span class="line">                <span class="keyword">return</span> i2c_match_id(driver-&gt;id_table, client) != <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从函数视实现中，我们可以看到，驱动和设备的匹配有三种方法  ：</p>
+<ul>
+<li>OF  类型的匹配，也就是设备树采用的匹配方式</li>
+</ul>
+<p> of_driver_match_device 函数定义在 linux 内核源码的下边这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/of_device.h</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>ACPI  匹配方式</li>
+</ul>
+<p>没怎么使用过，后续使用了再补充笔记。</p>
+<ul>
+<li>id_table  匹配</li>
+</ul>
+<h3 id="2-3-“总线设备”"><a href="#2-3-“总线设备”" class="headerlink" title="2.3 “总线设备”"></a><font size=3>2.3 “总线设备”</font></h3><p>这里的总线设备，指的就是 I2C 控制器设备。</p>
+<h4 id="2-3-1-struct-i2c-adapter"><a href="#2-3-1-struct-i2c-adapter" class="headerlink" title="2.3.1 struct i2c_adapter  "></a><font size=3>2.3.1 struct i2c_adapter  </font></h4><p> Linux 内核将  SOC  的  I2C  适配器（控制器）抽象成  i2c_adapter ，这个结构体定义在 linux 内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/i2c.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到这个结构体及其成员定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * i2c_adapter is the structure used to identify a physical i2c bus along</span></span><br><span class="line"><span class="comment"> * with the access algorithms necessary to access it.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">i2c_adapter</span> &#123;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">module</span> *<span class="title">owner</span>;</span></span><br><span class="line">        <span class="type">unsigned</span> <span class="type">int</span> <span class="class"><span class="keyword">class</span>;</span>               <span class="comment">/* classes to allow probing for */</span></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">i2c_algorithm</span> *<span class="title">algo</span>;</span> <span class="comment">/* the algorithm to access the bus */</span></span><br><span class="line">        <span class="type">void</span> *algo_data;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* data fields that are valid for all devices   */</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">rt_mutex</span> <span class="title">bus_lock</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="type">int</span> timeout;                    <span class="comment">/* in jiffies */</span></span><br><span class="line">        <span class="type">int</span> retries;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">device</span> <span class="title">dev</span>;</span>              <span class="comment">/* the adapter device */</span></span><br><span class="line"></span><br><span class="line">        <span class="type">int</span> nr; </span><br><span class="line">        <span class="type">char</span> name[<span class="number">48</span>];</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">completion</span> <span class="title">dev_released</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">mutex</span> <span class="title">userspace_clients_lock</span>;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">userspace_clients</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">i2c_bus_recovery_info</span> *<span class="title">bus_recovery_info</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员介绍】</strong></p>
+<ul>
+<li>algo  ： struct i2c_algorithm * 类型，对于一个  I2C  适配器，肯定要对外提供读写  API  函数，设备驱动程序可以使用这些  API  函数来完成读写操作。  i2c_algorithm 就是  I2C  适配器与  IIC  设备进行通信的方法。</li>
+</ul>
+<h3 id="2-4-“总线驱动”"><a href="#2-4-“总线驱动”" class="headerlink" title="2.4 “总线驱动”"></a><font size=3>2.4 “总线驱动”</font></h3><p>总线驱动指的就是 I2C 控制器的驱动程序。</p>
+<h4 id="2-4-1-struct-i2c-algorithm"><a href="#2-4-1-struct-i2c-algorithm" class="headerlink" title="2.4.1 struct i2c_algorithm  "></a><font size=3>2.4.1 struct i2c_algorithm  </font></h4><p>这个结构体定义在 linux 内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/i2c.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到这个结构体及其成员定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">i2c_algorithm</span> &#123;</span></span><br><span class="line">        <span class="comment">/* If an adapter algorithm can&#x27;t do I2C-level access, set master_xfer</span></span><br><span class="line"><span class="comment">           to NULL. If an adapter algorithm can do SMBus access, set</span></span><br><span class="line"><span class="comment">           smbus_xfer. If set to NULL, the SMBus protocol is simulated</span></span><br><span class="line"><span class="comment">           using common I2C messages */</span></span><br><span class="line">        <span class="comment">/* master_xfer should return the number of messages successfully</span></span><br><span class="line"><span class="comment">           processed, or a negative value on error */</span></span><br><span class="line">        <span class="type">int</span> (*master_xfer)(<span class="keyword">struct</span> i2c_adapter *adap, <span class="keyword">struct</span> i2c_msg *msgs,</span><br><span class="line">                           <span class="type">int</span> num);</span><br><span class="line">        <span class="type">int</span> (*smbus_xfer) (<span class="keyword">struct</span> i2c_adapter *adap, u16 addr,</span><br><span class="line">                           <span class="type">unsigned</span> <span class="type">short</span> flags, <span class="type">char</span> read_write,</span><br><span class="line">                           u8 command, <span class="type">int</span> size, <span class="keyword">union</span> i2c_smbus_data *data);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* To determine what the adapter supports */</span></span><br><span class="line">        u32 (*functionality) (<span class="keyword">struct</span> i2c_adapter *);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员介绍】</strong></p>
+<ul>
+<li>master_xfer  ：函数指针，指向一个 I2C  适配器的传输函数，可以通过此函数来完成与  I2C  设备之间的通信。  </li>
+<li>smbus_xfer ：函数指针，指向一个 SMBUS  总线的传输函数。</li>
+</ul>
+<h4 id="2-4-2-总线驱动的功能"><a href="#2-4-2-总线驱动的功能" class="headerlink" title="2.4.2 总线驱动的功能"></a><font size=3>2.4.2 总线驱动的功能</font></h4><p> I2C  总线驱动，或者说  I2C  适配器驱动的主要工作就是初始化  i2c_adapter  结构体变量，然后设置  i2c_algorithm  中的  master_xfer  函数。完成以后通过  i2c_add_numbered_adapter 或  i2c_add_adapter  这两个函数向系统注册设置好的  i2c_adapter 。</p>
+<h2 id="3-I2C-设备驱动相关结构体"><a href="#3-I2C-设备驱动相关结构体" class="headerlink" title="3. I2C 设备驱动相关结构体"></a><font size=3>3. I2C 设备驱动相关结构体</font></h2><h3 id="3-1-struct-i2c-driver"><a href="#3-1-struct-i2c-driver" class="headerlink" title="3.1 struct i2c_driver "></a><font size=3>3.1 struct i2c_driver </font></h3><p> i2c_driver 结构体表示 I2C 设备驱动，这个结构体定义在 linux 内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/i2c.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到这个结构体及其成员定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">i2c_driver</span> &#123;</span></span><br><span class="line">    	<span class="comment">// ... ...</span></span><br><span class="line">        <span class="comment">/* Standard driver model interfaces */</span></span><br><span class="line">        <span class="type">int</span> (*probe)(<span class="keyword">struct</span> i2c_client *, <span class="type">const</span> <span class="keyword">struct</span> i2c_device_id *);</span><br><span class="line">        <span class="type">int</span> (*remove)(<span class="keyword">struct</span> i2c_client *);</span><br><span class="line">		<span class="comment">// ... ...</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">device_driver</span> <span class="title">driver</span>;</span></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">i2c_device_id</span> *<span class="title">id_table</span>;</span></span><br><span class="line">		<span class="comment">// ... ...</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员说明】</strong></p>
+<ul>
+<li>probe ：函数指针，在 i2c_client 与 i2c_driver 匹配成功后执行该函数指针指向的函数。</li>
+<li>remove ：函数指针，在取消 i2c_client 与 i2c_driver 匹配绑定后后执行该函数指针指向的函数。</li>
+<li>driver ： struct device_driver 类型，这个成员类型在平台设备驱动层中也有，而且使用其中的 name 成员来实现平台设备匹配，但是 I2C 子系统中不使用其中的 name 进行匹配，这也是 I2C 设备驱动模型和平台设备模型匹配方法的一点区别。</li>
+<li>id_table ： struct i2c_device_id * 类型，用来实现 i2c_client 与 i2c_driver 匹配绑定，当 i2c_client 中的 name 成员和 i2c_driver 中 id_table 中 name 成员相同的时候，就匹配上了。未使用设备树的设备匹配  ID  表。</li>
+</ul>
+<details class="folding-tag" blue><summary> 点击查看 i2c_client 与 i2c_driver 匹配问题 </summary>
+              <div class='content'>
+              <ul><li><p>i2c_client 中的 name 成员和 i2c_driver 中 id_table 中 name 成员相同的时候。</p></li><li><p>i2c_client 指定的信息在物理上真实存放对应的硬件，并且工作是正常的才会绑定上，并执行其中的 probe 接口函数这第二点要求和平台模型匹配有区别，平台模型不要求设备层指定信息在物理上真实存在就能匹配。</p></li></ul>
+              </div>
+            </details>
+
+<p><strong>【定义实例】</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 设备树匹配数组 */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">of_device_id</span> <span class="title">mpu6050_dt</span>[] =</span> &#123;</span><br><span class="line">    &#123;.compatible = <span class="string">&quot;invensense,mpu6050&quot;</span>&#125;,</span><br><span class="line">    &#123;&#125;,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/** 定义I2C驱动 */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">i2c_driver</span> <span class="title">mpu6050_driver</span> =</span> &#123;</span><br><span class="line">    .driver = &#123;</span><br><span class="line">        .name = MODULE_NAME,   <span class="comment">/* 必须初始化 name 成员 */</span></span><br><span class="line">        .owner = THIS_MODULE,</span><br><span class="line">        .of_match_table = of_match_ptr(mpu6050_dt),</span><br><span class="line">    &#125;,</span><br><span class="line">    .probe = mpu6050_driver_probe,   <span class="comment">/* 设备和驱动匹配成功之后的调用函数 */</span></span><br><span class="line">    .remove = mpu6050_driver_remove, <span class="comment">/* 卸载设备 */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="3-2-struct-device-driver"><a href="#3-2-struct-device-driver" class="headerlink" title="3.2 struct device_driver "></a><font size=3>3.2 struct device_driver </font></h3><p> device_driver 结构体定义在 linux 内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/device.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到这个结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">device_driver</span> &#123;</span></span><br><span class="line">        <span class="type">const</span> <span class="type">char</span>              *name;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">bus_type</span>         *<span class="title">bus</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">module</span>           *<span class="title">owner</span>;</span></span><br><span class="line">        <span class="type">const</span> <span class="type">char</span>              *mod_name;      <span class="comment">/* used for built-in modules */</span></span><br><span class="line"></span><br><span class="line">        <span class="type">bool</span> suppress_bind_attrs;       <span class="comment">/* disables bind/unbind via sysfs */</span></span><br><span class="line"></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">of_device_id</span>       *<span class="title">of_match_table</span>;</span></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">acpi_device_id</span>     *<span class="title">acpi_match_table</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="type">int</span> (*probe) (<span class="keyword">struct</span> device *dev);</span><br><span class="line">        <span class="type">int</span> (*remove) (<span class="keyword">struct</span> device *dev);</span><br><span class="line">        <span class="type">void</span> (*shutdown) (<span class="keyword">struct</span> device *dev);</span><br><span class="line">        <span class="type">int</span> (*suspend) (<span class="keyword">struct</span> device *dev, <span class="type">pm_message_t</span> state);</span><br><span class="line">        <span class="type">int</span> (*resume) (<span class="keyword">struct</span> device *dev);</span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">attribute_group</span> **<span class="title">groups</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">dev_pm_ops</span> *<span class="title">pm</span>;</span> </span><br><span class="line"></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">driver_private</span> *<span class="title">p</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员说明】</strong></p>
+<ul>
+<li>name ： char * 类型，驱动名称，使用名称匹配的时候匹配 device 用，最后一个成员是<strong>必须要初始化</strong>的。</li>
+<li>bus ： struct bus_type * 类型，总线类型。</li>
+<li>owner ： struct module * 类型，一般填 THIS_MODULE 。</li>
+<li>of_match_table ： struct of_device_id * 类型（后边会介绍），用于设备树匹配  of_match_ptr (某 struct of_device_id 对象地址) 。 of_match_table  就是采用设备树的时候驱动使用的匹配表，同样是数组，每个匹配项都为  of_device_id  结构体类型。</li>
+</ul>
+<h3 id="3-3-struct-i2c-device-id"><a href="#3-3-struct-i2c-device-id" class="headerlink" title="3.3 struct i2c_device_id "></a><font size=3>3.3 struct i2c_device_id </font></h3><p>在使用 ID 匹配和设备树匹配的时候都会用到，在驱动中程序中使用，需要定义一个数组。这个结构体定义在 linux 内核源码的下边这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/mod_devicetable.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，会看到这个结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> I2C_NAME_SIZE   20</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> I2C_MODULE_PREFIX <span class="string">&quot;i2c:&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">i2c_device_id</span> &#123;</span></span><br><span class="line">        <span class="type">char</span> name[I2C_NAME_SIZE];</span><br><span class="line">        <span class="type">kernel_ulong_t</span> driver_data;     <span class="comment">/* Data private to the driver */</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员说明】</strong></p>
+<ul>
+<li>name ： char 类型，表示匹配用的名称（按我自己的理解这个名称就是匹配的时候用的 ID ）。</li>
+<li>driver_data ： kernel_ulong_t 类型，需要向驱动传输的其它数据。</li>
+</ul>
+<p><strong>【注意事项】</strong>一般是定义在驱动中，定义的是一个结构体数组，一般不指定大小，初始化时最后加 {} 表示数组结束。</p>
+<p><strong>【定义实例】</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** 定义id匹配数组 */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">i2c_device_id</span> <span class="title">mpu6050_ids</span>[] =</span> &#123;</span><br><span class="line">    &#123;<span class="string">&quot;mpu6050&quot;</span>, <span class="number">0</span>&#125;,</span><br><span class="line">    &#123;&#125;,              <span class="comment">/* 表示结束 */</span></span><br><span class="line">&#125;;</span><br><span class="line"><span class="comment">/** 定义I2C驱动 */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">i2c_driver</span> <span class="title">mpu6050_driver</span> =</span> &#123;</span><br><span class="line">    .driver = &#123;</span><br><span class="line">        .name = MODULE_NAME,   <span class="comment">/* 必须初始化 name 成员 */</span></span><br><span class="line">        .owner = THIS_MODULE,</span><br><span class="line">    &#125;,</span><br><span class="line">    .probe = mpu6050_driver_probe,   <span class="comment">/* 设备和驱动匹配成功之后的调用函数 */</span></span><br><span class="line">    .remove = mpu6050_driver_remove, <span class="comment">/* 卸载设备 */</span></span><br><span class="line">    .id_table = mpu6050_ids,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-4-struct-of-device-id"><a href="#3-4-struct-of-device-id" class="headerlink" title="3.4 struct of_device_id "></a><font size=3>3.4 struct of_device_id </font></h3><p>上边提到 of_match_table  就是采用设备树的时候驱动使用的匹配表，同样是数组，每个匹配项都为 of_device_id 结构体类型，此结构体定义在 linux 内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/mod_devicetable.h</span><br></pre></td></tr></table></figure>
+
+<p>  我们打开这个文件，可以看到这结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Struct used for matching a device</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">of_device_id</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">        <span class="type">char</span>    name[<span class="number">32</span>];</span><br><span class="line">        <span class="type">char</span>    type[<span class="number">32</span>];</span><br><span class="line">        <span class="type">char</span>    compatible[<span class="number">128</span>];</span><br><span class="line">        <span class="type">const</span> <span class="type">void</span> *data;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员说明】</strong></p>
+<ul>
+<li>name ： char 类型数组，设备名。</li>
+<li>type ： char 类型数组，设备类型。</li>
+<li>compatible ： char 类型数组，对于设备树而言，通过设备节点的  compatible  属性值和  of_match_table  中每个项目的  compatible  成员变量进行比较，如果有相等的就表示设备和此驱动匹配成功。</li>
+</ul>
+<p><strong>【注意事项】</strong>一般是定义在驱动中，定义的是一个结构体数组，一般不指定大小，初始化时最后加 {} 表示数组结束。</p>
+<p><strong>【定义实例】</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 设备树结构 */</span></span><br><span class="line">i2c@<span class="number">138B</span>0000&#123;</span><br><span class="line">    <span class="meta">#address-cells = <span class="string">&lt;1&gt;</span>;</span></span><br><span class="line">    <span class="meta">#size-cells = <span class="string">&lt;0&gt;</span>;</span></span><br><span class="line">    samsung,i2c-sda-delay = &lt;<span class="number">100</span>&gt;;</span><br><span class="line">    samsung,i2c-max-bus-freq = &lt;<span class="number">20000</span>&gt;;</span><br><span class="line">    pinctrl<span class="number">-0</span> = &lt;&amp;i2c5_bus&gt;;</span><br><span class="line">    pinctrl-names = <span class="string">&quot;default&quot;</span>;</span><br><span class="line">    status = <span class="string">&quot;okay&quot;</span>;</span><br><span class="line">    mpu6050<span class="number">-3</span>-asix@<span class="number">68</span>&#123;</span><br><span class="line">        compatible = <span class="string">&quot;invensense,mpu6050&quot;</span>;</span><br><span class="line">        reg = &lt;<span class="number">0x68</span>&gt;;</span><br><span class="line">        interrupt-parent = &lt;&amp;gpx3&gt;;</span><br><span class="line">        interrupts = &lt;<span class="number">3</span> <span class="number">2</span>&gt;;</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/** 设备树匹配数组定义 */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">of_device_id</span> <span class="title">mpu6050_dt</span>[] =</span> &#123;</span><br><span class="line">    &#123;.compatible = <span class="string">&quot;invensense,mpu6050&quot;</span>&#125;,</span><br><span class="line">    &#123;&#125;,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/** 定义I2C驱动 */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">i2c_driver</span> <span class="title">mpu6050_driver</span> =</span> &#123;</span><br><span class="line">    .driver = &#123;</span><br><span class="line">        .name = MODULE_NAME,   <span class="comment">/* 必须初始化 name 成员 */</span></span><br><span class="line">        .owner = THIS_MODULE,</span><br><span class="line">        .of_match_table = mpu6050_dt,</span><br><span class="line">    &#125;,</span><br><span class="line">    .probe = mpu6050_driver_probe,   <span class="comment">/* 设备和驱动匹配成功之后的调用函数 */</span></span><br><span class="line">    .remove = mpu6050_driver_remove, <span class="comment">/* 卸载设备 */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-5-struct-i2c-msg"><a href="#3-5-struct-i2c-msg" class="headerlink" title="3.5 struct i2c_msg "></a><font size=3>3.5 struct i2c_msg </font></h3><p> I2C 设备驱动中实现 I2C 数据传输的数据结构体，寄存器地址，读取的数据，发送的数据等都用该结构体定义一个结构体数组来暂存。此结构体定义在 linux 内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/uapi/linux/i2c.h</span><br></pre></td></tr></table></figure>
+
+<p>  我们打开这个文件，可以看到这结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">i2c_msg</span> &#123;</span></span><br><span class="line">        __u16 addr;     <span class="comment">/* slave address                        */</span></span><br><span class="line">        __u16 flags;</span><br><span class="line"><span class="meta">#<span class="keyword">define</span> I2C_M_TEN               0x0010  <span class="comment">/* this is a ten bit chip address */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> I2C_M_RD                0x0001  <span class="comment">/* read data, from slave to master */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> I2C_M_STOP              0x8000  <span class="comment">/* if I2C_FUNC_PROTOCOL_MANGLING */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> I2C_M_NOSTART           0x4000  <span class="comment">/* if I2C_FUNC_NOSTART */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> I2C_M_REV_DIR_ADDR      0x2000  <span class="comment">/* if I2C_FUNC_PROTOCOL_MANGLING */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> I2C_M_IGNORE_NAK        0x1000  <span class="comment">/* if I2C_FUNC_PROTOCOL_MANGLING */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> I2C_M_NO_RD_ACK         0x0800  <span class="comment">/* if I2C_FUNC_PROTOCOL_MANGLING */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> I2C_M_RECV_LEN          0x0400  <span class="comment">/* length will be first received byte */</span></span></span><br><span class="line">        __u16 len;              <span class="comment">/* msg length                           */</span></span><br><span class="line">        __u8 *buf;              <span class="comment">/* pointer to msg data                  */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员说明】</strong></p>
+<ul>
+<li>addr ： __u16 类型，要读写的二级外设地址</li>
+<li>flags ： __u16 类型，表示地址的长度，读写功能，使用下边定义的这几个宏定义。如果是 10 位地址必须设置 I2C_M_TEN ，如果是读操作必须设置有 I2C_M_RD ，可以使用或运算合成。</li>
+<li>len ： __u16 类型，读写数据的数据长度。</li>
+<li>buf ： __u8 * 类型，要读写的数据指针。写操作：数据源；读操作：指定存放数据的缓存区。</li>
+</ul>
+<p><strong>【注意事项】</strong>一般是定义在驱动中，定义的是一个结构体数组，主要用于 I2C 通信。</p>
+<p><strong>【定义实例】</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">xxx_read_byte</span><span class="params">(<span class="keyword">struct</span> i2c_client *pclt, <span class="type">unsigned</span> <span class="type">char</span> reg)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// ... ...</span></span><br><span class="line">    <span class="comment">/* 1.定义发送数据用的变量和接收数据用的变量并初始化 */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">i2c_msg</span> <span class="title">msg</span>[2] =</span> &#123; <span class="comment">/* 该结构体定义在 linux/i2c.h */</span></span><br><span class="line">        &#123;pclt-&gt;addr, <span class="number">0</span>, <span class="number">1</span>, txbuf&#125;,</span><br><span class="line">        &#123;pclt-&gt;addr, I2C_M_RD, <span class="number">1</span>, rxbuf&#125;,</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="comment">// ... ... </span></span><br><span class="line">    <span class="keyword">return</span> rxbuf[<span class="number">0</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-I2C-设备相关结构体"><a href="#4-I2C-设备相关结构体" class="headerlink" title="4. I2C 设备相关结构体"></a><font size=3>4. I2C 设备相关结构体</font></h2><h3 id="4-1-struct-i2c-client"><a href="#4-1-struct-i2c-client" class="headerlink" title="4.1 struct i2c_client "></a><font size=3>4.1 struct i2c_client </font></h3><p> struct i2c_client  这个结构体定义在 linux 内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/i2c.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">i2c_client</span> &#123;</span></span><br><span class="line">        <span class="type">unsigned</span> <span class="type">short</span> flags;           <span class="comment">/* div., see below              */</span></span><br><span class="line">        <span class="type">unsigned</span> <span class="type">short</span> addr;            <span class="comment">/* chip address - <span class="doctag">NOTE:</span> 7bit    */</span></span><br><span class="line">                                        <span class="comment">/* addresses are stored in the  */</span></span><br><span class="line">                                        <span class="comment">/* _LOWER_ 7 bits               */</span></span><br><span class="line">        <span class="type">char</span> name[I2C_NAME_SIZE];</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">i2c_adapter</span> *<span class="title">adapter</span>;</span>    <span class="comment">/* the adapter we sit on        */</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">device</span> <span class="title">dev</span>;</span>              <span class="comment">/* the device structure         */</span></span><br><span class="line">        <span class="type">int</span> irq;                        <span class="comment">/* irq issued by device         */</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">detected</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员说明】</strong></p>
+<ul>
+<li>flags ： unsigned short 类型，表示地址长度，例如是 10 位还是 7 位地址，默认是 7 位地址。如果是 10 位地址器件，则设置为 I2C_CLIENT_TEN 。</li>
+<li>addr ： unsigned short 类型，表示具体 I2C 器件（如 AT24C02 ）的设备地址的低 7 位（第 8 位为读或者写的标志）。</li>
+<li>name ： char 类型数组，表示设备名，用于和 i2c_driver 层匹配使用的，可以和平台模型中的平台设备层 platform_driver 中的 name 作用是一样的。</li>
+<li>adapter ： struct i2c_adapter * 类型，本设备所绑定的适配器结构（ CPU 有很多 I2C 适配器，类似单片机有串口 1 、串口 2 等等，在 linux 中每个适配器都用一个结构描述)，意思就是使用的哪一个 I2C 适配器。</li>
+<li>irq ： int 类型，设备需要使用到中断时，把中断编号传递给 i2c_driver 进行注册中断，如果没有就不需要填充。(有的 I2C 器件有中断引脚编号，与 CPU 相连)。</li>
+</ul>
+<p><strong>【定义实例】</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">i2c_board_info</span> <span class="title">mpu6050_info</span> =</span> &#123;</span><br><span class="line">    I2C_BOARD_INFO(<span class="string">&quot;mpu6050&quot;</span>, <span class="number">0x68</span>), <span class="comment">/* 需要是driver文件中 struct i2c_device_id 定义的那个数组中的一个id相同,0x68表示从设备地址 */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-struct-i2c-board-info"><a href="#4-2-struct-i2c-board-info" class="headerlink" title="4.2 struct i2c_board_info "></a><font size=3>4.2 struct i2c_board_info </font></h3><p> I2C 设备在进行匹配的时候需要自己创建 client 对象，就需要用到 struct i2c_board_info 这个结构体了，它用于用来协助创建 i2c_client 对象，这个结构体定义在 linux 内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/i2c.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">i2c_board_info</span> &#123;</span></span><br><span class="line">        <span class="type">char</span>            type[I2C_NAME_SIZE];</span><br><span class="line">        <span class="type">unsigned</span> <span class="type">short</span>  flags;</span><br><span class="line">        <span class="type">unsigned</span> <span class="type">short</span>  addr;</span><br><span class="line">        <span class="type">void</span>            *platform_data;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">dev_archdata</span>     *<span class="title">archdata</span>;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">device_node</span> *<span class="title">of_node</span>;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">acpi_dev_node</span> <span class="title">acpi_node</span>;</span></span><br><span class="line">        <span class="type">int</span>             irq;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【成员说明】</strong></p>
+<ul>
+<li>type ： char 类型数组，用来初始化 i2c_client 结构中的 name 成员。</li>
+<li>flags ： unsigned short 类型，用来初始化 i2c_client 结构中的 flags 成员。</li>
+<li>addr ： unsigned short 类型，用来初始化 i2c_client 结构中的 addr 成员。</li>
+<li>platform_data ： void * 类型，用来初始化 i2c_client 结构中的 .dev.platform_data 成员。</li>
+<li>archdata ： struct dev_archdata *a 类型，用来初始化 i2c_client 结构中的 .dev.archdata 成员。</li>
+<li>irq ： int 类型，用来初始化 i2c_client 结构中的 irq 成员。</li>
+</ul>
+<p><strong>【注意事项】</strong>关键就是记住该结构和 i2c_client 结构成员的对应关系。在 i2c 子系统不直接创建 i2c_client 结构，只是提供 struct i2c_board_info 结构信息，让子系统动态创建，并且注册。</p>
+<h2 id="5-结构体关系"><a href="#5-结构体关系" class="headerlink" title="5. 结构体关系"></a><font size=3>5. 结构体关系</font></h2><p><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-11-I2C%E9%A9%B1%E5%8A%A8-01-Linux%E4%B8%AD%E7%9A%84I2C%E9%A9%B1%E5%8A%A8/img/640.png" alt="图片"></p>
+<h1 id="三、基本函数"><a href="#三、基本函数" class="headerlink" title="三、基本函数"></a><font size=3>三、基本函数</font></h1><h2 id="1-I2C-总线相关函数"><a href="#1-I2C-总线相关函数" class="headerlink" title="1. I2C 总线相关函数"></a><font size=3>1. I2C 总线相关函数</font></h2><p>总线驱动相关函数是 SOC 厂商编写总线驱动会使用到的一些函数。</p>
+<h3 id="1-1-I2C-总线设备"><a href="#1-1-I2C-总线设备" class="headerlink" title="1.1 I2C 总线设备"></a><font size=3>1.1 I2C 总线设备</font></h3><h4 id="1-1-i2c-add-adapter"><a href="#1-1-i2c-add-adapter" class="headerlink" title="1.1 i2c_add_adapter() "></a><font size=3>1.1 i2c_add_adapter() </font></h4><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep i2c_add_adapter -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/i2c.h&gt;</span></span></span><br><span class="line"> </span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">i2c_add_adapter</span><span class="params">(<span class="keyword">struct</span> i2c_adapter *adapter)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数向  Linux  内核注册一个设置好的 i2c_adapter  适配器，该函数使用的是动态的总线号  。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>adapter ： struct i2c_adapter * 类型，要添加到  Linux  内核中的  i2c_adapter ，也就是  I2C  适配器。</li>
+</ul>
+<p><strong>【返回值】</strong> int 类型，成功返回 0 ，失败返回 一个负数。</p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong> none </p>
+<h4 id="1-2-i2c-add-numbered-adapter"><a href="#1-2-i2c-add-numbered-adapter" class="headerlink" title="1.2 i2c_add_numbered_adapter() "></a><font size=3>1.2 i2c_add_numbered_adapter() </font></h4><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep i2c_add_numbered_adapter -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/i2c.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">i2c_add_numbered_adapter</span><span class="params">(<span class="keyword">struct</span> i2c_adapter *adap)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数向  Linux  内核注册一个设置好的 i2c_adapter  适配器，该函数使用的是静态的总线号  。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>adap ： struct i2c_adapter * 类型，要添加到  Linux  内核中的  i2c_adapter ，也就是  I2C  适配器。</li>
+</ul>
+<p><strong>【返回值】</strong> int 类型，成功返回 0 ，失败返回 一个负数。</p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong> none </p>
+<h4 id="1-3-i2c-del-adapter"><a href="#1-3-i2c-del-adapter" class="headerlink" title="1.3 i2c_del_adapter() "></a><font size=3>1.3 i2c_del_adapter() </font></h4><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep i2c_del_adapter -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/i2c.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">i2c_del_adapter</span><span class="params">(<span class="keyword">struct</span> i2c_adapter * adap)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数向  Linux  内核删除一个 i2c_adapter  适配器，该函数使用的是静态的总线号  。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>adap ： struct i2c_adapter * 类型，要添加到  Linux  内核中的  i2c_adapter ，也就是  I2C  适配器。</li>
+</ul>
+<p><strong>【返回值】</strong> none </p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong> none </p>
+<h2 id="2-I2C-设备相关函数"><a href="#2-I2C-设备相关函数" class="headerlink" title="2. I2C 设备相关函数"></a><font size=3>2. I2C 设备相关函数</font></h2><p> I2C 设备相关的函数就是我们在 client 模块中需要用到的一些函数，需要我们自己调用。</p>
+<h3 id="2-1-i2c-get-adapter"><a href="#2-1-i2c-get-adapter" class="headerlink" title="2.1 i2c_get_adapter() "></a><font size=3>2.1 i2c_get_adapter() </font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep i2c_get_adapter -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/i2c.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">struct</span> i2c_adapter *<span class="title function_">i2c_get_adapter</span><span class="params">(<span class="type">int</span> nr)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数通过 I2C 总线编号获得内核中的 i2c_adapter 结构地址，然后用户可以使用这个结构地址就可以给 i2c_client 结构使用，从而实现 i2c_client 进行总线绑定，从而增加适配器引用计数。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>int ： int 类型， I2C 通道编号，比如 fs4412 开发板的 mpu6050 挂在 I2C5 上，这里就填 5 就可以了。</li>
+</ul>
+<p><strong>【返回值】</strong> struct i2c_adapter * 类型，成功返回对应的 I2C 适配器结构内存地址，失败返回  NULL 。</p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong> none </p>
+<h3 id="2-2-i2c-put-adapter"><a href="#2-2-i2c-put-adapter" class="headerlink" title="2.2 i2c_put_adapter() "></a><font size=3>2.2 i2c_put_adapter() </font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep i2c_put_adapter -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/i2c.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">i2c_put_adapter</span><span class="params">(<span class="keyword">struct</span> i2c_adapter *adap)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数当使用 i2c_get_adapter 后，需要使用该函数减少引用计数，当 i2c_client 创建完毕后，就可以调用该函数了。（如果适配器驱动不需要卸载，可以不使用这几个函数）。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>adap ： struct i2c_adapter * 类型， I2C 适配器结构体地址。</li>
+</ul>
+<p><strong>【返回值】</strong> none </p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong> none </p>
+<h3 id="2-3-i2c-new-probed-device"><a href="#2-3-i2c-new-probed-device" class="headerlink" title="2.3 i2c_new_probed_device() "></a><font size=3>2.3 i2c_new_probed_device() </font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep i2c_new_probed_device -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/i2c.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="comment">/* If you don&#x27;t know the exact address of an I2C device, use this variant</span></span><br><span class="line"><span class="comment"> * instead, which can probe for device presence in a list of possible</span></span><br><span class="line"><span class="comment"> * addresses. The &quot;probe&quot; callback function is optional. If it is provided,</span></span><br><span class="line"><span class="comment"> * it must return 1 on successful probe, 0 otherwise. If it is not provided,</span></span><br><span class="line"><span class="comment"> * a default probing method is used.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="keyword">struct</span> i2c_client *</span><br><span class="line"><span class="title function_">i2c_new_probed_device</span><span class="params">(<span class="keyword">struct</span> i2c_adapter *adap,</span></span><br><span class="line"><span class="params">                      <span class="keyword">struct</span> i2c_board_info *info,</span></span><br><span class="line"><span class="params">                      <span class="type">unsigned</span> <span class="type">short</span> <span class="type">const</span> *addr_list,</span></span><br><span class="line"><span class="params">                      <span class="type">int</span> (*probe)(<span class="keyword">struct</span> i2c_adapter *, <span class="type">unsigned</span> <span class="type">short</span> addr))</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数根据参数 adap ， info ， addr ， addr_list 动态创建 i2c_client 并且进行注册，<strong>不明确二级外设地址，但是知道是可能几个值之一的情况下可用</strong>。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>adap ： struct i2c_adapter * 类型， i2c_client 所依附的 I2C 适配器结构地址。  </li>
+<li>info ： struct i2c_board_info * 类型， i2c_client 基本信息。</li>
+<li>addt_list ： unsigned short const * 类型，  i2c_client  的地址（地址定义形式是固定的，一般是定义一个数组，数组必须以 I2C_CLIENT_END 结束，示例</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">unsigned</span> <span class="type">short</span> ft5x0x_i2c[] = &#123;</span><br><span class="line">	<span class="number">0x38</span>,</span><br><span class="line">    <span class="number">0x39</span>,</span><br><span class="line">	I2C_CLIENT_END</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>probe ：回调函数指针，当创建好 i2c_client 后，会调用该函数，一般没有什么特殊需求传递 NULL 。</li>
+</ul>
+<p><strong>【返回值】</strong> struct i2c_client * 类型，成功返回创建好的 i2c_client 结构地址，失败返回 NULL 。</p>
+<p><strong>【使用格式】</strong></p>
+<details class="folding-tag" blue><summary> 点击查看详情 </summary>
+              <div class='content'>
+              <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">i2c_adapter</span> *<span class="title">ad</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">i2c_board_info</span> <span class="title">info</span>=</span> &#123;<span class="string">&quot;&quot;</span>&#125;;</span><br><span class="line"></span><br><span class="line"><span class="type">unsigned</span> <span class="type">short</span> addr_list[]= &#123;</span><br><span class="line">	<span class="number">0x38</span>,</span><br><span class="line">	<span class="number">0x39</span>,</span><br><span class="line">	I2C_CLIENT_END</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 假设设备挂在i2c-2总线上 */</span></span><br><span class="line">ad=i2c_get_adapter(<span class="number">2</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 自己填充board_info */</span></span><br><span class="line"><span class="built_in">strcpy</span>(inf.type,<span class="string">&quot;xxxxx&quot;</span>);</span><br><span class="line">info.flags=<span class="number">0</span>;</span><br><span class="line"><span class="comment">/* 动态创建i2c_client并且注册 */</span></span><br><span class="line">i2c_new_probed_device(ad,&amp;info,addr_list,<span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">i2c_put_adapter(ad);</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<p><strong>【注意事项】</strong> none </p>
+<h3 id="2-4-i2c-new-device"><a href="#2-4-i2c-new-device" class="headerlink" title="2.4 i2c_new_device() "></a><font size=3>2.4 i2c_new_device() </font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep i2c_new_device -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/i2c.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="comment">/* Add-on boards should register/unregister their devices; e.g. a board</span></span><br><span class="line"><span class="comment"> * with integrated I2C, a config eeprom, sensors, and a codec that&#x27;s</span></span><br><span class="line"><span class="comment"> * used in conjunction with the primary hardware.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="keyword">struct</span> i2c_client *</span><br><span class="line"><span class="title function_">i2c_new_device</span><span class="params">(<span class="keyword">struct</span> i2c_adapter *adap, <span class="keyword">struct</span> i2c_board_info <span class="type">const</span> *info)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数根据参数 adap ， info ，创建 i2c_client 并且进行注册，<strong>明确二级外设地址的情况下可用</strong>。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>adap ： struct i2c_adapter * 类型， i2c_client 所依附的 I2C 适配器结构地址。  </li>
+<li>info ： struct i2c_board_info * 类型， i2c_client 基本信息。</li>
+</ul>
+<p><strong>【返回值】</strong> struct i2c_client * 类型，成功返回创建好的 i2c_client 结构地址，失败返回 NULL 。</p>
+<p><strong>【使用格式】</strong></p>
+<details class="folding-tag" blue><summary> 点击查看详情 </summary>
+              <div class='content'>
+              <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">i2c_adapter</span> *<span class="title">ad</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">i2c_board_info</span> <span class="title">info</span>=</span>&#123;</span><br><span class="line">	I2C_BOARD_INFO(name, 二级外设地址)</span><br><span class="line">&#125;;</span><br><span class="line"><span class="comment">/* 假设设备挂在i2c-2总线上 */</span></span><br><span class="line">ad=i2c_get_adapter(<span class="number">2</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 动态创建i2c_client并且注册 */</span></span><br><span class="line">i2c_new_device(ad,&amp;info);</span><br><span class="line"></span><br><span class="line">i2c_put_adapter(ad);</span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<p><strong>【注意事项】</strong> none </p>
+<h3 id="2-5-i2c-unregister-device"><a href="#2-5-i2c-unregister-device" class="headerlink" title="2.5 i2c_unregister_device() "></a><font size=3>2.5 i2c_unregister_device() </font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep i2c_unregister_device -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/i2c.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">i2c_unregister_device</span><span class="params">(<span class="keyword">struct</span> i2c_client *pclt)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数从 linux 内核注销一个 i2c_client 对象。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>adap ： struct i2c_adapter * 类型， i2c_client 所依附的 I2C 适配器结构地址。  </li>
+<li>info ： struct i2c_board_info * 类型， i2c_client 基本信息。</li>
+</ul>
+<p><strong>【返回值】</strong> struct i2c_client * 类型，成功返回创建好的 i2c_client 结构地址，失败返回 NULL 。</p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong> none </p>
+<h2 id="3-I2C-设备驱动相关函数"><a href="#3-I2C-设备驱动相关函数" class="headerlink" title="3. I2C 设备驱动相关函数"></a><font size=3>3. I2C 设备驱动相关函数</font></h2><h3 id="3-1-i2c-register-driver"><a href="#3-1-i2c-register-driver" class="headerlink" title="3.1 i2c_register_driver() "></a><font size=3>3.1 i2c_register_driver() </font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep i2c_register_driver -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/i2c.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">i2c_register_driver</span><span class="params">(<span class="keyword">struct</span> module *owner,</span></span><br><span class="line"><span class="params">                        <span class="keyword">struct</span> i2c_driver *driver)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数向  Linux  内核注册一个 i2c_driver  驱动。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>owner ： struct module * 类型，一般为  THIS_MODULE 。  </li>
+<li>driver ： struct i2c_driver * 类型，要注册的  i2c_driver  。</li>
+</ul>
+<p><strong>【返回值】</strong> int 类型，成功返回 0 ，失败返回 一个负数。</p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong> none </p>
+<h3 id="3-2-i2c-add-driver"><a href="#3-2-i2c-add-driver" class="headerlink" title="3.2 i2c_add_driver() "></a><font size=3>3.2 i2c_add_driver() </font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep i2c_add_driver -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/i2c.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="comment">/* use a define to avoid include chaining to get THIS_MODULE */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> i2c_add_driver(driver) \</span></span><br><span class="line"><span class="meta">        i2c_register_driver(THIS_MODULE, driver)</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>这其实是一个宏，它用于  Linux  内核注册一个 i2c_driver  驱动，只是我们可以少写一个参数，一般用这个会多一些。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>driver ： struct i2c_driver * 类型，要注册的  i2c_driver  。</li>
+</ul>
+<p><strong>【返回值】</strong> int 类型，成功返回 0 ，失败返回 一个负数。</p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong> none </p>
+<h3 id="3-3-i2c-del-driver"><a href="#3-3-i2c-del-driver" class="headerlink" title="3.3 i2c_del_driver() "></a><font size=3>3.3 i2c_del_driver() </font></h3><p>注销  I2C  设备驱动的时候需要将前面注册的  i2c_driver  从  Linux  内核中注销掉，  我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep i2c_del_driver -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/i2c.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">i2c_del_driver</span><span class="params">(<span class="keyword">struct</span> i2c_driver *driver)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于从  Linux  内核注销一个 i2c_driver  驱动。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>driver ： struct i2c_driver * 类型，要注销的  i2c_driver  。</li>
+</ul>
+<p><strong>【返回值】</strong> int 类型，成功返回 0 ，失败返回 一个负数。</p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong> none </p>
+<h2 id="4-I2C-数据读写函数"><a href="#4-I2C-数据读写函数" class="headerlink" title="4. I2C 数据读写函数"></a><font size=3>4. I2C 数据读写函数</font></h2><p>这些函数用于 I2C 设备驱动中进行数据的发送与接收。</p>
+<h3 id="4-1-i2c-transfer"><a href="#4-1-i2c-transfer" class="headerlink" title="4.1 i2c_transfer() "></a><font size=3>4.1 i2c_transfer() </font></h3><p> 我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep i2c_transfer -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/i2c.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">i2c_transfer</span><span class="params">(<span class="keyword">struct</span> i2c_adapter *adap, <span class="keyword">struct</span> i2c_msg *msgs, <span class="type">int</span> num)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数是 i2c 收发一体化函数，收还是发由参数 msgs 的成员 flags 决定。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>adap ： struct i2c_adapter * 类型，表示使用哪一个适配器发送信息，一般是取 i2c_client 结构中的 adapter 指针作为参数。</li>
+<li>msgs ： struct i2c_msg * 类型，具体发送消息指针，一般情况下是一个数组。</li>
+<li>num ： int 类型，表示前一个参数 msgs 数组有多少个消息要发送的。</li>
+</ul>
+<p><strong>【返回值】</strong> int 类型，成功返回正数，表示成功发送的 msgs 数量，失败返回一个负数。</p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong> none </p>
+<h3 id="4-2-i2c-master-recv"><a href="#4-2-i2c-master-recv" class="headerlink" title="4.2 i2c_master_recv() "></a><font size=3>4.2 i2c_master_recv() </font></h3><p> 我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep i2c_master_recv -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/i2c.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">i2c_master_recv</span><span class="params">(<span class="type">const</span> <span class="keyword">struct</span> i2c_client *client, <span class="type">char</span> *buf, <span class="type">int</span> count)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数是 i2c 读取数据函数，实现标准的 I2C 读时序，数据可以是 N 个数据，这个函数调用时候默认已经包含发送从机地址 + 读方向这一环节了。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>client ： struct i2c_client * 类型， I2C 设备对象的地址。</li>
+<li>buf ： char * 类型，读取数据存放缓冲区。</li>
+<li>count ： int 类型，读取数据大小 不大于 64k 。</li>
+</ul>
+<p><strong>【返回值】</strong> int 类型，成功返回读取到的字节数，失败返回一个负数。</p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong> none </p>
+<h3 id="4-3-i2c-master-send"><a href="#4-3-i2c-master-send" class="headerlink" title="4.3 i2c_master_send() "></a><font size=3>4.3 i2c_master_send() </font></h3><p> 我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep i2c_master_send -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/i2c.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">i2c_master_send</span><span class="params">(<span class="type">const</span> <span class="keyword">struct</span> i2c_client *client, <span class="type">const</span> <span class="type">char</span> *buf, <span class="type">int</span> count)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数是 i2c 发送数据函数，实现标准的 I2C 写时序，数据可以是 N 个数据，这个函数调用时候默认已经包含发送从机地址 + 写方向这一环节了。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>client ： struct i2c_client * 类型， I2C 设备对象的地址。</li>
+<li>buf ： char * 类型，要大宋的数据存放缓冲区。</li>
+<li>count ： int 类型，写入数据大小 不大于 64k 。</li>
+</ul>
+<p><strong>【返回值】</strong> int 类型，成功返回发送的字节数，失败返回一个负数。</p>
+<p><strong>【使用格式】</strong> none </p>
+<p><strong>【注意事项】</strong> none </p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/b1c68daf.html">LV10-11-I2C驱动-01-Linux中的I2C驱动</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年07月08日 - 18:58</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/b1c68daf.html" title="LV10-11-I2C驱动-01-Linux中的I2C驱动">https://sumumm.github.io/post/b1c68daf.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV10-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/18b93c9.html" rel="prev" title="LV10-11-I2C驱动-02-应用层使用I2C驱动">
+                  <i class="fa fa-angle-left"></i> LV10-11-I2C驱动-02-应用层使用I2C驱动
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/61f6cfe4.html" rel="next" title="LV10-10-platform-02-三种匹配方式">
+                  LV10-10-platform-02-三种匹配方式 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

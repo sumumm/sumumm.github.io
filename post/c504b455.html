@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是中断与异常——Cortex-A7中断系统的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV04-07-中断与异常-04-CortexA7中断系统">
+<meta property="og:url" content="https://sumumm.github.io/post/c504b455.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是中断与异常——Cortex-A7中断系统的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910104505665.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910105025878.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20240121142504171.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20240121143724299.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20240121143900941.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910105439401.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910105547375.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910110046239.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20240121144939074.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20240121150209876.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910110829692.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910110902538.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910111043784.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910111111179.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910111303553.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910111404866.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910111752761.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910111946129.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910112124153.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910112207791.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910112331142.png">
+<meta property="article:published_time" content="2024-01-21T08:04:12.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.040Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV04-裸机开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910104505665.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/c504b455.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/c504b455.html","path":"post/c504b455.html","title":"LV04-07-中断与异常-04-CortexA7中断系统"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV04-07-中断与异常-04-CortexA7中断系统 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81Cortex-A7-%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F%E7%AE%80%E4%BB%8B"><span class="nav-text">一、Cortex-A7 中断系统简介  </span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-8%E4%B8%AA%E4%B8%AD%E6%96%AD%EF%BC%9F"><span class="nav-text">1. 8个中断？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-GIC-%E6%8E%A7%E5%88%B6%E5%99%A8%E7%AE%80%E4%BB%8B"><span class="nav-text">2. GIC 控制器简介  </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-GIC-%E6%8E%A7%E5%88%B6%E5%99%A8%E6%80%BB%E8%A7%88"><span class="nav-text">2.1 GIC 控制器总览  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E4%B8%AD%E6%96%AD-ID"><span class="nav-text">2.2 中断 ID</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-GIC-%E9%80%BB%E8%BE%91%E5%88%86%E5%9D%97"><span class="nav-text">2.3 GIC 逻辑分块  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-IMX6ULL-GIC%E4%B8%AD%E6%96%AD%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">2.4 IMX6ULL GIC中断寄存器</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-GICC-IAR-%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">4.1 GICC_IAR 寄存器  </span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-GICC-EOIR-%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">4.2 GICC_EOIR 寄存器  </span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81CP15-%E5%8D%8F%E5%A4%84%E7%90%86%E5%99%A8"><span class="nav-text">二、CP15 协处理器  </span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%9B%B8%E5%85%B3%E6%8C%87%E4%BB%A4"><span class="nav-text">1. 相关指令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%9B%B8%E5%85%B3%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">2. 相关寄存器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-c0-%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">2.1 c0 寄存器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-c1-%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">2.2 c1 寄存器  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-c12-%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">2.3 c12 寄存器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-c15-%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">2.4 c15 寄存器</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E4%B8%AD%E6%96%AD%E4%BD%BF%E8%83%BD"><span class="nav-text">三、中断使能</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-IRQ-%E5%92%8C-FIQ-%E6%80%BB%E4%B8%AD%E6%96%AD%E4%BD%BF%E8%83%BD"><span class="nav-text">1. IRQ 和 FIQ 总中断使能  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-ID0-ID1019-%E4%B8%AD%E6%96%AD%E4%BD%BF%E8%83%BD%E5%92%8C%E7%A6%81%E6%AD%A2"><span class="nav-text">2. ID0 - ID1019 中断使能和禁止  </span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E4%B8%AD%E6%96%AD%E4%BC%98%E5%85%88%E7%BA%A7%E8%AE%BE%E7%BD%AE"><span class="nav-text">四、中断优先级设置  </span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BC%98%E5%85%88%E7%BA%A7%E6%95%B0%E9%85%8D%E7%BD%AE"><span class="nav-text">1. 优先级数配置  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%8A%A2%E5%8D%A0%E4%BC%98%E5%85%88%E7%BA%A7%E5%92%8C%E5%AD%90%E4%BC%98%E5%85%88%E7%BA%A7%E4%BD%8D%E6%95%B0%E8%AE%BE%E7%BD%AE"><span class="nav-text">2. 抢占优先级和子优先级位数设置  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BC%98%E5%85%88%E7%BA%A7%E8%AE%BE%E7%BD%AE"><span class="nav-text">3. 优先级设置  </span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/c504b455.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV04-07-中断与异常-04-CortexA7中断系统 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV04-07-中断与异常-04-CortexA7中断系统
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-01-21 16:04:12" itemprop="dateCreated datePublished" datetime="2024-01-21T16:04:12+08:00">2024-01-21</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV04-裸机开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>8.3k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>30 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是中断与异常——Cortex-A7中断系统的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows版本</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu版本</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>      </tr>    <tr>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="4">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">在线阅读linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga" target="_blank">nxp-imx/linux-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga</a></td>        <td align="left">NXP linux内核仓库tags中的rel_imx_4.1.15_2.1.0_ga</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.1.15_2.1.0_ga</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>        <tr>        <td align="center" rowspan="5">ARM</td>        <td align="left"><a href="https://developer.arm.com/documentation/ddi0464/latest" target="_blank">Cortex-A7 MPCore Technical Reference Manual</a></td>        <td align="left">Cortex-A7 MPCore技术参考手册</td>    </tr>    <tr>        <td align="left"><a href="https://developer.arm.com/documentation/ddi0406/cd/?lang=en" target="_blank">ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition</a></td>        <td align="left">ARM架构参考手册ARMv7-A和ARMv7-R版</td>    </tr>    <tr>        <td align="left"><a href="https://developer.arm.com/documentation/ihi0069/h/?lang=en" target="_blank">Arm Generic Interrupt Controller Architecture Specification- version 3 and version 4</a></td>        <td align="left">Arm通用中断控制器架构规范-版本3和版本4</td>    </tr>    <tr>        <td align="left"><a href="https://developer.arm.com/documentation/ihi0048/bb/?lang=en" target="_blank">ARM Generic Interrupt Controller Architecture Specification - Version 2.0</a></td>        <td align="left">Arm通用中断控制器架构规范-版本2.0</td>    </tr>    <tr>        <td align="left"><a href="https://developer.arm.com/documentation/den0013/d/?lang=en" target="_blank">ARM Cortex-A Series Programmer's Guide for ARMv7-A</a></td>        <td align="left">Cortex-A系列ARMv7-A编程指南</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、Cortex-A7-中断系统简介"><a href="#一、Cortex-A7-中断系统简介" class="headerlink" title="一、Cortex-A7 中断系统简介  "></a><font size=3>一、Cortex-A7 中断系统简介  </font></h1><h2 id="1-8个中断？"><a href="#1-8个中断？" class="headerlink" title="1. 8个中断？"></a><font size=3>1. 8个中断？</font></h2><p>Cortex-A7 也有中断向量表，中断向量表也是在代码的最前面。 CortexA7 内核有 8 个异常中断，这 8 个异常中断的中断向量表如表 ：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910104505665.png" alt="image-20230910104505665" style="zoom:50%;" />
+
+<p>中断向量表里面都是中断服务函数的入口地址，因此一款芯片有什么中断都是可以从中断向量表看出来的。从表中可以看出， Cortex-A7 一共有 8 个中断，而且还有一个中断向量未使用，实际只有 7 个中断。  </p>
+<p>①、复位中断(Rest)， CPU 复位以后就会进入复位中断，我们可以在复位中断服务函数里面做一些初始化工作，比如初始化 SP 指针、 DDR 等等。</p>
+<p>②、未定义指令中断(Undefined Instruction)，如果指令不能识别的话就会产生此中断。</p>
+<p>③、软中断(Software Interrupt,SWI)，由 SWI 指令引起的中断， Linux 的系统调用会用 SWI指令来引起软中断，通过软中断来陷入到内核空间。</p>
+<p>④、指令预取中止中断(Prefetch Abort)，预取指令的出错的时候会产生此中断。</p>
+<p>⑤、数据访问中止中断(Data Abort)，访问数据出错的时候会产生此中断。</p>
+<p>⑥、 IRQ 中断(IRQ Interrupt)，外部中断，前面已经说了，芯片内部的外设中断都会引起此中断的发生。</p>
+<p>⑦、 FIQ 中断(FIQ Interrupt)，快速中断，如果需要快速处理中断的话就可以使用此中断。  </p>
+<p>难道一个能跑 Linux 的芯片只有这 7 个中断？明显不可能的！那类似 STM32 中的EXTI9_5_IRQHandler、 TIM2_IRQHandler 这样的中断向量在哪里？ I2C、SPI、定时器等等的中断怎么处理呢？这个就是 Cortex-A 和 Cotex-M 在中断向量表这一块的区别，对于 Cortex-M 内核来说，中断向量表列举出了一款芯片所有的中断向量，包括芯片外设的所有中断。对于 CotexA 内核来说并没有这么做，在上面的表中有个 IRQ 中断， Cortex-A 内核 CPU 的所有外部中断都属于这个 IRQ 中断，当任意一个外部中断发生的时候都会触发 IRQ 中断。在 IRQ 中断服务函数里面就可以读取指定的寄存器来判断发生的具体是什么中断，进而根据具体的中断做出相应的处理。这些外部中断和 IRQ 中断的关系如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910105025878.png" alt="image-20230910105025878" style="zoom:50%;" />
+
+<p>左侧的 Software0_IRQn~PMU_IRQ2_IRQ 这些都是 I.MX6U 的中断，他们都属于 IRQ 中断。当图中左侧这些中断中任意一个发生的时候 IRQ 中断都会被触发，所以我们需要在 IRQ 中断服务函数中判断究竟是左侧的哪个中断发生了，然后再做出具体的处理。</p>
+<h2 id="2-GIC-控制器简介"><a href="#2-GIC-控制器简介" class="headerlink" title="2. GIC 控制器简介  "></a><font size=3>2. GIC 控制器简介  </font></h2><h3 id="2-1-GIC-控制器总览"><a href="#2-1-GIC-控制器总览" class="headerlink" title="2.1 GIC 控制器总览  "></a><font size=3>2.1 GIC 控制器总览  </font></h3><p>GIC 是 ARM 公司给 Cortex-A&#x2F;R 内核提供的一个中断控制器，类似 Cortex-M 内核中的NVIC。目前 GIC 有 4 个版本:V1~V4， V1 是最老的版本，已经被废弃了。 V2~V4 目前正在大量的使用。 GIC V2 是给 ARMv7-A 架构使用的，比如 Cortex-A7、 Cortex-A9、 Cortex-A15 等，V3 和 V4 是给 ARMv8-A&#x2F;R 架构使用的，也就是 64 位芯片使用的。 </p>
+<p>I.MX6U 是 Cortex-A 内核的，因此我们主要学习 GIC V2。 GIC V2 最多支持 8 个核。 ARM 会根据 GIC 版本的不同研发出不同的 IP 核，那些半导体厂商直接购买对应的 IP 核即可，比如 ARM 针对 GIC V2 就开发出了 GIC400 这个中断控制器 IP 核。</p>
+<p>我们来简单了解一下GIC V2，我们打开《ARM® Generic Interrupt Controller Architecture version 2.0》这篇文档，找到3.9 Example GIC usage models    一节，这一节有下面这么一个图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20240121142504171.png" alt="image-20240121142504171" style="zoom: 40%;" />
+
+<p>如上图所示，硬件中断信号发送到 GIC（ Generic Interrupt Controller），GIC 产生一个 FIQ 或 IRQ 信号给 CPU。 GPIO 模块、 UART 模块均能产生硬件中断。在初始化中断时，要初始化这 4 部分：产生中断的源头(GPIO 模块或 UART模块等)、 GIC(内部有 Distributor 或 CPU interface)、 CPU 本身(设置 CPSR寄存器)，如下图    </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20240121143724299.png" alt="image-20240121143724299" style="zoom:50%;" />
+
+<p>GIC 的主要作用可以归结为接受硬件中断信号，并进行简单的处理，按照一定的设置策略，分给对应的 CPU 处理，我们再找到3.9.3 Supporting IRQs and FIQs in a virtualized processor environment  一节，有这么一个图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20240121143900941.png" alt="image-20240121143900941" style="zoom:50%;" />
+
+<p>当 GIC 接收到外部中断信号以后就会报给 ARM 内核，但是ARM 内核只提供了四个信号给 GIC 来汇报中断情况： VFIQ（虚拟快速 FIQ）、VIRQ（虚拟外部 IRQ）、FIQ（快速中断 IRQ）、IRQ（外部中断 IRQ），他们之间的关系如图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910105439401.png" alt="image-20230910105439401" style="zoom:50%;" />
+
+<p>VFIQ 和 VIRQ 是针对虚拟化，剩下就是 IRQ 和 FIQ。GPIO 中断属于 IRQ 中断，所以在后面的GPIO中断实验中 GIC 上报 IRQ 信号给 ARM 内核。  这里我们先不关心虚拟化，剩下的就是 FIQ 和 IRQ 了，那么 GIC 是如何完成这个工作的呢？ GICV2 的逻辑图如图 ：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910105547375.png" alt="image-20230910105547375" style="zoom:50%;" />
+
+<p>左侧部分就是中断源，中间部分就是 GIC 控制器，最右侧就是中断控制器向处理器内核发送中断信息。GIC 控制器包括分发器（ Distributor）和 CPU 接口端（ CPU interface）。 分发器（ Distributor）主要完成对整个中断控制器使能，设置中断优先级，设置中断触发方式，决定每个中断信号发送到哪一个具体的 CPU 上执行。CPU 接口端（ CPU interface）主要完成使能和发送一个具体的中断信号到特定的 CPU 上，确认中断已被 CPU 接受、处理以及处理完成，设置 CPU 能接受中断的优先级以及基于级别的中断抢占。    </p>
+<p>所以中断信号先到达分发器，分发器根据该中断所设定的 CPU，把中断发送到 CPU对应的 CPU interface 上；在 CPU interface 里判断该中断的优先级是否足够高，能否抢断或打断当前的中端处理，如果可以， CPU interface 就会发送一个物理的 signa 到 CPU 的 IRQ 线上； CPU 接收到中断信号，转到中断处理模式进行处理。  </p>
+<p>然后我们重点要看的肯定是中间的 GIC 部分， GIC 将众多的中断源分为分为三类：</p>
+<p>①、<strong>SPI(Shared Peripheral Interrupt)<strong>，共享中断，顾名思义，所有 Core 共享的中断，这个是最常见的，那些</strong>外部中断都属于 SPI 中断</strong>(注意！不是 SPI 总线那个中断) 。比如按键中断、串口中断等等，这些中断所有的 Core 都可以处理，不限定特定 Core。</p>
+<p>②、**PPI(Private Peripheral Interrupt)**，私有中断，我们说了 GIC 是支持多核的，每个核肯定有自己独有的中断。这些独有的中断肯定是要指定的核心处理，因此这些中断就叫做私有中断。</p>
+<p>③、**SGI(Software-generated Interrupt)**，软件中断，由软件触发引起的中断，通过向寄存器GICD_SGIR 写入数据来触发，系统会使用 SGI 中断来完成多核之间的通信。  </p>
+<h3 id="2-2-中断-ID"><a href="#2-2-中断-ID" class="headerlink" title="2.2 中断 ID"></a><font size=3>2.2 中断 ID</font></h3><p>中断源有很多，为了区分这些不同的中断源肯定要给他们分配一个唯一 ID，这些 ID 就是中断 ID。每一个 CPU 最多支持 1020 个中断 ID，中断 ID 号为 ID0~ID1019。这 1020 个 ID 包含了 PPI、 SPI 和 SGI，那么这三类中断是如何分配这 1020 个中断 ID 的呢？这 1020 个 ID 分配如下：  </p>
+<ul>
+<li><p>ID0~ID15：这 16 个 ID 分配给 SGI。</p>
+</li>
+<li><p>ID16~ID31：这 16 个 ID 分配给 PPI。  </p>
+</li>
+<li><p>ID32~ID1019：这 988 个 ID 分配给 SPI，像 GPIO 中断、串口中断等这些外部中断 ，至于具体到某个 ID 对应哪个中断那就由半导体厂商根据实际情况去定义了。</p>
+</li>
+</ul>
+<p>比如 I.MX6U 的总共使用了 128 个中断 ID，加上前面属于 PPI 和 SGI 的 32 个 ID， I.MX6U 的中断源共有 128+32&#x3D;160个，这 128 个中断 ID 对应的中断在《I.MX6ULL 参考手册》的“3.2 Cortex A7 interrupts”小节，中断源如表:</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910110046239.png" alt="image-20230910110046239" style="zoom:50%;" />
+
+<p>这里就不全部列出了，我们前面移植了 NXP 官方 SDK中的文件 MCIMX6Y2C.h，在此文件中定义了一个枚举类型 IRQn_Type，此枚举类型就枚举出了 I.MX6U 的所有中断，  </p>
+<h3 id="2-3-GIC-逻辑分块"><a href="#2-3-GIC-逻辑分块" class="headerlink" title="2.3 GIC 逻辑分块  "></a><font size=3>2.3 GIC 逻辑分块  </font></h3><p>GIC 架构分为了两个逻辑块： Distributor 和 CPU Interface，也就是分发器端和 CPU 接口端。</p>
+<ul>
+<li><strong>Distributor(分发器端)</strong></li>
+</ul>
+<p>此逻辑块负责处理各个中断事件的分发问题，也就是中断事件应该发送到哪个 CPU Interface 上去。分发器收集所有的中断源，可以控制每个中断的优先级，它总是将优先级最高的中断事件发送到 CPU 接口端。分发器端要做的主要工作如下：  </p>
+<p>①、全局中断使能控制。</p>
+<p>②、控制每一个中断的使能或者关闭。</p>
+<p>③、设置每个中断的优先级。</p>
+<p>④、设置每个中断的目标处理器列表。</p>
+<p>⑤、设置每个外部中断的触发模式：电平触发或边沿触发。</p>
+<p>⑥、设置每个中断属于组 0 还是组 1。  </p>
+<ul>
+<li><strong>CPU Interface(CPU 接口端)</strong></li>
+</ul>
+<p>CPU 接口端听名字就知道是和 CPU Core 相连接的，因此在每个 CPU Core 都可以在 GIC 中找到一个与之对应的 CPU Interface。 CPU 接口端就是分发器和 CPU Core 之间的桥梁， CPU 接口端主要工作如下：  </p>
+<p>①、使能或者关闭发送到 CPU Core 的中断请求信号。  </p>
+<p>②、应答中断。</p>
+<p>③、通知中断处理完成。</p>
+<p>④、设置优先级掩码，通过掩码来设置哪些中断不需要上报给 CPU Core。</p>
+<p>⑤、定义抢占策略。</p>
+<p>⑥、当多个中断到来的时候，选择优先级最高的中断通知给 CPU Core。  </p>
+<h3 id="2-4-IMX6ULL-GIC中断寄存器"><a href="#2-4-IMX6ULL-GIC中断寄存器" class="headerlink" title="2.4 IMX6ULL GIC中断寄存器"></a><font size=3>2.4 IMX6ULL GIC中断寄存器</font></h3><p>GIC 寄存器分为 Distributor register 和 CPU interface register。寄存器数目较多，这里我们看一下后面做IMX6ULL外部中断实验的时候需要我们设置的寄存器。  </p>
+<h4 id="4-1-GICC-IAR-寄存器"><a href="#4-1-GICC-IAR-寄存器" class="headerlink" title="4.1 GICC_IAR 寄存器  "></a><font size=3>4.1 GICC_IAR 寄存器  </font></h4><p>《ARM® Generic Interrupt Controller Architecture version 2.0》的4.4.4 Interrupt Acknowledge Register, GICC_IAR  一节是介绍这个寄存器的：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20240121144939074.png" alt="image-20240121144939074" style="zoom:50%;" />
+
+<table>
+<thead>
+<tr>
+<th>位域</th>
+<th>名称</th>
+<th>读写权限</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>bit[31:13]</td>
+<td>-</td>
+<td></td>
+<td>保留</td>
+</tr>
+<tr>
+<td>bit[12:10]</td>
+<td>CPUID</td>
+<td>R</td>
+<td>对于SGI 类中断，它表示谁发出了中断。例如，值为3表示该请求是通过对CPU-interface3上的GICD_SGIR的写操作生成的。</td>
+</tr>
+<tr>
+<td>bit[9:0]</td>
+<td>Interrupt ID</td>
+<td>R</td>
+<td>中断ID</td>
+</tr>
+</tbody></table>
+<h4 id="4-2-GICC-EOIR-寄存器"><a href="#4-2-GICC-EOIR-寄存器" class="headerlink" title="4.2 GICC_EOIR 寄存器  "></a><font size=3>4.2 GICC_EOIR 寄存器  </font></h4><p>《ARM® Generic Interrupt Controller Architecture version 2.0》的4.4.5 End of Interrupt Register, GICC_EOIR  一节：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20240121150209876.png" alt="image-20240121150209876" style="zoom:50%;" />
+
+<p>写此寄存器，表示某中断已经处理完毕。 GICC_IAR 的值表示当前在处理的中断，把 GICC_IAR 的值写入 GICC_EOIR 就表示中断处理完了。  </p>
+<h1 id="二、CP15-协处理器"><a href="#二、CP15-协处理器" class="headerlink" title="二、CP15 协处理器  "></a><font size=3>二、CP15 协处理器  </font></h1><h2 id="1-相关指令"><a href="#1-相关指令" class="headerlink" title="1. 相关指令"></a><font size=3>1. 相关指令</font></h2><p>关 于 CP15 协处理 器和其 相关寄存器的详细内容请参考下面两份文 档： 《 ARM ArchitectureReference Manual ARMv7-A and ARMv7-R edition.pdf》 第 1469 页“B3.17 Oranization of the CP15 registers in a VMSA implementation”。《Cortex-A7 Technical ReferenceManua.pdf》 第55 页“Capter 4 System Control”。  </p>
+<p>CP15 协处理器一般用于存储系统管理， 但是在中断中也会使用到， CP15 协处理器一共有 16 个 32 位寄存器。 CP15 协处理器的访问通过如下两个指令完成：  </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">MRC ;将 CP15 协处理器中的寄存器数据读到 ARM 寄存器中。</span><br><span class="line">MCR ;将 ARM 寄存器的数据写入到 CP15 协处理器寄存器中。</span><br></pre></td></tr></table></figure>
+
+<p>MRC 就是读 CP15 寄存器， MCR 就是写 CP15 寄存器， MCR 指令格式如下  :</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">MCR&#123;cond&#125; p15, &lt;opc1&gt;, &lt;Rt&gt;, &lt;CRn&gt;, &lt;CRm&gt;, &lt;opc2&gt;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>cond：指令执行的条件码，如果忽略的话就表示无条件执行。</p>
+</li>
+<li><p>opc1：协处理器要执行的操作码。</p>
+</li>
+<li><p>Rt： ARM 源寄存器，要写入到 CP15 寄存器的数据就保存在此寄存器中。</p>
+</li>
+<li><p>CRn： CP15 协处理器的目标寄存器。</p>
+</li>
+<li><p>CRm： 协处理器中附加的目标寄存器或者源操作数寄存器，如果不需要附加信息就将CRm 设置为 C0，否则结果不可预测。</p>
+</li>
+<li><p>opc2： 可选的协处理器特定操作码，当不需要的时候要设置为 0。</p>
+</li>
+</ul>
+<p>MRC 的指令格式和 MCR 一样，只不过在 MRC 指令中 Rt 就是目标寄存器，也就是从CP15 指定寄存器读出来的数据会保存在 Rt 中。而 CRn 就是源寄存器，也就是要读取的写处理器寄存器。  假如我们要将 CP15 中 C0 寄存器的值读取到 R0 寄存器中，那么就可以使用如下命令：  </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">MRC p15, 0, r0, c0, c0, 0</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-相关寄存器"><a href="#2-相关寄存器" class="headerlink" title="2. 相关寄存器"></a><font size=3>2. 相关寄存器</font></h2><p>CP15 协处理器有 16 个 32 位寄存器， c0~c15，我们来看一下 c0、 c1、 c12 和 c15 这四个寄存器，因为我们目前学习的实验要用到这四个寄存器，其他的寄存器可以参考上面的两个文档即可。  通过 c0 寄存器可以获取到处理器内核信息；通过 c1 寄存器可以使能或禁止 MMU、 I&#x2F;D Cache 等；通过 c12 寄存器可以设置中断向量偏移；通过 c15 寄存器可以获取 GIC 基地址。  </p>
+<h3 id="2-1-c0-寄存器"><a href="#2-1-c0-寄存器" class="headerlink" title="2.1 c0 寄存器"></a><font size=3>2.1 c0 寄存器</font></h3><p>CP15 协处理器有 16 个 32 位寄存器， c0~c15，在使用 MRC 或者 MCR 指令访问这 16 个寄存器的时候，指令中的 CRn、 opc1、 CRm 和 opc2 通过不同的搭配，其得到的寄存器含义是不同的。比如 c0 在不同的搭配情况下含义如图  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910110829692.png" alt="image-20230910110829692" style="zoom:50%;" />
+
+<p>当 MRC&#x2F;MCR 指令中的 CRn&#x3D;c0， opc1&#x3D;0， CRm&#x3D;c0， opc2&#x3D;0 的时候就表示此时的 c0 就是 MIDR 寄存器，也就是主 ID 寄存器，这个也是 c0 的基本作用。对于 Cortex-A7内核来说， c0 作为 MDIR 寄存器的时候其含义如图</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910110902538.png" alt="image-20230910110902538" style="zoom:50%;" />
+
+<blockquote>
+<p>bit [31:24]：厂商编号， 0X41， ARM。</p>
+<p>bit [23:20]：内核架构的主版本号， ARM 内核版本一般使用 rnpn 来表示，比如 r0p1，其中 r0后面的 0 就是内核架构主版本号。</p>
+<p>bit [19:16]：架构代码， 0XF， ARMv7 架构。</p>
+<p>bit [15:4]：内核版本号， 0XC07， Cortex-A7 MPCore 内核。</p>
+<p>bit [3:0]：内核架构的次版本号， rnpn 中的 pn，比如 r0p1 中 p1 后面的 1 就是次版本号。  </p>
+</blockquote>
+<h3 id="2-2-c1-寄存器"><a href="#2-2-c1-寄存器" class="headerlink" title="2.2 c1 寄存器  "></a><font size=3>2.2 c1 寄存器  </font></h3><p>c1 寄存器同样通过不同的配置，其代表的含义也不同，如图  ：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910111043784.png" alt="image-20230910111043784" style="zoom:50%;" />
+
+<p>当 MRC&#x2F;MCR 指令中的 CRn&#x3D;c1， opc1&#x3D;0， CRm&#x3D;c0， opc2&#x3D;0 的时候就表示此时的 c1 就是 <strong>SCTLR 寄存器，也就是系统控制寄存器</strong>，这个是 c1 的基本作用。 SCTLR 寄存器主要是完成控制功能的，比如使能或者禁止 MMU、 I&#x2F;D Cache 等， c1 作为 SCTLR 寄存器的时候其含义如图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910111111179.png" alt="image-20230910111111179" style="zoom:50%;" />
+
+<p>SCTLR 的位比较多，我们就只看本章会用到的几个位：</p>
+<blockquote>
+<p>bit [13]： V , 中断向量表基地址选择位，为 0 的话中断向量表基地址为 0X00000000，软件可以使用 VBAR 来重映射此基地址，也就是中断向量表重定位。为 1 的话中断向量表基地址为0XFFFF0000，此基地址不能被重映射。</p>
+<p>bit [12]： I， I Cache 使能位，为 0 的话关闭 I Cache，为 1 的话使能 I Cache。</p>
+<p>bit [11]： Z，分支预测使能位，如果开启 MMU 的话，此位也会使能。</p>
+<p>bit [10]： SW， SWP 和 SWPB 使能位，当为 0 的话关闭 SWP 和 SWPB 指令，当为 1 的时候就使能 SWP 和 SWPB 指令。</p>
+<p>bit [9:3]：未使用，保留。</p>
+<p>bit [2]： C， D Cache 和缓存一致性使能位，为 0 的时候禁止 D Cache 和缓存一致性，为 1 时使能。</p>
+<p>bit [1]： A，内存对齐检查使能位，为 0 的时候关闭内存对齐检查，为 1 的时候使能内存对齐检查。</p>
+<p>bit [0]： M， MMU 使能位，为 0 的时候禁止 MMU，为 1 的时候使能 MMU。  </p>
+</blockquote>
+<p>如果要读写 SCTLR 的话，就可以使用如下命令：  </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">MRC p15, 0, &lt;Rt&gt;, c1, c0, 0 ;读取 SCTLR 寄存器，数据保存到 Rt 中。</span><br><span class="line">MCR p15, 0, &lt;Rt&gt;, c1, c0, 0 ;将 Rt 中的数据写到 SCTLR(c1)寄存器中。</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-c12-寄存器"><a href="#2-3-c12-寄存器" class="headerlink" title="2.3 c12 寄存器"></a><font size=3>2.3 c12 寄存器</font></h3><p>c12 寄存器通过不同的配置，其代表的含义也不同，如图  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910111303553.png" alt="image-20230910111303553" style="zoom:50%;" />
+
+<p>当 MRC&#x2F;MCR 指令中的 CRn&#x3D;c12， opc1&#x3D;0， CRm&#x3D;c0， opc2&#x3D;0 的时候就表示此时 c12 为 <strong>VBAR 寄存器，也就是向量表基地址寄存器</strong>。设置中断向量表偏移的时候就需要将新的中断向量表基地址写入 VBAR 中，通过 VBAR 寄存器，可以设置异常向量表的映射地址。如果不把异常向量表<br>的映射地址告诉 CPU，在发生异常时， CPU 就找不到异常向量表，就无法处理异常 。比如在前面的例程中，代码链接的起始地址为0X87800000，而中断向量表肯定要放到最前面，也就是 0X87800000 这个地址处。所以就需要设置 VBAR 为 0X87800000，设置命令如下：  </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ldr r0, =0X87800000 ; r0=0X87800000</span><br><span class="line">MCR p15, 0, r0, c12, c0, 0 ;将 r0 里面的数据写入到 c12 中，即 c12=0X87800000</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-4-c15-寄存器"><a href="#2-4-c15-寄存器" class="headerlink" title="2.4 c15 寄存器"></a><font size=3>2.4 c15 寄存器</font></h3><p>c15 寄存器也可以通过不同的配置得到不同的含义，参考文档《Cortex-A7 Technical ReferenceManua.pdf》 第 68 页“4.2.16 c15 registers”，其配置如图 ：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910111404866.png" alt="image-20230910111404866" style="zoom:50%;" />
+
+<p>我们需要 c15 作为 CBAR 寄存器，因为 GIC 的基地址就保存在 CBAR中，我们可以通过如下命令获取到 GIC 基地址：  </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">MRC p15, 4, r1, c15, c0, 0 ; 获取 GIC 基础地址，基地址保存在 r1 中。</span><br></pre></td></tr></table></figure>
+
+<p>获取到 GIC 基地址以后就可以设置 GIC 相关寄存器了，比如我们可以读取当前中断 ID，当前中断 ID 保存在 GICC_IAR 中，寄存器 GICC_IAR 属于 CPU 接口端寄存器，寄存器地址相对于 CPU 接口端起始地址的偏移为 0XC，因此获取当前中断 ID 的代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">MRC p15, 4, r1, c15, c0, 0 ;获取 GIC 基地址</span><br><span class="line">ADD r1, r1, #0X2000 ;GIC 基地址加 0X2000 得到 CPU 接口端寄存器起始地址</span><br><span class="line">LDR r0, [r1, #0XC]  ;读取 CPU 接口端起始地址+0XC 处的寄存器值，也就是寄存器</span><br><span class="line">                    ;GIC_IAR 的值</span><br></pre></td></tr></table></figure>
+
+<h1 id="三、中断使能"><a href="#三、中断使能" class="headerlink" title="三、中断使能"></a><font size=3>三、中断使能</font></h1><p>中断使能包括两部分，一个是 IRQ 或者 FIQ 总中断使能，另一个就是 ID0~ID1019 这 1020个中断源的使能。  </p>
+<h2 id="1-IRQ-和-FIQ-总中断使能"><a href="#1-IRQ-和-FIQ-总中断使能" class="headerlink" title="1. IRQ 和 FIQ 总中断使能  "></a><font size=3>1. IRQ 和 FIQ 总中断使能  </font></h2><p>IRQ 和 FIQ 分别是外部中断和快速中断的总开关，要想使用 I.MX6U 上的外设中断就必须先打开 IRQ 中断。我们知道寄存器 CPSR 的 I&#x3D;1 禁止 IRQ，当 I&#x3D;0 使能 IRQ； F&#x3D;1 禁止 FIQ， F&#x3D;0 使能 FIQ。我们还有更简单的指令来完成 IRQ 或者 FIQ 的使能和禁止：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910111752761.png" alt="image-20230910111752761" style="zoom:50%;" />
+
+<h2 id="2-ID0-ID1019-中断使能和禁止"><a href="#2-ID0-ID1019-中断使能和禁止" class="headerlink" title="2. ID0 - ID1019 中断使能和禁止  "></a><font size=3>2. ID0 - ID1019 中断使能和禁止  </font></h2><p>GIC 寄存器 GICD_ISENABLERn 和 GICD_ ICENABLERn 用来完成外部中断的使能和禁止，对于 Cortex-A7 内核来说中断 ID 只使用了 512 个。一个 bit 控制一个中断 ID 的使能，那么就需要 512&#x2F;32&#x3D;16 个 GICD_ISENABLER 寄存器来完成中断的使能。同理，也需要 16 个GICD_ICENABLER 寄存器来完成中断的禁止。其中 GICD_ISENABLER0 的 bit[15:0]对应ID15~0 的 SGI 中断， GICD_ISENABLER0 的 bit[31:16]对应 ID31~16 的 PPI 中断。剩下的 GICD_ISENABLER1~GICD_ISENABLER15 就是控制 SPI 中断的。  </p>
+<h1 id="四、中断优先级设置"><a href="#四、中断优先级设置" class="headerlink" title="四、中断优先级设置  "></a><font size=3>四、中断优先级设置  </font></h1><h2 id="1-优先级数配置"><a href="#1-优先级数配置" class="headerlink" title="1. 优先级数配置  "></a><font size=3>1. 优先级数配置  </font></h2><p>Cortex-A7 的中断优先级可以分为抢占优先级和子优先级，两者同样是可以配置的。 GIC 控制器最多可以支持 256 个优先级，数字越小，优先级越高！ Cortex-A7 选择了 32 个优先级。在使用中断的时候需要初始化 GICC_PMR 寄存器，此寄存器用来决定使用几级优先级，寄存器结构如图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910111946129.png" alt="image-20230910111946129" style="zoom:50%;" />
+
+<p>GICC_PMR 寄存器只有低 8 位有效，这 8 位最多可以设置 256 个优先级，其他优先级数设置如表：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910112124153.png" alt="image-20230910112124153" style="zoom:50%;" />
+
+<p>I.MX6U 是 Cortex-A7 内核，所以支持 32 个优先级， 因此 GICC_PMR 要设置为 0b11111000。  </p>
+<h2 id="2-抢占优先级和子优先级位数设置"><a href="#2-抢占优先级和子优先级位数设置" class="headerlink" title="2. 抢占优先级和子优先级位数设置  "></a><font size=3>2. 抢占优先级和子优先级位数设置  </font></h2><p>抢占优先级和子优先级各占多少位是由寄存器 GICC_BPR 来决定的， GICC_BPR 寄存器结构如图  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910112207791.png" alt="image-20230910112207791" style="zoom:50%;" />
+
+<p>寄存器 GICC_BPR 只有低 3 位有效，其值不同，抢占优先级和子优先级占用的位数也不同，配置如表：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-04-CortexA7%E4%B8%AD%E6%96%AD%E7%B3%BB%E7%BB%9F/img/image-20230910112331142.png" alt="image-20230910112331142" style="zoom:50%;" />
+
+<p>为了简单起见，一般将所有的中断优先级位都配置为抢占优先级，比如 I.MX6U 的优先级位数为 5(32 个优先级)，所以可以设置 Binary point 为 2，表示 5 个优先级位全部为抢占优先级。  </p>
+<h2 id="3-优先级设置"><a href="#3-优先级设置" class="headerlink" title="3. 优先级设置  "></a><font size=3>3. 优先级设置  </font></h2><p>前面已经设置好了 I.MX6U 一共有 32 个抢占优先级，数字越小优先级越高。具体要使用某个中断的时候就可以设置其优先级为 0~31。某个中断 ID 的中断优先级设置由寄存器D_IPRIORITYR 来完成，前面说了 Cortex-A7 使用了 512 个中断 ID，每个中断 ID 配有一个优先级寄存器，所以一共有 512 个 D_IPRIORITYR 寄存器。如果优先级个数为 32 的话，使用寄存器 D_IPRIORITYR 的 bit[7:4] 来设置优先级，也就是说实际的优先级要左移 3 位。比如要设置ID40 中断的优先级为 5，示例代码如下：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GICD_IPRIORITYR[<span class="number">40</span>] = <span class="number">5</span> &lt;&lt; <span class="number">3</span>;</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/c504b455.html">LV04-07-中断与异常-04-CortexA7中断系统</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年01月21日 - 16:04</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/c504b455.html" title="LV04-07-中断与异常-04-CortexA7中断系统">https://sumumm.github.io/post/c504b455.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV04-裸机开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/b3d7ec66.html" rel="prev" title="LV04-07-中断与异常-05-IMX6ULL按键中断实例">
+                  <i class="fa fa-angle-left"></i> LV04-07-中断与异常-05-IMX6ULL按键中断实例
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/9dde3ff0.html" rel="next" title="LV04-07-中断与异常-03-中断与GIC">
+                  LV04-07-中断与异常-03-中断与GIC <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

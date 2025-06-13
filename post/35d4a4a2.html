@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是STM32开发——STM32启动过程的一些的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV16-11-STM32启动-02-启动过程分析">
+<meta property="og:url" content="https://sumumm.github.io/post/35d4a4a2.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是STM32开发——STM32启动过程的一些的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530135945546.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530140426886.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230409211109437.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530144008708.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530144430195.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530145206110.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530150234420.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530150755736.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530154208200.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530154559730.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530154746938.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530152713500.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230423123359475.png">
+<meta property="article:published_time" content="2023-06-04T14:06:48.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.009Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV16-STM32开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530135945546.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/35d4a4a2.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/35d4a4a2.html","path":"post/35d4a4a2.html","title":"LV16-11-STM32启动-02-启动过程分析"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV16-11-STM32启动-02-启动过程分析 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%86%85%E9%83%A8FLASH"><span class="nav-text">一、内部FLASH</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-FLASH%E7%AE%80%E4%BB%8B"><span class="nav-text">1. FLASH简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%8E%BB%E5%93%AA%E6%89%BE%E8%B5%84%E6%96%99%EF%BC%9F"><span class="nav-text">2. 去哪找资料？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%86%85%E9%83%A8FLASH%E6%9E%84%E6%88%90"><span class="nav-text">3. 内部FLASH构成</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E6%9C%89%E5%93%AA%E4%BA%9B%E9%83%A8%E5%88%86%EF%BC%9F"><span class="nav-text">3.1 有哪些部分？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E4%B8%BB%E5%AD%98%E5%82%A8%E5%99%A8"><span class="nav-text">3.2 主存储器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E4%BF%A1%E6%81%AF%E5%9D%97"><span class="nav-text">3.3 信息块</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E6%8E%A5%E5%8F%A3%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-text">3.4 接口寄存器</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81STM32%E7%9A%84%E5%90%AF%E5%8A%A8%E6%96%B9%E5%BC%8F"><span class="nav-text">二、STM32的启动方式</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%B5%84%E6%96%99%E5%8F%82%E8%80%83"><span class="nav-text">1. 资料参考</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E8%87%AA%E4%B8%BE%E8%BF%87%E7%A8%8B"><span class="nav-text">2. 自举过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%90%AF%E5%8A%A8%E6%96%B9%E5%BC%8F"><span class="nav-text">3. 启动方式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E5%90%AF%E5%8A%A8%E6%96%B9%E5%BC%8F%E8%AF%B4%E6%98%8E"><span class="nav-text">3.1 启动方式说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E5%90%AF%E5%8A%A8%E6%96%B9%E5%BC%8F%E9%80%89%E6%8B%A9"><span class="nav-text">3.2 启动方式选择</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%86%85%E9%83%A8-FLASH-%E7%9A%84%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B"><span class="nav-text">4. 内部 FLASH 的启动过程  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-ISP%E5%90%AF%E5%8A%A8%E5%88%86%E6%9E%90"><span class="nav-text">5. ISP启动分析</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/35d4a4a2.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV16-11-STM32启动-02-启动过程分析 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV16-11-STM32启动-02-启动过程分析
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-06-04 22:06:48" itemprop="dateCreated datePublished" datetime="2023-06-04T22:06:48+08:00">2023-06-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV16-STM32开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>7.5k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>27 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是STM32开发——STM32启动过程的一些的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <ul><li>通用</li></ul><table><tr><td align="center">分类  </td><td align="center">网址</td><td align="center">说明</td></tr><tr><td align="center" rowspan="4">官方网站</td><td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td><td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td></tr><tr>                                            <td align="left"><a href="https://www.st.com/content/st_com/zh.html" target="_blank">https://www.st.com/content/st_com/zh.html</a></td><td align="left">ST官方网站，在这里我们可以找到STM32的相关文档</td></tr><tr>                                            <td align="left"><a href="https://www.stmcu.com.cn/" target="_blank">https://www.stmcu.com.cn/</a></td><td align="left">意法半导体ST中文官方网站，在这里我们可以找到STM32的相关中文参考文档</td></tr><tr>                                            <td align="left"><a href="http://elm-chan.org/fsw/ff/00index_e.html" target="_blank">http://elm-chan.org/fsw/ff/00index_e.html</a></td><td align="left">FatFs文件系统官网</td></tr><tr><td align="center" rowspan="3">教程书籍</td><td align="left"><a href="STM32开发相关资料/01ARM参考资料/ARM Cortex-M3权威指南(中文).pdf" target="_blank">《ARM Cortex-M3权威指南》</a></td><td alirn="left" rowspan="3">ARM公司专家Joseph Yiu（姚文祥）的力作，中文翻译是NXP的宋岩</td></tr><tr>                                            <td align="left"><a href="STM32开发相关资料/01ARM参考资料/ARM Cortex-M0权威指南(中文).pdf" target="_blank">《ARM Cortex-M0权威指南》</a></td></tr><tr>                                            <td align="left"><a href="" target="_blank">《ARM Cortex-M3与Cortex-M4权威指南》</a></td></tr><tr><td align="center" rowspan="4">开发论坛</td><td align="left"><a href="http://47.111.11.73/forum.php" target="_blank">http://47.111.11.73/forum.php</a></td><td align="left">开源电子网，正点原子的资料下载及问题讨论论坛</td></tr><tr>                                            <td align="left"><a href="https://www.firebbs.cn/forum.php" target="_blank">https://www.firebbs.cn/forum.php</a></td><td align="left">国内Kinetis开发板-野火/秉火（刘火良）主持的论坛，现也做STM32和i.MX RT</td></tr><tr>                                            <td align="left"><a href="https://www.amobbs.com/index.php" target="_blank">https://www.amobbs.com/index.php</a></td><td align="left">阿莫（莫进明）主持的论坛，号称国内最早最火的电子论坛，以交流Atmel AVR系列单片机起家，现已拓展到嵌入式全平台，其STM32系列帖子有70W+。</td></tr><tr>                                            <td align="left"><a href="http://download.100ask.net/index.html" target="_blank">http://download.100ask.net/index.html</a></td><td align="left">韦东山嵌入式资料中心，有些STM32和linux的相关资料也可以来这里找。</td></tr><tr><td align="center" rowspan="3">博客参考</td><td align="left"><a href="http://www.openedv.com/" target="_blank">http://www.openedv.com/</a></td><td align="left">开源网-原子哥个人博客</td></tr><tr>                                            <td align="left"><a href="http://blog.chinaaet.com/jihceng0622" target="_blank">http://blog.chinaaet.com/jihceng0622</a></td><td align="left">博主是原Freescale现NXP的现场应用工程师</td></tr><tr>                                            <td align="left"><a href="https://community.arm.com/arm-community-blogs/b/architectures-and-processors-blog/posts/cortex-m-resources" target="_blank">cortex-m-resources</a></td><td align="left">这其实并不算是一个博客，这是ARM公司专家Joseph Yiu收集整理的所有对开发者有用的官方Cortex-M资料链接（也包含极少数外部资源链接）</td></tr></table><ul><li>STM32</li></ul><table>    <tr><td align="center" rowspan="2">STM32</td><td align="left"><a href="https://doc.embedfire.com/mcu/stm32/f103/hal_general/zh/latest/index.html" target="_blank">STM32 HAL库开发实战指南——基于F103系列开发板</a></td><td align="left">野火STM32开发教程在线文档</td></tr><tr>                                            <td align="left"><a href="https://doc.embedfire.com/mcu/stm32/f103badao/std/zh/latest/index.html" target="_blank">STM32库开发实战指南——基于野火霸道开发板</a></td><td align="left">野火STM32开发教程在线文档</td></tr></table><ul><li>SD卡</li></ul><table>    <tr><td align="left"><a href="https://www.sdcard.org/" target="_blank">SD Association</a></td><td align="left">提供了SD存储卡和SDIO卡系统规范</td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr><td align="left"><a href="https://www.st.com/resource/en/datasheet/stm32f103ze.pdf" target="_blank">STM32F103xx英文数据手册</a></td><td align="left">STM32F103xC/D/E系列的英文数据手册</td></tr>    <tr><td align="left"><a href="https://www.stmcu.com.cn/Designresource/detail/localization_document%20/709978" target="_blank">STM32F103xx中文数据手册</a></td><td align="left">STM32F103xC/D/E系列的中文数据手册</td></tr>    <tr><td align="left"><a href="https://www.st.com/resource/en/reference_manual/rm0008-stm32f101xx-stm32f102xx-stm32f103xx-stm32f105xx-and-stm32f107xx-advanced-armbased-32bit-mcus-stmicroelectronics.pdf" target="_blank">STM32F10xxx英文参考手册（RM0008）</a></td><td align="left">STM32F10xxx系列的英文参考手册</td></tr>    <tr><td align="left"><a href="https://www.stmcu.com.cn/Designresource/detail/localization_document%20/710001" target="_blank">STM32F10xxx中文参考手册（RM0008）</a></td><td align="left">STM32F10xxx系列的中文参考手册</td></tr>    <tr><td align="left"><a href="https://developer.arm.com/documentation/100165/0201/?lang=en" target="_blank">Arm Cortex-M3 处理器技术参考手册-英文版</a></td><td align="left">Cortex-M3技术参考手册-英文版</td></tr>    <tr><td align="left"><a href="https://www.st.com/resource/en/programming_manual/pm0056-stm32f10xxx20xxx21xxxl1xxxx-cortexm3-programming-manual-stmicroelectronics.pdf" target="_blank">STM32F10xxx Cortex-M3编程手册-英文版(PM0056)</a></td><td align="left">STM32F10xxx/20xxx/21xxx/L1xxxx系列Cortex-M3编程手册-英文版</td></tr>    <tr><td align="left"><a href="https://www.sdcard.org/downloads/pls/" target="_blank">SD卡相关资料——最新版本</a></td><td align="left">有关SD卡的一些资料可以从这里下载</td></tr>    <tr><td align="left"><a href="https://www.sdcard.org/downloads/pls/archives/" target="_blank">SD卡相关资料——历史版本</a></td><td align="left">有关SD卡的一些历史版本资料可以从这里下载，比如后边看的SD卡2.0协议</td></tr>    <tr><td align="left"><a href="./" target="_blank">SD 2.0 协议标准完整版</a></td><td align="left">这是一篇关于SD卡2.0协议的中文文档，还是比较有参考价值的，可以一看</td></tr></table>
+              </div>
+            </details> 
+
+<p>这一部分主要是分析STM32的启动流程，我们将会接触到内部FLASH的相关内容。</p>
+<h1 id="一、内部FLASH"><a href="#一、内部FLASH" class="headerlink" title="一、内部FLASH"></a><font size=3>一、内部FLASH</font></h1><p>这里了解一下内部Flash的一些内容，并不涉及对内部Flash读写等相关操作。</p>
+<h2 id="1-FLASH简介"><a href="#1-FLASH简介" class="headerlink" title="1. FLASH简介"></a><font size=3>1. FLASH简介</font></h2><p>flash是存储芯片的一种，通过特定的程序可以修改里面的数据。FLASH在电子以及半导体领域内往往表示 Flash Memory 的意思，即平时所说的“闪存”，全名叫 Flash EEPROM Memory。它结合了ROM和RAM的长处，不仅具备电子可擦除可编程（EEPROM）的性能，还可以快速读取数据（NVRAM的优势），使数据不会因为断电而丢失。</p>
+<p>在STM32芯片内部有一个FLASH存储器，它主要用于存储代码，我们在电脑上编写好应用程序后，使用下载器把编译后的代码文件烧录到该内部FLASH中， 由于FLASH存储器的内容在掉电后不会丢失，芯片重新上电复位后，<strong>内核可从内部FLASH中加载代码并运行</strong>。</p>
+<p>除了使用外部的工具（如下载器）读写STM32的内部FLASH外，STM32芯片在运行的时候，也能对自身的内部FLASH进行读写，因此， 若内部FLASH存储了应用程序后还有剩余的空间，我们可以把它像外部SPI-FLASH那样利用起来，<strong>存储一些程序运行时产生的需要掉电保存的数据</strong>。</p>
+<p>由于访问内部FLASH的速度要比外部的SPI-FLASH快得多，所以在紧急状态下常常会使用内部FLASH存储关键记录；为了防止应用程序被抄袭， 有的应用会禁止读写内部FLASH中的内容，或者在第一次运行时计算加密信息并记录到某些区域，然后删除自身的部分加密代码，这些应用都涉及到内部FLASH的操作。</p>
+<h2 id="2-去哪找资料？"><a href="#2-去哪找资料？" class="headerlink" title="2. 去哪找资料？"></a><font size=3>2. 去哪找资料？</font></h2><p>关于STM32的内部Flash的相关资料是没有在[STM32中文参考手册](<a target="_blank" rel="noopener" href="https://www.stmcu.com.cn/Designresource/detail/localization_document">https://www.stmcu.com.cn/Designresource/detail/localization_document</a> &#x2F;710001)中有所体现的，关于Flash的相关资料，ST官方有另外的文档，叫做STM32F10xxx闪存编程手册，英文版在这里：<a target="_blank" rel="noopener" href="https://www.st.com/resource/en/programming_manual/pm0075-stm32f10xxx-flash-memory-microcontrollers-stmicroelectronics.pdf">STM32F10xxx Flash memory microcontrollers</a>，这个手册也有中文版，但是我在中文社区没找到，那就看个本地版的吧：<a href="STM32%E5%BC%80%E5%8F%91%E7%9B%B8%E5%85%B3%E8%B5%84%E6%96%99/04STM32%E8%B5%84%E6%96%99/STM32F10xxx%E9%97%AA%E5%AD%98%E7%BC%96%E7%A8%8B%E5%8F%82%E8%80%83%E6%89%8B%E5%86%8C.pdf">STM32F10xxx闪存编程参考手册</a></p>
+<h2 id="3-内部FLASH构成"><a href="#3-内部FLASH构成" class="headerlink" title="3. 内部FLASH构成"></a><font size=3>3. 内部FLASH构成</font></h2><h3 id="3-1-有哪些部分？"><a href="#3-1-有哪些部分？" class="headerlink" title="3.1 有哪些部分？"></a><font size=3>3.1 有哪些部分？</font></h3><p>STM32 的内部FLASH（闪存模块）由：<strong>主存储器</strong>、<strong>信息块</strong>和<strong>闪存存储器接口寄存器</strong>等 3 部分组成。  这一部分的相关说明我们需要查看<a href="STM32%E5%BC%80%E5%8F%91%E7%9B%B8%E5%85%B3%E8%B5%84%E6%96%99/04STM32%E8%B5%84%E6%96%99/STM32F10xxx%E9%97%AA%E5%AD%98%E7%BC%96%E7%A8%8B%E5%8F%82%E8%80%83%E6%89%8B%E5%86%8C.pdf">STM32F10xxx闪存编程参考手册</a>，这个中文版本的1.2 闪存模块组织，也有英文版本的（<a target="_blank" rel="noopener" href="https://www.st.com/resource/en/programming_manual/pm0075-stm32f10xxx-flash-memory-microcontrollers-stmicroelectronics.pdf">STM32F10xxx Flash memory microcontrollers</a>），其实在[STM32中文参考手册](<a target="_blank" rel="noopener" href="https://www.stmcu.com.cn/Designresource/detail/localization_document">https://www.stmcu.com.cn/Designresource/detail/localization_document</a> &#x2F;710001)的2.3.3 嵌入式闪存这一节也有这个表。在ST官网上可以找到相应的英文版本。如下图为STM32F1系列芯片大容量产品的闪存模块组织图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530135945546.png" alt="image-20230530135945546" style="zoom:50%;" />
+
+<p>注意上表中的主存储器是本实验板使用的 STM32ZET6 型号芯片的参数，即 STM32F1 大容量产品。若使用超大容量、中容量或小容量产品，它们主存储器的页数量、页大小均有不同，使用的时候要注意区分。  </p>
+<p>需要知道的是主存储器和信息块的写入，由内嵌的闪存编程&#x2F;擦除控制器(FPEC)管理，编程与擦除的高电压由内部产生。在执行闪存写操作时，任何对闪存的读操作都会锁住总线，在写操作完成后读操作才能正确地进行，即在进行写或擦除操作时，不能进行代码或数据的读取操作。 </p>
+<h3 id="3-2-主存储器"><a href="#3-2-主存储器" class="headerlink" title="3.2 主存储器"></a><font size=3>3.2 主存储器</font></h3><p>一般我们说STM32内部FLASH的时候，都是指这个主存储器区域，它是<strong>存储用户应用程序的空间</strong>， 芯片型号说明中的256K FLASH、512K FLASH都是指这个区域的大小。</p>
+<p>主存储器分为256页，每页大小为2KB，共512KB。这个分页的概念，实质就是FLASH存储器的扇区，与其它FLASH一样，在写入数据前，要先按页（扇区）擦除。从上图可以看出主存储器的起始地址就是 0X08000000。</p>
+<p><strong>【注意】</strong>上表中的主存储器是STM32F103ZET6型号芯片的参数，芯片型号中的E就表示这是STM32F1系列的大容量产品，并且容量为512KB。若使用超大容量、中容量或小容量产品， 它们主存储器的页数量、页大小均有不同，使用的时候要注意区分。芯片型号各部分代表的含义其实可以查看芯片手册的《7 Part numbering  》这一节，在芯片手册上有对芯片型号的详细说明。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530140426886.png" alt="image-20230530140426886" style="zoom:50%;" />
+
+<h3 id="3-3-信息块"><a href="#3-3-信息块" class="headerlink" title="3.3 信息块"></a><font size=3>3.3 信息块</font></h3><p>该部分分为 2 个小部分，分别是启动程序代码和用户选择字节。</p>
+<p>（1）启动程序代码：这部分是用来存储 ST 芯片出厂时已经固化了的启动代码，用于实现串口、USB以及CAN等ISP烧录功能。这个好像也可以叫系统存储器，都是一个意思，<a target="_blank" rel="noopener" href="https://www.st.com/resource/en/programming_manual/pm0075-stm32f10xxx-flash-memory-microcontrollers-stmicroelectronics.pdf">STM32F10xxx Flash memory microcontrollers</a>的1.2 Flash module organization一节中，这个地方是叫system memory，个人觉得还是叫系统存储器更符合原版手册。</p>
+<p>（2）选项字节：用于配置FLASH的读写保护、待机&#x2F;停机复位、软件&#x2F;硬件看门狗等功能，这部分共16字节。可以通过修改FLASH的选项控制寄存器修改。</p>
+<h3 id="3-4-接口寄存器"><a href="#3-4-接口寄存器" class="headerlink" title="3.4 接口寄存器"></a><font size=3>3.4 接口寄存器</font></h3><p>闪存存储器接口寄存器，该部分用于控制闪存读写等，是整个闪存模块的控制机构。  这部分其实就包含了STM32的 FPEC（闪存编程和擦除控制器）模块，我们对FLASH的操作就是通过这个模块来实现的，这个模块包含了 7 个32位寄存器，分别是：</p>
+<table>
+<thead>
+<tr>
+<th>寄存器名称</th>
+<th>地址</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>FLASH_KEYR</td>
+<td>0x4002_2004 – 0x4002_2007</td>
+<td>FPEC 键寄存器</td>
+</tr>
+<tr>
+<td>FLASH_OPTKEYR</td>
+<td>0x4002_2008 – 0x4002_200B</td>
+<td>选择字节键寄存器</td>
+</tr>
+<tr>
+<td>FLASH_SR</td>
+<td>0x4002_200C – 0x4002_200F</td>
+<td>闪存状态寄存器</td>
+</tr>
+<tr>
+<td>FLASH_CR</td>
+<td>0x4002_2010 – 0x4002_2013</td>
+<td>闪存控制寄存器</td>
+</tr>
+<tr>
+<td>FLASH_AR</td>
+<td>0x4002_2014 – 0x4002_2017</td>
+<td>闪存地址寄存器</td>
+</tr>
+<tr>
+<td>FLASH_OBR</td>
+<td>0x4002_201C – 0x4002_201F</td>
+<td>选择字节寄存器</td>
+</tr>
+<tr>
+<td>FLASH_WRPR</td>
+<td>0x4002_2020 – 0x4002_2023</td>
+<td>写保护寄存器</td>
+</tr>
+</tbody></table>
+<p>【说明】其中FPEC总共有3个键值：RDPRT键&#x3D;0X000000A5；KEY1&#x3D;0X45670123；KEY2&#x3D;0XCDEF89AB</p>
+<h1 id="二、STM32的启动方式"><a href="#二、STM32的启动方式" class="headerlink" title="二、STM32的启动方式"></a><font size=3>二、STM32的启动方式</font></h1><h2 id="1-资料参考"><a href="#1-资料参考" class="headerlink" title="1. 资料参考"></a><font size=3>1. 资料参考</font></h2><p>关于STM32的启动方式，我们可以参考的资料有：</p>
+<ul>
+<li>STM32中文参考手册：[STM32中文参考手册](<a target="_blank" rel="noopener" href="https://www.stmcu.com.cn/Designresource/detail/localization_document">https://www.stmcu.com.cn/Designresource/detail/localization_document</a> &#x2F;710001)的2.4 启动配置 </li>
+<li>AN2606 STM32微控制器系统内存启动模式：<a target="_blank" rel="noopener" href="https://www.stmcu.com.cn/Designresource/detail/localization_document/711401">STM32单片机系统内存启动方式</a>的4 STM32F100xx、 STM32F101xx、 STM32F102xx、STM32F103xx 中容量和大容量超值型自举程序</li>
+</ul>
+<h2 id="2-自举过程"><a href="#2-自举过程" class="headerlink" title="2. 自举过程"></a><font size=3>2. 自举过程</font></h2><p>Cortex-M3 内核在离开复位状态后的工作过程如下 ：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230409211109437.png" alt="image-20230409211109437" style="zoom:50%;" />
+
+<p>我们知道的复位方式有三种：上电复位，硬件复位和软件复位。当产生复位，并且离开复位状态后，系统复位后，处理器首先读取向量表中的前两个字数据（8 个字节），第一个字存入 MSP，第二个字为复位向量，它表示程序执行的起始地址（复位处理），也就是以下两个过程：</p>
+<p>(1) 从地址 0x00000000 处取出栈指针 MSP 的初始值，该值就是栈顶的地址。</p>
+<p>(2) 从地址 0x00000004 处取出程序指针 PC 的初始值，该值指向复位后应执行的第一条指令。  </p>
+<p>MSP就是主堆栈指针，堆栈指针的作用就是指向栈顶元素的，还可以对栈顶元素进行出栈操作。当堆栈中的元素进行出栈或入栈操作时，都会使栈顶元素发生变化，堆栈指针sp就需要重新赋值，让其指向新的栈顶元素。PC就是程序计数器，用于存储当前<strong>取址指令的地址</strong>。</p>
+<p>经过上边两个过程，内核就知道了栈顶的地址，为什么需要知道栈顶？因为我们在执行c语言函数这些的时候，会定义很多的局部变量，这些局部变量都是存放于栈空间的，内核要是不知道栈顶地址的话，那就很容易会发生溢出。接下来是PC指针，由于我们把中断向量表中的Reset放在0x00000004这个地址：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530144008708.png" alt="image-20230530144008708" style="zoom:50%;" />
+
+<p>所以程序执行的第一条指令就是到这个Reset中断中执行指令，之后就从Reset这个子程序中开始执行，最终进入到main主函数中去。这个过程由内核自动设置运行环境并执行主体程序，因此它被称为<strong>自举过程</strong>。  </p>
+<h2 id="3-启动方式"><a href="#3-启动方式" class="headerlink" title="3. 启动方式"></a><font size=3>3. 启动方式</font></h2><h3 id="3-1-启动方式说明"><a href="#3-1-启动方式说明" class="headerlink" title="3.1 启动方式说明"></a><font size=3>3.1 启动方式说明</font></h3><p>虽然内核是固定访问 0x00000000 和 0x00000004 地址的，但实际上这两个地址可以被重映射到其它地址空间。例如：我们将 0x0800 0000 映射到 0x0000 0000，即从内部 FLASH 启动，那么内核会从地址 0x0800 0000 处取出堆栈指针 MSP 的初始值，从地址 0x0800 0004 处取出程序计数器指针PC 的初始值。 CPU 会从 PC 寄存器指向的地址空间取出的第 1 条指令开始执行程序，就是开始执行复位中断服务程序 Reset_Handler。将0x0000 0000 和 0x0000 0004 两个地址重映射到其他的地址空间，就是启动模式选择。  </p>
+<p>以 STM32F103 为例，根据芯片引出的 BOOT0 及 BOOT1 引脚的电平情况，这两个地址可以被映射到内部 FLASH、内部 SRAM 以及系统存储器中 。我们可以看一下[STM32中文参考手册](<a target="_blank" rel="noopener" href="https://www.stmcu.com.cn/Designresource/detail/localization_document">https://www.stmcu.com.cn/Designresource/detail/localization_document</a> &#x2F;710001)的2.4 启动配置 或者<a target="_blank" rel="noopener" href="https://www.stmcu.com.cn/Designresource/detail/localization_document/711401">STM32单片机系统内存启动方式</a>的 3.1 自举程序激活 ，他们都会有这样一张表：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530144430195.png" alt="image-20230530144430195" style="zoom:50%;" />
+
+<p>内核在<strong>离开复位状态</strong>后<strong>会从映射的地址中取值给栈指针 MSP 及程序指针 PC</strong>，然后<strong>执行指令</strong>，我们一般以存储器的类型来区分自举过程，例如内部 FLASH 启动方式、内部 SRAM 启动方式以及系统存储器启动方式。 我们看一下这三种方式对应的存储器地址分别都是哪？我们来看一下<a target="_blank" rel="noopener" href="https://www.st.com/resource/en/datasheet/stm32f103ze.pdf">STM32F103xx数据手册</a>的4 Memory mapping一节：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530145206110.png" alt="image-20230530145206110" style="zoom:50%;" />
+
+<p>(1) 内部 FLASH 启动方式</p>
+<p>当芯片上电后采样到 BOOT0 引脚为低电平时， 0x00000000 和 0x00000004 地址被映射到内部FLASH 的首地址 0x08000000 和 0x08000004。因此，内核离开复位状态后，读取内部 FLASH 的 0x08000000 地址空间存储的内容，赋值给栈指针 MSP，作为栈顶地址，再读取内部 FLASH 的 0x08000004 地址空间存储的内容，赋值给程序指针 PC，作为将要执行的第一条指令所在的地址。具备这两个条件后，内核就可以开始从 PC 指向的地址中读取指令执行了。</p>
+<p>(2) 内部 SRAM 启动方式</p>
+<p>类似地，当芯片上电后采样到 BOOT0 和 BOOT1 引脚均为高电平时， 0x00000000 和 0x00000004地址被映射到内部 SRAM 的首地址 0x20000000 和0x20000004，内核从 SRAM 空间获取内容进行自举。</p>
+<p>(3) 系统存储器启动方式</p>
+<p>当芯片上电后采样到 BOOT0 引脚为高电平， BOOT1 为低电平时，内核将从系统存储器（它其实位于内部Flash的信息块部分）的0x1FFFF000 及0x1FFFF004 获取 MSP 及 PC 值进行自举。系统存储器是一段特殊的空间，<strong>用户不能访问</strong>， ST 公司在芯片出厂前就在系统存储器中固化了一段代码。因而使用系统存储器启动方式时，内核会执行该代码，该代码运行时，会为 ISP 提供支持 (In System Program)，如检测USART1&#x2F;2、 CAN2 及 USB 通讯接口传输过来的信息，并根据这些信息更新自己内部 FLASH 的内容，达到升级产品应用程序的目的，因此这种启动方式也称为 <strong>ISP 启动方式</strong>。  这就是前边为什么可以通过串口使用flymcu软件往单片机中烧录程序的原因。</p>
+<p><strong>【注意】</strong>在实际应用中，由启动文件 starttup_stm32f10x.s 决定了 0x00000000 和 0x00000004 地址存储什么内容，链接时，由分散加载文件 (sct) 决定这些内容的绝对地址，即分配到内部 FLASH 还是内部SRAM。</p>
+<h3 id="3-2-启动方式选择"><a href="#3-2-启动方式选择" class="headerlink" title="3.2 启动方式选择"></a><font size=3>3.2 启动方式选择</font></h3><p>上边我们知道不同的启动方式主要是由BOOT[1:0]两个引脚来决定的，我们来看一下这两个引脚的描述，我们在<a target="_blank" rel="noopener" href="https://www.st.com/resource/en/datasheet/stm32f103ze.pdf">STM32F103xx数据手册</a>中搜索这两个引脚，如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530150234420.png" alt="image-20230530150234420" style="zoom:50%;" />
+
+<p>会发现BOOT0是只能作为BOOT0引脚使用，但是BOOT1的话可以作为普通的GPIO使用，也就是PB2。我们看一下我使用的正点原子的战舰V3开发板原理图中BOOT[1:0]是怎么接的：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530150755736.png" alt="image-20230530150755736" style="zoom:50%;" />
+
+<p>可以看到，这里其实是两个排针，我们通过跳线帽就可以将BOOT[1:0]两个引脚接到不同的电平，一般来讲，都是将两个跳线帽接在GND，也就是说BOOT1和BOOT0都接的GND，系统默认从主闪存存储器启动，我们想要从别的地方启动的话，只需要更改跳线帽的连接方式就可以啦。</p>
+<h2 id="4-内部-FLASH-的启动过程"><a href="#4-内部-FLASH-的启动过程" class="headerlink" title="4. 内部 FLASH 的启动过程  "></a><font size=3>4. 内部 FLASH 的启动过程  </font></h2><p>下面我们以内部 FLASH 启动方式来分析自举过程，主要理解 MSP 和 PC 内容是怎样被存储到 0x08000000 和 0x08000004 这两个地址的。  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530154208200.png" alt="image-20230530154208200" style="zoom:50%;" />
+
+<p>这是 STM32F103 默认的启动文件的代码，启动文件的开头定义了一个大小为 0x400 的栈空间，且栈顶的地址使用标号“__initial_sp”来表示；在图下方定义了一个名为“Reset_Handler”的子程序，它就是我们总是提到的在芯片启动后第一个执行的代码。在汇编语法中，程序的名字和标号都包含它所在的地址，因此，我们的目标是把“__initial_sp”和“Reset_Handler”赋值到 0x08000000 和 0x08000004 地址空间存储，这样内核自举的时候就可以获得栈顶地址以及第一条要执行的指令了。在启动代码的中间部分，使用了汇编关键字 “DCD” 把 “__initial_sp” 和 “Reset_Handler” 定义到了最前面的地址空间。</p>
+<p>在启动文件中把设置栈顶及首条指令地址到了最前面的地址空间，但这<strong>并没有指定绝对地址</strong>，<strong>各种内容的绝对地址是由链接器根据分散加载文件</strong> (*.sct)分配的， STM32F103 的默认分散加载文件配置如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530154559730.png" alt="image-20230530154559730" style="zoom: 33%;" />
+
+<p>分散加载文件把加载区和执行区的首地址都设置为 0x08000000，正好是内部 FLASH 的首地址，因此汇编文件中定义的栈顶及首条指令地址会被存储到0x08000000 和 0x08000004 的地址空间。类似地，如果我们修改分散加载文件，把加载区和执行区的首地址设置为内部 SRAM 的首地址0x20000000，那么栈顶和首条指令地址将会被存储到 0x20000000 和 0x20000004 的地址空间了。  </p>
+<p>我们可以查看反汇编代码及 map 文件信息来了解各个地址空间存储的内容，这是多彩流水灯工程编译后的信息，它的启动文件及分散加载文件都按默认配置。其中反汇编代码是使用 fromelf 工具从 axf 文件生成的 ：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530154746938.png" alt="image-20230530154746938" style="zoom:50%;" />
+
+<p>从反汇编代码可了解到，这个工程的 0x08000000 地址存储的值为 0x20000400， 0x08000004 地址存储的值为 0x08000145，查看 map 文件，这两个值正好是栈顶地址 __initial_sp 以及首条指令Reset_Handler 的地址。下载器会根据 axf 文件 (bin、 hex 类似) 存储相应的内容到内部 FLASH 中。</p>
+<p>由此可知， BOOT0 为低电平时，内核复位后，从 0x08000000 读取到栈顶地址为 0x20000400，了解到子程序的栈空间范围，再从 0x08000004 读取到第一条指令的存储地址为 0x08000145，于是跳转到该地址执行代码，即从 Reset_Handler 开始运行，运行 SystemInit、 __main(包含分散加载代码)，最后跳转到 C 语言的 main 函数。  </p>
+<h2 id="5-ISP启动分析"><a href="#5-ISP启动分析" class="headerlink" title="5. ISP启动分析"></a><font size=3>5. ISP启动分析</font></h2><p>我们先来分析一下ISP启动方式，这种启动方式其实就是从系统存储器启动。每种STM32芯片（M0、M3、M4)，它们的主存储器结构可能不一样，但是他们都有一个叫“系统存储器”的区域，此区域是留给ST自己用来存放芯片的bootloader程序，此程序在芯片出厂的时候已经固化在芯片内部。系统存储器的 Bootloader 程序会通过 串口1 接受应用程序。</p>
+<p>也就是说，我们要是选择了从系统存储器启动的话，我们当前在STM32中跑的程序就是系统存储器中固化的代码，这段代码会将STM32的 串口1 初始化好，这个时候我们可以通过 串口1 接收可执行文件的数据，并写入到Flash的指定区域去。当然也就仅限于此，我们此时是<strong>无法运行</strong>通过 串口1 接收的程序的。但是我们接收完程序后，再复位一下开发板的话就会执行我们烧录进来的代码了，这是为什么？</p>
+<p>我们来看一下正点原子战舰V3的一键下载电路原理图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230530152713500.png" alt="image-20230530152713500" style="zoom:67%;" />
+
+<p>我们看一下左侧电路中有两个三极管，Q2为S8050，是一个NPN管，高电平导通，Q3为S8550，是一个PNP管，低电平导通。还需要知道的一点，就是我们开发板的BOOT0和BOOT1是默认都接的GND，芯片复位后，会从主闪存存储器启动。我们可以看到BOOt0还接在了Q3这里，我们喜爱flymcu下载的时候的配置是这样的：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-02-%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/img/image-20230423123359475.png" alt="image-20230423123359475" style="zoom: 50%;" />
+
+<p>我们看一下最下边的DTR低电平复位，RTS高电平进BootLoader，我们看一下右侧的信息：</p>
+<p>（1）第一行：DTR电平置底，此时会将DTR引脚拉低，这时候芯片就复位；</p>
+<p>（2）第二行：RTS置高，此时Q3导通，BOOT0被拉高，而BOOT1为低，此时复位释放后系统将从系统存储器启动；</p>
+<p>（3）第四行：DTR电平变高，复位释放，内核开始执行启动流程；</p>
+<p>（4）第五行：RTS维持高，系统启动的时候从存储器启动，执行ST官方固化的BootLoader程序；</p>
+<p>（5）后边就开始连接串口，然后通过串口发送数据，并写入到Flash</p>
+<p>（6）当下载结束后，我们按下复位，BOOT1和BOOT0还是接在GND，这个时候从主闪存存储器启动，就开始执行我们下载的程序啦。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/35d4a4a2.html">LV16-11-STM32启动-02-启动过程分析</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年06月04日 - 22:06</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/35d4a4a2.html" title="LV16-11-STM32启动-02-启动过程分析">https://sumumm.github.io/post/35d4a4a2.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV16-STM32%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV16-STM32开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/b1786358.html" rel="prev" title="LV16-11-STM32启动-03-在内部SRAM中调试代码">
+                  <i class="fa fa-angle-left"></i> LV16-11-STM32启动-03-在内部SRAM中调试代码
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/a7da6abe.html" rel="next" title="LV16-11-STM32启动-01-STM32的启动文件">
+                  LV16-11-STM32启动-01-STM32的启动文件 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

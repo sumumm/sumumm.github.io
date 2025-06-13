@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是uboot——uboot下GPIO控制的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV05-02-U-Boot-03-uboot下GPIO的控制">
+<meta property="og:url" content="https://sumumm.github.io/post/1ee5b7e1.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是uboot——uboot下GPIO控制的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-03-uboot%E4%B8%8BGPIO%E7%9A%84%E6%8E%A7%E5%88%B6/img/image-20230716170503614.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-03-uboot%E4%B8%8BGPIO%E7%9A%84%E6%8E%A7%E5%88%B6/img/image-20241107075112786.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-03-uboot%E4%B8%8BGPIO%E7%9A%84%E6%8E%A7%E5%88%B6/img/image-20241114222950493.png">
+<meta property="article:published_time" content="2024-11-19T15:38:27.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.043Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV05-系统镜像">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-03-uboot%E4%B8%8BGPIO%E7%9A%84%E6%8E%A7%E5%88%B6/img/image-20230716170503614.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/1ee5b7e1.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/1ee5b7e1.html","path":"post/1ee5b7e1.html","title":"LV05-02-U-Boot-03-uboot下GPIO的控制"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV05-02-U-Boot-03-uboot下GPIO的控制 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E7%A1%AC%E4%BB%B6%E5%8E%9F%E7%90%86%E5%9B%BE"><span class="nav-text">一、硬件原理图</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81uboot%E7%9A%84gpio%E6%8E%A7%E5%88%B6%E5%91%BD%E4%BB%A4"><span class="nav-text">二、uboot的gpio控制命令</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%91%BD%E4%BB%A4%E6%A0%BC%E5%BC%8F"><span class="nav-text">1. 命令格式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2. 使用实例</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E9%85%8D%E7%BD%AEGPIO%E8%BE%93%E5%87%BA%E9%AB%98"><span class="nav-text">2.1 配置GPIO输出高</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E9%85%8D%E7%BD%AEGPIO%E8%BE%93%E5%87%BA%E4%BD%8E"><span class="nav-text">2.2 配置GPIO输出低</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E7%BF%BB%E8%BD%ACGPIO%E7%94%B5%E5%B9%B3"><span class="nav-text">2.3 翻转GPIO电平</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E6%9F%A5%E7%9C%8BGPIO%E7%8A%B6%E6%80%81"><span class="nav-text">2.4 查看GPIO状态 </span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81gpio%E5%91%BD%E4%BB%A4%E7%9A%84%E5%AE%9A%E4%B9%89"><span class="nav-text">三、gpio命令的定义</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-gpio%E5%91%BD%E4%BB%A4%E5%8F%98%E9%87%8F%E7%9A%84%E5%AE%9A%E4%B9%89"><span class="nav-text">1. gpio命令变量的定义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-U-BOOT-CMD"><span class="nav-text">2. U_BOOT_CMD</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E7%9B%B8%E5%85%B3%E7%9A%84%E5%87%A0%E4%B8%AA%E5%AE%8F%E5%AE%9A%E4%B9%89"><span class="nav-text">2.1 相关的几个宏定义</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-U-BOOT-CMD"><span class="nav-text">2.1.1 U_BOOT_CMD</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-U-BOOT-CMD-COMPLETE"><span class="nav-text">2.1.2 U_BOOT_CMD_COMPLETE</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-3-U-BOOT-CMD-MKENT-COMPLETE"><span class="nav-text">2.1.3 U_BOOT_CMD_MKENT_COMPLETE</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-4-CMD-HELP"><span class="nav-text">2.1.4 _CMD_HELP</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-5-CMD-COMPLETE"><span class="nav-text">2.1.5 _CMD_COMPLETE</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-6-ll-entry-declare"><span class="nav-text">2.1.6 ll_entry_declare</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%B1%95%E5%BC%80%E8%BF%99%E5%87%A0%E4%B8%AA%E5%AE%8F"><span class="nav-text">2.2 展开这几个宏</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-U-BOOT-CMD-MKENT-COMPLETE"><span class="nav-text">2.2.1 U_BOOT_CMD_MKENT_COMPLETE</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-U-BOOT-CMD-COMPLETE"><span class="nav-text">2.2.2 U_BOOT_CMD_COMPLETE</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-3-ll-entry-declare"><span class="nav-text">2.2.3 ll_entry_declare</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-4-U-BOOT-CMD"><span class="nav-text">2.2.4 U_BOOT_CMD</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-gpio%E5%91%BD%E4%BB%A4%E5%8F%98%E9%87%8F"><span class="nav-text">2.3 gpio命令变量</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1-%E5%8F%98%E9%87%8F%E5%AE%9A%E4%B9%89%E5%B1%95%E5%BC%80"><span class="nav-text">2.3.1 变量定义展开</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2-cmd-tbl-t%E7%B1%BB%E5%9E%8B"><span class="nav-text">2.3.2 cmd_tbl_t类型</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E4%B8%A4%E4%B8%AA%E5%87%BD%E6%95%B0%E6%8C%87%E9%92%88"><span class="nav-text">2.4 两个函数指针</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-1-cmd-rep"><span class="nav-text">2.4.1 cmd_rep</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#2-4-1-1-%E5%87%BD%E6%95%B0%E6%8C%87%E9%92%88%E5%AE%9A%E4%B9%89"><span class="nav-text">2.4.1.1 函数指针定义</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-4-1-2-cmd-always-repeatable"><span class="nav-text">2.4.1.2 cmd_always_repeatable()</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-4-1-3-cmd-never-repeatable"><span class="nav-text">2.4.1.3 cmd_never_repeatable()</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-2-cmd"><span class="nav-text">2.4.2 cmd</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#2-4-2-1-%E5%87%BD%E6%95%B0%E6%8C%87%E9%92%88%E5%AE%9A%E4%B9%89"><span class="nav-text">2.4.2.1 函数指针定义</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-4-2-2-do-gpio"><span class="nav-text">2.4.2.2 do_gpio()</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%80%BB%E7%BB%93%E4%B8%80%E4%B8%8B%E5%90%A7"><span class="nav-text">3. 总结一下吧</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/1ee5b7e1.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV05-02-U-Boot-03-uboot下GPIO的控制 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV05-02-U-Boot-03-uboot下GPIO的控制
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-11-19 23:38:27" itemprop="dateCreated datePublished" datetime="2024-11-19T23:38:27+08:00">2024-11-19</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/" itemprop="url" rel="index"><span itemprop="name">LV05-系统镜像</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5.3k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>19 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是uboot——uboot下GPIO控制的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-03-uboot%E4%B8%8BGPIO%E7%9A%84%E6%8E%A7%E5%88%B6/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr>    <tr>        <td align="center" rowspan="5">其他网站</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/v4.15/source/kernel" target="_blank">kernel - Linux source code (v4.15) - Bootlin</a></td>        <td align="left">linux内核源码在线查看</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="2">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<p>这一节，来学习一下，怎么在uboot下新增一个命令来控制gpio。</p>
+<h1 id="一、硬件原理图"><a href="#一、硬件原理图" class="headerlink" title="一、硬件原理图"></a><font size=3>一、硬件原理图</font></h1><p>我们先看底板原理图（”阿尔法Linux开发板（A盘）-基础资料&#x2F;02、开发板原理图&#x2F;IMX6ULL_ALPHA_V2.2(底板原理图).pdf”</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-03-uboot%E4%B8%8BGPIO%E7%9A%84%E6%8E%A7%E5%88%B6/img/image-20230716170503614.png" alt="image-20230716170503614" style="zoom:50%;" />
+
+
+
+<p>可以看到LED0 接到了 GPIO_3 上， 这个GPIO_3是哪个引脚？感觉这里标的有问题，我们搜索一下，会发现这里接在一个BTB连接器母座上，所以我们再去搜一些核心板原理图 “阿尔法Linux开发板（A盘）-基础资料&#x2F;02、开发板原理图&#x2F;IMX6ULL_CORE_V1.6(核心板原理图).pdf”：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-03-uboot%E4%B8%8BGPIO%E7%9A%84%E6%8E%A7%E5%88%B6/img/image-20241107075112786.png" alt="image-20241107075112786" />
+
+<p>就会发现GPIO_3 就是 GPIO1_IO03，根据底板原理图，当 GPIO1_IO03输出低电平(0)的时候发光二极管 LED0 就会导通点亮，GPIO1_IO03 输出高电平(1)的时候发光二极管 LED0 不会导通，因此 LED0 也就不会点亮。所以 LED0 的亮灭取决于 GPIO1_IO03的输出电平，输出 0 就亮，输出 1 就灭。  </p>
+<h1 id="二、uboot的gpio控制命令"><a href="#二、uboot的gpio控制命令" class="headerlink" title="二、uboot的gpio控制命令"></a><font size=3>二、uboot的gpio控制命令</font></h1><h2 id="1-命令格式"><a href="#1-命令格式" class="headerlink" title="1. 命令格式"></a><font size=3>1. 命令格式</font></h2><p>我看在我使用的uboot 2019.04中是自带一个gpio命令的：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">=&gt; gpio</span><br><span class="line">gpio - query and control gpio pins</span><br><span class="line"></span><br><span class="line">Usage:</span><br><span class="line">gpio &lt;input|set|clear|toggle&gt; &lt;pin&gt;</span><br><span class="line">    - input/set/clear/toggle the specified pin</span><br><span class="line">gpio status [-a] [&lt;bank&gt; | &lt;pin&gt;]  - show [all/claimed] GPIOs</span><br></pre></td></tr></table></figure>
+
+<p>这里可以控制某一个GPIO为输入模式、输出模式，为输出的时候可以使用set命令配置引脚输出高电平，使用clear命令配置引脚输出低电平，使用toggle命令来反转GPIO的输出电平。还可以通过status来查看GPIO的引脚状态。</p>
+<h2 id="2-使用实例"><a href="#2-使用实例" class="headerlink" title="2. 使用实例"></a><font size=3>2. 使用实例</font></h2><h3 id="2-1-配置GPIO输出高"><a href="#2-1-配置GPIO输出高" class="headerlink" title="2.1 配置GPIO输出高"></a><font size=3>2.1 配置GPIO输出高</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">=&gt; gpio set GPIO1_3</span><br><span class="line">gpio: pin GPIO1_3 (gpio 3) value is 1</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-配置GPIO输出低"><a href="#2-2-配置GPIO输出低" class="headerlink" title="2.2 配置GPIO输出低"></a><font size=3>2.2 配置GPIO输出低</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">=&gt; gpio clear GPIO1_3</span><br><span class="line">gpio: pin GPIO1_3 (gpio 3) value is 0</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-翻转GPIO电平"><a href="#2-3-翻转GPIO电平" class="headerlink" title="2.3 翻转GPIO电平"></a><font size=3>2.3 翻转GPIO电平</font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">=&gt; gpio toggle GPIO1_3</span><br><span class="line">gpio: pin GPIO1_3 (gpio 3) value is 0</span><br><span class="line">=&gt; gpio toggle GPIO1_3</span><br><span class="line">gpio: pin GPIO1_3 (gpio 3) value is 1</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-4-查看GPIO状态"><a href="#2-4-查看GPIO状态" class="headerlink" title="2.4 查看GPIO状态 "></a><font size=3>2.4 查看GPIO状态 </font></h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">=&gt; gpio status -a</span><br><span class="line">Bank GPIO1_:</span><br><span class="line">GPIO1_0: input: 1 [ ]</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">......</span></span><br><span class="line">GPIO1_3: output: 1 [ ]</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">......</span></span><br><span class="line">GPIO1_7: input: 0 [ ]</span><br><span class="line">GPIO1_8: output: 1 [x] backlight</span><br><span class="line">GPIO1_9: output: 1 [x] regulator@1.gpio</span><br><span class="line">GPIO1_10: input: 0 [ ]</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">......</span></span><br><span class="line">GPIO1_19: input: 0 [x] usdhc@02190000.cd-gpios</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>从这里可以看到这个GPIO是输入还是释出模式以及是否使用了复用功能。</p>
+<h1 id="三、gpio命令的定义"><a href="#三、gpio命令的定义" class="headerlink" title="三、gpio命令的定义"></a><font size=3>三、gpio命令的定义</font></h1><p>这里需要先回顾一下C语言宏定义中的#和##：</p>
+<p>（1）#的作用是转换为字符串。</p>
+<p>（2）##的作用是连接前后的内容。</p>
+<h2 id="1-gpio命令变量的定义"><a href="#1-gpio命令变量的定义" class="headerlink" title="1. gpio命令变量的定义"></a><font size=3>1. gpio命令变量的定义</font></h2><p>我们先看一下gpio命令的定义，定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/cmd/gpio.c#L245">gpio.c - cmd&#x2F;gpio.c </a>中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">U_BOOT_CMD(gpio, <span class="number">4</span>, <span class="number">0</span>, do_gpio,</span><br><span class="line">	   <span class="string">&quot;query and control gpio pins&quot;</span>,</span><br><span class="line">	   <span class="string">&quot;&lt;input|set|clear|toggle&gt; &lt;pin&gt;\n&quot;</span></span><br><span class="line">	   <span class="string">&quot;    - input/set/clear/toggle the specified pin\n&quot;</span></span><br><span class="line">	   <span class="string">&quot;gpio status [-a] [&lt;bank&gt; | &lt;pin&gt;]  - show [all/claimed] GPIOs&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>毫无疑问，下一步就是把这个<code>U_BOOT_CMD</code>宏展开，看看这段代码到底干了什么。</p>
+<h2 id="2-U-BOOT-CMD"><a href="#2-U-BOOT-CMD" class="headerlink" title="2. U_BOOT_CMD"></a><font size=3>2. U_BOOT_CMD</font></h2><h3 id="2-1-相关的几个宏定义"><a href="#2-1-相关的几个宏定义" class="headerlink" title="2.1 相关的几个宏定义"></a><font size=3>2.1 相关的几个宏定义</font></h3><h4 id="2-1-1-U-BOOT-CMD"><a href="#2-1-1-U-BOOT-CMD" class="headerlink" title="2.1.1 U_BOOT_CMD"></a><font size=3>2.1.1 U_BOOT_CMD</font></h4><p>先来看一下U_BOOT_CMD这个宏，它定义在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/include/command.h#L339">command.h - include&#x2F;command.h</a> 中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * name      ：命令名，非字符串，但在U_BOOT_CMD中用“#”符号转化为字符串</span></span><br><span class="line"><span class="comment"> * _maxargs  ：命令的最大参数个数</span></span><br><span class="line"><span class="comment"> * _rep      ：是否自动重复（按Enter键是否会重复执行）</span></span><br><span class="line"><span class="comment"> * _cmd      ：该命令对应的响应函数指针</span></span><br><span class="line"><span class="comment"> * _usage    ：简短的使用说明（字符串）</span></span><br><span class="line"><span class="comment"> * _help     ：较详细的使用说明（字符串）</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD(_name, _maxargs, _rep, _cmd, _usage, _help)		\</span></span><br><span class="line"><span class="meta">	U_BOOT_CMD_COMPLETE(_name, _maxargs, _rep, _cmd, _usage, _help, NULL)</span></span><br></pre></td></tr></table></figure>
+
+<p>这里下面还嵌套了一个宏U_BOOT_CMD_COMPLETE。</p>
+<h4 id="2-1-2-U-BOOT-CMD-COMPLETE"><a href="#2-1-2-U-BOOT-CMD-COMPLETE" class="headerlink" title="2.1.2 U_BOOT_CMD_COMPLETE"></a><font size=3>2.1.2 U_BOOT_CMD_COMPLETE</font></h4><p>我们再找一下这个宏的位置，在uboot 2019.14的版本中，这个宏有两个定义，都定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/include/command.h#L296">command.h - include&#x2F;command.h</a>文件中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_CMDLINE</span></span><br><span class="line"><span class="comment">//......</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD_MKENT_COMPLETE(_name, _maxargs, _rep, _cmd,		\</span></span><br><span class="line"><span class="meta">				_usage, _help, _comp)			\</span></span><br><span class="line"><span class="meta">		&#123; #_name, _maxargs,					\</span></span><br><span class="line"><span class="meta">		 _rep ? cmd_always_repeatable : cmd_never_repeatable,	\</span></span><br><span class="line"><span class="meta">		 _cmd, _usage, _CMD_HELP(_help) _CMD_COMPLETE(_comp) &#125;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD_COMPLETE(_name, _maxargs, _rep, _cmd, _usage, _help, _comp) \</span></span><br><span class="line"><span class="meta">	ll_entry_declare(cmd_tbl_t, _name, cmd) =			\</span></span><br><span class="line"><span class="meta">		U_BOOT_CMD_MKENT_COMPLETE(_name, _maxargs, _rep, _cmd,	\</span></span><br><span class="line"><span class="meta">						_usage, _help, _comp);</span></span><br><span class="line"><span class="comment">//......</span></span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line"><span class="comment">//......</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD_COMPLETE(_name, _maxargs, _rep, _cmd, _usage, _help,	\</span></span><br><span class="line"><span class="meta">			    _comp)				\</span></span><br><span class="line"><span class="meta">	_CMD_REMOVE(sub_ ## _name, _cmd)</span></span><br><span class="line"><span class="comment">//......</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">/* CONFIG_CMDLINE */</span></span></span><br></pre></td></tr></table></figure>
+
+<p>那么用的是哪一个？我们需要去搜一下CONFIG_CMDLINE这个宏定义，这个宏我们需要将uboot编译一遍，编译命令嘛，我们就用之前NXP的哪个评估板的配置文件的编译命令吧：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- distclean</span><br><span class="line">make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- mx6ull_14x14_evk_defconfig</span><br><span class="line">make V=0 ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -j16</span><br></pre></td></tr></table></figure>
+
+<p>编译之后在源码顶层目录下会生成.config文件，在这个文件中有它的定义：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">CONFIG_CMDLINE=y</span><br></pre></td></tr></table></figure>
+
+<p>所以U_BOOT_CMD_COMPLETE使用的是上面的定义，也就是：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD_COMPLETE(_name, _maxargs, _rep, _cmd, _usage, _help, _comp) \</span></span><br><span class="line"><span class="meta">	ll_entry_declare(cmd_tbl_t, _name, cmd) =			\</span></span><br><span class="line"><span class="meta">		U_BOOT_CMD_MKENT_COMPLETE(_name, _maxargs, _rep, _cmd,	\</span></span><br><span class="line"><span class="meta">						_usage, _help, _comp);</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看到里面还有一层U_BOOT_CMD_MKENT_COMPLETE。我们继续找。</p>
+<h4 id="2-1-3-U-BOOT-CMD-MKENT-COMPLETE"><a href="#2-1-3-U-BOOT-CMD-MKENT-COMPLETE" class="headerlink" title="2.1.3 U_BOOT_CMD_MKENT_COMPLETE"></a><font size=3>2.1.3 U_BOOT_CMD_MKENT_COMPLETE</font></h4><p>它也是根据CONFIG_CMDLINE有不同的定义，这里的定义是<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/include/command.h#L290">command.h - include&#x2F;command.h</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD_MKENT_COMPLETE(_name, _maxargs, _rep, _cmd,		\</span></span><br><span class="line"><span class="meta">				_usage, _help, _comp)			\</span></span><br><span class="line"><span class="meta">		&#123; #_name, _maxargs,					\</span></span><br><span class="line"><span class="meta">		 _rep ? cmd_always_repeatable : cmd_never_repeatable,	\</span></span><br><span class="line"><span class="meta">		 _cmd, _usage, _CMD_HELP(_help) _CMD_COMPLETE(_comp) &#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>然后就发现这里还有一层_CMD_HELP和_CMD_COMPLETE。</p>
+<h4 id="2-1-4-CMD-HELP"><a href="#2-1-4-CMD-HELP" class="headerlink" title="2.1.4 _CMD_HELP"></a><font size=3>2.1.4 _CMD_HELP</font></h4><p>这个宏也定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/include/command.h">command.h - include&#x2F;command.h</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_SYS_LONGHELP</span></span><br><span class="line"><span class="meta"># <span class="keyword">define</span> _CMD_HELP(x) x,</span></span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line"><span class="meta"># <span class="keyword">define</span> _CMD_HELP(x)</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+
+<p>可以看到具体的定义是CONFIG_SYS_LONGHELP控制，还是去.config文件找，会发现这个配置项为y，所以这里对应的宏为：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"># <span class="keyword">define</span> _CMD_HELP(x) x,</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="2-1-5-CMD-COMPLETE"><a href="#2-1-5-CMD-COMPLETE" class="headerlink" title="2.1.5 _CMD_COMPLETE"></a><font size=3>2.1.5 _CMD_COMPLETE</font></h4><p>这个同样是定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/include/command.h">command.h - include&#x2F;command.h</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_AUTO_COMPLETE</span></span><br><span class="line"><span class="meta"># <span class="keyword">define</span> _CMD_COMPLETE(x) x,</span></span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line"><span class="meta"># <span class="keyword">define</span> _CMD_COMPLETE(x)</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+
+<p>这里一样的方式，最后确定CONFIG_AUTO_COMPLETE&#x3D;y，所以这里就是：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"># <span class="keyword">define</span> _CMD_COMPLETE(x) x,</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="2-1-6-ll-entry-declare"><a href="#2-1-6-ll-entry-declare" class="headerlink" title="2.1.6 ll_entry_declare"></a><font size=3>2.1.6 ll_entry_declare</font></h4><p>接下来看一下ll_entry_declare是什么，它也是一个宏，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/include/linker_lists.h#L32">linker_lists.h - include&#x2F;linker_lists.h</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * ll_entry_declare() - Declare linker-generated array entry</span></span><br><span class="line"><span class="comment"> * @_type:	Data type of the entry</span></span><br><span class="line"><span class="comment"> * @_name:	Name of the entry</span></span><br><span class="line"><span class="comment"> * @_list:	name of the list. Should contain only characters allowed</span></span><br><span class="line"><span class="comment"> *		in a C variable name!</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This macro declares a variable that is placed into a linker-generated</span></span><br><span class="line"><span class="comment"> * array. This is a basic building block for more advanced use of linker-</span></span><br><span class="line"><span class="comment"> * generated arrays. The user is expected to build their own macro wrapper</span></span><br><span class="line"><span class="comment"> * around this one.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * A variable declared using this macro must be compile-time initialized.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Special precaution must be made when using this macro:</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 1) The _type must not contain the &quot;static&quot; keyword, otherwise the</span></span><br><span class="line"><span class="comment"> *    entry is generated and can be iterated but is listed in the map</span></span><br><span class="line"><span class="comment"> *    file and cannot be retrieved by name.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 2) In case a section is declared that contains some array elements AND</span></span><br><span class="line"><span class="comment"> *    a subsection of this section is declared and contains some elements,</span></span><br><span class="line"><span class="comment"> *    it is imperative that the elements are of the same type.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 3) In case an outer section is declared that contains some array elements</span></span><br><span class="line"><span class="comment"> *    AND an inner subsection of this section is declared and contains some</span></span><br><span class="line"><span class="comment"> *    elements, then when traversing the outer section, even the elements of</span></span><br><span class="line"><span class="comment"> *    the inner sections are present in the array.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Example:</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * ::</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *   ll_entry_declare(struct my_sub_cmd, my_sub_cmd, cmd_sub) = &#123;</span></span><br><span class="line"><span class="comment"> *           .x = 3,</span></span><br><span class="line"><span class="comment"> *           .y = 4,</span></span><br><span class="line"><span class="comment"> *   &#125;;</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> ll_entry_declare(_type, _name, _list)				\</span></span><br><span class="line"><span class="meta">	_type _u_boot_list_2_##_list##_2_##_name __aligned(4)		\</span></span><br><span class="line"><span class="meta">			__attribute__((unused,				\</span></span><br><span class="line"><span class="meta">			section(<span class="string">&quot;.u_boot_list_2_&quot;</span>#_list<span class="string">&quot;_2_&quot;</span>#_name)))</span></span><br></pre></td></tr></table></figure>
+
+<p>这里是在做什么？我们可以看上面的注释，翻译一下就是：该宏声明了一个变量，该变量放置在链接器生成的数组中。这是更高级地使用链接器生成的数组的基本构建块。用户需要围绕这个宏包装器构建自己的宏包装器。使用此宏声明的变量必须在编译时初始化。好像没怎么看懂，其实就是声明一个_type类型的变量是这样的：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">_type                              <span class="comment">// 变量类型</span></span><br><span class="line">_u_boot_list_2_##_list##_2_##_name <span class="comment">// 变量名</span></span><br><span class="line">__aligned(<span class="number">4</span>)                       <span class="comment">// 这个变量四字节对齐</span></span><br><span class="line">__attribute__((unused, section(<span class="string">&quot;.u_boot_list_2_&quot;</span>#_list<span class="string">&quot;_2_&quot;</span>#_name))) <span class="comment">// 这个变量有两个属性</span></span><br><span class="line"><span class="comment">// unused属性：这个变量如果没有被使用，编译器不会报“变量从未使用“的警告</span></span><br><span class="line"><span class="comment">// section属性：会将这个变量放置到可执行程序的 &quot;.u_boot_list_2_&quot;#_list&quot;_2_&quot;#_name 字段下，与.text段或.data等其他段独立出来</span></span><br></pre></td></tr></table></figure>
+
+<p>使用此宏声明的变量必须在编译时初始化。使用此宏时必须特别注意：</p>
+<p>（1）_type不能包含“static”关键字，否则生成的条目可以被迭代，但会列在map文件中，不能通过名称检索。</p>
+<p>（2）如果声明一个section包含一些数组元素，并且声明该section的一个子节包含一些元素，则这些元素必须具有相同的类型。</p>
+<p>（3）如果声明了包含一些数组元素的外部分段，并且声明了该分段的内部分段并包含一些元素，则遍历外部分段时，甚至内部分段的元素都存在于数组中。</p>
+<h3 id="2-2-展开这几个宏"><a href="#2-2-展开这几个宏" class="headerlink" title="2.2 展开这几个宏"></a><font size=3>2.2 展开这几个宏</font></h3><p>我们一层一层向上展开。</p>
+<h4 id="2-2-1-U-BOOT-CMD-MKENT-COMPLETE"><a href="#2-2-1-U-BOOT-CMD-MKENT-COMPLETE" class="headerlink" title="2.2.1 U_BOOT_CMD_MKENT_COMPLETE"></a><font size=3>2.2.1 U_BOOT_CMD_MKENT_COMPLETE</font></h4><p>有这两个宏：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"># <span class="keyword">define</span> _CMD_HELP(x) x,</span></span><br><span class="line"><span class="meta"># <span class="keyword">define</span> _CMD_COMPLETE(x) x,</span></span><br></pre></td></tr></table></figure>
+
+<p>我们可以展开U_BOOT_CMD_MKENT_COMPLETE：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* U_BOOT_CMD_MKENT_COMPLETE */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD_MKENT_COMPLETE(_name, _maxargs, _rep, _cmd,		\</span></span><br><span class="line"><span class="meta">				_usage, _help, _comp)			\</span></span><br><span class="line"><span class="meta">		&#123; #_name, _maxargs,					\</span></span><br><span class="line"><span class="meta">		 _rep ? cmd_always_repeatable : cmd_never_repeatable,	\</span></span><br><span class="line"><span class="meta">		 _cmd, _usage, _CMD_HELP(_help) _CMD_COMPLETE(_comp) &#125;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// U_BOOT_CMD_MKENT_COMPLETE展开之后是</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD_MKENT_COMPLETE(_name, _maxargs, _rep, _cmd,		\</span></span><br><span class="line"><span class="meta">				_usage, _help, _comp)			\</span></span><br><span class="line"><span class="meta">		&#123; #_name, _maxargs,					\</span></span><br><span class="line"><span class="meta">		 _rep ? cmd_always_repeatable : cmd_never_repeatable,	\</span></span><br><span class="line"><span class="meta">		 _cmd, _usage, _help, _comp,&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="2-2-2-U-BOOT-CMD-COMPLETE"><a href="#2-2-2-U-BOOT-CMD-COMPLETE" class="headerlink" title="2.2.2 U_BOOT_CMD_COMPLETE"></a><font size=3>2.2.2 U_BOOT_CMD_COMPLETE</font></h4><p>接下来是U_BOOT_CMD_COMPLETE，有上面的U_BOOT_CMD_MKENT_COMPLETE可以得到：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* U_BOOT_CMD_COMPLETE */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD_COMPLETE(_name, _maxargs, _rep, _cmd, _usage, _help, _comp) \</span></span><br><span class="line"><span class="meta">	ll_entry_declare(cmd_tbl_t, _name, cmd) =			\</span></span><br><span class="line"><span class="meta">		U_BOOT_CMD_MKENT_COMPLETE(_name, _maxargs, _rep, _cmd,	\</span></span><br><span class="line"><span class="meta">						_usage, _help, _comp);</span></span><br><span class="line"><span class="comment">// U_BOOT_CMD_COMPLETE展开之后就是 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD_COMPLETE(_name, _maxargs, _rep, _cmd, _usage, _help, _comp) \</span></span><br><span class="line"><span class="meta">	ll_entry_declare(cmd_tbl_t, _name, cmd) =			\</span></span><br><span class="line"><span class="meta">		&#123; #_name, _maxargs,					\</span></span><br><span class="line"><span class="meta">		 _rep ? cmd_always_repeatable : cmd_never_repeatable,	\</span></span><br><span class="line"><span class="meta">		 _cmd, _usage, _help, _comp,&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="2-2-3-ll-entry-declare"><a href="#2-2-3-ll-entry-declare" class="headerlink" title="2.2.3 ll_entry_declare"></a><font size=3>2.2.3 ll_entry_declare</font></h4><p>我们吧这个ll_entry_declare也展开：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ll_entry_declare</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> ll_entry_declare(_type, _name, _list)				\</span></span><br><span class="line"><span class="meta">	_type _u_boot_list_2_##_list##_2_##_name __aligned(4)		\</span></span><br><span class="line"><span class="meta">			__attribute__((unused,				\</span></span><br><span class="line"><span class="meta">			section(<span class="string">&quot;.u_boot_list_2_&quot;</span>#_list<span class="string">&quot;_2_&quot;</span>#_name)))</span></span><br><span class="line"><span class="comment">// 通过ll_entry_declare(cmd_tbl_t, _name, cmd)传入的三个参数</span></span><br><span class="line"><span class="comment">// _type = cmd_tbl_t</span></span><br><span class="line"><span class="comment">// _name = _name</span></span><br><span class="line"><span class="comment">// _list = cmd 注意这里cmd不是_cmd，cmd就只是在下面被替换成字符串，_cmd依赖上层传入</span></span><br><span class="line"><span class="comment">// 将ll_entry_declare内部的变量替换一下可以得到</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> ll_entry_declare(cmd_tbl_t, _name, cmd)				\</span></span><br><span class="line"><span class="meta">	cmd_tbl_t _u_boot_list_2_cmd_2_##_name __aligned(4)		\</span></span><br><span class="line"><span class="meta">			__attribute__((unused,				\</span></span><br><span class="line"><span class="meta">			section(<span class="string">&quot;.u_boot_list_2_&quot;</span><span class="string">&quot;cmd&quot;</span><span class="string">&quot;_2_&quot;</span>#_name)))</span></span><br><span class="line">    </span><br><span class="line"><span class="comment">// 这里可以对 U_BOOT_CMD_COMPLETE 进一步展开之后就是 </span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD_COMPLETE(_name, _maxargs, _rep, _cmd, _usage, _help, _comp) \</span></span><br><span class="line"><span class="meta">	cmd_tbl_t _u_boot_list_2_cmd_2_##_name __aligned(4)		\</span></span><br><span class="line"><span class="meta">			__attribute__((unused,				\</span></span><br><span class="line"><span class="meta">			section(<span class="string">&quot;.u_boot_list_2_&quot;</span><span class="string">&quot;cmd&quot;</span><span class="string">&quot;_2_&quot;</span>#_name))) =			\</span></span><br><span class="line"><span class="meta">		&#123; #_name, _maxargs,					\</span></span><br><span class="line"><span class="meta">		 _rep ? cmd_always_repeatable : cmd_never_repeatable,	\</span></span><br><span class="line"><span class="meta">		 _cmd, _usage, _help, _comp,&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="2-2-4-U-BOOT-CMD"><a href="#2-2-4-U-BOOT-CMD" class="headerlink" title="2.2.4 U_BOOT_CMD"></a><font size=3>2.2.4 U_BOOT_CMD</font></h4><p>最后一步就是把U_BOOT_CMD展开了，根据前面的U_BOOT_CMD_MKENT_COMPLETE展开形式，可以得到：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* U_BOOT_CMD */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD(_name, _maxargs, _rep, _cmd, _usage, _help)		\</span></span><br><span class="line"><span class="meta">	U_BOOT_CMD_COMPLETE(_name, _maxargs, _rep, _cmd, _usage, _help, NULL)</span></span><br><span class="line"><span class="comment">// U_BOOT_CMD最终展开后就是</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD(_name, _maxargs, _rep, _cmd, _usage, _help)		\</span></span><br><span class="line"><span class="meta">	cmd_tbl_t _u_boot_list_2_cmd_2_##_name __aligned(4)		\</span></span><br><span class="line"><span class="meta">			__attribute__((unused,				\</span></span><br><span class="line"><span class="meta">			section(<span class="string">&quot;.u_boot_list_2_&quot;</span><span class="string">&quot;cmd&quot;</span><span class="string">&quot;_2_&quot;</span>#_name))) =			\</span></span><br><span class="line"><span class="meta">		&#123; #_name, _maxargs,					\</span></span><br><span class="line"><span class="meta">		 _rep ? cmd_always_repeatable : cmd_never_repeatable,	\</span></span><br><span class="line"><span class="meta">		 _cmd, _usage, _help, NULL,&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>我们知道#就是转换为字符串，这个时候可以进一步把#替换掉：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD(_name, _maxargs, _rep, _cmd, _usage, _help)		\</span></span><br><span class="line"><span class="meta">	cmd_tbl_t _u_boot_list_2_cmd_2_##_name __aligned(4)		\</span></span><br><span class="line"><span class="meta">			__attribute__((unused,				\</span></span><br><span class="line"><span class="meta">			section(<span class="string">&quot;.u_boot_list_2_&quot;</span><span class="string">&quot;cmd&quot;</span><span class="string">&quot;_2_&quot;</span><span class="string">&quot;_name&quot;</span>))) =			\</span></span><br><span class="line"><span class="meta">		&#123; <span class="string">&quot;_name&quot;</span>, _maxargs,					\</span></span><br><span class="line"><span class="meta">		 _rep ? cmd_always_repeatable : cmd_never_repeatable,	\</span></span><br><span class="line"><span class="meta">		 _cmd, _usage, _help, NULL,&#125;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 整理一下就是</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD(_name, _maxargs, _rep, _cmd, _usage, _help)		\</span></span><br><span class="line"><span class="meta">	cmd_tbl_t _u_boot_list_2_cmd_2_##_name __aligned(4)		        \</span></span><br><span class="line"><span class="meta">			__attribute__((unused, section(<span class="string">&quot;.u_boot_list_2_&quot;</span><span class="string">&quot;cmd&quot;</span><span class="string">&quot;_2_&quot;</span><span class="string">&quot;_name&quot;</span>))) = \</span></span><br><span class="line"><span class="meta">		&#123;                  \</span></span><br><span class="line"><span class="meta">			<span class="string">&quot;_name&quot;</span>,       \</span></span><br><span class="line"><span class="meta">            _maxargs,      \</span></span><br><span class="line"><span class="meta">            _rep ? cmd_always_repeatable : cmd_never_repeatable, \</span></span><br><span class="line"><span class="meta">            _cmd,          \</span></span><br><span class="line"><span class="meta">            _usage,        \</span></span><br><span class="line"><span class="meta">            _help,         \</span></span><br><span class="line"><span class="meta">            NULL,&#125;</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-gpio命令变量"><a href="#2-3-gpio命令变量" class="headerlink" title="2.3 gpio命令变量"></a><font size=3>2.3 gpio命令变量</font></h3><h4 id="2-3-1-变量定义展开"><a href="#2-3-1-变量定义展开" class="headerlink" title="2.3.1 变量定义展开"></a><font size=3>2.3.1 变量定义展开</font></h4><p>上面已经把U_BOOT_CMD展开了，我们现在根据gpio命令变量的定义，对变量进行替换，前面已经看到了gpio命令的定义，定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/cmd/gpio.c#L245">gpio.c - cmd&#x2F;gpio.c </a>中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">U_BOOT_CMD(gpio, <span class="number">4</span>, <span class="number">0</span>, do_gpio,</span><br><span class="line">	   <span class="string">&quot;query and control gpio pins&quot;</span>,</span><br><span class="line">	   <span class="string">&quot;&lt;input|set|clear|toggle&gt; &lt;pin&gt;\n&quot;</span></span><br><span class="line">	   <span class="string">&quot;    - input/set/clear/toggle the specified pin\n&quot;</span></span><br><span class="line">	   <span class="string">&quot;gpio status [-a] [&lt;bank&gt; | &lt;pin&gt;]  - show [all/claimed] GPIOs&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>里面的各个变量对应关系是这样的：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * name=gpio, 命令名，非字符串，但在U_BOOT_CMD中用“#”符号转化为字符串</span></span><br><span class="line"><span class="comment"> * _maxargs=4, 命令的最大参数个数</span></span><br><span class="line"><span class="comment"> * _rep=0, 是否自动重复（按Enter键是否会重复执行）</span></span><br><span class="line"><span class="comment"> * _cmd=do_gpio, 该命令对应的响应函数指针</span></span><br><span class="line"><span class="comment"> * _usage=&quot;query and control gpio pins&quot;, 简短的使用说明（字符串）</span></span><br><span class="line"><span class="comment"> * _help=&quot;&lt;input|set|clear|toggle&gt; &lt;pin&gt;\n&quot;</span></span><br><span class="line"><span class="comment"> 		 &quot;    - input/set/clear/toggle the specified pin\n&quot;</span></span><br><span class="line"><span class="comment">	     &quot;gpio status [-a] [&lt;bank&gt; | &lt;pin&gt;]  - show [all/claimed] GPIOs&quot;,较详细的使用说明（字符串）</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure>
+
+<p>然后我们完全展开，可以得到gpio命令变量的定义：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//      U_BOOT_CMD(_name, _maxargs, _rep, _cmd, _usage, _help)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD(gpio, 4, 0, do_gpio, <span class="string">&quot;usage&quot;</span>, <span class="string">&quot;help&quot;</span>)		\</span></span><br><span class="line"><span class="meta">	cmd_tbl_t _u_boot_list_2_cmd_2_##_name __aligned(4)		        \</span></span><br><span class="line"><span class="meta">			__attribute__((unused, section(<span class="string">&quot;.u_boot_list_2_&quot;</span><span class="string">&quot;cmd&quot;</span><span class="string">&quot;_2_&quot;</span><span class="string">&quot;_name&quot;</span>))) = \</span></span><br><span class="line"><span class="meta">		&#123;                  \</span></span><br><span class="line"><span class="meta">			<span class="string">&quot;_name&quot;</span>,       \</span></span><br><span class="line"><span class="meta">            _maxargs,      \</span></span><br><span class="line"><span class="meta">            _rep ? cmd_always_repeatable : cmd_never_repeatable, \</span></span><br><span class="line"><span class="meta">            _cmd, _usage, _help, NULL,&#125;</span></span><br><span class="line"><span class="comment">// 替换后就是</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD(gpio, 4, 0, do_gpio, <span class="string">&quot;usage&quot;</span>, <span class="string">&quot;help&quot;</span>)		\</span></span><br><span class="line"><span class="meta">	cmd_tbl_t _u_boot_list_2_cmd_2_gpio __aligned(4)		        \</span></span><br><span class="line"><span class="meta">			__attribute__((unused, section(<span class="string">&quot;.u_boot_list_2_&quot;</span><span class="string">&quot;cmd&quot;</span><span class="string">&quot;_2_&quot;</span><span class="string">&quot;gpio&quot;</span>))) = \</span></span><br><span class="line"><span class="meta">		&#123;                 \</span></span><br><span class="line"><span class="meta">			<span class="string">&quot;gpio&quot;</span>,       \</span></span><br><span class="line"><span class="meta">            4,            \</span></span><br><span class="line"><span class="meta">            0 ? cmd_always_repeatable : cmd_never_repeatable,                \</span></span><br><span class="line"><span class="meta">            do_gpio,                                                         \</span></span><br><span class="line"><span class="meta">			<span class="string">&quot;query and control gpio pins&quot;</span>,                                   \</span></span><br><span class="line"><span class="meta">			<span class="string">&quot;&lt;input|set|clear|toggle&gt; &lt;pin&gt;\n&quot;</span>                               \</span></span><br><span class="line"><span class="meta">            <span class="string">&quot;    - input/set/clear/toggle the specified pin\n&quot;</span>               \</span></span><br><span class="line"><span class="meta">	        <span class="string">&quot;gpio status [-a] [&lt;bank&gt; | &lt;pin&gt;]  - show [all/claimed] GPIOs&quot;</span>, \</span></span><br><span class="line"><span class="meta">			NULL,&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>把宏的标识去掉，就是</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 这里的&quot;.u_boot_list_2_&quot;&quot;cmd&quot;&quot;_2_&quot;&quot;gpio&quot;其实可以把中间的&quot;去掉的</span></span><br><span class="line"><span class="comment">// 那个条件判断的运算符也可以去掉</span></span><br><span class="line"><span class="comment">// 最后整理一下那就是</span></span><br><span class="line"><span class="type">cmd_tbl_t</span> _u_boot_list_2_cmd_2_gpio __aligned(<span class="number">4</span>)</span><br><span class="line">			__attribute__((unused, section(<span class="string">&quot;.u_boot_list_2_cmd_2_gpio&quot;</span>))) = &#123;</span><br><span class="line">			<span class="string">&quot;gpio&quot;</span>,</span><br><span class="line">            <span class="number">4</span>,</span><br><span class="line">            cmd_never_repeatable,</span><br><span class="line">            do_gpio,</span><br><span class="line">			<span class="string">&quot;query and control gpio pins&quot;</span>,</span><br><span class="line">			<span class="string">&quot;&lt;input|set|clear|toggle&gt; &lt;pin&gt;\n&quot;</span></span><br><span class="line">            <span class="string">&quot;    - input/set/clear/toggle the specified pin\n&quot;</span></span><br><span class="line">	        <span class="string">&quot;gpio status [-a] [&lt;bank&gt; | &lt;pin&gt;]  - show [all/claimed] GPIOs&quot;</span>,</span><br><span class="line">			<span class="literal">NULL</span>,&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以去看一下map文件（<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/blob/master/01_uboot/01_gpio_cmd/u-boot.map">01_uboot&#x2F;01_gpio_cmd&#x2F;u-boot.map · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国 (gitee.com)</a>），搜索关键字就会发现里面有这个命令在：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/LV05-02-U-Boot-03-uboot%E4%B8%8BGPIO%E7%9A%84%E6%8E%A7%E5%88%B6/img/image-20241114222950493.png" alt="image-20241114222950493" />
+
+<p>这也可以证明前面宏展开是正确的。</p>
+<h4 id="2-3-2-cmd-tbl-t类型"><a href="#2-3-2-cmd-tbl-t类型" class="headerlink" title="2.3.2 cmd_tbl_t类型"></a><font size=3>2.3.2 cmd_tbl_t类型</font></h4><p>可以看到上面的变量类型是cmd_tbl_t，它是一个结构体类型，定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/include/command.h#L54">command.h - include&#x2F;command.h </a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">cmd_tbl_s</span>	<span class="title">cmd_tbl_t</span>;</span></span><br></pre></td></tr></table></figure>
+
+<p>最终的定义是在这里<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/include/command.h#L29">command.h - include&#x2F;command.h</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cmd_tbl_s</span> &#123;</span></span><br><span class="line">	<span class="type">char</span>		*name;		<span class="comment">/* Command Name			*/</span></span><br><span class="line">	<span class="type">int</span>		maxargs;	<span class="comment">/* maximum number of arguments	*/</span></span><br><span class="line">					<span class="comment">/*</span></span><br><span class="line"><span class="comment">					 * Same as -&gt;cmd() except the command</span></span><br><span class="line"><span class="comment">					 * tells us if it can be repeated.</span></span><br><span class="line"><span class="comment">					 * Replaces the old -&gt;repeatable field</span></span><br><span class="line"><span class="comment">					 * which was not able to make</span></span><br><span class="line"><span class="comment">					 * repeatable property different for</span></span><br><span class="line"><span class="comment">					 * the main command and sub-commands.</span></span><br><span class="line"><span class="comment">					 */</span></span><br><span class="line">	<span class="type">int</span>		(*cmd_rep)(<span class="keyword">struct</span> cmd_tbl_s *cmd, <span class="type">int</span> flags, <span class="type">int</span> argc,</span><br><span class="line">				   <span class="type">char</span> * <span class="type">const</span> argv[], <span class="type">int</span> *repeatable);</span><br><span class="line">					<span class="comment">/* Implementation function	*/</span></span><br><span class="line">	<span class="type">int</span>		(*cmd)(<span class="keyword">struct</span> cmd_tbl_s *, <span class="type">int</span>, <span class="type">int</span>, <span class="type">char</span> * <span class="type">const</span> []);</span><br><span class="line">	<span class="type">char</span>		*usage;		<span class="comment">/* Usage message	(short)	*/</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span>	CONFIG_SYS_LONGHELP</span></span><br><span class="line">	<span class="type">char</span>		*help;		<span class="comment">/* Help  message	(long)	*/</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_AUTO_COMPLETE</span></span><br><span class="line">	<span class="comment">/* do auto completion on the arguments */</span></span><br><span class="line">	<span class="type">int</span>		(*complete)(<span class="type">int</span> argc, <span class="type">char</span> * <span class="type">const</span> argv[], <span class="type">char</span> last_char, <span class="type">int</span> maxv, <span class="type">char</span> *cmdv[]);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>前面分析过，CONFIG_SYS_LONGHELP和CONFIG_AUTO_COMPLETE都有定义，所以这里就是：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cmd_tbl_s</span> &#123;</span></span><br><span class="line">	<span class="type">char</span> *name;		<span class="comment">/* Command Name			*/</span></span><br><span class="line">	<span class="type">int</span>  maxargs;	<span class="comment">/* maximum number of arguments	*/</span></span><br><span class="line">	<span class="type">int</span>  (*cmd_rep)(<span class="keyword">struct</span> cmd_tbl_s *cmd, <span class="type">int</span> flags, <span class="type">int</span> argc, <span class="type">char</span> * <span class="type">const</span> argv[], <span class="type">int</span> *repeatable); <span class="comment">/* Implementation function	*/</span></span><br><span class="line">	<span class="type">int</span>  (*cmd)(<span class="keyword">struct</span> cmd_tbl_s *, <span class="type">int</span>, <span class="type">int</span>, <span class="type">char</span> * <span class="type">const</span> []);</span><br><span class="line">	<span class="type">char</span> *usage; <span class="comment">/* Usage message	(short)	*/</span></span><br><span class="line">	<span class="type">char</span> *help;  <span class="comment">/* Help  message	(long)	*/</span></span><br><span class="line">	<span class="type">int</span>  (*complete)(<span class="type">int</span> argc, <span class="type">char</span> * <span class="type">const</span> argv[], <span class="type">char</span> last_char, <span class="type">int</span> maxv, <span class="type">char</span> *cmdv[]);<span class="comment">/* do auto completion on the arguments */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到这里有三个函数指针，其中complete指针由于U_BOOT_CMD_COMPLETE宏中固定为NULL，这里可以不用关心。还有两个函数指针cmd_rep和cmd，我们接着看一下。</p>
+<h3 id="2-4-两个函数指针"><a href="#2-4-两个函数指针" class="headerlink" title="2.4 两个函数指针"></a><font size=3>2.4 两个函数指针</font></h3><h4 id="2-4-1-cmd-rep"><a href="#2-4-1-cmd-rep" class="headerlink" title="2.4.1 cmd_rep"></a><font size=3>2.4.1 cmd_rep</font></h4><h5 id="2-4-1-1-函数指针定义"><a href="#2-4-1-1-函数指针定义" class="headerlink" title="2.4.1.1 函数指针定义"></a><font size=3>2.4.1.1 函数指针定义</font></h5><p>这个函数指针定义为：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span>  (*cmd_rep)(<span class="keyword">struct</span> cmd_tbl_s *cmd, <span class="type">int</span> flags, <span class="type">int</span> argc, <span class="type">char</span> * <span class="type">const</span> argv[], <span class="type">int</span> *repeatable); <span class="comment">/* Implementation function	*/</span></span><br></pre></td></tr></table></figure>
+
+<p>这个函数指针含有5个形参，返回值为int类型。它主要控制是否自动重复（按Enter键是否会重复执行）命令。在命令定义的时候这里主要是根据_rep的值来决定调用哪个函数。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> U_BOOT_CMD(_name, _maxargs, _rep, _cmd, _usage, _help)		\</span></span><br><span class="line"><span class="meta">	cmd_tbl_t _u_boot_list_2_cmd_2_##_name __aligned(4)		        \</span></span><br><span class="line"><span class="meta">			__attribute__((unused, section(<span class="string">&quot;.u_boot_list_2_&quot;</span><span class="string">&quot;cmd&quot;</span><span class="string">&quot;_2_&quot;</span><span class="string">&quot;_name&quot;</span>))) = \</span></span><br><span class="line"><span class="meta">		&#123;                  \</span></span><br><span class="line"><span class="meta">			<span class="string">&quot;_name&quot;</span>,       \</span></span><br><span class="line"><span class="meta">            _maxargs,      \</span></span><br><span class="line"><span class="meta">            _rep ? cmd_always_repeatable : cmd_never_repeatable, \</span></span><br><span class="line"><span class="meta">            _cmd,          \</span></span><br><span class="line"><span class="meta">            _usage,        \</span></span><br><span class="line"><span class="meta">            _help,         \</span></span><br><span class="line"><span class="meta">            NULL,&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="2-4-1-2-cmd-always-repeatable"><a href="#2-4-1-2-cmd-always-repeatable" class="headerlink" title="2.4.1.2 cmd_always_repeatable()"></a><font size=3>2.4.1.2 cmd_always_repeatable()</font></h5><p>看一下cmd_always_repeatable，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/common/command.c#L524">command.c - common&#x2F;command.c</a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">cmd_always_repeatable</span><span class="params">(<span class="type">cmd_tbl_t</span> *cmdtp, <span class="type">int</span> flag, <span class="type">int</span> argc,</span></span><br><span class="line"><span class="params">			  <span class="type">char</span> * <span class="type">const</span> argv[], <span class="type">int</span> *repeatable)</span></span><br><span class="line">&#123;</span><br><span class="line">	*repeatable = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> cmdtp-&gt;cmd(cmdtp, flag, argc, argv);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h5 id="2-4-1-3-cmd-never-repeatable"><a href="#2-4-1-3-cmd-never-repeatable" class="headerlink" title="2.4.1.3 cmd_never_repeatable()"></a><font size=3>2.4.1.3 cmd_never_repeatable()</font></h5><p>cmd_never_repeatable定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/common/command.c#L532">command.c - common&#x2F;command.c</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">cmd_never_repeatable</span><span class="params">(<span class="type">cmd_tbl_t</span> *cmdtp, <span class="type">int</span> flag, <span class="type">int</span> argc,</span></span><br><span class="line"><span class="params">			 <span class="type">char</span> * <span class="type">const</span> argv[], <span class="type">int</span> *repeatable)</span></span><br><span class="line">&#123;</span><br><span class="line">	*repeatable = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> cmdtp-&gt;cmd(cmdtp, flag, argc, argv);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从gpio的命令变量定义来看，这里调用的就是这个函数了。</p>
+<h4 id="2-4-2-cmd"><a href="#2-4-2-cmd" class="headerlink" title="2.4.2 cmd"></a><font size=3>2.4.2 cmd</font></h4><h5 id="2-4-2-1-函数指针定义"><a href="#2-4-2-1-函数指针定义" class="headerlink" title="2.4.2.1 函数指针定义"></a><font size=3>2.4.2.1 函数指针定义</font></h5><p>这个函数指针定义为：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> (*cmd)(<span class="keyword">struct</span> cmd_tbl_s *, <span class="type">int</span>, <span class="type">int</span>, <span class="type">char</span> * <span class="type">const</span> []);</span><br></pre></td></tr></table></figure>
+
+<p>它有四个参数，返回值为int类型。这个函数指针就是命令的实现过程，我么敲了这个命令之后要执行什么，就在这个函数指针指向的函数中实现。</p>
+<h5 id="2-4-2-2-do-gpio"><a href="#2-4-2-2-do-gpio" class="headerlink" title="2.4.2.2 do_gpio()"></a><font size=3>2.4.2.2 do_gpio()</font></h5><p>前面展开的时候可以看到这个cmd函数指针指向的是do_gpio函数，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/u-boot/v2019.04/source/cmd/gpio.c#L118">gpio.c - cmd&#x2F;gpio.c</a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">do_gpio</span><span class="params">(<span class="type">cmd_tbl_t</span> *cmdtp, <span class="type">int</span> flag, <span class="type">int</span> argc, <span class="type">char</span> * <span class="type">const</span> argv[])</span>;</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-总结一下吧"><a href="#3-总结一下吧" class="headerlink" title="3. 总结一下吧"></a><font size=3>3. 总结一下吧</font></h2><p>这里总结一下吧，总的来说上面那么多就是分析了一条语句：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">U_BOOT_CMD(gpio, <span class="number">4</span>, <span class="number">0</span>, do_gpio,</span><br><span class="line">	   <span class="string">&quot;query and control gpio pins&quot;</span>,</span><br><span class="line">	   <span class="string">&quot;&lt;input|set|clear|toggle&gt; &lt;pin&gt;\n&quot;</span></span><br><span class="line">	   <span class="string">&quot;    - input/set/clear/toggle the specified pin\n&quot;</span></span><br><span class="line">	   <span class="string">&quot;gpio status [-a] [&lt;bank&gt; | &lt;pin&gt;]  - show [all/claimed] GPIOs&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>这条语句经过层层展开之后，实际上是定义了一个结构体变量：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">cmd_tbl_t</span> _u_boot_list_2_cmd_2_gpio __aligned(<span class="number">4</span>)</span><br><span class="line">			__attribute__((unused, section(<span class="string">&quot;.u_boot_list_2_cmd_2_gpio&quot;</span>))) = &#123;</span><br><span class="line">			<span class="string">&quot;gpio&quot;</span>,</span><br><span class="line">            <span class="number">4</span>,</span><br><span class="line">            cmd_never_repeatable,</span><br><span class="line">            do_gpio,</span><br><span class="line">			<span class="string">&quot;query and control gpio pins&quot;</span>,</span><br><span class="line">			<span class="string">&quot;&lt;input|set|clear|toggle&gt; &lt;pin&gt;\n&quot;</span></span><br><span class="line">            <span class="string">&quot;    - input/set/clear/toggle the specified pin\n&quot;</span></span><br><span class="line">	        <span class="string">&quot;gpio status [-a] [&lt;bank&gt; | &lt;pin&gt;]  - show [all/claimed] GPIOs&quot;</span>,</span><br><span class="line">			<span class="literal">NULL</span>,&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>这个结构体变量名是<code>_u_boot_list_2_cmd_2_gpio</code>，类型是<code>cmd_tbl_t</code>，这个变量在内存中是四字节对齐的，通过<code>__attribute__</code>给这个结构体变量设置了两个属性：</p>
+<ul>
+<li>unused属性：这个变量如果没有被使用，编译器不会报“变量从未使用“的警告</li>
+<li>section属性：<code>&quot;.u_boot_list_2_cmd_2_gpio&quot;</code>属性会将这个变量放置到可执行程序的<code>&quot;.u_boot_list_2_cmd_2_gpio&quot;</code>字段下，与.text段或.data等其他段独立出来</li>
+</ul>
+<blockquote>
+<p>参考资料：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/sy84436446/article/details/126991149">petalinux - u-boot中操作gpio_uboot gpio操作-CSDN博客</a></p>
+<p><a target="_blank" rel="noopener" href="https://doc.embedfire.com/lubancat/build_and_deploy/zh/latest/building_image/uboot_gpio/uboot_gpio.html#ubootgpio">6. Uboot的GPIO控制 — [野火]嵌入式Linux镜像构建与部署——基于LubanCat-i.MX6ULL开发板 文档 (embedfire.com)</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/zd845101500/article/details/104017849">u-boot的命令实现（添加自定义命令）_uboot 自定义 函数-CSDN博客</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/Luckiers/article/details/127712472">Linux下uboot添加自定义命令（详细）实例及原理解析_怎么修改uboot指令-CSDN博客</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/Luckiers/article/details/127346876">链接脚本.lds（详细）总结附实例快速掌握-CSDN博客</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_53762042/article/details/130541931">9.uboot命令体系 源码解读并从中添加命令_uboot让参数等于命令返回值-CSDN博客</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_39752170/article/details/114435809">u-boot的linker list源码分析_uboot env callback-CSDN博客</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/u010584870/article/details/141569742">uboot源码分析uboot启动流程，uboot-CMD命令调用关系_u-boot源码分析-CSDN博客</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/1ee5b7e1.html">LV05-02-U-Boot-03-uboot下GPIO的控制</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年11月19日 - 23:38</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/1ee5b7e1.html" title="LV05-02-U-Boot-03-uboot下GPIO的控制">https://sumumm.github.io/post/1ee5b7e1.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV05-%E7%B3%BB%E7%BB%9F%E9%95%9C%E5%83%8F/" rel="tag"><i class="fa fa-tag"></i> LV05-系统镜像</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/14f3979e.html" rel="prev" title="LV05-02-U-Boot-04-uboot下命令的执行">
+                  <i class="fa fa-angle-left"></i> LV05-02-U-Boot-04-uboot下命令的执行
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/23dece49.html" rel="next" title="LV05-02-U-Boot-02-uboot移植">
+                  LV05-02-U-Boot-02-uboot移植 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是pinctrl与gpio子系统——gpio子系统相关笔记。若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-02-字符设备驱动-01-pinctrl与gpio子系统-02-gpio">
+<meta property="og:url" content="https://sumumm.github.io/post/5e10514.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是pinctrl与gpio子系统——gpio子系统相关笔记。若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-01-pinctrl%E4%B8%8Egpio%E5%AD%90%E7%B3%BB%E7%BB%9F-02-gpio/img/image-20230826160108109.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-01-pinctrl%E4%B8%8Egpio%E5%AD%90%E7%B3%BB%E7%BB%9F-02-gpio/img/image-20230826160435363.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-01-pinctrl%E4%B8%8Egpio%E5%AD%90%E7%B3%BB%E7%BB%9F-02-gpio/img/image-20230826160832206.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-01-pinctrl%E4%B8%8Egpio%E5%AD%90%E7%B3%BB%E7%BB%9F-02-gpio/img/image-20230826161019216.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-01-pinctrl%E4%B8%8Egpio%E5%AD%90%E7%B3%BB%E7%BB%9F-02-gpio/img/image-20230826161256859.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-01-pinctrl%E4%B8%8Egpio%E5%AD%90%E7%B3%BB%E7%BB%9F-02-gpio/img/image-20230826161420932.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-01-pinctrl%E4%B8%8Egpio%E5%AD%90%E7%B3%BB%E7%BB%9F-02-gpio/img/image-20230826161554787.png">
+<meta property="article:published_time" content="2023-09-08T11:20:00.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.049Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="(ALPHA)LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-01-pinctrl%E4%B8%8Egpio%E5%AD%90%E7%B3%BB%E7%BB%9F-02-gpio/img/image-20230826160108109.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/5e10514.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/5e10514.html","path":"post/5e10514.html","title":"LV06-02-字符设备驱动-01-pinctrl与gpio子系统-02-gpio"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-02-字符设备驱动-01-pinctrl与gpio子系统-02-gpio | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%A6%82%E8%BF%B0"><span class="nav-text">一、概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81I-MX6ULL-%E7%9A%84-gpio-%E5%AD%90%E7%B3%BB%E7%BB%9F%E9%A9%B1%E5%8A%A8"><span class="nav-text">二、I.MX6ULL 的 gpio 子系统驱动  </span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BE%E5%A4%87%E6%A0%91%E4%B8%AD%E7%9A%84-gpio-%E4%BF%A1%E6%81%AF"><span class="nav-text">1. 设备树中的 gpio 信息  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-GPIO-%E9%A9%B1%E5%8A%A8%E7%A8%8B%E5%BA%8F"><span class="nav-text">2. GPIO 驱动程序  </span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81gpio-%E5%AD%90%E7%B3%BB%E7%BB%9F-API-%E5%87%BD%E6%95%B0"><span class="nav-text">三、gpio 子系统 API 函数  </span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-gpio-request"><span class="nav-text">1. gpio_request()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-gpio-free"><span class="nav-text">2. gpio_free()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-gpio-direction-input"><span class="nav-text">3. gpio_direction_input  ()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-gpio-direction-output"><span class="nav-text">4. gpio_direction_output  ()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-gpio-get-value"><span class="nav-text">5. gpio_get_value  ()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-gpio-set-value"><span class="nav-text">6. gpio_set_value  ()</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E8%AE%BE%E5%A4%87%E6%A0%91%E4%B8%AD%E6%B7%BB%E5%8A%A0-gpio-%E8%8A%82%E7%82%B9%E6%A8%A1%E6%9D%BF"><span class="nav-text">四、设备树中添加 gpio 节点模板  </span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%88%9B%E5%BB%BA-test-%E8%AE%BE%E5%A4%87%E8%8A%82%E7%82%B9"><span class="nav-text">1. 创建 test 设备节点  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%B7%BB%E5%8A%A0-pinctrl-%E4%BF%A1%E6%81%AF"><span class="nav-text">2. 添加 pinctrl 信息  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%B7%BB%E5%8A%A0-GPIO-%E5%B1%9E%E6%80%A7%E4%BF%A1%E6%81%AF"><span class="nav-text">3. 添加 GPIO 属性信息  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%B8%8E-gpio-%E7%9B%B8%E5%85%B3%E7%9A%84-OF-%E5%87%BD%E6%95%B0"><span class="nav-text">4. 与 gpio 相关的 OF 函数  </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-of-gpio-named-count-%E5%87%BD%E6%95%B0"><span class="nav-text">4.1 of_gpio_named_count 函数  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-of-gpio-count-%E5%87%BD%E6%95%B0"><span class="nav-text">4.2 of_gpio_count 函数  </span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-of-get-named-gpio-%E5%87%BD%E6%95%B0"><span class="nav-text">4.3 of_get_named_gpio 函数   </span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/5e10514.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-02-字符设备驱动-01-pinctrl与gpio子系统-02-gpio | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-02-字符设备驱动-01-pinctrl与gpio子系统-02-gpio
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-09-08 19:20:00" itemprop="dateCreated datePublished" datetime="2023-09-08T19:20:00+08:00">2023-09-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>15 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是pinctrl与gpio子系统——gpio子系统相关笔记。若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-01-pinctrl%E4%B8%8Egpio%E5%AD%90%E7%B3%BB%E7%BB%9F-02-gpio/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows版本</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu版本</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>      </tr>    <tr>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center">buildroot</td>        <td align="left">2023.05.1版本</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="4">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">在线阅读linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga" target="_blank">nxp-imx/linux-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga</a></td>        <td align="left">NXP linux内核仓库tags中的rel_imx_4.1.15_2.1.0_ga</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.1.15_2.1.0_ga</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、概述"><a href="#一、概述" class="headerlink" title="一、概述"></a><font size=3>一、概述</font></h1><p>pinctrl 子系统重点是设置 PIN(有的 SOC 叫做 PAD)的复用和电气属性，如果 pinctrl 子系统将一个 PIN 复用为 GPIO 的话，那么接下来就要用到 gpio 子系统了。 </p>
+<p>gpio 子系统顾名思义，就是用于初始化 GPIO 并且提供相应的 API 函数，比如设置 GPIO为输入输出，读取 GPIO 的值等。 gpio 子系统的主要目的就是方便驱动开发者使用 gpio，驱动开发者在设备树中添加 gpio 相关信息，然后就可以在驱动程序中使用 gpio 子系统提供的 API函数来操作 GPIO， Linux 内核向驱动开发者屏蔽掉了 GPIO 的设置过程，极大的方便了驱动开发者使用 GPIO。  </p>
+<h1 id="二、I-MX6ULL-的-gpio-子系统驱动"><a href="#二、I-MX6ULL-的-gpio-子系统驱动" class="headerlink" title="二、I.MX6ULL 的 gpio 子系统驱动  "></a><font size=3>二、I.MX6ULL 的 gpio 子系统驱动  </font></h1><h2 id="1-设备树中的-gpio-信息"><a href="#1-设备树中的-gpio-信息" class="headerlink" title="1. 设备树中的 gpio 信息  "></a><font size=3>1. 设备树中的 gpio 信息  </font></h2><p>I.MX6ULL-ALPHA 开发板上的 UART1_RTS_B 做为 SD 卡的检测引脚， UART1_RTS_B 复用为 GPIO1_IO19，通过读取这个 GPIO 的高低电平就可以知道 SD 卡有没有插入。首先肯定是将 UART1_RTS_B 这个 PIN 复用为 GPIO1_IO19，并且设置电气属性，也就是上一小节学习的pinctrl 节点。打开 imx6ull-alpha-emmc.dts， UART1_RTS_B 这个 PIN 的 pincrtl 设置如下：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-01-pinctrl%E4%B8%8Egpio%E5%AD%90%E7%B3%BB%E7%BB%9F-02-gpio/img/image-20230826160108109.png" alt="image-20230826160108109" style="zoom:50%;" />
+
+<p>pinctrl 配置好以后就是设置 gpio 了， SD 卡驱动程序通过读取 GPIO1_IO19 的值来判断 SD卡有没有插入，但是 SD 卡驱动程序怎么知道 CD 引脚连接的 GPIO1_IO19 呢？肯定是需要设备树告诉驱动啊！在设备树中 SD 卡节点下添加一个属性来描述 SD 卡的 CD 引脚就行了， SD卡驱动直接读取这个属性值就知道 SD 卡的 CD 引脚使用的是哪个 GPIO 了。 SD 卡连接在I.MX6ULL 的 usdhc1 接口上，在 imx6ull-alpha-emmc.dts 中找到名为“usdhc1”的节点，这个节点就是 SD 卡设备节点，如下所示  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-01-pinctrl%E4%B8%8Egpio%E5%AD%90%E7%B3%BB%E7%BB%9F-02-gpio/img/image-20230826160435363.png" alt="image-20230826160435363" style="zoom:50%;" />
+
+<p>第 757 行，此行本来没有，是添加的注释信息， usdhc1 节点作为 SD 卡设备总节点， usdhc1 节点需要描述 SD 卡所有的信息，因为驱动要使用。本行就是描述 SD 卡的 CD 引脚 pinctrl 信息所在的子节点，因为 SD 卡驱动需要根据 pincrtl 节点信息来设置 CD 引脚的复用功能等。754~756行的 pinctrl-0~2 都是 SD 卡其他 PIN 的 pincrtl 节点信息。但是会发现，其实在 usdhc1 节点中并没有“pinctrl-3 &#x3D; &lt;&amp;pinctrl_hog_1&gt;”这一行，也就是说并没有指定CD 引脚的 pinctrl 信息，那么 SD 卡驱动就没法设置 CD 引脚的复用功能啊？这个不用担心，因为在“iomuxc”节点下引用了 pinctrl_hog_1 这个节点，所以Linux 内核中的 iomuxc 驱动就会自动初始化 pinctrl_hog_1节点下的所有 PIN。</p>
+<p>第 758 行，属性“cd-gpios”描述了 SD 卡的 CD 引脚使用的哪个 IO。属性值一共有三个，我们来看一下这三个属性值的含义，“&amp;gpio1”表示 CD 引脚所使用的 IO 属于 GPIO1 组，“19” 表示 GPIO1 组的第 19 号 IO，通过这两个值 SD 卡驱动程序就知道 CD 引脚使用了 GPIO1_IO19这GPIO。 “ GPIO_ACTIVE_LOW ” 表示低电平有效，如果改为“GPIO_ACTIVE_HIGH”就表示高电平有效。  </p>
+<p>根据上面这些信息， SD 卡驱动程序就可以使用 GPIO1_IO19 来检测 SD 卡的 CD 信号了，打开 imx6ull.dtsi，在里面找到如下所示内容 ：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-01-pinctrl%E4%B8%8Egpio%E5%AD%90%E7%B3%BB%E7%BB%9F-02-gpio/img/image-20230826160832206.png" alt="image-20230826160832206" style="zoom:50%;" />
+
+<p>gpio1 节点信息描述了 GPIO1 控制器的所有信息，重点就是 GPIO1 外设寄存器基地址以及兼容属性 。关于I.MX 系列 SOC 的GPIO控制器绑定信息可以查看 文档 Documentation&#x2F;devicetree&#x2F;bindings&#x2F;gpio&#x2F; fsl-imx-gpio.txt。  </p>
+<p>第 505 行，设置 gpio1 节点的 compatible 属性有两个，分别为“fsl,imx6ul-gpio”和“fsl,imx35-gpio”，在 Linux 内核中搜索这两个字符串就可以找到 I.MX6UL 的 GPIO 驱动程序。</p>
+<p>第 506 行， reg 属性设置了 GPIO1 控制器的寄存器基地址为 0X0209C000，可以打开《I.MX6ULL 参考手册》找到“Chapter 28:General Purpose Input&#x2F;Output(GPIO)”章节第 28.5 小节，有如图所示的寄存器地址表：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-01-pinctrl%E4%B8%8Egpio%E5%AD%90%E7%B3%BB%E7%BB%9F-02-gpio/img/image-20230826161019216.png" alt="image-20230826161019216" style="zoom:50%;" />
+
+<p>可以看出， GPIO1 控制器的基地址就是 0X0209C000。</p>
+<p>第 509 行，“gpio-controller”表示 gpio1 节点是个 GPIO 控制器。</p>
+<p>第 510 行，“#gpio-cells”属性和“#address-cells”类似， #gpio-cells 应该为 2，表示一共有两个 cell，第一个 cell 为 GPIO 编号，比如“&amp;gpio1 3”就表示 GPIO1_IO03。第二个 cell 表示GPIO 极 性 ， 如 果 为 0(GPIO_ACTIVE_HIGH) 的 话表示高电平有效，如果为1(GPIO_ACTIVE_LOW)的话表示低电平有效。  </p>
+<h2 id="2-GPIO-驱动程序"><a href="#2-GPIO-驱动程序" class="headerlink" title="2. GPIO 驱动程序  "></a><font size=3>2. GPIO 驱动程序  </font></h2><p>gpio1 节点的 compatible 属性描述了兼容性，在 Linux 内核中搜索“fsl,imx6ul-gpio”和“fsl,imx35-gpio”这两个字符串，查找 GPIO 驱动文件。 drivers&#x2F;gpio&#x2F;gpio-mxc.c 就是 I.MX6ULL的 GPIO 驱动文件，在此文件中有如下所示 of_device_id 匹配表：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-01-pinctrl%E4%B8%8Egpio%E5%AD%90%E7%B3%BB%E7%BB%9F-02-gpio/img/image-20230826161256859.png" alt="image-20230826161256859" style="zoom:50%;" />
+
+<p>第 156 行的 compatible 值为“fsl,imx35-gpio”，和 gpio1 的 compatible 属性匹配，因此 gpiomxc.c 就是 I.MX6ULL 的 GPIO 控制器驱动文件。 gpio-mxc.c 所在的目录为 drivers&#x2F;gpio，打开这个目录可以看到很多芯片的 gpio 驱动文件， “gpiolib”开始的文件是 gpio 驱动的核心文件：  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-01-pinctrl%E4%B8%8Egpio%E5%AD%90%E7%B3%BB%E7%BB%9F-02-gpio/img/image-20230826161420932.png" alt="image-20230826161420932" style="zoom:50%;" />
+
+<p>我们重点来看一下 gpio-mxc.c 这个文件，在 gpio-mxc.c 文件中有如下所示内容 ：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8-01-pinctrl%E4%B8%8Egpio%E5%AD%90%E7%B3%BB%E7%BB%9F-02-gpio/img/image-20230826161554787.png" alt="image-20230826161554787" style="zoom:50%;" />
+
+<p>可以看出 GPIO 驱动也是个平台设备驱动，因此当设备树中的设备节点与驱动的of_device_id 匹配以后 probe 函数就会执行，在这里就是 mxc_gpio_probe 函数，这个函数就是I.MX6ULL 的 GPIO 驱动入口函数。  这里就不详细分析了，流程都跟platform平台总线驱动类似。</p>
+<h1 id="三、gpio-子系统-API-函数"><a href="#三、gpio-子系统-API-函数" class="headerlink" title="三、gpio 子系统 API 函数  "></a><font size=3>三、gpio 子系统 API 函数  </font></h1><h2 id="1-gpio-request"><a href="#1-gpio-request" class="headerlink" title="1. gpio_request()"></a><font size=3>1. gpio_request()</font></h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">gpio_request</span><span class="params">(<span class="type">unsigned</span> gpio, <span class="type">const</span> <span class="type">char</span> *label)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于申请一个 GPIO 管脚，在使用一个 GPIO 之前一定要使用 gpio_request进行申请  。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>gpio：要申请的 gpio 标号，使用 of_get_named_gpio 函数从设备树获取指定 GPIO 属性信息，此函数会返回这个 GPIO 的标号。 </li>
+<li>label：给 gpio 设置个名字 。</li>
+</ul>
+<p><strong>【返回值】</strong> int 类型，0，申请成功；其他值，申请失败。  </p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none </p>
+<h2 id="2-gpio-free"><a href="#2-gpio-free" class="headerlink" title="2. gpio_free()"></a><font size=3>2. gpio_free()</font></h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">gpio_free</span><span class="params">(<span class="type">unsigned</span> gpio)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>如果不使用某个 GPIO 了，那么就可以调用 gpio_free 函数进行释放  </p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>gpio：要释放的 gpio 标号。</li>
+</ul>
+<p><strong>【返回值】</strong> none</p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none </p>
+<h2 id="3-gpio-direction-input"><a href="#3-gpio-direction-input" class="headerlink" title="3. gpio_direction_input  ()"></a><font size=3>3. gpio_direction_input  ()</font></h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">gpio_direction_input</span><span class="params">(<span class="type">unsigned</span> gpio)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于设置某个 GPIO 为输入  。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>gpio：要设置为输入的 GPIO 标号。</li>
+</ul>
+<p><strong>【返回值】</strong> int 类型，0，设置成功；负值，设置失败。  </p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none </p>
+<h2 id="4-gpio-direction-output"><a href="#4-gpio-direction-output" class="headerlink" title="4. gpio_direction_output  ()"></a><font size=3>4. gpio_direction_output  ()</font></h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">gpio_direction_output</span><span class="params">(<span class="type">unsigned</span> gpio, <span class="type">int</span> value)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于设置某个 GPIO 为输出，并且设置默认输出值。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>gpio：要设置为输出的 GPIO 标号。  </li>
+<li>value： GPIO 默认输出值。</li>
+</ul>
+<p><strong>【返回值】</strong> int 类型，0，设置成功；负值，设置失败。  </p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none </p>
+<h2 id="5-gpio-get-value"><a href="#5-gpio-get-value" class="headerlink" title="5. gpio_get_value  ()"></a><font size=3>5. gpio_get_value  ()</font></h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> gpio_get_value __gpio_get_value</span></span><br><span class="line"><span class="type">int</span> __gpio_get_value(<span class="type">unsigned</span> gpio);</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于获取某个 GPIO 的值(0 或 1)，此函数是个宏。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>gpio：要获取的 GPIO 标号。</li>
+</ul>
+<p><strong>【返回值】</strong> int 类型，非负值，得到的 GPIO 值；负值，获取失败。</p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none </p>
+<h2 id="6-gpio-set-value"><a href="#6-gpio-set-value" class="headerlink" title="6. gpio_set_value  ()"></a><font size=3>6. gpio_set_value  ()</font></h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> gpio_set_value __gpio_set_value</span></span><br><span class="line"><span class="type">void</span> __gpio_set_value(<span class="type">unsigned</span> gpio, <span class="type">int</span> value);</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于设置某个 GPIO 的值，此函数是个宏。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>gpio：要设置的 GPIO 标号。</li>
+<li>value： 要设置的值。</li>
+</ul>
+<p><strong>【返回值】</strong> none</p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none </p>
+<h1 id="四、设备树中添加-gpio-节点模板"><a href="#四、设备树中添加-gpio-节点模板" class="headerlink" title="四、设备树中添加 gpio 节点模板  "></a><font size=3>四、设备树中添加 gpio 节点模板  </font></h1><p>前边我们了解了如何创建 test 设备的 pinctrl 节点。现在我们来学习一下如何创建 test 设备的 GPIO 节点。  </p>
+<h2 id="1-创建-test-设备节点"><a href="#1-创建-test-设备节点" class="headerlink" title="1. 创建 test 设备节点  "></a><font size=3>1. 创建 test 设备节点  </font></h2><p>在根节点“&#x2F;”下创建 test 设备子节点，如下所示：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">test &#123;</span><br><span class="line">	<span class="comment">/* 节点内容 */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-添加-pinctrl-信息"><a href="#2-添加-pinctrl-信息" class="headerlink" title="2. 添加 pinctrl 信息  "></a><font size=3>2. 添加 pinctrl 信息  </font></h2><p>前边我们创建了 pinctrl_test 节点，此节点描述了 test 设备所使用的 GPIO1_IO00 这个 PIN 的信息，我们要将这节点添加到 test 设备节点中，如下所示：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">test &#123;</span><br><span class="line">	pinctrl-names = <span class="string">&quot;default&quot;</span>;</span><br><span class="line">	pinctrl<span class="number">-0</span> = &lt;&amp;pinctrl_test&gt;;</span><br><span class="line">	<span class="comment">/* 其他节点内容 */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>第 2 行，添加 pinctrl-names 属性，此属性描述 pinctrl 名字为“default”。</p>
+<p>第 3 行，添加 pinctrl-0 节点，此节点引用之前创建的 pinctrl_test 节点，表示 tset 设备的所使用的 PIN 信息保存在 pinctrl_test 节点中。  </p>
+<h2 id="3-添加-GPIO-属性信息"><a href="#3-添加-GPIO-属性信息" class="headerlink" title="3. 添加 GPIO 属性信息  "></a><font size=3>3. 添加 GPIO 属性信息  </font></h2><p>我们最后需要在 test 节点中添加 GPIO 属性信息，表明 test 所使用的 GPIO 是哪个引脚，添加完成以后如下所示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">test &#123;</span><br><span class="line">	pinctrl-names = <span class="string">&quot;default&quot;</span>;</span><br><span class="line">	pinctrl<span class="number">-0</span> = &lt;&amp;pinctrl_test&gt;;</span><br><span class="line">	gpio = &lt;&amp;gpio1 <span class="number">0</span> GPIO_ACTIVE_LOW&gt;;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>第 4 行， test 设备所使用的 gpio。</p>
+<h2 id="4-与-gpio-相关的-OF-函数"><a href="#4-与-gpio-相关的-OF-函数" class="headerlink" title="4. 与 gpio 相关的 OF 函数  "></a><font size=3>4. 与 gpio 相关的 OF 函数  </font></h2><h3 id="4-1-of-gpio-named-count-函数"><a href="#4-1-of-gpio-named-count-函数" class="headerlink" title="4.1 of_gpio_named_count 函数  "></a><font size=3>4.1 of_gpio_named_count 函数  </font></h3><p>of_gpio_named_count 函数用于获取设备树某个属性里面定义了几个 GPIO 信息，要注意的是空的 GPIO 信息也会被统计到，比如 ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">gpios = &lt;<span class="number">0</span></span><br><span class="line">         &amp;gpio1 <span class="number">1</span> <span class="number">2</span></span><br><span class="line">         <span class="number">0</span> &amp;</span><br><span class="line">         gpio2 <span class="number">3</span> <span class="number">4</span>&gt;;</span><br></pre></td></tr></table></figure>
+
+<p>上述代码的“gpios”节点一共定义了 4 个 GPIO，但是有 2 个是空的，没有实际的含义。通过 of_gpio_named_count 函数统计出来的 GPIO 数量就是 4 个，此函数原型如下：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">of_gpio_named_count</span><span class="params">(<span class="keyword">struct</span> device_node *np, <span class="type">const</span> <span class="type">char</span> *propname)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于获取设备树某个属性里面定义了几个 GPIO 信息。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>np：设备节点。  </li>
+<li>propname：要统计的 GPIO 属性。</li>
+</ul>
+<p><strong>【返回值】</strong> int类型，正值，统计到的 GPIO 数量；负值，失败。  </p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none </p>
+<h3 id="4-2-of-gpio-count-函数"><a href="#4-2-of-gpio-count-函数" class="headerlink" title="4.2 of_gpio_count 函数  "></a><font size=3>4.2 of_gpio_count 函数  </font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">of_gpio_count</span><span class="params">(<span class="keyword">struct</span> device_node *np)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数和 of_gpio_named_count 函数一样，但是不同的地方在于，此函数统计的是“gpios”这个属性的 GPIO 数量，而 of_gpio_named_count  函数可以统计任意属性的 GPIO 信息。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>np：设备节点。</li>
+</ul>
+<p><strong>【返回值】</strong> int类型，正值，统计到的 GPIO 数量；负值，失败。  </p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none </p>
+<h3 id="4-3-of-get-named-gpio-函数"><a href="#4-3-of-get-named-gpio-函数" class="headerlink" title="4.3 of_get_named_gpio 函数   "></a><font size=3>4.3 of_get_named_gpio 函数   </font></h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">of_get_named_gpio</span><span class="params">(<span class="keyword">struct</span> device_node *np,</span></span><br><span class="line"><span class="params">                      <span class="type">const</span> <span class="type">char</span> *propname,</span></span><br><span class="line"><span class="params">                      <span class="type">int</span> index)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数获取 GPIO 编号，因为 Linux 内核中关于 GPIO 的 API 函数都要使用 GPIO 编号，此函数会将设备树中类似&lt;&amp;gpio5 7 GPIO_ACTIVE_LOW&gt;的属性信息转换为对应的 GPIO 编号。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>np：设备节点。  </li>
+<li>propname：包含要获取 GPIO 信息的属性名。  </li>
+<li>index： GPIO 索引，因为一个属性里面可能包含多个 GPIO，此参数指定要获取哪个 GPIO的编号，如果只有一个 GPIO 信息的话此参数为 0。</li>
+</ul>
+<p><strong>【返回值】</strong> int类型，正值，获取到的 GPIO 编号；负值，失败。  </p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none </p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/5e10514.html">LV06-02-字符设备驱动-01-pinctrl与gpio子系统-02-gpio</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年09月08日 - 19:20</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/5e10514.html" title="LV06-02-字符设备驱动-01-pinctrl与gpio子系统-02-gpio">https://sumumm.github.io/post/5e10514.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/ALPHA-LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> (ALPHA)LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/b7eef8ff.html" rel="prev" title="LV07-01-zlib-移植">
+                  <i class="fa fa-angle-left"></i> LV07-01-zlib-移植
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/33aace5.html" rel="next" title="LV06-02-字符设备驱动-01-pinctrl与gpio子系统-01-pinctrl">
+                  LV06-02-字符设备驱动-01-pinctrl与gpio子系统-01-pinctrl <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

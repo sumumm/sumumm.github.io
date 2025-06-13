@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是字符设备驱动——字符设备基础的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-03-chrdev-01-字符设备基础">
+<meta property="og:url" content="https://sumumm.github.io/post/97a3cc8e.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是字符设备驱动——字符设备基础的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202074224129.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202074342776.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/characprog004.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/charac004.jpg">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202080620415.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202080109139.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202080527568.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202233956342.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202234819663.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202235107231.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202235657288.png">
+<meta property="article:published_time" content="2024-12-17T15:33:10.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.049Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202074224129.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/97a3cc8e.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/97a3cc8e.html","path":"post/97a3cc8e.html","title":"LV06-03-chrdev-01-字符设备基础"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-03-chrdev-01-字符设备基础 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E7%AE%80%E4%BB%8B"><span class="nav-text">一、字符设备驱动简介</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-linux%E8%AE%BE%E5%A4%87%E5%88%86%E7%B1%BB"><span class="nav-text">1. linux设备分类</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%A9%B1%E5%8A%A8%E7%A8%8B%E5%BA%8F%E7%9A%84%E8%B0%83%E7%94%A8"><span class="nav-text">2. 驱动程序的调用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E7%9A%84%E6%8A%BD%E8%B1%A1"><span class="nav-text">3. 字符设备的抽象</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E7%9B%B8%E5%85%B3%E6%A6%82%E5%BF%B5%E5%8F%8A%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="nav-text">二、相关概念及数据结构</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BE%E5%A4%87%E5%8F%B7"><span class="nav-text">1. 设备号</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E4%BB%80%E4%B9%88%E6%98%AF%E8%AE%BE%E5%A4%87%E5%8F%B7%EF%BC%9F"><span class="nav-text">1.1 什么是设备号？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E8%AE%BE%E5%A4%87%E7%BC%96%E5%8F%B7%E7%9A%84%E5%90%AB%E4%B9%89"><span class="nav-text">1.2 设备编号的含义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-cdev%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">1.3 cdev结构体</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E8%AE%BE%E5%A4%87%E7%B1%BB"><span class="nav-text">2. 设备类</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E4%BB%80%E4%B9%88%E6%98%AF%E8%AE%BE%E5%A4%87%E7%B1%BB"><span class="nav-text">2.1 什么是设备类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-linux%E7%B3%BB%E7%BB%9F%E4%B8%AD%E7%9A%84class"><span class="nav-text">2.2 linux系统中的class</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-struct-class"><span class="nav-text">2.3 struct class</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1-name"><span class="nav-text">2.3.1 name</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2-dev-kobj"><span class="nav-text">2.3.2 dev_kobj</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-3-%E6%80%BB%E7%BB%93"><span class="nav-text">2.3.3 总结</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%AE%BE%E5%A4%87%E8%8A%82%E7%82%B9"><span class="nav-text">3. 设备节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="nav-text">4. 数据结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-struct-file-operations"><span class="nav-text">4.1 struct file_operations</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-struct-file"><span class="nav-text">4.2 struct file</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-struct-inode"><span class="nav-text">4.3 struct inode</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/97a3cc8e.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-03-chrdev-01-字符设备基础 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-03-chrdev-01-字符设备基础
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-12-17 23:33:10" itemprop="dateCreated datePublished" datetime="2024-12-17T23:33:10+08:00">2024-12-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>29 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是字符设备驱动——字符设备基础的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="2">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、字符设备驱动简介"><a href="#一、字符设备驱动简介" class="headerlink" title="一、字符设备驱动简介"></a><font size=3>一、字符设备驱动简介</font></h1><h2 id="1-linux设备分类"><a href="#1-linux设备分类" class="headerlink" title="1. linux设备分类"></a><font size=3>1. linux设备分类</font></h2><p>linux是文件型系统，所有硬件都会在对应的目录(&#x2F;dev)下面用相应的文件表示。 在windows系统中，设备很好理解，像硬盘，磁盘指的是实实在在硬件。 而在文件系统的linux下面，都有对于文件与这些设备关联的，访问这些文件就可以访问实际硬件。 像访问文件那样去操作硬件设备，一切都会简单很多，不需要再调用以前com，prt等接口了。 直接读文件，写文件就可以向设备发送、接收数据。 按照读写存储数据方式，我们可以把设备分为以下几种：字符设备、块设备和网络设备。</p>
+<p><strong>字符设备</strong>:指应用程序按字节&#x2F;字符来读写数据的设备。 这些设备节点通常为传真、虚拟终端和串口调制解调器、键盘之类设备提供流通信服务， 它通常不支持随机存取数据。字符设备在实现时，大多不使用缓存器。系统直接从设备读取&#x2F;写入每一个字符。 例如，键盘这种设备提供的就是一个数据流，当你敲入“cnblogs”这个字 符串时， 键盘驱动程序会按照和输入完全相同的顺序返回这个由七个字符组成的数据流。它们是顺序的，先返回c，最后是s。</p>
+<p><strong>块设备</strong>:通常支持随机存取和寻址，并使用缓存器。 操作系统为输入输出分配了缓存以存储一块数据。当程序向设备发送了读取或者写入数据的请求时， 系统把数据中的每一个字符存储在适当的缓存中。当缓存被填满时，会采取适当的操作（把数据传走）， 而后系统清空缓存。它与字符设备不同之处就是，是否支持随机存储。字符型是流形式，逐一存储。 典型的块设备有硬盘、SD卡、闪存等，应用程序可以寻址磁盘上的任何位置，并由此读取数据。 此外，数据的读写只能以块的倍数进行。</p>
+<p><strong>网络设备</strong>:是一种特殊设备，它并不存在于&#x2F;dev下面，主要用于网络数据的收发。</p>
+<p>Linux内核中处处体现面向对象的设计思想，为了统一形形色色的设备，Linux系统将设备分别抽象为struct cdev, struct block_device，struct net_devce三个对象，具体的设备都可以包含着三种对象从而继承和三种对象属性和操作， 并通过各自的对象添加到相应的驱动模型中，从而进行统一的管理和操作</p>
+<p>字符设备驱动程序适合于大多数简单的硬件设备，而且比起块设备或网络驱动更加容易理解， 因此我们选择从字符设备开始，从最初的模仿，到慢慢熟悉。</p>
+<h2 id="2-驱动程序的调用"><a href="#2-驱动程序的调用" class="headerlink" title="2. 驱动程序的调用"></a><font size=3>2. 驱动程序的调用</font></h2><p>我们先来简单的了解一下 Linux 下的应用程序是如何调用驱动程序的， Linux 应用程序对驱动程序的调用如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202074224129.png" alt="image-20241202074224129" style="zoom: 33%;" />
+
+<p>在 Linux 中一切皆为文件，驱动加载成功以后会在“&#x2F;dev”目录下生成一个相应的文件，应用程序通过对这个名为“&#x2F;dev&#x2F;xxx” (xxx 是具体的驱动文件名字)的文件进行相应的操作即可实现对硬件的操作。</p>
+<p>比如现在有个叫做&#x2F;dev&#x2F;led 的驱动文件，此文件是 led 灯的驱动文件。应用程序使用 open 函数来打开文件&#x2F;dev&#x2F;led，使用完成以后使用 close 函数关闭&#x2F;dev&#x2F;led 这个文件。 open和 close 就是打开和关闭 led 驱动的函数，如果要点亮或关闭 led，那么就使用 write 函数来操作，也就是向此驱动写入数据，这个数据就是要关闭还是要打开 led 的控制参数。如果要获取led 灯的状态，就用 read 函数从驱动中读取相应的状态。  </p>
+<p>应用程序运行在用户空间，而 Linux 驱动属于内核的一部分，因此驱动运行于内核空间。当我们在用户空间想要实现对内核的操作，比如使用 open 函数打开&#x2F;dev&#x2F;led 这个驱动，因为用户空间不能直接对内核进行操作，因此必须使用一个叫做“系统调用”的方法来实现从用户空间“陷入” 到内核空间，这样才能实现对底层驱动的操作。 open、 close、 write 和 read 等这些函数是由 C 库提供的，在 Linux 系统中，系统调用作为 C 库的一部分。当我们调用 open 函数的时候流程  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202074342776.png" alt="image-20241202074342776" />
+
+<p>C 库如何通过系统调用“陷入” 到内核空间？这个有点复杂，可以参考这里理解一下：《01嵌入式开发&#x2F;02IMX6ULL平台&#x2F;LV03-应用开发&#x2F;LV01-01-应用编程基本概念-01-基础知识.md》以及以下资料：</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://gityuan.com/2016/05/21/syscall/">Linux系统调用(syscall)原理 - Gityuan博客 | 袁辉辉的技术博客</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/hust-open-atom-club/linux-insides-zh/blob/master/SysCall/README.md">linux-insides-zh&#x2F;SysCall&#x2F;README.md at master · hust-open-atom-club&#x2F;linux-insides-zh</a></li>
+</ul>
+<p>这里就先不详细去说了。</p>
+<h2 id="3-字符设备的抽象"><a href="#3-字符设备的抽象" class="headerlink" title="3. 字符设备的抽象"></a><font size=3>3. 字符设备的抽象</font></h2><p>Linux内核中将字符设备抽象成一个具体的数据结构(struct cdev),我们可以理解为字符设备对象， cdev记录了字符设备的相关信息（设备号、内核对象），字符设备的打开、读写、关闭等操作接口（file_operations）， 在我们想要添加一个字符设备时，就是将这个对象注册到内核中，通过创建一个文件（设备节点）绑定对象的cdev， 当我们对这个文件进行读写操作时，就可以通过虚拟文件系统，在内核中找到这个对象及其操作接口，从而控制设备。</p>
+<p>语言中没有面向对象语言的继承的语法，但是我们可以通过结构体的包含来实现继承，这种抽象提取了设备的共性， 为上层提供了统一接口，使得管理和操作设备变得很容易。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/characprog004.png" alt="device_number" style="zoom: 67%;" />
+
+<p>在硬件层，我们可以通过查看硬件的原理图、芯片的数据手册，确定底层需要配置的寄存器，这类似于裸机开发。 将对底层寄存器的配置，读写操作放在文件操作接口里面，也就是实现file_operations结构体。</p>
+<p>其次在驱动层，我们将文件操作接口注册到内核，内核通过内部散列表来登记记录主次设备号。</p>
+<p>在文件系统层，新建一个文件绑定该文件操作接口，应用程序通过操作指定文件的文件操作接口来设置底层寄存器。</p>
+<p>实际上，在Linux上写驱动程序，都是做一些“填空题”。因为Linux给我们提供了一个基本的框架， 我们只需要按照这个框架来写驱动，内核就能很好的接收并且按我们所要求的那样工作。</p>
+<h1 id="二、相关概念及数据结构"><a href="#二、相关概念及数据结构" class="headerlink" title="二、相关概念及数据结构"></a><font size=3>二、相关概念及数据结构</font></h1><p>在linux中，我们使用设备编号来表示设备，主设备号区分设备类别，次设备号标识具体的设备。 cdev结构体被内核用来记录设备号，而在使用设备时，我们通常会打开设备节点，通过设备节点的inode结构体、 file结构体最终找到file_operations结构体，并从file_operations结构体中得到操作设备的具体方法。</p>
+<h2 id="1-设备号"><a href="#1-设备号" class="headerlink" title="1. 设备号"></a><font size=3>1. 设备号</font></h2><h3 id="1-1-什么是设备号？"><a href="#1-1-什么是设备号？" class="headerlink" title="1.1 什么是设备号？"></a><font size=3>1.1 什么是设备号？</font></h3><p>对于字符的访问是通过文件系统的名称进行的，这些名称被称为特殊文件、设备文件，或者简单称为文件系统树的节点， Linux根目录下有&#x2F;dev这个文件夹，专门用来存放设备中的驱动程序，我们可以使用ls -l 以列表的形式列出系统中的所有设备。 其中，每一行表示一个设备，每一行的第一个字符表示设备的类型。</p>
+<p>如下图：’c’用来标识字符设备，’b’用来标识块设备。如 autofs 是一个字符设备c, 它的主设备号是10，次设备号是235； loop0 是一个块设备，它的主设备号是7，次设备号为0，同时可以看到loop0 - loop3共用一个主设备号，次设备号由0开始递增。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">root@alpha-imx6ull:~# ls -alh /dev</span><br><span class="line">total 4K</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">......                         主设备号 次设备号</span></span><br><span class="line">crw-rw----    1 root     root       10, 235 Jan  1 00:00 autofs</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">......</span></span><br><span class="line">crw-rw----    1 root     root       89,   0 Jan  1 00:00 i2c-0</span><br><span class="line">crw-rw----    1 root     root       89,   1 Jan  1 00:00 i2c-1</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">......</span></span><br><span class="line">brw-rw----    1 root     root        7,   0 Jan  1 00:00 loop0</span><br><span class="line">brw-rw----    1 root     root        7,   1 Jan  1 00:00 loop1</span><br><span class="line">brw-rw----    1 root     root        7,   2 Jan  1 00:00 loop2</span><br><span class="line">brw-rw----    1 root     root        7,   3 Jan  1 00:00 loop3</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">......</span></span><br><span class="line">brw-rw----    1 root     root        1,   0 Jan  1 00:00 ram0</span><br><span class="line">brw-rw----    1 root     root        1,   1 Jan  1 00:00 ram1</span><br><span class="line">brw-rw----    1 root     root        1,  10 Jan  1 00:00 ram10</span><br><span class="line">brw-rw----    1 root     root        1,  11 Jan  1 00:00 ram11</span><br><span class="line">brw-rw----    1 root     root        1,  12 Jan  1 00:00 ram12</span><br><span class="line">brw-rw----    1 root     root        1,  13 Jan  1 00:00 ram13</span><br><span class="line">brw-rw----    1 root     root        1,  14 Jan  1 00:00 ram14</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">......</span></span><br></pre></td></tr></table></figure>
+
+<p>一般来说，主设备号指向设备的驱动程序，次设备号指向某个具体的设备。例如 I2C-0，I2C-1属于不同设备但是共用一套驱动程序。</p>
+<h3 id="1-2-设备编号的含义"><a href="#1-2-设备编号的含义" class="headerlink" title="1.2 设备编号的含义"></a><font size=3>1.2 设备编号的含义</font></h3><p>在内核中，dev_t用来表示设备编号，dev_t是一个32位的数，其中，高12位表示主设备号，低20位表示次设备号。 也就是理论上主设备号取值范围：0-2^12，次设备号 0-2^20 。 实际上在内核源码中__register_chrdev_region(…)函数中，major被限定在0 - CHRDEV_MAJOR_MAX ，CHRDEV_MAJOR_MAX是一个宏，值是512。 dev_t定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/types.h#L16">types.h - include&#x2F;linux&#x2F;types.h - <em>dev_t</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> u32 <span class="type">__kernel_dev_t</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="type">__kernel_dev_t</span>		<span class="type">dev_t</span>;</span><br></pre></td></tr></table></figure>
+
+<p>在kdev_t中，设备编号通过移位操作最终得到主&#x2F;次设备号码，同样主&#x2F;次设备号也可以通过位运算变成dev_t类型的设备编号。具体可以看这几个函数：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/kdev_t.h#L10">kdev_t.h - include&#x2F;linux&#x2F;kdev_t.h</a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> MAJOR(dev)	((unsigned int) ((dev) &gt;&gt; MINORBITS))</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MINOR(dev)	((unsigned int) ((dev) &amp; MINORMASK))</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MKDEV(ma,mi)	(((ma) &lt;&lt; MINORBITS) | (mi))</span></span><br></pre></td></tr></table></figure>
+
+<p>MAJOR和MINOR，可以根据设备的设备号来获取设备的主设备号和次设备号。宏定义MKDEV，用于将主设备号和次设备号合成一个设备号，主设备可以通过查阅内核源码的 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/Documentation/admin-guide/devices.txt">devices.txt - Documentation&#x2F;admin-guide&#x2F;devices.txt </a> 文件，而次设备号通常是从编号0开始。</p>
+<h3 id="1-3-cdev结构体"><a href="#1-3-cdev结构体" class="headerlink" title="1.3 cdev结构体"></a><font size=3>1.3 cdev结构体</font></h3><p>内核通过一个散列表(哈希表)来记录设备编号。 哈希表由数组和链表组成，吸收数组查找快，链表增删效率高，容易拓展等优点。</p>
+<p>以主设备号为cdev_map编号，使用哈希函数f(major)&#x3D;major%255来计算组数下标(使用哈希函数是为了链表节点尽量平均分布在各个数组元素中，提高查询效率)； 主设备号冲突,则以次设备号为比较值来排序链表节点。 如下图所示，内核用struct cdev结构体来描述一个字符设备，并通过struct kobj_map类型的 散列表cdev_map来管理当前系统中的所有字符设备。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/charac004.jpg" alt="字符设备散列表" />
+
+<p>struct cdev结构体定义在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/cdev.h#L14">cdev.h - include&#x2F;linux&#x2F;cdev.h - <em>struct cdev</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cdev</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kobject</span> <span class="title">kobj</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">module</span> *<span class="title">owner</span>;</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> *<span class="title">ops</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">list</span>;</span></span><br><span class="line">	<span class="type">dev_t</span> dev;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span> count;</span><br><span class="line">&#125; __randomize_layout;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>struct kobject kobj： 内嵌的内核对象，通过它将设备统一加入到“Linux设备驱动模型”中管理（如对象的引用计数、电源管理、热插拔、生命周期、与用户通信等）。</li>
+<li>struct module *owner： 字符设备驱动程序所在的内核模块对象的指针。</li>
+<li>const struct file_operations *ops： 文件操作，是字符设备驱动中非常重要的数据结构，在应用程序通过文件系统（VFS）呼叫到设备设备驱动程序中实现的文件操作类函数过程中，ops起着桥梁纽带作用，VFS与文件系统及设备文件之间的接口是file_operations结构体成员函数，这个结构体包含了对文件进行打开、关闭、读写、控制等一系列成员函数。</li>
+<li>struct list_head list： 用于将系统中的字符设备形成链表（这是个内核链表的一个链接因子，可以再内核很多结构体中看到这种结构的身影）。</li>
+<li>dev_t dev： 字符设备的设备号，有主设备和次设备号构成。</li>
+<li>unsigned int count： 属于同一主设备好的次设备号的个数，用于表示设备驱动程序控制的实际同类设备的数量。</li>
+</ul>
+<h2 id="2-设备类"><a href="#2-设备类" class="headerlink" title="2. 设备类"></a><font size=3>2. 设备类</font></h2><h3 id="2-1-什么是设备类"><a href="#2-1-什么是设备类" class="headerlink" title="2.1 什么是设备类"></a><font size=3>2.1 什么是设备类</font></h3><p>备驱动模型中，还有一个 抽象概念 叫做类（CLass），准确来说，叫做设备类。所谓设备类，是指提供的用户接口相似的一类设备的集合，常见的设备类的有block、tty、input、usb等等。</p>
+<blockquote>
+<p>举个例子，一些年龄相仿、需要获取的知识相似的人，聚在一起学习，就构成了一个班级（Class）。这个班级可以有自己的名称（如1307班），但如果离开构成它的学生（device），它就没有任何存在意义。另外，班级存在的最大意义是什么呢？是由老师讲授的每一个课程！因为老师只需要讲一遍，一个班的学生都可以听到。不然的话（例如每个学生都在家学习），就要为每人请一个老师，讲授一遍。而讲的内容，大多是一样的，这就是极大的浪费。</p>
+<p>设备模型中的Class所提供的功能也一样了，例如一些相似的device（学生），需要向用户空间提供相似的接口（课程），如果每个设备的驱动都实现一遍的话，就会导致内核有大量的冗余代码，这就是极大的浪费。</p>
+</blockquote>
+<p>设备类是一个设备的高层视图，它抽象出了底层的实现细节，从而允许用户空间使用设备所提供的功能，而不用关心设备是如何连接和工作的。设备类是用来抽象设备的共性而诞生的。类成员通常由上层代码所控制，而无需驱动的明确支持。但有些情况下驱动也需要直接处理类。</p>
+<h3 id="2-2-linux系统中的class"><a href="#2-2-linux系统中的class" class="headerlink" title="2.2 linux系统中的class"></a><font size=3>2.2 linux系统中的class</font></h3><p>我们先看一下现有Linux系统中有关class的状况，我们来看一下这个&#x2F;sys&#x2F;class目录：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls /sys/class/ -alh</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202080620415.png" alt="image-20241202080620415" />
+
+<p>我们这里以input这个目录为例来看一下。继续深入这个input目录：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls /sys/class/input/ -l</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202080109139.png" alt="image-20241202080109139" />
+
+<p>我们看到里面有event0、event1、input0和input1等软链接，他们都链接到了哪里？这里的<code>../../</code>是什么？event0这些软链接位于 <code>/sys/class/input/ </code>目录，往上推两级就是<code>/sys/</code>，所以这里的<code>../../</code>其实绝对路径就是<code>/sys/</code>。我们看看这些软链接对应的目录都有什么：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">event0</span></span><br><span class="line">ls -alh /sys/class/input/event0</span><br><span class="line">ls -alh /sys/devices/soc0/soc/2000000.aips-bus/20cc000.snvs/20cc000.snvs:snvs-powerkey/input/input0/event0</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">input0</span></span><br><span class="line">ls -alh /sys/class/input/input0</span><br><span class="line">ls -alh /sys/devices/soc0/soc/2000000.aips-bus/20cc000.snvs/20cc000.snvs:snvs-powerkey/input/input0</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202080527568.png" alt="image-20241202080527568" />
+
+<p>发现input class也没做什么实实在在的事儿，它（input class）的功能，仅仅是：</p>
+<p>（1）在<code>/sys/class/</code>目录下，创建一个本class的目录（input）</p>
+<p>（2）在本目录下，创建每一个属于该class的设备的符号链接，这样就可以在本class目录下，访问该设备的所有特性（即attribute）</p>
+<blockquote>
+<p>如，把“<code>/sys/devices/soc0/soc/2000000.aips-bus/20cc000.snvs/20cc000.snvs:snvs-powerkey/input/input0/event0</code>”设备链接到”<code>/sys/class/input/event0</code>”。</p>
+</blockquote>
+<p>（3）device在sysfs的目录下，也会创建一个subsystem的符号链接，链接到本class的目录，如上图，这里的<code>../../../../../../../../</code>是啥？我们知道这个subsystem的路径为<code>/sys/devices/soc0/soc/2000000.aips-bus/20cc000.snvs/20cc000.snvs:snvs-powerkey/input/input0</code>所以从这里往上推8级就是<code>/sys</code></p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202233956342.png" alt="image-20241202233956342" />
+
+<p>所以这里其实subsystem是链接到了<code>/sys/class/input/input0</code>。</p>
+<h3 id="2-3-struct-class"><a href="#2-3-struct-class" class="headerlink" title="2.3 struct class"></a><font size=3>2.3 struct class</font></h3><p>struct class结构体定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L402">device.h - include&#x2F;linux&#x2F;device.h - <em>struct class</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="keyword">class</span> &#123;</span></span><br><span class="line">    <span class="comment">/* 名称 */</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span>		*name;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">module</span>   *<span class="title">owner</span>;</span> <span class="comment">// owner是class所属的模块，虽然class是涉及一类设备，但也是由相应的模块注册的。比如usb类就是由usb模块注册的。</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 属性 */</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">attribute_group</span>	**<span class="title">class_groups</span>;</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">attribute_group</span>	**<span class="title">dev_groups</span>;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">/* 内部对象 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kobject</span>			*<span class="title">dev_kobj</span>;</span></span><br><span class="line">	</span><br><span class="line">    <span class="comment">// 设备发出uevent消息时添加环境变量用的</span></span><br><span class="line">    <span class="comment">// 在core.c中的dev_uevent()函数，其中就包含对设备所属bus或class中dev_uevent()方法的调用，</span></span><br><span class="line">    <span class="comment">// 只是bus结构中定义方法用的函数名是uevent。</span></span><br><span class="line">	<span class="type">int</span> (*dev_uevent)(<span class="keyword">struct</span> device *dev, <span class="keyword">struct</span> kobj_uevent_env *env);</span><br><span class="line">	<span class="type">char</span> *(*devnode)(<span class="keyword">struct</span> device *dev, <span class="type">umode_t</span> *mode); <span class="comment">// 返回设备节点的相对路径名，在core.c的device_get_devnode()中有调用到。</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 释放方法 */</span></span><br><span class="line">	<span class="type">void</span> (*class_release)(<span class="keyword">struct</span> class *class);</span><br><span class="line">	<span class="type">void</span> (*dev_release)(<span class="keyword">struct</span> device *dev);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/*电源管理有关 */</span></span><br><span class="line">	<span class="type">int</span> (*shutdown_pre)(<span class="keyword">struct</span> device *dev);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 命名空间 */</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">kobj_ns_type_operations</span> *<span class="title">ns_type</span>;</span></span><br><span class="line">	<span class="type">const</span> <span class="type">void</span> *(*namespace)(<span class="keyword">struct</span> device *dev);</span><br><span class="line"></span><br><span class="line">	<span class="type">void</span> (*get_ownership)(<span class="keyword">struct</span> device *dev, <span class="type">kuid_t</span> *uid, <span class="type">kgid_t</span> *gid);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 电源管理用的函数集合 */</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">dev_pm_ops</span> *<span class="title">pm</span>;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 私有数据 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">subsys_private</span> *<span class="title">p</span>;</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h4 id="2-3-1-name"><a href="#2-3-1-name" class="headerlink" title="2.3.1 name"></a><font size=3>2.3.1 name</font></h4><p>name：设备类的名称，会在“<code>/sys/class/</code>”目录下体现。（实际使用的是内部kobj包含的动态创建的名称。）</p>
+<h4 id="2-3-2-dev-kobj"><a href="#2-3-2-dev-kobj" class="headerlink" title="2.3.2 dev_kobj"></a><font size=3>2.3.2 dev_kobj</font></h4><p>dev_kobj是struct kobject类型，在device注册时，会在&#x2F;sys&#x2F;dev下创建名为自己设备号的软链接。但设备不知道自己属于块设备还是字符设备，所以会请示自己所属的class；class就是用dev_kobj记录本类设备应属于的哪种设备。</p>
+<p>我们来看一下<code>/sys/dev</code>：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -alh /sys/dev</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202234819663.png" alt="image-20241202234819663" />
+
+<p>发现里面有两个目录，其实这里就是不同的设备类型，block里面是块设备，char里面是字符设备：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202235107231.png" alt="image-20241202235107231" />
+
+<h4 id="2-3-3-总结"><a href="#2-3-3-总结" class="headerlink" title="2.3.3 总结"></a><font size=3>2.3.3 总结</font></h4><p>这里还是有一些概念没看懂，这里大概了解一下，后面遇到了会详细再去学习。</p>
+<h2 id="3-设备节点"><a href="#3-设备节点" class="headerlink" title="3. 设备节点"></a><font size=3>3. 设备节点</font></h2><p>设备节点（设备文件）：Linux中设备节点是通过“mknod”命令来创建的。一个设备节点其实就是一个文件， Linux中称为设备文件。有一点必要说明的是，在Linux中，所有的设备访问都是通过文件的方式， 一般的数据文件程序普通文件，设备节点称为设备文件。</p>
+<p>设备节点被创建在&#x2F;dev下，是连接内核与用户层的枢纽，就是设备是接到对应哪种接口的哪个ID 上。 相当于硬盘的inode一样的东西，记录了硬件设备的位置和信息在Linux中，所有设备都以文件的形式存放在&#x2F;dev目录下， 都是通过文件的方式进行访问，设备节点是Linux内核对设备的抽象，一个设备节点就是一个文件。 应用程序通过一组标准化的调用执行访问设备，这些调用独立于任何特定的驱动程序。而驱动程序负责将这些标准调用映射到实际硬件的特有操作。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-01-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E5%9F%BA%E7%A1%80/img/image-20241202235657288.png" alt="image-20241202235657288" />
+
+
+
+<h2 id="4-数据结构"><a href="#4-数据结构" class="headerlink" title="4. 数据结构"></a><font size=3>4. 数据结构</font></h2><p>在驱动开发过程中，不可避免要涉及到三个重要的的内核数据结构分别包括文件操作方式（file_operations）， 文件描述结构体（struct file）以及inode结构体，在我们开始阅读编写驱动程序的代码之前，有必要先了解这三个结构体。</p>
+<h3 id="4-1-struct-file-operations"><a href="#4-1-struct-file-operations" class="headerlink" title="4.1 struct file_operations"></a><font size=3>4.1 struct file_operations</font></h3><p>file_operations结构体定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L1739">fs.h - include&#x2F;linux&#x2F;fs.h - <em>struct file_operations</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">module</span> *<span class="title">owner</span>;</span></span><br><span class="line">	<span class="type">loff_t</span> (*llseek) (<span class="keyword">struct</span> file *, <span class="type">loff_t</span>, <span class="type">int</span>);</span><br><span class="line">	<span class="type">ssize_t</span> (*read) (<span class="keyword">struct</span> file *, <span class="type">char</span> __user *, <span class="type">size_t</span>, <span class="type">loff_t</span> *);</span><br><span class="line">	<span class="type">ssize_t</span> (*write) (<span class="keyword">struct</span> file *, <span class="type">const</span> <span class="type">char</span> __user *, <span class="type">size_t</span>, <span class="type">loff_t</span> *);</span><br><span class="line">	<span class="type">ssize_t</span> (*read_iter) (<span class="keyword">struct</span> kiocb *, <span class="keyword">struct</span> iov_iter *);</span><br><span class="line">	<span class="type">ssize_t</span> (*write_iter) (<span class="keyword">struct</span> kiocb *, <span class="keyword">struct</span> iov_iter *);</span><br><span class="line">	<span class="type">int</span> (*iterate) (<span class="keyword">struct</span> file *, <span class="keyword">struct</span> dir_context *);</span><br><span class="line">	<span class="type">int</span> (*iterate_shared) (<span class="keyword">struct</span> file *, <span class="keyword">struct</span> dir_context *);</span><br><span class="line">	<span class="type">__poll_t</span> (*poll) (<span class="keyword">struct</span> file *, <span class="keyword">struct</span> poll_table_struct *);</span><br><span class="line">	<span class="type">long</span> (*unlocked_ioctl) (<span class="keyword">struct</span> file *, <span class="type">unsigned</span> <span class="type">int</span>, <span class="type">unsigned</span> <span class="type">long</span>);</span><br><span class="line">	<span class="type">long</span> (*compat_ioctl) (<span class="keyword">struct</span> file *, <span class="type">unsigned</span> <span class="type">int</span>, <span class="type">unsigned</span> <span class="type">long</span>);</span><br><span class="line">	<span class="type">int</span> (*mmap) (<span class="keyword">struct</span> file *, <span class="keyword">struct</span> vm_area_struct *);</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> mmap_supported_flags;</span><br><span class="line">	<span class="type">int</span> (*open) (<span class="keyword">struct</span> inode *, <span class="keyword">struct</span> file *);</span><br><span class="line">	<span class="type">int</span> (*flush) (<span class="keyword">struct</span> file *, <span class="type">fl_owner_t</span> id);</span><br><span class="line">	<span class="type">int</span> (*release) (<span class="keyword">struct</span> inode *, <span class="keyword">struct</span> file *);</span><br><span class="line">	<span class="type">int</span> (*fsync) (<span class="keyword">struct</span> file *, <span class="type">loff_t</span>, <span class="type">loff_t</span>, <span class="type">int</span> datasync);</span><br><span class="line">	<span class="type">int</span> (*fasync) (<span class="type">int</span>, <span class="keyword">struct</span> file *, <span class="type">int</span>);</span><br><span class="line">	<span class="type">int</span> (*lock) (<span class="keyword">struct</span> file *, <span class="type">int</span>, <span class="keyword">struct</span> file_lock *);</span><br><span class="line"><span class="comment">// ......</span></span><br><span class="line">&#125; __randomize_layout;</span><br></pre></td></tr></table></figure>
+
+<p>在系统内部，I&#x2F;O设备的存取操作通过特定的入口点来进行，而这组特定的入口点恰恰是由设备驱动程序提供的。 通常这组设备驱动程序接口是由结构file_operations结构体向系统说明的，它定义在ebf_buster_linux&#x2F;include&#x2F;linux&#x2F;fs.h中。 传统上, 一个file_operation结构或者其一个指针称为 fops( 或者它的一些变体)。结构中的每个成员必须指向驱动中的函数, 这些函数实现一个特别的操作, 或者对于不支持的操作留置为NULL。当指定为NULL指针时内核的确切的行为是每个函数不同的。</p>
+<ul>
+<li>llseek： 用于修改文件的当前读写位置，并返回偏移后的位置。参数file传入了对应的文件指针，我们可以看到以上代码中所有的函数都有该形参，通常用于读取文件的信息，如文件类型、读写权限；参数loff_t指定偏移量的大小；参数int是用于指定新位置指定成从文件的某个位置进行偏移，SEEK_SET表示从文件起始处开始偏移；SEEK_CUR表示从当前位置开始偏移；SEEK_END表示从文件结尾开始偏移。</li>
+<li>read： 用于读取设备中的数据，并返回成功读取的字节数。该函数指针被设置为NULL时，会导致系统调用read函数报错，提示“非法参数”。该函数有三个参数：file类型指针变量，char __user *类型的数据缓冲区，__user用于修饰变量，表明该变量所在的地址空间是用户空间的。内核模块不能直接使用该数据，需要使用copy_to_user函数来进行操作。size_t类型变量指定读取的数据大小。</li>
+<li>write： 用于向设备写入数据，并返回成功写入的字节数，write函数的参数用法与read函数类似，不过在访问__user修饰的数据缓冲区，需要使用copy_from_user函数。</li>
+<li>unlocked_ioctl： 提供设备执行相关控制命令的实现方法，它对应于应用程序的fcntl函数以及ioctl函数。在 kernel 3.0 中已经完全删除了 struct file_operations 中的 ioctl 函数指针。</li>
+<li>open： 设备驱动第一个被执行的函数，一般用于硬件的初始化。如果该成员被设置为NULL，则表示这个设备的打开操作永远成功。</li>
+<li>release： 当file结构体被释放时，将会调用该函数。与open函数相反，该函数可以用于释放</li>
+</ul>
+<h3 id="4-2-struct-file"><a href="#4-2-struct-file" class="headerlink" title="4.2 struct file"></a><font size=3>4.2 struct file</font></h3><p>内核中用file结构体来表示每个打开的文件，每打开一个文件，内核会创建一个结构体，并将对该文件上的操作函数传递给 该结构体的成员变量f_op，当文件所有实例被关闭后，内核会释放这个结构体。这个结构体定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L891">fs.h - include&#x2F;linux&#x2F;fs.h - <em>struct file</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">file</span> &#123;</span></span><br><span class="line">    <span class="comment">// ......</span></span><br><span class="line">    <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> *<span class="title">f_op</span>;</span></span><br><span class="line">    <span class="comment">/* needed for tty driver, and maybe others */</span></span><br><span class="line">    <span class="type">void</span> *private_data;</span><br><span class="line">    <span class="comment">// ......</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>f_op：存放与文件操作相关的一系列函数指针，如open、read、wirte等函数。</li>
+<li>private_data：该指针变量只会用于设备驱动程序中，内核并不会对该成员进行操作。因此，在驱动程序中，通常用于指向描述设备的结构体。</li>
+</ul>
+<h3 id="4-3-struct-inode"><a href="#4-3-struct-inode" class="headerlink" title="4.3 struct inode"></a><font size=3>4.3 struct inode</font></h3><p>FS inode 包含文件访问权限、属主、组、大小、生成时间、访问时间、最后修改时间等信息。 它是Linux 管理文件系统的最基本单位，也是文件系统连接任何子目录、文件的桥梁。 内核使用inode结构体在内核内部表示一个文件。因此，它与表示一个已经打开的文件描述符的结构体(即file 文件结构)是不同的， 我们可以使用多个file文件结构表示同一个文件的多个文件描述符，但此时， 所有的这些file文件结构全部都必须只能指向一个inode结构体。 inode结构体包含了一大堆文件相关的信息，但是就针对驱动代码来说，我们只要关心其中的两个域即可（<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L593">fs.h - include&#x2F;linux&#x2F;fs.h - <em>struct inode</em></a>）</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">inode</span> &#123;</span></span><br><span class="line"><span class="comment">// ......</span></span><br><span class="line">	<span class="type">dev_t</span>			i_rdev;</span><br><span class="line"><span class="comment">// ......</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span>	*<span class="title">i_fop</span>;</span>	<span class="comment">/* former -&gt;i_op-&gt;default_file_ops */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">file_lock_context</span>	*<span class="title">i_flctx</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">address_space</span>	<span class="title">i_data</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>	<span class="title">i_devices</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">pipe_inode_info</span>	*<span class="title">i_pipe</span>;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">block_device</span>	*<span class="title">i_bdev</span>;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">cdev</span>		*<span class="title">i_cdev</span>;</span></span><br><span class="line">		<span class="type">char</span>			*i_link;</span><br><span class="line">		<span class="type">unsigned</span>		i_dir_seq;</span><br><span class="line">	&#125;;</span><br><span class="line"><span class="comment">// ......</span></span><br><span class="line">&#125; __randomize_layout;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>dev_t i_rdev： 表示设备文件的结点，这个域实际上包含了设备号。</li>
+<li>struct cdev *i_cdev： struct cdev是内核的一个内部结构，它是用来表示字符设备的，当inode结点指向一个字符设备文件时，此域为一个指向inode结构的指针。</li>
+</ul>
+<blockquote>
+<p>参考资料：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/schips/p/linux_device_model_3.html">Linux 内核：设备驱动模型（3）class与device - schips - 博客园</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/97a3cc8e.html">LV06-03-chrdev-01-字符设备基础</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年12月17日 - 23:33</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/97a3cc8e.html" title="LV06-03-chrdev-01-字符设备基础">https://sumumm.github.io/post/97a3cc8e.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/82028882.html" rel="prev" title="LV06-03-chrdev-02-字符设备驱动框架">
+                  <i class="fa fa-angle-left"></i> LV06-03-chrdev-02-字符设备驱动框架
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/d22d4c9b.html" rel="next" title="LV05-03-Kernel-05-03-03-open函数解析2">
+                  LV05-03-Kernel-05-03-03-open函数解析2 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是并发控制机制的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV10-04-并发与竞争-02-并发控制机制">
+<meta property="og:url" content="https://sumumm.github.io/post/cffac5d7.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是并发控制机制的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-04-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6%E6%9C%BA%E5%88%B6/img/image-20220919120725303.png">
+<meta property="article:published_time" content="2023-07-08T10:58:23.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.004Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV10-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-04-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6%E6%9C%BA%E5%88%B6/img/image-20220919120725303.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/cffac5d7.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/cffac5d7.html","path":"post/cffac5d7.html","title":"LV10-04-并发与竞争-02-并发控制机制"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV10-04-并发与竞争-02-并发控制机制 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%8E%9F%E5%AD%90%E5%8F%98%E9%87%8F"><span class="nav-text">一、原子变量</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%8E%9F%E5%AD%90%E5%8F%98%E9%87%8F%E7%AE%80%E4%BB%8B"><span class="nav-text">1. 原子变量简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%9B%B8%E5%85%B3%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-text">2. 相关结构体</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%8E%9F%E5%AD%90%E6%95%B4%E5%9E%8B%E6%93%8D%E4%BD%9CAPI"><span class="nav-text">3. 原子整型操作API</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-ATOMIC-INIT"><span class="nav-text">3.1 ATOMIC_INIT()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-atomic-set"><span class="nav-text">3.2 atomic_set()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-atomic-read"><span class="nav-text">3.3 atomic_read()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-atomic-add"><span class="nav-text">3.4 atomic_add()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-atomic-sub"><span class="nav-text">3.5 atomic_sub()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-6-atomic-inc"><span class="nav-text">3.6 atomic_inc()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-7-atomic-dec"><span class="nav-text">3.7 atomic_dec()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-8-atomic-inc-and-test"><span class="nav-text">3.8 atomic_inc_and_test()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-9-atomic-dec-and-test"><span class="nav-text">3.9 atomic_dec_and_test()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-10-atomic-sub-and-test"><span class="nav-text">3.10 atomic_sub_and_test()</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%8E%9F%E5%AD%90%E4%BD%8D%E6%93%8D%E4%BD%9CAPI"><span class="nav-text">4. 原子位操作API</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E4%BD%BF%E7%94%A8%E6%AD%A5%E9%AA%A4"><span class="nav-text">5. 使用步骤</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E8%87%AA%E6%97%8B%E9%94%81"><span class="nav-text">二、自旋锁</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%87%AA%E6%97%8B%E9%94%81%E7%AE%80%E4%BB%8B"><span class="nav-text">1. 自旋锁简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%9B%B8%E5%85%B3%E7%BB%93%E6%9E%84%E4%BD%93-1"><span class="nav-text">2. 相关结构体</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%87%AA%E6%97%8B%E9%94%81%E6%93%8D%E4%BD%9CAPI"><span class="nav-text">3.自旋锁操作API</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-spin-lock-init"><span class="nav-text">3.1 spin_lock_init()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-spin-lock"><span class="nav-text">3.2 spin_lock()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-spin-trylock"><span class="nav-text">3.3 spin_trylock()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-spin-unlock"><span class="nav-text">3.4 spin_unlock()</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E7%94%A8%E4%BA%8E%E4%B8%AD%E6%96%AD%E7%9A%84API"><span class="nav-text">4. 用于中断的API</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E7%94%A8%E4%BA%8E%E4%B8%8B%E5%8D%8A%E9%83%A8%E7%9A%84API"><span class="nav-text">5. 用于下半部的API</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E4%BD%BF%E7%94%A8%E6%AD%A5%E9%AA%A4"><span class="nav-text">6. 使用步骤</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E4%BA%92%E6%96%A5%E9%94%81"><span class="nav-text">三、互斥锁</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BA%92%E6%96%A5%E9%94%81%E7%AE%80%E4%BB%8B"><span class="nav-text">1. 互斥锁简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%9B%B8%E5%85%B3%E7%BB%93%E6%9E%84%E4%BD%93-2"><span class="nav-text">2. 相关结构体</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BA%92%E6%96%A5%E9%94%81%E6%93%8D%E4%BD%9CAPI"><span class="nav-text">3.互斥锁操作API</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-mutex-init"><span class="nav-text">3.1 mutex_init()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-mutex-lock"><span class="nav-text">3.2 mutex_lock()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-mutex-trylock"><span class="nav-text">3.3 mutex_trylock()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-mutex-unlock"><span class="nav-text">3.4 mutex_unlock()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-mutex-is-locked"><span class="nav-text">3.5 mutex_is_locked()</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%BD%BF%E7%94%A8%E6%AD%A5%E9%AA%A4"><span class="nav-text">4. 使用步骤</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E4%BF%A1%E5%8F%B7%E9%87%8F"><span class="nav-text">四、信号量</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BF%A1%E5%8F%B7%E9%87%8F%E7%AE%80%E4%BB%8B"><span class="nav-text">1. 信号量简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%9B%B8%E5%85%B3%E7%BB%93%E6%9E%84%E4%BD%93-3"><span class="nav-text">2. 相关结构体</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BF%A1%E5%8F%B7%E9%87%8F%E6%93%8D%E4%BD%9CAPI"><span class="nav-text">3. 信号量操作API</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-sema-init"><span class="nav-text">3.1 sema_init()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-down"><span class="nav-text">3.2 down()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-down-interruptible"><span class="nav-text">3.3 down_interruptible()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-up"><span class="nav-text">3.4 up()</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%BD%BF%E7%94%A8%E6%AD%A5%E9%AA%A4-1"><span class="nav-text">4. 使用步骤</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/cffac5d7.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV10-04-并发与竞争-02-并发控制机制 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV10-04-并发与竞争-02-并发控制机制
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-07-08 18:58:23" itemprop="dateCreated datePublished" datetime="2023-07-08T18:58:23+08:00">2023-07-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV10-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>8.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>30 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是并发控制机制的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-04-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6%E6%9C%BA%E5%88%B6/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center" width=150>Linux开发板</td>        <td align="left">华清远见 底板: FS4412_DEV_V5 核心板: FS4412 V2</td>      </tr>    <tr>        <td align="center" width=150>u-boot</td>        <td align="left">2013.01</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">参考方向  </td><td align="center">参考原文</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr><td align="center">文件</td><td align="center">下载链接</td></tr>    <tr><td align="left">---</td><td align="left"><a href="https://wwz.lanzouy.com/iH1vO09jxavi" target="_blank">--- <i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<p>前边大概了解了并发控制机制大概有原子变量、自旋锁、互斥锁和信号量几种，下边就来详细学习一下吧。</p>
+<h1 id="一、原子变量"><a href="#一、原子变量" class="headerlink" title="一、原子变量"></a><font size=3>一、原子变量</font></h1><h2 id="1-原子变量简介"><a href="#1-原子变量简介" class="headerlink" title="1. 原子变量简介"></a><font size=3>1. 原子变量简介</font></h2><p>首先看一下原子变量，原子变量就是指存取不可被打断的特殊整型变量。假如现在要对无符号整形变量 a 赋值，值为 3，对于 C 语言来讲很简单，直接就是：  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">a = <span class="number">3</span>;</span><br></pre></td></tr></table></figure>
+
+<p>但是编译成汇编之后，就变成了下边的样子：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ldr r0, =0X30000000 /* 变量 a 地址         */</span><br><span class="line">ldr r1, = 3         /* 要写入的值          */</span><br><span class="line">str r1, [r0]        /* 将 3 写入到 a 变量中 */</span><br></pre></td></tr></table></figure>
+
+<p>这样的话，一个简单的赋值被拆分为三步，一个线程正在将 a 赋值为 3，只剩下最后一步了，此时另一个线程需要将其赋值为 5 ，而打断了上一个线程赋值为 3 的操作，那么之前赋值为 3 的线程得到的 a 的值将会是 5 了，这是不被允许的。要解决这个问题就要保证三行汇编指令作为一个整体运行，也就是作为一个原子存在，这个时候键可以将 a 设置为原子变量。</p>
+<p><strong>【注意事项】</strong></p>
+<p>（1）在linux内核中，有区分32位原子变量和64位原子变量，他们的原理是一样的，只是操作函数名可能会有不同，需要注意一下。后边写的 API 函数笔记都是 32 位原子变量使用的。</p>
+<p><strong>【适用场合】</strong>共享资源为单个整型变量的互斥场合</p>
+<h2 id="2-相关结构体"><a href="#2-相关结构体" class="headerlink" title="2. 相关结构体"></a><font size=3>2. 相关结构体</font></h2><p>Linux 内核定义了叫做 atomic_t 的结构体来完成整形数据的原子操作，在使用中用原子变量来代替整形变量，这个结构体定义在linux内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">include/linux/types.h          # 32位</span><br><span class="line">include/asm-generic/atomic64.h # 64位</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，会看到该结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 32位</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">        <span class="type">int</span> counter;</span><br><span class="line">&#125; <span class="type">atomic_t</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 64位</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">        <span class="type">long</span> <span class="type">long</span> counter;</span><br><span class="line">&#125; <span class="type">atomic64_t</span>;</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-原子整型操作API"><a href="#3-原子整型操作API" class="headerlink" title="3. 原子整型操作API"></a><font size=3>3. 原子整型操作API</font></h2><p>以下是针对于32位原子变量进行操作的相关函数。</p>
+<h3 id="3-1-ATOMIC-INIT"><a href="#3-1-ATOMIC-INIT" class="headerlink" title="3.1 ATOMIC_INIT()"></a><font size=3>3.1 ATOMIC_INIT()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep ATOMIC_INIT -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件，定义在 include/asm-generic/atomic.h 中 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;asm/atomic.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> ATOMIC_INIT(i)  &#123; (i) &#125;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数是一个宏，用于定义原子变量的时候对其初始化。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>i ：int 类型，表示定义原子变量时要赋的初值。</li>
+</ul>
+<p><strong>【返回值】</strong>none  </p>
+<p><strong>【使用格式】</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">atomic_t</span> a = ATOMIC_INIT(<span class="number">0</span>); <span class="comment">//定义原子变量 a 并赋初值为 0</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-2-atomic-set"><a href="#3-2-atomic-set" class="headerlink" title="3.2 atomic_set()"></a><font size=3>3.2 atomic_set()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep atomic_set -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件，定义在 include/asm-generic/atomic.h 中 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;asm/atomic.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * atomic_set - set atomic variable</span></span><br><span class="line"><span class="comment"> * @v: pointer of type atomic_t</span></span><br><span class="line"><span class="comment"> * @i: required value</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Atomically sets the value of @v to @i.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> atomic_set(v, i) (((v)-&gt;counter) = (i))</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 其实可以写成这样</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">atomic_set</span><span class="params">(<span class="type">atomic_t</span> *v, <span class="type">int</span> i)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数是一个宏，用于设置原子变量的值，就是向 v 写入 i 值。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>v ：atomic_t * 类型，表示要赋值的原子变量。</li>
+<li>i ：int 类型，表示要设置的值。</li>
+</ul>
+<p><strong>【返回值】</strong>none  </p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-3-atomic-read"><a href="#3-3-atomic-read" class="headerlink" title="3.3 atomic_read()"></a><font size=3>3.3 atomic_read()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep atomic_read -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件，定义在 include/asm-generic/atomic.h 中 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;asm/atomic.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * atomic_read - read atomic variable</span></span><br><span class="line"><span class="comment"> * @v: pointer of type atomic_t</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Atomically reads the value of @v.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> atomic_read</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> atomic_read(v)  (*(volatile int *)&amp;(v)-&gt;counter)</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="comment">// 其实可以写成这样</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">atomic_read</span><span class="params">(<span class="type">atomic_t</span> *v)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数是一个宏，用于读取原子变量 v 的值。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>v ：atomic_t *  类型，表示要操作的原子变量。</li>
+</ul>
+<p><strong>【返回值】</strong>none  </p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-4-atomic-add"><a href="#3-4-atomic-add" class="headerlink" title="3.4 atomic_add()"></a><font size=3>3.4 atomic_add()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep atomic_add -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件，定义在 include/asm-generic/atomic.h 中 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;asm/atomic.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数定义 */</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">void</span> <span class="title function_">atomic_add</span><span class="params">(<span class="type">int</span> i, <span class="type">atomic_t</span> *v)</span></span><br><span class="line">&#123;</span><br><span class="line">        atomic_add_return(i, v);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于给原子变量 v 加上 i 值。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><p>i ：int 类型，表示要加的值。</p>
+</li>
+<li><p>v ：atomic_t  * 类型，表示要操作的原子变量。</p>
+</li>
+</ul>
+<p><strong>【返回值】</strong>none  </p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-5-atomic-sub"><a href="#3-5-atomic-sub" class="headerlink" title="3.5 atomic_sub()"></a><font size=3>3.5 atomic_sub()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep atomic_sub -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件，定义在 include/asm-generic/atomic.h 中 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;asm/atomic.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数定义 */</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">void</span> <span class="title function_">atomic_sub</span><span class="params">(<span class="type">int</span> i, <span class="type">atomic_t</span> *v)</span></span><br><span class="line">&#123;</span><br><span class="line">        atomic_sub_return(i, v);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于给原子变量 v 减去 i 值。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><p>i ：int 类型，表示要减的值。</p>
+</li>
+<li><p>v ：atomic_t *  类型，表示要操作的原子变量。</p>
+</li>
+</ul>
+<p><strong>【返回值】</strong>none  </p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-6-atomic-inc"><a href="#3-6-atomic-inc" class="headerlink" title="3.6 atomic_inc()"></a><font size=3>3.6 atomic_inc()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep atomic_inc -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件，定义在 include/asm-generic/atomic.h 中 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;asm/atomic.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数定义 */</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">void</span> <span class="title function_">atomic_inc</span><span class="params">(<span class="type">atomic_t</span> *v)</span></span><br><span class="line">&#123;</span><br><span class="line">        atomic_add_return(<span class="number">1</span>, v);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于给原子变量 v 加 1，也就是自增。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>v ：atomic_t *  类型，表示要操作的原子变量。</li>
+</ul>
+<p><strong>【返回值】</strong>none  </p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-7-atomic-dec"><a href="#3-7-atomic-dec" class="headerlink" title="3.7 atomic_dec()"></a><font size=3>3.7 atomic_dec()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep atomic_dec -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件，定义在 include/asm-generic/atomic.h 中 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;asm/atomic.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数定义 */</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">void</span> <span class="title function_">atomic_dec</span><span class="params">(<span class="type">atomic_t</span> *v)</span></span><br><span class="line">&#123;</span><br><span class="line">        atomic_sub_return(<span class="number">1</span>, v);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于将原子变量 v 减 1，就是自减。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>v ：atomic_t  * 类型，表示要操作的原子变量。</li>
+</ul>
+<p><strong>【返回值】</strong>none  </p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-8-atomic-inc-and-test"><a href="#3-8-atomic-inc-and-test" class="headerlink" title="3.8 atomic_inc_and_test()"></a><font size=3>3.8 atomic_inc_and_test()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep atomic_inc_and_test -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件，定义在 include/asm-generic/atomic.h 中 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;asm/atomic.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> atomic_inc_and_test(v)          (atomic_inc_return(v) == 0)</span></span><br><span class="line"><span class="comment">// 其实可以写成</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">atomic_inc_and_test</span><span class="params">(<span class="type">atomic_t</span> *v)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于给 v 加 1，如果结果为 0 就返回真，否则返回假。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>v ：atomic_t *  类型，表示要操作的原子变量。</li>
+</ul>
+<p><strong>【返回值】</strong>int类型，返回真表示原子变量值为0，返回假表示原子变量值非0。</p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-9-atomic-dec-and-test"><a href="#3-9-atomic-dec-and-test" class="headerlink" title="3.9 atomic_dec_and_test()"></a><font size=3>3.9 atomic_dec_and_test()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep atomic_dec_and_test -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件，定义在 include/asm-generic/atomic.h 中 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;asm/atomic.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> atomic_dec_and_test(v)          (atomic_dec_return(v) == 0)</span></span><br><span class="line"><span class="comment">// 其实可以写成</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">atomic_dec_and_test</span><span class="params">(<span class="type">atomic_t</span> *v)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于给 v 减 1，如果结果为 0 就返回真，否则返回假。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>v ：atomic_t *  类型，表示要操作的原子变量。</li>
+</ul>
+<p><strong>【返回值】</strong>int类型，返回真表示原子变量值为0，返回假表示原子变量值非0。</p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-10-atomic-sub-and-test"><a href="#3-10-atomic-sub-and-test" class="headerlink" title="3.10 atomic_sub_and_test()"></a><font size=3>3.10 atomic_sub_and_test()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep atomic_sub_and_test -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件，定义在 include/asm-generic/atomic.h 中 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;asm/atomic.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> atomic_sub_and_test(i, v)       (atomic_sub_return((i), (v)) == 0)</span></span><br><span class="line"><span class="comment">// 其实可以写成</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">atomic_sub_and_test</span><span class="params">(<span class="type">int</span> i,<span class="type">atomic_t</span> *v)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于从 v 减 i，如果结果为 0 就返回真，否则返回假。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li><p>i ：int 类型，表示要减的值。</p>
+</li>
+<li><p>v ：atomic_t *  类型，表示要操作的原子变量。</p>
+</li>
+</ul>
+<p><strong>【返回值】</strong>int类型，返回真表示原子变量值为0，返回假表示原子变量值非0。</p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h2 id="4-原子位操作API"><a href="#4-原子位操作API" class="headerlink" title="4. 原子位操作API"></a><font size=3>4. 原子位操作API</font></h2><p>位操作也是很常用的操作， Linux 内核也提供了一系列的原子位操作 API 函数，只不过原子位操作不像原子整形变量那样有个 atomic_t 的数据结构，原子位操作是直接对内存进行操作 ，这里就不详细写了。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">set_bit</span><span class="params">(nr, <span class="type">void</span> *addr)</span>;		<span class="comment">// 设置addr的第nr位为1</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">clear_bit</span><span class="params">(nr , <span class="type">void</span> *addr)</span>;	<span class="comment">// 清除addr的第nr位为0</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">change_bit</span><span class="params">(nr , <span class="type">void</span> *addr)</span>;	<span class="comment">// 改变addr的第nr位为1</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">test_bit</span><span class="params">(nr , <span class="type">void</span> *addr)</span>;		<span class="comment">// 测试addr的第nr位是否为1</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="5-使用步骤"><a href="#5-使用步骤" class="headerlink" title="5. 使用步骤"></a><font size=3>5. 使用步骤</font></h2><p>以保证一个设备文件只能被打开一次为例：</p>
+<ul>
+<li>（1）定义一个原子变量；</li>
+<li>（2）设置原子变量的初始值为1；</li>
+<li>（3）在驱动的open()函数中将原子变量减1并判断结果否为0，若为0，则说明可以进行操作，若为负数，说明已经有其他应用程序打开了这个设备文件，此时恢复减1之前的原子变量值，就是再加1，然后提示错误并返回。</li>
+<li>（4）在关闭设备的时候，就是在驱动的close()函数中要对原子变量进行加1的操作，这样才能保证其他的进程或者线程可以正常打开这个设备文件。</li>
+</ul>
+<h1 id="二、自旋锁"><a href="#二、自旋锁" class="headerlink" title="二、自旋锁"></a><font size=3>二、自旋锁</font></h1><h2 id="1-自旋锁简介"><a href="#1-自旋锁简介" class="headerlink" title="1. 自旋锁简介"></a><font size=3>1. 自旋锁简介</font></h2><p>原子操作只能对整形变量或者位进行保护，但是，在实际的使用环境中怎么可能只有整形变量或位这么简单的临界区。举个最简单的例子，设备结构体变量就不是整型变量，我们对于结构体中成员变量的操作也要保证原子性，在线程 A 对结构体变量使用期间，应该禁止其他的线程来访问此结构体变量，这些工作原子操作都不能胜任。</p>
+<p>当一个线程要访问某个共享资源的时候首先要先获取相应的锁， 锁只能被一个线程持有，只要此线程不释放持有的锁，那么其他的线程就不能获取此锁。</p>
+<p>对于<strong>自旋锁</strong>而言，如果自旋锁正在被线程 A 持有，线程 B 想要获取自旋锁，那么线程 B 就会处于忙<strong>循环-旋转-等待</strong>状态，线程 B <strong>不会进入休眠状态或者说去做其他的处理</strong>，而是会一直傻傻的在那里“转圈圈”的等待锁可用。</p>
+<p>比如现在有个公用电话亭，一次肯定只能进去一个人打电话，现在电话亭里面有人正在打电话，相当于获得了自旋锁。此时我们到了电话亭门口，因为里面有人，所以我们不能进去打电话，相当于没有获取自旋锁，这个时候我们肯定是站在原地等待，我们可能因为无聊的等待而转圈圈消遣时光，反正就是哪里也不能去，要一直等到里面的人打完电话出来。终于，里面的人打完电话出来了，相当于释放自旋锁，这个时候我们就可以使用电话亭打电话了，相当于获取到了自旋锁。</p>
+<p>自旋锁的“自旋”也就是“原地打转”的意思，“原地打转”的目的是为了等待自旋锁可以用，可以访问共享资源。可以看到自旋锁的一个缺点：那就等待自旋锁的线程会一直处于自旋状态，这样会<strong>浪费处理器时间</strong>，<strong>降低系统性能</strong>，所以自旋锁的持有时间不能太长。所以自旋锁适用于短时期的轻量级加锁，如果遇到需要长时间持有锁的场景那就需要换其他的方法了。  </p>
+<p><strong>【注意事项】</strong></p>
+<p>（1）因为在等待自旋锁的时候处于“自旋”状态，因此锁的持有时间不能太长，一定要短，否则的话会降低系统性能。如果临界区比较大，运行时间比较长的话要选择其他的并发处理方式。</p>
+<p>（2）自旋锁保护的临界区内不能调用任何可能导致线程休眠的 API 函数，否则的话可能导致死锁。</p>
+<p>（3）不能递归申请自旋锁，因为一旦通过递归的方式申请一个正在持有的锁，那么就必须“自旋”，等待锁被释放，然而正处于“自旋”状态，根本没法释放锁。结果就是自己把自己锁死了。</p>
+<p>（4）在编写驱动程序的时候我们必须考虑到驱动的可移植性，因此不管用的是单核的还是多核的 SOC，都将其当做多核 SOC 来编写驱动程序。  </p>
+<p><strong>【适用场合】</strong>自旋锁适用于以下场合：</p>
+<p>（1）异常上下文之间或异常上下文与任务上下文之间共享资源时。</p>
+<p>（2）任务上下文之间且临界区执行时间很短时。</p>
+<p>（3）互斥问题。</p>
+<h2 id="2-相关结构体-1"><a href="#2-相关结构体-1" class="headerlink" title="2. 相关结构体"></a><font size=3>2. 相关结构体</font></h2><p>Linux 内核使用结构体 spinlock_t 表示自旋锁 ，该结构体定义在linux内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/spinlock_types.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，可以看到自旋锁结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">spinlock</span> &#123;</span></span><br><span class="line">        <span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">                <span class="class"><span class="keyword">struct</span> <span class="title">raw_spinlock</span> <span class="title">rlock</span>;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_DEBUG_LOCK_ALLOC</span></span><br><span class="line"><span class="meta"># <span class="keyword">define</span> LOCK_PADSIZE (offsetof(struct raw_spinlock, dep_map))</span></span><br><span class="line">                <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">                        u8 __padding[LOCK_PADSIZE];</span><br><span class="line">                        <span class="class"><span class="keyword">struct</span> <span class="title">lockdep_map</span> <span class="title">dep_map</span>;</span></span><br><span class="line">                &#125;;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">        &#125;;</span><br><span class="line">&#125; <span class="type">spinlock_t</span>;</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-自旋锁操作API"><a href="#3-自旋锁操作API" class="headerlink" title="3.自旋锁操作API"></a><font size=3>3.自旋锁操作API</font></h2><p>下边的这些自旋锁API函数适用于SMP或支持抢占的单CPU下线程之间的并发访问，也就是用于线程与线程之间，被自旋锁保护的临界区一定不能调用任何能够引起睡眠和阻塞的API 函数，否则的话会可能会导致死锁现象的发生。</p>
+<p>自旋锁会自动禁止抢占，也就说当线程 A 得到锁以后会暂时禁止内核抢占。如果线程 A 在持有锁期间进入了休眠状态，那么线程 A 会自动放弃 CPU 使用权。线程 B 开始运行，线程 B 也想要获取锁，但是此时锁被 A 线程持有，而且内核抢占还被禁止了，线程 B 无法被调度出去，那么线程 A 就无法运行，锁也就无法释放，此时，死锁发生了！  </p>
+<h3 id="3-1-spin-lock-init"><a href="#3-1-spin-lock-init" class="headerlink" title="3.1 spin_lock_init()"></a><font size=3>3.1 spin_lock_init()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep spin_lock_init -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件*/</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/spinlock.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数定义 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> spin_lock_init(_lock)                           \</span></span><br><span class="line"><span class="meta">do &#123;                                                    \</span></span><br><span class="line"><span class="meta">        spinlock_check(_lock);                          \</span></span><br><span class="line"><span class="meta">        raw_spin_lock_init(&amp;(_lock)-&gt;rlock);            \</span></span><br><span class="line"><span class="meta">&#125; while (0)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 追踪一下会发现其实这个函数可以写成这样</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">spin_lock_init</span><span class="params">(<span class="type">spinlock_t</span> *lock)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数初始化自旋锁。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>lock ：spinlock_t * 类型，表示要初始化的自旋锁。</li>
+</ul>
+<p><strong>【返回值】</strong>int类型，一般不怎么关心这个返回值。</p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-2-spin-lock"><a href="#3-2-spin-lock" class="headerlink" title="3.2 spin_lock()"></a><font size=3>3.2 spin_lock()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep spin_lock -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件*/</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/spinlock.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数定义 */</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">void</span> <span class="title function_">spin_lock</span><span class="params">(<span class="type">spinlock_t</span> *lock)</span></span><br><span class="line">&#123;</span><br><span class="line">        raw_spin_lock(&amp;lock-&gt;rlock);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于获取自旋锁，也叫作加锁。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>lock ：spinlock_t * 类型，表示要获取的自旋锁。</li>
+</ul>
+<p><strong>【返回值】</strong>none  </p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-3-spin-trylock"><a href="#3-3-spin-trylock" class="headerlink" title="3.3 spin_trylock()"></a><font size=3>3.3 spin_trylock()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep spin_trylock -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/spinlock.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数定义 */</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">int</span> <span class="title function_">spin_trylock</span><span class="params">(<span class="type">spinlock_t</span> *lock)</span></span><br><span class="line">&#123;</span><br><span class="line">        <span class="keyword">return</span> raw_spin_trylock(&amp;lock-&gt;rlock);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于尝试获取指定的自旋锁，如果没有获取到就返回 0。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>lock ：spinlock_t * 类型，表示要获取的自旋锁。</li>
+</ul>
+<p><strong>【返回值】</strong>int 类型，没有获取到锁，返回0；获取到锁，返回非0值。</p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-4-spin-unlock"><a href="#3-4-spin-unlock" class="headerlink" title="3.4 spin_unlock()"></a><font size=3>3.4 spin_unlock()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep spin_unlock -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/spinlock.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数定义 */</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">void</span> <span class="title function_">spin_unlock</span><span class="params">(<span class="type">spinlock_t</span> *lock)</span></span><br><span class="line">&#123;</span><br><span class="line">        raw_spin_unlock(&amp;lock-&gt;rlock);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于。释放自旋锁，也叫解锁</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>lock ：spinlock_t * 类型，表示要释放的自旋锁。</li>
+</ul>
+<p><strong>【返回值】</strong>none  </p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h2 id="4-用于中断的API"><a href="#4-用于中断的API" class="headerlink" title="4. 用于中断的API"></a><font size=3>4. 用于中断的API</font></h2><p>上边的那些API 函数用于线程之间的并发访问，如果此时发生了中断，中断也想访问共享资源，那该怎么办呢？</p>
+<p>首先，中断里面可以使用自旋锁，但是在中断里面使用自旋锁的时候，在<strong>获取锁之前一定要先禁止本地中断</strong>(也就是本 CPU 中断，对于多核 SOC来说会有多个 CPU 核)，否则可能导致锁死现象的发生 。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV10-04-%E5%B9%B6%E5%8F%91%E4%B8%8E%E7%AB%9E%E4%BA%89-02-%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6%E6%9C%BA%E5%88%B6/img/image-20220919120725303.png" alt="image-20220919120725303" style="zoom:50%;" />
+
+<p>如上图，线程 A 先运行，并且获取到了 lock 这个锁，当线程 A 运行 funcA 函数的时候中断发生了，中断抢走了 CPU 使用权。右边的中断服务函数也要获取 lock 这个锁，但是这个锁被线程 A 占有着，中断就会一直自旋，等待锁有效。但是在中断服务函数执行完前，线程 A 是不可能执行的，所以，死锁又发生了。所以就需要在<strong>获取锁之前关闭本地中断</strong>。</p>
+<p>linux内核为我们也提供了一些API函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">spin_lock_irq</span><span class="params">(<span class="type">spinlock_t</span> *lock)</span>; <span class="comment">/* 禁止本地中断，并获取自旋锁 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">spin_unlock_irq</span><span class="params">(<span class="type">spinlock_t</span> *lock)</span>;<span class="comment">/* 激活本地中断，并释放自旋锁 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">spin_lock_irqsave</span><span class="params">(<span class="type">spinlock_t</span> *lock, <span class="type">unsigned</span> <span class="type">long</span> flags)</span>;<span class="comment">/* 保存中断状态，禁止本地中断，并获取自旋锁 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">spin_unlock_irqrestore</span><span class="params">(<span class="type">spinlock_t</span>*lock, <span class="type">unsigned</span> <span class="type">long</span> flags)</span>;<span class="comment">/* 将中断状态恢复到以前的状态，并且激活本地中断，释放自旋锁 */</span></span><br></pre></td></tr></table></figure>
+
+<p>使用 spin_lock_irq &#x2F; spin_unlock_irq 的时候需要用户能够确定加锁之前的中断状态，但实际上内核很庞大，运行也是“千变万化”，我们是很难确定某个时刻的中断状态，因此不推荐使用 spin_lock_irq&#x2F;spin_unlock_irq。建议使用 spin_lock_irqsave &#x2F; spin_unlock_irqrestore，因为这一组函数会保存中断状态，在释放锁的时候会恢复中断状态。</p>
+<p>一般在线程中使用 spin_lock_irqsave &#x2F; spin_unlock_irqrestore，在中断中使用 spin_lock&#x2F;spin_unlock ，实例如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">DEFINE_SPINLOCK(lock) <span class="comment">/* 定义并初始化一个锁 */</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 线程 A */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">functionA</span> <span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> flags; <span class="comment">/* 中断状态 */</span></span><br><span class="line">	spin_lock_irqsave(&amp;lock, flags) <span class="comment">/* 获取锁 */</span></span><br><span class="line">	<span class="comment">/* 临界区 */</span></span><br><span class="line">	spin_unlock_irqrestore(&amp;lock, flags) <span class="comment">/* 释放锁 */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 中断服务函数 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">irq</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">	spin_lock(&amp;lock) <span class="comment">/* 获取锁 */</span></span><br><span class="line">	<span class="comment">/* 临界区 */</span></span><br><span class="line">	spin_unlock(&amp;lock) <span class="comment">/* 释放锁 */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="5-用于下半部的API"><a href="#5-用于下半部的API" class="headerlink" title="5. 用于下半部的API"></a><font size=3>5. 用于下半部的API</font></h2><p>下半部(BH)也会竞争共享资源，如果要在下半部里面使用自旋锁 ，可以用这些函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">spin_lock_bh</span><span class="params">(<span class="type">spinlock_t</span> *lock)</span>;   <span class="comment">/* 关闭下半部，并获取自旋锁 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">spin_unlock_bh</span><span class="params">(<span class="type">spinlock_t</span> *lock)</span>; <span class="comment">/* 打开下半部，并释放自旋锁 */</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="6-使用步骤"><a href="#6-使用步骤" class="headerlink" title="6. 使用步骤"></a><font size=3>6. 使用步骤</font></h2><ul>
+<li>（1）定义自旋锁；</li>
+<li>（2）初始化自旋锁；</li>
+<li>（3）需要加锁的地方获取自旋锁，加锁的代码执行完一定要解锁，加锁和解锁一定要成对出现。</li>
+</ul>
+<h1 id="三、互斥锁"><a href="#三、互斥锁" class="headerlink" title="三、互斥锁"></a><font size=3>三、互斥锁</font></h1><h2 id="1-互斥锁简介"><a href="#1-互斥锁简介" class="headerlink" title="1. 互斥锁简介"></a><font size=3>1. 互斥锁简介</font></h2><p>自旋锁在上锁的时候会一直自旋，占用CPU资源，这是很浪费资源和时间的，linux中还有一种互斥锁。互斥锁加锁的资源每次只能有一个线程访问，若是没有获取到互斥锁，线程或者进程便会休眠，让出CPU。</p>
+<p><strong>【注意事项】</strong></p>
+<p>（1）互斥锁可以导致休眠，因此不能在中断中使用互斥锁，中断中只能使用自旋锁。</p>
+<p>（2）互斥锁保护的临界区可以调用引起阻塞的 API 函数。</p>
+<p>（3）为一次只有一个线程可以持有互斥锁，因此，必须由互斥锁的持有者释放互斥锁。并且互斥锁不能递归上锁和解锁。 </p>
+<p><strong>【适用场合】</strong>任务上下文之间且临界区执行时间较长时的互斥问题。</p>
+<h2 id="2-相关结构体-2"><a href="#2-相关结构体-2" class="headerlink" title="2. 相关结构体"></a><font size=3>2. 相关结构体</font></h2><p>linux 内核中使用 mutex 表示互斥锁，该结构体变量定义在linux内核源码的这个文件中</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/mutex.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，就可以看到互斥锁的结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">mutex</span> &#123;</span></span><br><span class="line">        <span class="comment">/* 1: unlocked, 0: locked, negative: locked, possible waiters */</span></span><br><span class="line">        <span class="type">atomic_t</span>                count;</span><br><span class="line">        <span class="type">spinlock_t</span>              wait_lock;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>        <span class="title">wait_list</span>;</span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(CONFIG_DEBUG_MUTEXES) || defined(CONFIG_SMP)</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span>      *<span class="title">owner</span>;</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_MUTEX_SPIN_ON_OWNER</span></span><br><span class="line">        <span class="type">void</span>                    *spin_mlock;    <span class="comment">/* Spinner MCS lock */</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_DEBUG_MUTEXES</span></span><br><span class="line">        <span class="type">const</span> <span class="type">char</span>              *name;</span><br><span class="line">        <span class="type">void</span>                    *magic;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_DEBUG_LOCK_ALLOC</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">lockdep_map</span>      <span class="title">dep_map</span>;</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-互斥锁操作API"><a href="#3-互斥锁操作API" class="headerlink" title="3.互斥锁操作API"></a><font size=3>3.互斥锁操作API</font></h2><h3 id="3-1-mutex-init"><a href="#3-1-mutex-init" class="headerlink" title="3.1 mutex_init()"></a><font size=3>3.1 mutex_init()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep mutex_init -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件*/</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/mutex.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数定义 */</span></span><br><span class="line"><span class="meta"># <span class="keyword">define</span> mutex_init(mutex) \</span></span><br><span class="line"><span class="meta">do &#123;                                                    \</span></span><br><span class="line"><span class="meta">        static struct lock_class_key __key;             \</span></span><br><span class="line"><span class="meta">                                                        \</span></span><br><span class="line"><span class="meta">        __mutex_init((mutex), #mutex, &amp;__key);          \</span></span><br><span class="line"><span class="meta">&#125; while (0)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 追踪一下会发现其实这个函数可以写成这样</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">mutex_init</span><span class="params">(mutex *lock)</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数初始化互斥锁。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>lock ：mutex * 类型，表示要初始化的互斥锁。</li>
+</ul>
+<p><strong>【返回值】</strong>none</p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-2-mutex-lock"><a href="#3-2-mutex-lock" class="headerlink" title="3.2 mutex_lock()"></a><font size=3>3.2 mutex_lock()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep mutex_lock -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件*/</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/mutex.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">mutex_lock</span><span class="params">(<span class="keyword">struct</span> mutex *lock)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于获取互斥锁，也叫作加锁，如果获取不到就进行休眠。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>lock ：struct mutex * 类型，表示要获取的互斥锁。</li>
+</ul>
+<p><strong>【返回值】</strong>none  </p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-3-mutex-trylock"><a href="#3-3-mutex-trylock" class="headerlink" title="3.3 mutex_trylock()"></a><font size=3>3.3 mutex_trylock()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep spin_trylock -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/mutex.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">int</span> <span class="title function_">mutex_trylock</span><span class="params">(<span class="keyword">struct</span> mutex *lock)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于尝试获取指定的互斥锁，如果没有获取到就返回 0。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>lock ：struct mutex * 类型，表示要获取的互斥锁。</li>
+</ul>
+<p><strong>【返回值】</strong>int 类型，成功获取到锁，返回1；没有获取到锁，返回0。</p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-4-mutex-unlock"><a href="#3-4-mutex-unlock" class="headerlink" title="3.4 mutex_unlock()"></a><font size=3>3.4 mutex_unlock()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep mutex_unlock -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/mutex.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">mutex_unlock</span><span class="params">(<span class="keyword">struct</span> mutex *lock)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于释放指定的互斥锁。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>lock ：struct mutex  * 类型，表示要释放的互斥锁。</li>
+</ul>
+<p><strong>【返回值】</strong>none</p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-5-mutex-is-locked"><a href="#3-5-mutex-is-locked" class="headerlink" title="3.5 mutex_is_locked()"></a><font size=3>3.5 mutex_is_locked()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep mutex_is_locked -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/mutex.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数定义 */</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">int</span> <span class="title function_">mutex_is_locked</span><span class="params">(<span class="keyword">struct</span> mutex *lock)</span></span><br><span class="line">&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="type">atomic_read</span>(&amp;lock-&gt;count) != <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于判断 mutex 是否被获取。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>lock ：struct mutex * 类型，表示要判断的互斥锁。</li>
+</ul>
+<p><strong>【返回值】</strong>int类型，已经被获取返回1，否则返回0。</p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h2 id="4-使用步骤"><a href="#4-使用步骤" class="headerlink" title="4. 使用步骤"></a><font size=3>4. 使用步骤</font></h2><ul>
+<li>（1）定义一个互斥锁；</li>
+<li>（2）初始化互斥锁；</li>
+<li>（3）需要加锁的地方获取互斥锁，加锁的代码执行完毕一定要释放互斥锁，互斥锁的获取和释放必须成对出现。</li>
+</ul>
+<h1 id="四、信号量"><a href="#四、信号量" class="headerlink" title="四、信号量"></a><font size=3>四、信号量</font></h1><h2 id="1-信号量简介"><a href="#1-信号量简介" class="headerlink" title="1. 信号量简介"></a><font size=3>1. 信号量简介</font></h2><p> Linux 内核提供了信号量机制，信号量常常用于<strong>控制对共享资源的访问</strong>。</p>
+<p>有这么一个例子，某个停车场有 100 个停车位，这 100 个停车位大家都可以用，对于大家来说这100 个停车位就是共享资源。假设现在这个停车场正常运行，我们要把车停到这个这个停车场肯定要先看一下现在停了多少车了？还有没有停车位？当前停车数量就是一个信号量，具体的停车数量就是这个信号量值，当这个值到 100 的时候说明停车场满了。停车场满的时我们可以等一会看看有没有其他的车开出停车场，当有车开出停车场的时候停车数量就会减一，也就是说信号量减一，此时我们就可以把车停进去了，我们把车停进去以后停车数量就会加一，也就是信号量加一。这就是一个典型的使用信号量进行共享资源管理的案例，在这个案例中使用的就是计数型信号量。</p>
+<p>相比于自旋锁，信号量可以使线程进入休眠状态，使用信号量会提高处理器的使用效率，毕竟不用一直在那里“自旋”等待。但是，信号量的开销要比自旋锁大，因为信号量使线程进入休眠状态以后会切换线程，切换线程就会有开销。</p>
+<p>信号量的特点：</p>
+<p>（1）因为信号量可以使等待资源线程进入休眠状态，因此适用于那些占用资源比较久的场合。</p>
+<p>（2）因此信号量不能用于中断中，因为信号量会引起休眠，中断不能休眠。</p>
+<p>（3）如果共享资源的持有时间比较短，那就不适合使用信号量了，因为频繁的休眠、切换线程引起的开销要远大于信号量带来的那点优势。</p>
+<p>信号量有一个信号量值，相当于一个房子有 10 把钥匙，这 10 把钥匙就相当于信号量值为10。因此，可以通过信号量来控制访问共享资源的访问数量，如果要想进房间，那就要先获取一把钥匙，信号量值减 1，直到 10 把钥匙都被拿走，信号量值为 0，这个时候就不允许任何人进入房间了，因为没钥匙了。如果有人从房间出来，那他要归还他所持有的那把钥匙，信号量值加 1，此时有 1 把钥匙了，那么可以允许进去一个人。相当于通过信号量控制访问资源的线程数，在初始化的时候将信号量值设置的大于 1，那么这个信号量就是计数型信号量，计数型信号量不能用于互斥访问，因为它允许多个线程同时访问共享资源。如果要互斥的访问共享资源那么信号量的值就不能大于 1，此时的信号量就是一个二值信号量。  </p>
+<p><strong>【适用场合】</strong>任务上下文之间且临界区执行时间较长时的互斥或同步问题。</p>
+<h2 id="2-相关结构体-3"><a href="#2-相关结构体-3" class="headerlink" title="2. 相关结构体"></a><font size=3>2. 相关结构体</font></h2><p>Linux 内核使用 semaphore 结构体表示信号量 ，该结构体定义在linux内核源码的这个文件中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">include/linux/semaphore.h</span><br></pre></td></tr></table></figure>
+
+<p>我们打开这个文件，会看到这个结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Please don&#x27;t access any members of this structure directly */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">semaphore</span> &#123;</span></span><br><span class="line">        <span class="type">raw_spinlock_t</span>          lock;</span><br><span class="line">        <span class="type">unsigned</span> <span class="type">int</span>            count;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>        <span class="title">wait_list</span>;</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="3-信号量操作API"><a href="#3-信号量操作API" class="headerlink" title="3. 信号量操作API"></a><font size=3>3. 信号量操作API</font></h2><h3 id="3-1-sema-init"><a href="#3-1-sema-init" class="headerlink" title="3.1 sema_init()"></a><font size=3>3.1 sema_init()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep sema_init -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件*/</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/semaphore.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数定义 */</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">void</span> <span class="title function_">sema_init</span><span class="params">(<span class="keyword">struct</span> semaphore *sem, <span class="type">int</span> val)</span></span><br><span class="line">&#123;</span><br><span class="line">        <span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">lock_class_key</span> __<span class="title">key</span>;</span></span><br><span class="line">        *sem = (<span class="keyword">struct</span> semaphore) __SEMAPHORE_INITIALIZER(*sem, val);</span><br><span class="line">        lockdep_init_map(&amp;sem-&gt;lock.dep_map, <span class="string">&quot;semaphore-&gt;lock&quot;</span>, &amp;__key, <span class="number">0</span>); </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数初始化信号量。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>sem ：struct semaphore * 类型，表示要初始化的信号量。</li>
+<li>val ：int 类型，表示信号量的初始值。</li>
+</ul>
+<p><strong>【返回值】</strong>none</p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-2-down"><a href="#3-2-down" class="headerlink" title="3.2 down()"></a><font size=3>3.2 down()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep down -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件*/</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/semaphore.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">down</span><span class="params">(<span class="keyword">struct</span> semaphore *sem)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于获取信号量，因为会导致休眠（浅度休眠），因此不能在中断中使用。使用 down 进入休眠状态的线程不能被信号打断。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>sem ：struct semaphore * 类型，表示要获取的信号量。</li>
+</ul>
+<p><strong>【返回值】</strong>none  </p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-3-down-interruptible"><a href="#3-3-down-interruptible" class="headerlink" title="3.3 down_interruptible()"></a><font size=3>3.3 down_interruptible()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep down_interruptible -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/semaphore.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">int</span> __must_check <span class="title function_">down_interruptible</span><span class="params">(<span class="keyword">struct</span> semaphore *sem)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于获取信号量，也会导致休眠（浅度休眠），使用此函数进入休眠以后是可以被信号打断的。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>sem ：struct semaphore * 类型，表示要获取的信号量。</li>
+</ul>
+<p><strong>【返回值】</strong>int 类型，没怎么用这个函数，用到了再补充。</p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h3 id="3-4-up"><a href="#3-4-up" class="headerlink" title="3.4 up()"></a><font size=3>3.4 up()</font></h3><p>我们使用以下命令查询一下函数所在头文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep up -r -n ~/5linux/linux-3.14/include</span><br></pre></td></tr></table></figure>
+
+<p>经过查找，我们可以得到如下信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 需包含的头文件 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/semaphore.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 函数声明 */</span></span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">up</span><span class="params">(<span class="keyword">struct</span> semaphore *sem)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>【函数说明】</strong>该函数用于释放信号量。</p>
+<p><strong>【函数参数】</strong></p>
+<ul>
+<li>sem ：struct semaphore * 类型，表示要释放的信号量。</li>
+</ul>
+<p><strong>【返回值】</strong>none</p>
+<p><strong>【使用格式】</strong>none</p>
+<p><strong>【注意事项】</strong> none</p>
+<h2 id="4-使用步骤-1"><a href="#4-使用步骤-1" class="headerlink" title="4. 使用步骤"></a><font size=3>4. 使用步骤</font></h2><ul>
+<li>（1）定义一个信号量；</li>
+<li>（2）初始化信号量；</li>
+<li>（3）需要保护的代码段申请信号量，当执行完毕后要释放信号量，需要注意申请信号量和释放信号量要成对出现。</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/cffac5d7.html">LV10-04-并发与竞争-02-并发控制机制</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年07月08日 - 18:58</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/cffac5d7.html" title="LV10-04-并发与竞争-02-并发控制机制">https://sumumm.github.io/post/cffac5d7.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV10-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV10-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/382dea03.html" rel="prev" title="LV10-05-内核定时器-01-基础知识">
+                  <i class="fa fa-angle-left"></i> LV10-05-内核定时器-01-基础知识
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/7ec4552.html" rel="next" title="LV10-04-并发与竞争-01-并发与竞争简介">
+                  LV10-04-并发与竞争-01-并发与竞争简介 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

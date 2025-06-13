@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是STM32开发——在内部SRAM中调试代码一些的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV16-11-STM32启动-03-在内部SRAM中调试代码">
+<meta property="og:url" content="https://sumumm.github.io/post/b1786358.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是STM32开发——在内部SRAM中调试代码一些的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531114645592.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531115141013.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531115559771.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531121355592.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531122111841.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531135731983.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531135123061.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531140802214.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531141345021.png">
+<meta property="article:published_time" content="2023-06-04T14:06:50.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.009Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV16-STM32开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531114645592.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/b1786358.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/b1786358.html","path":"post/b1786358.html","title":"LV16-11-STM32启动-03-在内部SRAM中调试代码"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV16-11-STM32启动-03-在内部SRAM中调试代码 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%9C%A8RAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81"><span class="nav-text">一、在RAM中调试代码</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%AE%80%E4%BB%8B"><span class="nav-text">1. 简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BC%98%E7%BC%BA%E7%82%B9"><span class="nav-text">2. 优缺点</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%9C%A8RAM%E4%B8%AD%E8%B0%83%E8%AF%95%E5%AE%9E%E7%8E%B0"><span class="nav-text">二、在RAM中调试实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%88%9B%E5%BB%BA%E5%B7%A5%E7%A8%8B%E7%9A%84%E8%B0%83%E8%AF%95%E7%89%88%E6%9C%AC"><span class="nav-text">1. 创建工程的调试版本  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%85%8D%E7%BD%AE%E5%88%86%E6%95%A3%E5%8A%A0%E8%BD%BD%E6%96%87%E4%BB%B6"><span class="nav-text">2. 配置分散加载文件  </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E9%85%8D%E7%BD%AE%E4%B8%AD%E6%96%AD%E5%90%91%E9%87%8F%E8%A1%A8"><span class="nav-text">3. 配置中断向量表</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%BF%AE%E6%94%B9%E4%B8%8B%E8%BD%BD%E9%85%8D%E7%BD%AE"><span class="nav-text">4. 修改下载配置  </span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E4%B8%8B%E8%BD%BD%E9%85%8D%E7%BD%AE"><span class="nav-text">4.1 下载配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E4%BB%BF%E7%9C%9F%E5%99%A8%E8%B0%83%E8%AF%95%E8%BE%85%E5%8A%A9"><span class="nav-text">4.2 仿真器调试辅助</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-1-%E6%8C%87%E5%AE%9A-PC-%E5%8F%8A-SP-%E6%8C%87%E9%92%88%E5%80%BC%E7%9A%84%E4%BB%BF%E7%9C%9F%E5%99%A8%E9%85%8D%E7%BD%AE"><span class="nav-text">4.2.1 指定 PC 及 SP 指针值的仿真器配置  </span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-2-%E5%85%B3%E4%BA%8E%E5%A4%8D%E4%BD%8D%E5%90%8E-PC-%E5%92%8C-SP-%E6%8C%87%E9%92%88%E7%9A%84%E8%B0%83%E8%AF%95%E6%83%85%E5%86%B5"><span class="nav-text">4.2.2 关于复位后 PC 和 SP 指针的调试情况  </span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E8%BF%90%E8%A1%8CSRAM%E4%B8%AD%E7%A8%8B%E5%BA%8F"><span class="nav-text">5. 运行SRAM中程序</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/b1786358.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV16-11-STM32启动-03-在内部SRAM中调试代码 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV16-11-STM32启动-03-在内部SRAM中调试代码
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-06-04 22:06:50" itemprop="dateCreated datePublished" datetime="2023-06-04T22:06:50+08:00">2023-06-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV16-STM32开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>7.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>28 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是STM32开发——在内部SRAM中调试代码一些的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <ul><li>通用</li></ul><table><tr><td align="center">分类  </td><td align="center">网址</td><td align="center">说明</td></tr><tr><td align="center" rowspan="4">官方网站</td><td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td><td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td></tr><tr>                                            <td align="left"><a href="https://www.st.com/content/st_com/zh.html" target="_blank">https://www.st.com/content/st_com/zh.html</a></td><td align="left">ST官方网站，在这里我们可以找到STM32的相关文档</td></tr><tr>                                            <td align="left"><a href="https://www.stmcu.com.cn/" target="_blank">https://www.stmcu.com.cn/</a></td><td align="left">意法半导体ST中文官方网站，在这里我们可以找到STM32的相关中文参考文档</td></tr><tr>                                            <td align="left"><a href="http://elm-chan.org/fsw/ff/00index_e.html" target="_blank">http://elm-chan.org/fsw/ff/00index_e.html</a></td><td align="left">FatFs文件系统官网</td></tr><tr><td align="center" rowspan="3">教程书籍</td><td align="left"><a href="STM32开发相关资料/01ARM参考资料/ARM Cortex-M3权威指南(中文).pdf" target="_blank">《ARM Cortex-M3权威指南》</a></td><td alirn="left" rowspan="3">ARM公司专家Joseph Yiu（姚文祥）的力作，中文翻译是NXP的宋岩</td></tr><tr>                                            <td align="left"><a href="STM32开发相关资料/01ARM参考资料/ARM Cortex-M0权威指南(中文).pdf" target="_blank">《ARM Cortex-M0权威指南》</a></td></tr><tr>                                            <td align="left"><a href="" target="_blank">《ARM Cortex-M3与Cortex-M4权威指南》</a></td></tr><tr><td align="center" rowspan="4">开发论坛</td><td align="left"><a href="http://47.111.11.73/forum.php" target="_blank">http://47.111.11.73/forum.php</a></td><td align="left">开源电子网，正点原子的资料下载及问题讨论论坛</td></tr><tr>                                            <td align="left"><a href="https://www.firebbs.cn/forum.php" target="_blank">https://www.firebbs.cn/forum.php</a></td><td align="left">国内Kinetis开发板-野火/秉火（刘火良）主持的论坛，现也做STM32和i.MX RT</td></tr><tr>                                            <td align="left"><a href="https://www.amobbs.com/index.php" target="_blank">https://www.amobbs.com/index.php</a></td><td align="left">阿莫（莫进明）主持的论坛，号称国内最早最火的电子论坛，以交流Atmel AVR系列单片机起家，现已拓展到嵌入式全平台，其STM32系列帖子有70W+。</td></tr><tr>                                            <td align="left"><a href="http://download.100ask.net/index.html" target="_blank">http://download.100ask.net/index.html</a></td><td align="left">韦东山嵌入式资料中心，有些STM32和linux的相关资料也可以来这里找。</td></tr><tr><td align="center" rowspan="3">博客参考</td><td align="left"><a href="http://www.openedv.com/" target="_blank">http://www.openedv.com/</a></td><td align="left">开源网-原子哥个人博客</td></tr><tr>                                            <td align="left"><a href="http://blog.chinaaet.com/jihceng0622" target="_blank">http://blog.chinaaet.com/jihceng0622</a></td><td align="left">博主是原Freescale现NXP的现场应用工程师</td></tr><tr>                                            <td align="left"><a href="https://community.arm.com/arm-community-blogs/b/architectures-and-processors-blog/posts/cortex-m-resources" target="_blank">cortex-m-resources</a></td><td align="left">这其实并不算是一个博客，这是ARM公司专家Joseph Yiu收集整理的所有对开发者有用的官方Cortex-M资料链接（也包含极少数外部资源链接）</td></tr></table><ul><li>STM32</li></ul><table>    <tr><td align="center" rowspan="2">STM32</td><td align="left"><a href="https://doc.embedfire.com/mcu/stm32/f103/hal_general/zh/latest/index.html" target="_blank">STM32 HAL库开发实战指南——基于F103系列开发板</a></td><td align="left">野火STM32开发教程在线文档</td></tr><tr>                                            <td align="left"><a href="https://doc.embedfire.com/mcu/stm32/f103badao/std/zh/latest/index.html" target="_blank">STM32库开发实战指南——基于野火霸道开发板</a></td><td align="left">野火STM32开发教程在线文档</td></tr></table><ul><li>SD卡</li></ul><table>    <tr><td align="left"><a href="https://www.sdcard.org/" target="_blank">SD Association</a></td><td align="left">提供了SD存储卡和SDIO卡系统规范</td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr><td align="left"><a href="https://www.st.com/resource/en/datasheet/stm32f103ze.pdf" target="_blank">STM32F103xx英文数据手册</a></td><td align="left">STM32F103xC/D/E系列的英文数据手册</td></tr>    <tr><td align="left"><a href="https://www.stmcu.com.cn/Designresource/detail/localization_document%20/709978" target="_blank">STM32F103xx中文数据手册</a></td><td align="left">STM32F103xC/D/E系列的中文数据手册</td></tr>    <tr><td align="left"><a href="https://www.st.com/resource/en/reference_manual/rm0008-stm32f101xx-stm32f102xx-stm32f103xx-stm32f105xx-and-stm32f107xx-advanced-armbased-32bit-mcus-stmicroelectronics.pdf" target="_blank">STM32F10xxx英文参考手册（RM0008）</a></td><td align="left">STM32F10xxx系列的英文参考手册</td></tr>    <tr><td align="left"><a href="https://www.stmcu.com.cn/Designresource/detail/localization_document%20/710001" target="_blank">STM32F10xxx中文参考手册（RM0008）</a></td><td align="left">STM32F10xxx系列的中文参考手册</td></tr>    <tr><td align="left"><a href="https://developer.arm.com/documentation/100165/0201/?lang=en" target="_blank">Arm Cortex-M3 处理器技术参考手册-英文版</a></td><td align="left">Cortex-M3技术参考手册-英文版</td></tr>    <tr><td align="left"><a href="https://www.st.com/resource/en/programming_manual/pm0056-stm32f10xxx20xxx21xxxl1xxxx-cortexm3-programming-manual-stmicroelectronics.pdf" target="_blank">STM32F10xxx Cortex-M3编程手册-英文版(PM0056)</a></td><td align="left">STM32F10xxx/20xxx/21xxx/L1xxxx系列Cortex-M3编程手册-英文版</td></tr>    <tr><td align="left"><a href="https://www.sdcard.org/downloads/pls/" target="_blank">SD卡相关资料——最新版本</a></td><td align="left">有关SD卡的一些资料可以从这里下载</td></tr>    <tr><td align="left"><a href="https://www.sdcard.org/downloads/pls/archives/" target="_blank">SD卡相关资料——历史版本</a></td><td align="left">有关SD卡的一些历史版本资料可以从这里下载，比如后边看的SD卡2.0协议</td></tr>    <tr><td align="left"><a href="./" target="_blank">SD 2.0 协议标准完整版</a></td><td align="left">这是一篇关于SD卡2.0协议的中文文档，还是比较有参考价值的，可以一看</td></tr></table>
+              </div>
+            </details> 
+
+<h1 id="一、在RAM中调试代码"><a href="#一、在RAM中调试代码" class="headerlink" title="一、在RAM中调试代码"></a><font size=3>一、在RAM中调试代码</font></h1><h2 id="1-简介"><a href="#1-简介" class="headerlink" title="1. 简介"></a><font size=3>1. 简介</font></h2><p>一般情况下，我们在 MDK 中编写工程应用后，调试时都是把程序下载到芯片的内部 FLASH 运行测试的，代码的 CODE 及 RW-data 的内容被写入到内部 FLASH 中存储。但在某些应用场合下却不希望或不能修改内部 FLASH 的内容，这时就可以使用 RAM 调试功能了，它的本质是把原来存储在内部 FLASH 的代码 (CODE 及 RW-data 的内容) 改为存储到 SRAM 中 (内部 SRAM 或外部 SDRAM 均可)，芯片复位后从 SRAM 中加载代码并运行。 </p>
+<h2 id="2-优缺点"><a href="#2-优缺点" class="headerlink" title="2. 优缺点"></a><font size=3>2. 优缺点</font></h2><p>把代码下载到 RAM 中调试有如下优点 ：</p>
+<p>（1）下载程序非常快。 RAM 存储器的写入速度比在内部 FLASH 中要快得多，且没有擦除过程，因此在 RAM 上调试程序时程序几乎是秒下的，对于需要频繁改动代码的调试过程，能节约很多时间，省去了烦人的擦除与写入 FLASH 过程。另外， STM32 的内部 FLASH 可擦除次数为 1 万次，虽然一般的调试过程都不会擦除这么多次导致 FLASH 失效，但这确实也是一个考虑使用 RAM 的因素。</p>
+<p>（2）不改写内部 FLASH 的原有程序。</p>
+<p>（3）对于内部 FLASH 被锁定的芯片，可以把解锁程序下载到 RAM 上，进行解锁。</p>
+<p>相对地，把代码下载到 RAM 中调试有如下缺点：</p>
+<p>（1）存储在 RAM 上的程序掉电后会丢失，不能像 FLASH 那样保存。</p>
+<p>（2）若使用 STM32 的内部 SRAM 存储程序，程序的执行速度与在 FLASH 上执行速度无异，但SRAM 空间较小，所以应用程序的大小受到一定的限制。  </p>
+<p>（3）若使用外部扩展的 SRAM 存储程序，程序空间非常大，但 STM32 读取外部 SRAM 的速度比读取内部 FLASH 慢，这会导致程序总执行时间增加，因此在外部 SRAM 中调试的程序无法完美仿真在内部 FLASH 运行时的环境。另外，由于 STM32 无法直接从外部 SRAM 中启动且应用程序复制到外部 SRAM 的过程比较复杂 (下载程序前需要使 STM32 能正常控制外部 SRAM)，所以在很少会在 STM32 的外部 SRAM 中调试程序。  </p>
+<h1 id="二、在RAM中调试实现"><a href="#二、在RAM中调试实现" class="headerlink" title="二、在RAM中调试实现"></a><font size=3>二、在RAM中调试实现</font></h1><p>实现在RAM中调试的主要步骤如下：</p>
+<p>（1）在原工程的基础上创建一个调试版本；</p>
+<p>（2）修改分散加载文件，使链接器把代码分配到内部 SRAM 空间；</p>
+<p>（3）添加宏修改 STM32 的向量表地址；</p>
+<p>（4）修改仿真器和下载器的配置，使程序能通过下载器存储到内部 SRAM；</p>
+<p>（5）根据使用情况选择是否需要使用仿真器命令脚本文件 *.ini；</p>
+<p>（6）尝试给 SRAM 下载程序或仿真调试。  </p>
+<h2 id="1-创建工程的调试版本"><a href="#1-创建工程的调试版本" class="headerlink" title="1. 创建工程的调试版本  "></a><font size=3>1. 创建工程的调试版本  </font></h2><p>由于在 SRAM 中运行的代码一般只是用于调试，调试完毕后，在实际生产环境中仍然使用在内部 FLASH 中运行的代码，因此我们希望能够便捷地在调试版和发布版代码之间切换。 MDK 的“Manage Project Items”可实现这样的功能，使用它可管理多个不同配置的工程，如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531114645592.png" alt="image-20230531114645592" style="zoom:50%;" />
+
+<p>点击“Manage Project Items”按钮，在弹出对话框左侧的“Project Target”一栏包含了原工程的名字，如图中的原工程名为“stm32f103-prj”，右侧是该工程包含的文件。为了便于调试，我们在左侧的“Project Target”一栏添加一个工程名，如图中输入“SRAM_调试”，输入后点击 OK 即可，这个“SRAM_调试”版本的工程会复制原“LED_Test”工程的配置，后面我们再进行修改。  </p>
+<p>当需要切换工程版本时，点击 MDK 工程名的下拉菜单可选择目标工程，在不同的工程中，所有<strong>配置都是独立的</strong>，例如芯片型号、下载配置等等，但<strong>如果两个工程共用了同一个文件，对该文件的修改会同时影响两个工程</strong>，例如这两个工程都使用同一个 main 文件，我们在 main 文件修改代码，两个工程都会被修改。  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531115141013.png" alt="image-20230531115141013" style="zoom:50%;" />
+
+<h2 id="2-配置分散加载文件"><a href="#2-配置分散加载文件" class="headerlink" title="2. 配置分散加载文件  "></a><font size=3>2. 配置分散加载文件  </font></h2><p>这一部分配置的是SRAM_调试工程的sct文件。本工程的分散加载只使用手动编辑的 sct 文件配置，不使用 MDK 的对话框选项配置，在“【Options for Target】&rarr;【linker】”的选项  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531115559771.png" alt="image-20230531115559771" style="zoom:67%;" />
+
+<p>为了防止“LED_Test”工程的分散加载文件被影响，我们在工程新建了一个名为“SRAM_调试.sct”的文件，并在上图中把它配置为“SRAM_调试”工程专用的分散加载文件，该文件的内容如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">; *************************************************************</span><br><span class="line">; *** Scatter-Loading Description File generated by uVision ***</span><br><span class="line">; *************************************************************</span><br><span class="line"></span><br><span class="line">LR_IROM1 <span class="number">0x20000000</span> <span class="number">0x00008000</span>&#123;   ; load region size_region</span><br><span class="line">  ER_IROM1 <span class="number">0x20000000</span> <span class="number">0x00008000</span>&#123; ; load address = execution address</span><br><span class="line">   *.o (RESET, +First)</span><br><span class="line">   *(InRoot$$Sections)</span><br><span class="line">   .ANY (+RO)</span><br><span class="line">  &#125;</span><br><span class="line">  RW_IRAM1 <span class="number">0x20008000</span> <span class="number">0x00008000</span>&#123; ; RW data</span><br><span class="line">   .ANY (+RW +ZI)</span><br><span class="line">  &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在这个分散加载文件配置中，把原本分配到内部 FLASH 空间的加载域和执行域改到了以地址0x20000000 开始的 32KB(0x00008000) 空间，而 RW data 空间改到了以地址 0x20008000 开始的32KB 空间 (0x00008000)。也就是说，它把 STM32 的内部 SRAM 分成了虚拟 ROM 区域以及 RWdata 数据区域，链接器会根据它的配置给工程中的各种内容分配到 SRAM 地址。</p>
+<p>在具体的应用中，虚拟 ROM 及 RW 区域的大小可根据自己的程序定制，配置完毕编译工程后可在 map 文件中查看具体的空间地址分配。    </p>
+<h2 id="3-配置中断向量表"><a href="#3-配置中断向量表" class="headerlink" title="3. 配置中断向量表"></a><font size=3>3. 配置中断向量表</font></h2><p>这一部分SRAM_调试工程的中断向量表。由于 startup_stm32f13xe.s 文件中的启动代码不是指定到绝对地址的，经过它由链接器决定应存储到内部 FLASH 还是 SRAM，所以 SRAM 版本工程中的启动文件不需要作任何修改。</p>
+<p>重点在于启动文件定义的中断向量表被存储到内部 FLASH 和内部 SRAM 时，这两种情况对内核的影响是不同的，内核会根据它的“向量表偏移寄存器 VTOR”配置来获取向量表，即中断服务函数的入口。 VTOR 寄存器是由启动文件中 Reset_Handle 中调用的库函数 SystemInit 配置的：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">SystemInit</span> <span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(STM32F100xE) || defined(STM32F101xE) || defined(STM32F101xG) || defined(STM32F103xE) || defined(STM32F103xG)</span></span><br><span class="line">  <span class="meta">#<span class="keyword">ifdef</span> DATA_IN_ExtSRAM</span></span><br><span class="line">    SystemInit_ExtMemCtl(); </span><br><span class="line">  <span class="meta">#<span class="keyword">endif</span> <span class="comment">/* DATA_IN_ExtSRAM */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> </span></span><br><span class="line"></span><br><span class="line">  <span class="comment">/* Configure the Vector Table location -------------------------------------*/</span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(USER_VECT_TAB_ADDRESS)</span></span><br><span class="line">  SCB-&gt;VTOR = VECT_TAB_BASE_ADDRESS | VECT_TAB_OFFSET; <span class="comment">/* Vector Table Relocation in Internal SRAM. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">/* USER_VECT_TAB_ADDRESS */</span></span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们全局搜索一下宏USER_VECT_TAB_ADDRESS，这个宏是决定是否配置中断向量表位置的，全局搜索一下发现这个宏在工程中并没有定义，所以要想在代码中更改中断向量表，首先要定义这个宏。而上边的SCB&rarr;VTOR就是配置中断向量表的位置的，我们看一下决定它的值的几个宏：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">if</span> defined(USER_VECT_TAB_ADDRESS)</span></span><br><span class="line"><span class="comment">/*!&lt; Uncomment the following line if you need to relocate your vector Table</span></span><br><span class="line"><span class="comment">     in Sram else user remap will be done in Flash. */</span></span><br><span class="line"><span class="comment">/* #define VECT_TAB_SRAM */</span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(VECT_TAB_SRAM)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> VECT_TAB_BASE_ADDRESS   SRAM_BASE       <span class="comment">/*!&lt; Vector Table base address field.</span></span></span><br><span class="line"><span class="comment"><span class="meta">                                                     This value must be a multiple of 0x200. */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> VECT_TAB_OFFSET         0x00000000U     <span class="comment">/*!&lt; Vector Table base offset field.</span></span></span><br><span class="line"><span class="comment"><span class="meta">                                                     This value must be a multiple of 0x200. */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> VECT_TAB_BASE_ADDRESS   FLASH_BASE      <span class="comment">/*!&lt; Vector Table base address field.</span></span></span><br><span class="line"><span class="comment"><span class="meta">                                                     This value must be a multiple of 0x200. */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> VECT_TAB_OFFSET         0x00000000U     <span class="comment">/*!&lt; Vector Table base offset field.</span></span></span><br><span class="line"><span class="comment"><span class="meta">                                                     This value must be a multiple of 0x200.</span></span></span><br></pre></td></tr></table></figure>
+
+<p>从这里可以看到，VECT_TAB_BASE_ADDRESS是中断向量表的基地址，它受到宏VECT_TAB_SRAM的影响，若定义了VECT_TAB_SRAM，那么中断向量表的基地址就从SRAM开始，要是没有定义这个宏，那么中断向量表基地址就在FLASH中。代码中根据是否有宏定义 VECT_TAB_SRAM 来决定 VTOR 的配置，默认情况下代码中没有定义宏 VECT_TAB_SRAM，所以 VTOR 默认情况下指示向量表是存储在内部 FLASH 空间的。</p>
+<p>由于本工程的分散加载文件配置，在启动文件中定义的中断向量表会被分配到 SRAM 空间，所以我们要定义这个宏，使得 SystemInit 函数修改 VTOR 寄存器，向内核指示向量表被存储到内部SRAM 空间了，如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531121355592.png" alt="image-20230531121355592" style="zoom:33%;" />
+
+<p>在“【Options for Target】&rarr;【 c&#x2F;c++ -&gt;Define】”框中输入宏 USER_VECT_TAB_ADDRESS和VECT_TAB_SRAM，注意它与其它宏之间要使用英文逗号分隔开。  </p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">USE_HAL_DRIVER,STM32F103xE,USER_VECT_TAB_ADDRESS,VECT_TAB_SRAM</span><br></pre></td></tr></table></figure>
+
+<p>配置完成后重新编译工程，即可生成存储到 SRAM 空间地址的代码指令。相对于直接在文件中定义宏，使用这种方式定义该宏的好处是，若切换回 FLASH 版本的 LED 工程，该工程不受影响，若把宏定义到文件中，那么由于两个版本共用文件而受到影响。 </p>
+<h2 id="4-修改下载配置"><a href="#4-修改下载配置" class="headerlink" title="4. 修改下载配置  "></a><font size=3>4. 修改下载配置  </font></h2><h3 id="4-1-下载配置"><a href="#4-1-下载配置" class="headerlink" title="4.1 下载配置"></a><font size=3>4.1 下载配置</font></h3><p>得到 SRAM 版本的代码指令后，为了把它下载到芯片的 SRAM 中，还需要修改下载器的配置，【Options for Target】&rarr;【Utilities】&rarr;【Settings】”中的选项。    </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531122111841.png" alt="image-20230531122111841" style="zoom:67%;" />
+
+<p>这个配置对话框原本是用于设置芯片内部 FLASH 信息的，当我们点击 MDK 的  Download （LOAD下载）按钮或者 Start&#x2F;Stop Debug Session（Debug调试）按钮的时候，它会从此处加载配置然后下载程序到 FLASH 中，而在上图中我们把它的配置修改成下载到内部 SRAM 了，各个配置的解释如下：  </p>
+<p>③、把“Download Function”中的擦除选项配置为“Do not Erase”。这是因为数据写入到内部SRAM 中不需要像 FLASH 那样先擦除后写入。在本工程中，如果我们不选择“Do not Erase”的话，会因为擦除过程导致下载出错。  </p>
+<p>④、“RAM for Algorithm”一栏是指“编程算法” (Programming Algorithm) 可使用的 RAM 空间，下载程序到 FLASH 时运行的编程算法需要使用 RAM 空间，在默认配置中它的首地址为0x20000000，即内部 SRAM 的首地址，但由于我们的分散加载文件配置， 0x20000000 地址开始的 32KB 实际为虚拟 ROM 空间，实际的 RAM 空间是从地址 0x20008000 开始的，所以这里把算法 RAM 首地址更改为本工程中实际作为 RAM 使用的地址。若编程算法使用的 RAM 地址与虚拟 ROM 空间地址重合的话，会导致下载出错。   </p>
+<p>⑤和⑥、“Programming Algorithm”一栏中是设置内部 FLASH 的编程算法，编程算法主要描述了FLASH 的地址、大小以及扇区等信息， MDK 根据这些信息把程序下载到芯片的 FLASH中，不同的控制器芯片一般会有不同的编程算法。由于 MDK 没有内置 SRAM 的编程算法，所以我们直接在原来的基础上修改它的基地址和空间大小，把它改成虚拟 ROM 的空间信息。  </p>
+<p>从这个例子可了解到，这里的配置是跟我们的分散加载文件的实际 RAM 空间和虚拟 ROM 空间信息是一致的，若分散加载文件采用不同的配置，这个下载选项也要作出相应的修改。  </p>
+<p>这个配置是针对程序下载的，配置完成后点击 MDK 的 按钮（下载、 LOAD），程序会被下载到 STM32 的内部 SRAM 中。根据前面介绍的理论知识，若给 STM32 的 BOOT0 和 BOOT1 引脚都接到高电平，那么 STM32 将被设置为 SRAM 启动，按下板子的复位键后，程序会从内部 SRAM中加载运行。</p>
+<p>野火的文档中有这样一段说明：</p>
+<blockquote>
+<p><strong>注意</strong>：非常遗憾的是，我们在各种平台做了大量测试，发现程序虽然被下载到 SRAM 了，但复位后 STM32 的程序 PC 指针和 SP 指针却莫名奇妙地指向非预设的 ResetHandler 及栈顶位置，导致程序无法正常运行（测试时，均有使用电压表直接测量 STM32 芯片 BOOT 引脚的电压确认它们都是高电平，后面小节有给出测试得的不正常情况下， PC 和 SP 指针的值）。另外，当使用STM32F429 芯片时，根据前面介绍的理论作类似的配置，程序下载到 SRAM 后，完全能正常运行，而在 STM32F1 系列各型号的芯片上，均无法实现。 </p>
+</blockquote>
+<p> 我自己测试了一下，确实如此，我使用的是STM32F103ZET6的芯片，下载后无法运行。</p>
+<h3 id="4-2-仿真器调试辅助"><a href="#4-2-仿真器调试辅助" class="headerlink" title="4.2 仿真器调试辅助"></a><font size=3>4.2 仿真器调试辅助</font></h3><p>由于直接下载到芯片上复位运行的方式无法正常工作，所以下面介绍一种解决办法，即使用仿真器强制设置 PC 指针及 SP 指针。  </p>
+<h4 id="4-2-1-指定-PC-及-SP-指针值的仿真器配置"><a href="#4-2-1-指定-PC-及-SP-指针值的仿真器配置" class="headerlink" title="4.2.1 指定 PC 及 SP 指针值的仿真器配置  "></a><font size=3>4.2.1 指定 PC 及 SP 指针值的仿真器配置  </font></h4><p>前面介绍的下载配置主要指定了程序的下载位置，使得程序能够加载到 SRAM，而由于实际应用在 SRAM 启动方式时 PC 和 SP 指针加载不正常，因此需要使用仿真器辅助修改 PC 及 SP 指针，然后在仿真器的控制下在 SRAM 中调试运行，即在 MDK 中使用 Start&#x2F;Stop Debug Session 按钮 (调试、 debug) 时进行的硬件在线调试、单步运行等功能，该功能与在 FLASH 中的硬件调试一样，但针对本实验的在SRAM 运行环境，需要对配置进行修改。   </p>
+<ul>
+<li>（1）添加“Download options”配置</li>
+</ul>
+<p>在“【Options for Target】&rarr;【Debug】&rarr;【Settings】”中进行勾选“Verify Code Download”及“Download to FLASH”配置：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531135731983.png" alt="image-20230531135731983" style="zoom: 43%;" />
+
+<ul>
+<li>（2）添加仿真器加载指令</li>
+</ul>
+<p>在“【Options for Target】&rarr;【Debug】”对话框中取消勾选“LoadApplication at startup”选项。点击“Initialization File”文本框右侧的文件浏览按钮，在弹出的对话框中新建一个名为“Debug_RAM.ini”的文件，新建好后，我们选中打开即可。 </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531135123061.png" alt="image-20230531135123061" style="zoom:30%;" />
+
+<p>打开后，我么可以点击图中的⑦ Edit按钮，然后就会在MDK中打开这个Debug文件，打开后我们修改为如下内容：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">/******************************************************************************/</span><br><span class="line">/* Debug_RAM.ini: Initialization File for Debugging from Internal RAM         */</span><br><span class="line">/******************************************************************************/</span><br><span class="line">/* This file is part of the uVision/ARM development tools.                    */</span><br><span class="line">/* Copyright (c) 2005-2014 Keil Software. All rights reserved.                */</span><br><span class="line">/* This software may only be used under the terms of a valid, current,        */</span><br><span class="line">/* end user licence from KEIL for a compatible version of KEIL software       */</span><br><span class="line">/* development tools. Nothing else gives you the right to use this software.  */</span><br><span class="line">/******************************************************************************/</span><br><span class="line"></span><br><span class="line">FUNC void Setup (void) &#123;</span><br><span class="line">  <span class="attr">SP</span> = _RDWORD(<span class="number">0</span>x20000000)<span class="comment">;         // 设置栈指针SP，把0x20000000地址中的内容赋值到SP。</span></span><br><span class="line">  <span class="attr">PC</span> = _RDWORD(<span class="number">0</span>x20000004)<span class="comment">;         // 设置程序指针PC，把0x20000004地址中的内容赋值到PC。</span></span><br><span class="line">  _WDWORD(0xE000ED08, 0x20000000)<span class="comment">;  // Setup Vector Table Offset Register</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">LOAD %L INCREMENTAL                 // 下载axf文件到RAM</span><br><span class="line">Setup()<span class="comment">;                            // 调用上面定义的setup函数设置运行环境		</span></span><br><span class="line"></span><br><span class="line">//g, main                           // 跳转到main函数，本示例调试时不需要从main函数执行，注释掉了，程序从启动代码开始执行</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>上述配置过程是控制 MDK 执行仿真器的脚本文件 Debug_RAM.ini，而该脚本文件在下载了程序到 SRAM 后，初始化了 SP 指针 (即 MSP) 和 PC 指针分别指向了 0x20000000 和 0x20000004，这样的操作强制芯片上电后从该地址获取 SP 和 PC 的内容，而根据程序配置，该地址分别存储了栈顶和 ResetHandler 的地址值。    </p>
+<p>有了这样的配置，就能解决 STM32F1 系列芯片 SRAM 启动方式 SP 和 PC 指针乱指的问题了，点击调试按钮即可启动仿真过程，由于强制配置了指针，所以即使 BOOT0 和 BOOT1 引脚不设置为 SRAM 启动也能正常仿真，但点击下载按钮把程序下载到 SRAM 然后<strong>按复位依然是不能全速运行的</strong> (这种运行方式脱离了仿真器的控制， SP 和 PC 指针无法被初始化指向正确的位置)。  </p>
+<p>经过这样的配置后，<strong>硬件仿真时与在 FLASH 仿真程序基本无异、单步运行、全速运行以及查看各种变量值等</strong>，但由于上述仿真加载的指令只在点击调试按钮后才会运行一次，所以在调试时如果点击复位，程序的 SP 和 PC 仍然会指向错误的位置，所以每次希望复位程序时，都需要重新点击调试按钮加载调试。  </p>
+<p>上述 Debug_RAM.ini 文件是从 STM32F1 的 MDK 芯片包里复制过来的，感兴趣的话可以到 MDK安装目录搜索该文件名，该文件的语法可以从 MDK 的帮助手册的“【µVision User’ s Guide】&rarr;【DebugCommands】”章节学习。  </p>
+<h4 id="4-2-2-关于复位后-PC-和-SP-指针的调试情况"><a href="#4-2-2-关于复位后-PC-和-SP-指针的调试情况" class="headerlink" title="4.2.2 关于复位后 PC 和 SP 指针的调试情况  "></a><font size=3>4.2.2 关于复位后 PC 和 SP 指针的调试情况  </font></h4><p>为了更好地了解 RAM 调试的运行情况，在仿真时，可以点击 MDK 仿真环境左栏底部的“Registers”按钮查看内核寄存器的情况。当仿真器配置用 “ Debug_RAM.ini ”文件强制设置 SP 和 PC 寄存器的加载地址时，它们都获取到了正常的栈顶和 ResetHandler 的地址值：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531140802214.png" alt="image-20230531140802214" style="zoom: 67%;" />
+
+<p>从图中的 map 文件可以了解到， Reset_Handler 程序存储的地址值为 0x200001cd（PC 指针加载时会减 1，即从 0x200001cc 可加载到正常的 ResetHandler 代码），栈顶指针 __initial_sp 的地址值为0x20008670。查看图中左栏的 PC 与 SP 寄存器的值，正好是 0x200001CC 和 0x20008670，也正因如此，使用这种方式调试时， SRAM 中的程序能正常运行。 </p>
+<p>这个时候我们点击一下调试界面左上角的 RST 按钮，我们会发现PC指针直接跳到了FLASH中的地址：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-11-STM32%E5%90%AF%E5%8A%A8-03-%E5%9C%A8%E5%86%85%E9%83%A8SRAM%E4%B8%AD%E8%B0%83%E8%AF%95%E4%BB%A3%E7%A0%81/img/image-20230531141345021.png" alt="image-20230531141345021" style="zoom:67%;" />
+
+<p>所以我们在SRAM中调试的时候，通过Debug来运行下载到SRAM中的代码的时候，我们不可以使用RST来让程序回到刚启动的时候。</p>
+<p>我们在刚启动调试界面的时候，点击一下全速运行，看一下会有什么现象。我自己的测试结果就是点击完全速运行后，单片机开始跑编写的流水灯程序，可以正常运行，我们点击一下左上角的RST复位一下程序，然后再全速运行的话，这个时候就会变成FLASH中的代码了，要想重新运行SRAM中的代码，只能退出仿真，重新进入Debug界面。</p>
+<h2 id="5-运行SRAM中程序"><a href="#5-运行SRAM中程序" class="headerlink" title="5. 运行SRAM中程序"></a><font size=3>5. 运行SRAM中程序</font></h2><p>这里来总结一下吧，总结一下那些要做，哪些不能做。</p>
+<ul>
+<li>我们需要做的事</li>
+</ul>
+<p>（1）按照上边4.1进行下载配置；</p>
+<p>（2）设置仿真器调试辅助，自定义一个调试脚本并加载；</p>
+<p>（3）点击Debug按钮，进入调试界面，此时工程代码会<strong>自动被烧录</strong>到STM32的内部SRAM中，然后我们<strong>点击全速运行，或者直接退出调试界面</strong>，STM32就会开始运行SRAM中的程序。</p>
+<ul>
+<li>我们不能做的事</li>
+</ul>
+<p>（1）进入调试界面后，不要点击RST，想要重新运行，那就关闭调试，重新再打开，否则就会运行FLASH中的代码。</p>
+<p>（2）手动按复位按键，这个我们也不能做，因为一旦按了，SRAM中的程序就会丢失，即便是我把BOOT[1:0]设置为从SRAM启动，也一样跑不起来SRAM中的程序。这个具体原因不清楚哎，因为复位（reset）是向MCU的复位引脚输入一个高或低电平，然后触发MCU中断。这个中断的作用就是停止跳出当前运行的程序，然后强制将MCU内部所有寄存器复写为默认状态。复位中断都是硬件中断，而且优先级是最高的。而对于断电重启，掉电以后寄存器SRAM里面的数据就会自动丢失，上电后回复默认状态。因此看上去和复位的作用是一样的。但是MCU不能用断电重启代替复位。</p>
+<ul>
+<li>不需要做的事</li>
+</ul>
+<p>（1）更改BOOT[1:0]，由于上边是通过仿真器来辅助运行SRAM中的程序，所以，这里就没必要更改BOOT[1:0]的状态了。反而改了之后就跑不动了，很神奇。</p>
+<p>我尝试了多种途径，其实也没有发现为什么不能正常运行SRAM中的程序，总之一句话，做了上边的1、2、3、4这几个步骤后，什么都不要动，就加载自定义的调试脚本，然后点击Debug，需要调试的话，就单步调试运行，不需要调试就直接退出调试，这样就可以正常运行下载到SRAM中的代码。别的多余的操作就先不要做了，防止踩坑，跑不起来。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/b1786358.html">LV16-11-STM32启动-03-在内部SRAM中调试代码</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年06月04日 - 22:06</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/b1786358.html" title="LV16-11-STM32启动-03-在内部SRAM中调试代码">https://sumumm.github.io/post/b1786358.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV16-STM32%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV16-STM32开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/63f07cb0.html" rel="prev" title="LV16-12-GPIO-01-STM32的GPIO">
+                  <i class="fa fa-angle-left"></i> LV16-12-GPIO-01-STM32的GPIO
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/35d4a4a2.html" rel="next" title="LV16-11-STM32启动-02-启动过程分析">
+                  LV16-11-STM32启动-02-启动过程分析 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

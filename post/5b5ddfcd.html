@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是中断与异常——Cortex A7异常处理实例的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV04-07-中断与异常-02-异常处理实例">
+<meta property="og:url" content="https://sumumm.github.io/post/5b5ddfcd.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是中断与异常——Cortex A7异常处理实例的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-02-%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86%E5%AE%9E%E4%BE%8B/img/image-20240118215617370.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-02-%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86%E5%AE%9E%E4%BE%8B/img/image-20240118221514998.png">
+<meta property="article:published_time" content="2024-01-21T08:04:08.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.040Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV04-裸机开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-02-%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86%E5%AE%9E%E4%BE%8B/img/image-20240118215617370.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/5b5ddfcd.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/5b5ddfcd.html","path":"post/5b5ddfcd.html","title":"LV04-07-中断与异常-02-异常处理实例"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV04-07-中断与异常-02-异常处理实例 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81SVC%E5%BC%82%E5%B8%B8"><span class="nav-text">一、SVC异常</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%BD%AF%E4%B8%AD%E6%96%AD%E6%8C%87%E4%BB%A4"><span class="nav-text">1. 软中断指令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-SVC%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86"><span class="nav-text">2. SVC异常处理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%AE%BE%E7%BD%AE%E5%A0%86%E6%A0%88"><span class="nav-text">3. 设置堆栈</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%AE%8C%E6%95%B4%E5%AE%9E%E4%BE%8B"><span class="nav-text">4. 完整实例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%B5%8B%E8%AF%95%E7%BB%93%E6%9E%9C"><span class="nav-text">5. 测试结果</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%9C%AA%E5%AE%9A%E4%B9%89%E5%BC%82%E5%B8%B8"><span class="nav-text">二、未定义异常</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%80%8E%E4%B9%88%E4%BA%A7%E7%94%9F%E6%9C%AA%E5%AE%9A%E4%B9%89%E5%BC%82%E5%B8%B8%EF%BC%9F"><span class="nav-text">1. 怎么产生未定义异常？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%9C%AA%E5%AE%9A%E4%B9%89%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86"><span class="nav-text">2. 未定义异常处理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%AE%BE%E7%BD%AE%E5%A0%86%E6%A0%88-1"><span class="nav-text">3. 设置堆栈</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%AE%8C%E6%95%B4%E5%AE%9E%E4%BE%8B-1"><span class="nav-text">4. 完整实例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%B5%8B%E8%AF%95%E7%BB%93%E6%9E%9C-1"><span class="nav-text">5. 测试结果</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/5b5ddfcd.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV04-07-中断与异常-02-异常处理实例 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV04-07-中断与异常-02-异常处理实例
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-01-21 16:04:08" itemprop="dateCreated datePublished" datetime="2024-01-21T16:04:08+08:00">2024-01-21</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV04-裸机开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.4k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>9 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是中断与异常——Cortex A7异常处理实例的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-02-%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86%E5%AE%9E%E4%BE%8B/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows版本</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu版本</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>      </tr>    <tr>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="4">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">在线阅读linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga" target="_blank">nxp-imx/linux-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga</a></td>        <td align="left">NXP linux内核仓库tags中的rel_imx_4.1.15_2.1.0_ga</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.1.15_2.1.0_ga</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.1.15_2.1.0_ga</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>        <tr>        <td align="center" rowspan="5">ARM</td>        <td align="left"><a href="https://developer.arm.com/documentation/ddi0464/latest" target="_blank">Cortex-A7 MPCore Technical Reference Manual</a></td>        <td align="left">Cortex-A7 MPCore技术参考手册</td>    </tr>    <tr>        <td align="left"><a href="https://developer.arm.com/documentation/ddi0406/cd/?lang=en" target="_blank">ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition</a></td>        <td align="left">ARM架构参考手册ARMv7-A和ARMv7-R版</td>    </tr>    <tr>        <td align="left"><a href="https://developer.arm.com/documentation/ihi0069/h/?lang=en" target="_blank">Arm Generic Interrupt Controller Architecture Specification- version 3 and version 4</a></td>        <td align="left">Arm通用中断控制器架构规范-版本3和版本4</td>    </tr>    <tr>        <td align="left"><a href="https://developer.arm.com/documentation/ihi0048/bb/?lang=en" target="_blank">ARM Generic Interrupt Controller Architecture Specification - Version 2.0</a></td>        <td align="left">Arm通用中断控制器架构规范-版本2.0</td>    </tr>    <tr>        <td align="left"><a href="https://developer.arm.com/documentation/den0013/d/?lang=en" target="_blank">ARM Cortex-A Series Programmer's Guide for ARMv7-A</a></td>        <td align="left">Cortex-A系列ARMv7-A编程指南</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、SVC异常"><a href="#一、SVC异常" class="headerlink" title="一、SVC异常"></a><font size=3>一、SVC异常</font></h1><h2 id="1-软中断指令"><a href="#1-软中断指令" class="headerlink" title="1. 软中断指令"></a><font size=3>1. 软中断指令</font></h2><p>前边其实有学习过SWI指令，我们可以通过这个指令，触发软中断，从而进入SVC模式，一般语法如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SWI immed_24</span><br></pre></td></tr></table></figure>
+
+<p>immed_24是一个24位立即数，比如0x123些。注意：我们使用“ swi”指令，实际上我们可以在 .dis 中看到它被翻译为 SVC 指令。在老的芯片比如 S3C2440 中我们使用 SWI 指令，在IMX6ULL 中可以使用 SVC 代替它。  </p>
+<h2 id="2-SVC异常处理"><a href="#2-SVC异常处理" class="headerlink" title="2. SVC异常处理"></a><font size=3>2. SVC异常处理</font></h2><p>当使用SWI软中断的时候，就会产生SVC异常，进入这个模式，对应的CPSR的M[4:0]的值为10011，也就是0x13。关于SVC异常的汇编如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">/* SVC中断 */</span><br><span class="line">SVC_Handler:</span><br><span class="line">	/** 执行到这里之前:</span><br><span class="line">	  * 1. lr_svc保存有被中断模式中的下一条即将执行的指令的地址</span><br><span class="line">	  * 2. SPSR_svc保存有被中断模式的CPSR</span><br><span class="line">	  * 3. CPSR中的M4-M0被设置为10011, 进入到svc模式</span><br><span class="line">	  * 4. 跳到0x08的地方执行程序 </span><br><span class="line">	  */</span><br><span class="line"></span><br><span class="line">	/* 保存现场 */</span><br><span class="line">	/* 在swi异常处理函数中有可能会修改r0-r12, 所以先保存 */</span><br><span class="line">	/* lr是异常处理完后的返回地址, 也要保存 */</span><br><span class="line">	stmdb sp!, &#123;r0-r12, lr&#125;  </span><br><span class="line"></span><br><span class="line">	mov r4, lr</span><br><span class="line">	</span><br><span class="line">	/* 处理swi异常 */</span><br><span class="line">	mrs r0, cpsr</span><br><span class="line">	ldr r1, =swi_string</span><br><span class="line">	bl printException</span><br><span class="line"></span><br><span class="line">	sub r0, r4, #4</span><br><span class="line">	bl printSWIVal</span><br><span class="line">	</span><br><span class="line">	/* 恢复现场 */</span><br><span class="line">	ldmia sp!, &#123;r0-r12, pc&#125;^  /* ^会把spsr的值恢复到cpsr里 */</span><br><span class="line">swi_string:</span><br><span class="line">	.string &quot;swi exception&quot;</span><br><span class="line">	.align 4</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>在 SVC_Handler 里将 r0-r12 和 lr 保存在 SVC 模式的栈上，然后将 lr 的值移动到 R4，调用 printException 函数打印出当前的 CPSR 值，和产生异常的原因。将 R4 减去 4，赋值给 R0，这是 swi 指令所在的地址，然后调用printSWIVal 函数打印出 swi 指令的参数。最后将 r0-r12 从栈上恢复， lr 从栈上弹出到 PC，并同时将 SPSR 恢复到 CPSR，从而返回去执行 swi 指令的下一条指令。  </p>
+<h2 id="3-设置堆栈"><a href="#3-设置堆栈" class="headerlink" title="3. 设置堆栈"></a><font size=3>3. 设置堆栈</font></h2><p>注意一定要设置堆栈，否则进入对应的异常后，堆栈可能会异常。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">/* 进入SVC模式 */</span><br><span class="line">mrs r0, cpsr</span><br><span class="line">bic r0, r0, #0x1f 	/* 将r0寄存器中的低5位清零，也就是cpsr的M0~M4 	*/</span><br><span class="line">orr r0, r0, #0x13 	/* r0或上0x13,表示使用SVC模式					*/</span><br><span class="line">msr cpsr, r0		/* 将r0 的数据写入到cpsr_c中 					*/</span><br><span class="line">ldr sp, =0X80200000	/* 设置SVC模式下的栈首地址为0X80200000,大小为2MB */</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="4-完整实例"><a href="#4-完整实例" class="headerlink" title="4. 完整实例"></a><font size=3>4. 完整实例</font></h2><p>完整的实例及修改可以看这里：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-bare-demo/tree/master/08_EXCEPTION/SWI">08_EXCEPTION&#x2F;SWI · sumumm&#x2F;imx6ull-bare-demo - 码云 - 开源中国 (gitee.com)</a></p>
+<h2 id="5-测试结果"><a href="#5-测试结果" class="headerlink" title="5. 测试结果"></a><font size=3>5. 测试结果</font></h2><p>我们可以在终端看到以下打印信息：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-02-%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86%E5%AE%9E%E4%BE%8B/img/image-20240118215617370.png" alt="image-20240118215617370" style="zoom:50%;" />
+
+<h1 id="二、未定义异常"><a href="#二、未定义异常" class="headerlink" title="二、未定义异常"></a><font size=3>二、未定义异常</font></h1><h2 id="1-怎么产生未定义异常？"><a href="#1-怎么产生未定义异常？" class="headerlink" title="1. 怎么产生未定义异常？"></a><font size=3>1. 怎么产生未定义异常？</font></h2><p>前边已经学习过了，就是 CPU 或协处理器不认识这条指令，执行这样的指令时就会产生“未定义指令异常”。 我们可以这样产生一个未定义异常：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">.word 0xeeadc0de  /* undefine instruction */</span><br><span class="line">.word 0xFFFFFFFF</span><br></pre></td></tr></table></figure>
+
+<p>上边两条都可以产生未定义异常。</p>
+<h2 id="2-未定义异常处理"><a href="#2-未定义异常处理" class="headerlink" title="2. 未定义异常处理"></a><font size=3>2. 未定义异常处理</font></h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">Undefined_Handler:</span><br><span class="line">	/** 执行到这里之前:</span><br><span class="line">	  * 1. lr_und保存有被中断模式中的下一条即将执行的指令的地址</span><br><span class="line">	  * 2. SPSR_und保存有被中断模式的CPSR</span><br><span class="line">	  * 3. CPSR中的M4-M0被设置为11011, 进入到und模式</span><br><span class="line">	  * 4. 跳到0x4的地方执行程序 </span><br><span class="line">	  */</span><br><span class="line"></span><br><span class="line">	/* 在und异常处理函数中有可能会修改r0-r12, 所以先保存 */</span><br><span class="line">	/* lr是异常处理完后的返回地址, 也要保存 */</span><br><span class="line">	stmdb sp!, &#123;r0-r12, lr&#125;  </span><br><span class="line">	</span><br><span class="line">	/* 保存现场 */</span><br><span class="line">	/* 处理und异常 */</span><br><span class="line">	mrs r0, cpsr</span><br><span class="line">	ldr r1, =und_string</span><br><span class="line">	bl printException</span><br><span class="line">	</span><br><span class="line">	/* 恢复现场 */</span><br><span class="line">	ldmia sp!, &#123;r0-r12, pc&#125;^  /* ^会把spsr的值恢复到cpsr里 */</span><br><span class="line">	</span><br><span class="line">und_string:</span><br><span class="line">	.string &quot;undefined instruction exception&quot;</span><br><span class="line">	.align 4</span><br></pre></td></tr></table></figure>
+
+<p>在 Undefined_Handler 里将 r0-r12 和 lr 保存在 und 模式的栈上，然后调用 printException 打印当前的 CPSR 值，并打印一个字符串。最后将 r0-r12从栈上恢复， lr 从栈上弹出到 PC，并同时将 SPSR 恢复到 CPSR，从而返回去执行出现未定义异常指令的下一条指令。  </p>
+<h2 id="3-设置堆栈-1"><a href="#3-设置堆栈-1" class="headerlink" title="3. 设置堆栈"></a><font size=3>3. 设置堆栈</font></h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">/* 进入undef模式 */</span><br><span class="line">mrs r0, cpsr</span><br><span class="line">bic r0, r0, #0x1f 	/* 将r0寄存器中的低5位清零，也就是cpsr的M0~M4 	*/</span><br><span class="line">orr r0, r0, #0x1B 	/* r0或上0x1B,表示使用undef模式					*/</span><br><span class="line">msr cpsr, r0		/* 将r0 的数据写入到cpsr_c中 					*/</span><br><span class="line">ldr sp, =0x80800000	/* 设置IRQ模式下的栈首地址为0X80600000,大小为2MB */</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-完整实例-1"><a href="#4-完整实例-1" class="headerlink" title="4. 完整实例"></a><font size=3>4. 完整实例</font></h2><p>完整的实例和修改的地方可以看这里：<a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-bare-demo/tree/master/08_EXCEPTION/UNDEF">08_EXCEPTION&#x2F;UNDEF · sumumm&#x2F;imx6ull-bare-demo - 码云 - 开源中国 (gitee.com)</a></p>
+<h2 id="5-测试结果-1"><a href="#5-测试结果-1" class="headerlink" title="5. 测试结果"></a><font size=3>5. 测试结果</font></h2><p>最终我们可以在终端看到以下打印信息：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/LV04-07-%E4%B8%AD%E6%96%AD%E4%B8%8E%E5%BC%82%E5%B8%B8-02-%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86%E5%AE%9E%E4%BE%8B/img/image-20240118221514998.png" alt="image-20240118221514998" style="zoom:50%;" />
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/5b5ddfcd.html">LV04-07-中断与异常-02-异常处理实例</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年01月21日 - 16:04</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/5b5ddfcd.html" title="LV04-07-中断与异常-02-异常处理实例">https://sumumm.github.io/post/5b5ddfcd.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV04-%E8%A3%B8%E6%9C%BA%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV04-裸机开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/9dde3ff0.html" rel="prev" title="LV04-07-中断与异常-03-中断与GIC">
+                  <i class="fa fa-angle-left"></i> LV04-07-中断与异常-03-中断与GIC
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/71e36359.html" rel="next" title="LV04-07-中断与异常-01-异常基础知识">
+                  LV04-07-中断与异常-01-异常基础知识 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="前面已经可以注册自定义总线和在总线注册设备，那么还缺少驱动了，现在来看看怎么在总线上注册一个驱动？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-04-linux设备模型-08-注册驱动到总线">
+<meta property="og:url" content="https://sumumm.github.io/post/eb412581.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="前面已经可以注册自定义总线和在总线注册设备，那么还缺少驱动了，现在来看看怎么在总线上注册一个驱动？若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-08-%E6%B3%A8%E5%86%8C%E9%A9%B1%E5%8A%A8%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250113112434476.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-08-%E6%B3%A8%E5%86%8C%E9%A9%B1%E5%8A%A8%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250113112647995.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-08-%E6%B3%A8%E5%86%8C%E9%A9%B1%E5%8A%A8%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250113112841287.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-08-%E6%B3%A8%E5%86%8C%E9%A9%B1%E5%8A%A8%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250113113136103.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-08-%E6%B3%A8%E5%86%8C%E9%A9%B1%E5%8A%A8%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250113125707505.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-08-%E6%B3%A8%E5%86%8C%E9%A9%B1%E5%8A%A8%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250113130212907.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-08-%E6%B3%A8%E5%86%8C%E9%A9%B1%E5%8A%A8%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250113162603098.png">
+<meta property="article:published_time" content="2025-01-16T14:26:34.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.051Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-08-%E6%B3%A8%E5%86%8C%E9%A9%B1%E5%8A%A8%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250113112434476.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/eb412581.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/eb412581.html","path":"post/eb412581.html","title":"LV06-04-linux设备模型-08-注册驱动到总线"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-04-linux设备模型-08-注册驱动到总线 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E9%A9%B1%E5%8A%A8"><span class="nav-text">一、驱动</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E9%A9%B1%E5%8A%A8%E7%AE%80%E4%BB%8B"><span class="nav-text">1. 驱动简介</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-struct-device-driver"><span class="nav-text">1.1 struct device_driver</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E9%A9%B1%E5%8A%A8%E7%9A%84%E6%B3%A8%E5%86%8C%E4%B8%8E%E6%B3%A8%E9%94%80"><span class="nav-text">1.2 驱动的注册与注销</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1-driver-register"><span class="nav-text">1.2.1 driver_register()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2-driver-unregister"><span class="nav-text">1.2.2 driver_unregister()</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E6%80%BB%E7%BB%93"><span class="nav-text">1.3 总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%A9%B1%E5%8A%A8%E5%B1%9E%E6%80%A7%E6%96%87%E4%BB%B6"><span class="nav-text">2. 驱动属性文件</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-DRIVER-ATTR-RW-RO-WO"><span class="nav-text">2.1 DRIVER_ATTR_RW&#x2F;RO&#x2F;WO()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-driver-create-file"><span class="nav-text">2.2 driver_create_file()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-driver-remove-file"><span class="nav-text">2.3 driver_remove_file()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.4 使用实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%AE%BE%E5%A4%87%E6%B3%A8%E5%86%8C%E5%88%B0%E6%80%BB%E7%BA%BFdemo"><span class="nav-text">3. 设备注册到总线demo</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-demo%E6%BA%90%E7%A0%81"><span class="nav-text">3.1 demo源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E5%BC%80%E5%8F%91%E6%9D%BF%E6%B5%8B%E8%AF%95"><span class="nav-text">3.2 开发板测试</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E9%A9%B1%E5%8A%A8%E7%9A%84%E6%B3%A8%E5%86%8C%E6%B5%81%E7%A8%8B"><span class="nav-text">二、驱动的注册流程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-driver-register"><span class="nav-text">1. driver_register() </span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-bus-add-driver"><span class="nav-text">2.  bus_add_driver()</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/eb412581.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-04-linux设备模型-08-注册驱动到总线 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-04-linux设备模型-08-注册驱动到总线
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-01-16 22:26:34" itemprop="dateCreated datePublished" datetime="2025-01-16T22:26:34+08:00">2025-01-16</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>6.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>22 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>前面已经可以注册自定义总线和在总线注册设备，那么还缺少驱动了，现在来看看怎么在总线上注册一个驱动？若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-08-%E6%B3%A8%E5%86%8C%E9%A9%B1%E5%8A%A8%E5%88%B0%E6%80%BB%E7%BA%BF/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="3">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/?h=v4.19.71&id=e7d2672c66e4d3675570369bf20856296da312c4" target="_blank">kernel/git/stable/linux.git - Linux kernel stable tree</a></td>        <td align="left">linux kernel源码(官网,tag 4.19.71)</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details>
+
+<h1 id="一、驱动"><a href="#一、驱动" class="headerlink" title="一、驱动"></a><font size=3>一、驱动</font></h1><h2 id="1-驱动简介"><a href="#1-驱动简介" class="headerlink" title="1. 驱动简介"></a><font size=3>1. 驱动简介</font></h2><h3 id="1-1-struct-device-driver"><a href="#1-1-struct-device-driver" class="headerlink" title="1.1 struct device_driver"></a><font size=3>1.1 struct device_driver</font></h3><p>设备能否正常工作，取决于驱动。驱动需要告诉内核， 自己可以驱动哪些设备，如何初始化设备。在内核中，使用device_driver结构体来描述我们的驱动，它定义在 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L277">device.h - include&#x2F;linux&#x2F;device.h - <em>struct device_driver</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">device_driver</span> &#123;</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span>		*name;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">bus_type</span>		*<span class="title">bus</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">module</span>		*<span class="title">owner</span>;</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span>		*mod_name;	<span class="comment">/* used for built-in modules */</span></span><br><span class="line"></span><br><span class="line">	<span class="type">bool</span> suppress_bind_attrs;	<span class="comment">/* disables bind/unbind via sysfs */</span></span><br><span class="line">	<span class="class"><span class="keyword">enum</span> <span class="title">probe_type</span> <span class="title">probe_type</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">of_device_id</span>	*<span class="title">of_match_table</span>;</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">acpi_device_id</span>	*<span class="title">acpi_match_table</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="type">int</span> (*probe) (<span class="keyword">struct</span> device *dev);</span><br><span class="line">	<span class="type">int</span> (*remove) (<span class="keyword">struct</span> device *dev);</span><br><span class="line">	<span class="type">void</span> (*shutdown) (<span class="keyword">struct</span> device *dev);</span><br><span class="line">	<span class="type">int</span> (*suspend) (<span class="keyword">struct</span> device *dev, <span class="type">pm_message_t</span> state);</span><br><span class="line">	<span class="type">int</span> (*resume) (<span class="keyword">struct</span> device *dev);</span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">attribute_group</span> **<span class="title">groups</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">dev_pm_ops</span> *<span class="title">pm</span>;</span></span><br><span class="line">	<span class="type">void</span> (*coredump) (<span class="keyword">struct</span> device *dev);</span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">driver_private</span> *<span class="title">p</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>name</strong> ：指定驱动名称，总线进行匹配时，利用该成员与设备名进行比较；</li>
+<li><strong>bus</strong> ：表示该驱动依赖于哪个总线，内核需要保证在驱动执行之前，对应的总线能够正常工作；</li>
+<li><strong>suppress_bind_attrs</strong> ：布尔量，用于指定是否通过sysfs导出bind与unbind文件，bind与unbind文件是驱动用于绑定&#x2F;解绑关联的设备。</li>
+<li><strong>owner</strong> ：表示该驱动的拥有者，一般设置为THIS_MODULE；</li>
+<li><strong>of_match_table</strong> ：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/mod_devicetable.h#L241">struct of_device_id</a> 类型指针变量，指定该驱动支持的设备类型。当内核使能设备树时，会利用该成员与设备树中的compatible属性进行比较。</li>
+<li><strong>remove</strong> ：当设备从操作系统中拔出或者是系统重启时，会调用该回调函数；</li>
+<li><strong>probe</strong> ：当驱动以及设备匹配后，会执行该回调函数，对设备进行初始化。通常的代码，都是以main函数开始执行的，但是在内核的驱动代码，都是从probe函数开始的。</li>
+<li><strong>groups</strong> ：指向<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/sysfs.h#L61">struct attribute_group</a> 类型的指针，指定该驱动的属性；</li>
+</ul>
+<h3 id="1-2-驱动的注册与注销"><a href="#1-2-驱动的注册与注销" class="headerlink" title="1.2 驱动的注册与注销"></a><font size=3>1.2 驱动的注册与注销</font></h3><h4 id="1-2-1-driver-register"><a href="#1-2-1-driver-register" class="headerlink" title="1.2.1 driver_register()"></a><font size=3>1.2.1 driver_register()</font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L146">driver_register()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * driver_register - register driver with bus</span></span><br><span class="line"><span class="comment"> * @drv: driver to register</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * We pass off most of the work to the bus_add_driver() call,</span></span><br><span class="line"><span class="comment"> * since most of the things we have to do deal with the bus</span></span><br><span class="line"><span class="comment"> * structures.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">driver_register</span><span class="params">(<span class="keyword">struct</span> device_driver *drv)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>参数：</strong></p>
+<ul>
+<li><strong>drv</strong> ：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L241">struct device_driver</a> 结构体类型指针。</li>
+</ul>
+<p><strong>返回值：</strong></p>
+<ul>
+<li><strong>成功：</strong> 0</li>
+<li><strong>失败：</strong> 负数</li>
+</ul>
+<h4 id="1-2-2-driver-unregister"><a href="#1-2-2-driver-unregister" class="headerlink" title="1.2.2 driver_unregister()"></a><font size=3>1.2.2 driver_unregister()</font></h4><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L190">driver_unregister()</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * driver_unregister - remove driver from system.</span></span><br><span class="line"><span class="comment"> * @drv: driver.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Again, we pass off most of the work to the bus-level call.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">driver_unregister</span><span class="params">(<span class="keyword">struct</span> device_driver *drv)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>参数：</strong></p>
+<ul>
+<li><strong>drv</strong>：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L241">struct device_driver</a> 结构体类型指针。</li>
+</ul>
+<p><strong>返回值：</strong> <strong>无</strong></p>
+<h3 id="1-3-总结"><a href="#1-3-总结" class="headerlink" title="1.3 总结"></a><font size=3>1.3 总结</font></h3><p>跟设备一样，当成功注册总线时，会在&#x2F;sys&#x2F;bus目录下创建对应总线的目录，该目录下有两个子目录，分别是drivers和devices， 我们使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L146">driver_register()</a> 注册的驱动从属于某个总线时，该总线的drivers目录下便会存在该驱动文件。</p>
+<h2 id="2-驱动属性文件"><a href="#2-驱动属性文件" class="headerlink" title="2. 驱动属性文件"></a><font size=3>2. 驱动属性文件</font></h2><p>驱动属性文件，和设备属性文件的作用是一样，唯一的区别在于函数参数的不同。</p>
+<h3 id="2-1-DRIVER-ATTR-RW-RO-WO"><a href="#2-1-DRIVER-ATTR-RW-RO-WO" class="headerlink" title="2.1 DRIVER_ATTR_RW&#x2F;RO&#x2F;WO()"></a><font size=3>2.1 DRIVER_ATTR_RW&#x2F;RO&#x2F;WO()</font></h3><p>驱动这里其实有三个宏，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L321">device.h - include&#x2F;linux&#x2F;device.h - <em>DRIVER_ATTR_RW&#x2F;RO&#x2F;WO</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> DRIVER_ATTR_RW(_name) \</span></span><br><span class="line"><span class="meta">	struct driver_attribute driver_attr_##_name = __ATTR_RW(_name)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DRIVER_ATTR_RO(_name) \</span></span><br><span class="line"><span class="meta">	struct driver_attribute driver_attr_##_name = __ATTR_RO(_name)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DRIVER_ATTR_WO(_name) \</span></span><br><span class="line"><span class="meta">	struct driver_attribute driver_attr_##_name = __ATTR_WO(_name)</span></span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L314">struct driver_attribute</a> 定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">driver_attribute</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">attribute</span> <span class="title">attr</span>;</span></span><br><span class="line">	<span class="type">ssize_t</span> (*show)(<span class="keyword">struct</span> device_driver *driver, <span class="type">char</span> *buf);</span><br><span class="line">	<span class="type">ssize_t</span> (*store)(<span class="keyword">struct</span> device_driver *driver, <span class="type">const</span> <span class="type">char</span> *buf,</span><br><span class="line">			 <span class="type">size_t</span> count);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L321">DRIVER_ATTR_RW</a>、<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L323">DRIVER_ATTR_RO</a> 以及 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L325">DRIVER_ATTR_WO</a> 宏定义用于定义一个<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L314">struct driver_attribute</a>类型的变量，带有driver_attr_的前缀，区别在于文件权限不同， RW后缀表示文件可读写，RO后缀表示文件仅可读，WO后缀表示文件仅可写。而且我们会发现，DRIVER_ATTR类型的宏定义没有参数来设置show和store回调函数， 那如何设置这两个参数呢？在写驱动代码时，只需要我们提供xxx_store以及xxx_show这两个函数， 并确保两个函数的xxx和DRIVER_ATTR类型的宏定义中名字是一致的即可。为什么要保证名字是一样的？我们可以看到，这里的三个宏内部是用了另一个宏<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/sysfs.h#L131">__ATTR_RW</a>、<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/sysfs.h#L115">__ATTR_RO</a>、<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/sysfs.h#L126">__ATTR_RO</a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> __ATTR_RO(_name) &#123;						\</span></span><br><span class="line"><span class="meta">	.attr	= &#123; .name = __stringify(_name), .mode = 0444 &#125;,		\</span></span><br><span class="line"><span class="meta">	.show	= _name##_show,						\</span></span><br><span class="line"><span class="meta">&#125;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __ATTR_RO_MODE(_name, _mode) &#123;					\</span></span><br><span class="line"><span class="meta">	.attr	= &#123; .name = __stringify(_name),				\</span></span><br><span class="line"><span class="meta">		    .mode = VERIFY_OCTAL_PERMISSIONS(_mode) &#125;,		\</span></span><br><span class="line"><span class="meta">	.show	= _name##_show,						\</span></span><br><span class="line"><span class="meta">&#125;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __ATTR_WO(_name) &#123;						\</span></span><br><span class="line"><span class="meta">	.attr	= &#123; .name = __stringify(_name), .mode = 0200 &#125;,		\</span></span><br><span class="line"><span class="meta">	.store	= _name##_store,					\</span></span><br><span class="line"><span class="meta">&#125;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __ATTR_RW(_name) __ATTR(_name, 0644, _name##_show, _name##_store)</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看到这里面的函数名后缀都是固定的，前缀是由我们定义的属性名决定，所以这里要注意一下。</p>
+<h3 id="2-2-driver-create-file"><a href="#2-2-driver-create-file" class="headerlink" title="2.2 driver_create_file()"></a><font size=3>2.2 driver_create_file()</font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L95">driver_create_file()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">extern</span> <span class="type">int</span> __must_check <span class="title function_">driver_create_file</span><span class="params">(<span class="keyword">struct</span> device_driver *driver,</span></span><br><span class="line"><span class="params">					<span class="type">const</span> <span class="keyword">struct</span> driver_attribute *attr)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>该函数用于创建属性文件，使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L95">driver_create_file()</a> 函数， 会在<code>/sys/bus/&lt;bus-name&gt;/drivers/&lt;driver-name&gt;/</code>目录下创建文件。</p>
+<h3 id="2-3-driver-remove-file"><a href="#2-3-driver-remove-file" class="headerlink" title="2.3 driver_remove_file()"></a><font size=3>2.3 driver_remove_file()</font></h3><p><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L118">driver_remove_file()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">driver_remove_file</span><span class="params">(<span class="keyword">struct</span> device_driver *driver,</span></span><br><span class="line"><span class="params">			       <span class="type">const</span> <span class="keyword">struct</span> driver_attribute *attr)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>该函数用于删除对应的属性文件。</p>
+<h3 id="2-4-使用实例"><a href="#2-4-使用实例" class="headerlink" title="2.4 使用实例"></a><font size=3>2.4 使用实例</font></h3><p>在调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L95">driver_create_file()</a>  函数之前，需要先定义好属性结构体 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L314">struct driver_attribute</a> ，并将其相关字段填充好。有两种方式，一种是直接定义：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">driver_attribute</span> <span class="title">sdrv_attr_data_var</span> =</span> &#123;</span><br><span class="line">    .attr = &#123;</span><br><span class="line">        .name = <span class="string">&quot;sdrv_attr_data&quot;</span>,    <span class="comment">// 属性的名称,将会显示在 /sys/bus/bus-name/drivers/driver-name下，并可以使用cat/echo 进行操作</span></span><br><span class="line">        .mode = <span class="number">0664</span>,                <span class="comment">// 属性的访问权限</span></span><br><span class="line">    &#125;,</span><br><span class="line">    .show = sdrv_attr_data_show,     <span class="comment">// 属性的 show 回调函数</span></span><br><span class="line">    .store = sdrv_attr_data_store,   <span class="comment">// 属性的 show 回调函数</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">ret = driver_create_file(&amp;sdrv, &amp;sdrv_attr_data_var);</span><br></pre></td></tr></table></figure>
+
+<p>另一种是通过宏来定义：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 下面这个宏可以简化属性变量的定义，从定义可以看出，这里定义的属性的变量前缀是 driver_attr_，后面要再拼接name才行</span></span><br><span class="line"><span class="comment">// #define DRIVER_ATTR_RW(_name) </span></span><br><span class="line"><span class="comment">//      struct driver_attribute driver_attr_##_name = __ATTR_RW(_name)</span></span><br><span class="line"><span class="comment">// #define __ATTR_RW(_name) __ATTR(_name, 0644, _name##_show, _name##_store)</span></span><br><span class="line">DRIVER_ATTR_RW(sdrv_attr_data);</span><br><span class="line">ret = driver_create_file(&amp;sdrv, &amp;driver_attr_sdrv_attr_data);</span><br></pre></td></tr></table></figure>
+
+<p>show和store函数实现如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> __<span class="title">SDRV_ATTR_VAR_</span>&#123;</span></span><br><span class="line">    <span class="type">char</span> name_attr[<span class="number">32</span>];</span><br><span class="line">    <span class="type">int</span> data;</span><br><span class="line">&#125;<span class="type">sdrv_attr_var_t</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">sdrv_attr_var_t</span> sdrv_attr = &#123;<span class="number">0</span>&#125;;     <span class="comment">// sdriver 的属性</span></span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">sdrv_attr_data_show</span><span class="params">(<span class="keyword">struct</span> device_driver *driver, <span class="type">char</span> *buf)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">ssize_t</span> count = <span class="number">0</span>;</span><br><span class="line">    count = <span class="built_in">sprintf</span>(buf, <span class="string">&quot;%d\n&quot;</span>, sdrv_attr.data);</span><br><span class="line">    PRT(<span class="string">&quot;device_driver-&gt;name=%s count=%d\n&quot;</span>, driver-&gt;name, count);</span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">sdrv_attr_data_store</span><span class="params">(<span class="keyword">struct</span> device_driver *driver, <span class="type">const</span> <span class="type">char</span> *buf, <span class="type">size_t</span> count)</span></span><br><span class="line">&#123;</span><br><span class="line">    PRT(<span class="string">&quot;device_driver-&gt;name=%s count=%d\n&quot;</span>, driver-&gt;name, count);</span><br><span class="line">    <span class="built_in">sscanf</span>(buf, <span class="string">&quot;%d\n&quot;</span>, &amp;sdrv_attr.data);</span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="3-设备注册到总线demo"><a href="#3-设备注册到总线demo" class="headerlink" title="3. 设备注册到总线demo"></a><font size=3>3. 设备注册到总线demo</font></h2><h3 id="3-1-demo源码"><a href="#3-1-demo源码" class="headerlink" title="3.1 demo源码"></a><font size=3>3.1 demo源码</font></h3><p>源码可以看这里，这里有两个，一个是只驱动，另一个还为驱动添加了属性文件操作。</p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/05_device_model/15_driver_register">05_device_model&#x2F;15_driver_register · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/05_device_model/16_driver_register_with_attr">05_device_model&#x2F;16_driver_register_with_attr · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a></p>
+<details class="folding-tag" blue><summary> 点击查看详情 </summary>
+              <div class='content'>
+              <p>这里直接已加了属性的demo为例 <a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-driver-demo/tree/master/05_device_model/16_driver_register_with_attr">05_device_model&#x2F;16_driver_register_with_attr · 苏木&#x2F;imx6ull-driver-demo - 码云 - 开源中国</a>：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/init.h&gt;</span> <span class="comment">/* module_init module_exit */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/kernel.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/module.h&gt;</span> <span class="comment">/* MODULE_LICENSE */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/device.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./timestamp_autogenerated.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./version_autogenerated.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;./sdrv_common.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// #undef PRT</span></span><br><span class="line"><span class="comment">// #undef PRTE</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> PRT</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PRT printk</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> PRTE</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PRTE printk</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SDRV_NAME        <span class="string">&quot;sdrv&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> SDRV_MATCH_NAME  <span class="string">&quot;sdrv-sdev&quot;</span>   <span class="comment">// 和设备匹配的名字，设备名为 sdrv-sdev 的才能匹配成功</span></span></span><br><span class="line">                                       <span class="comment">// 这个会作为驱动的名字，出现在 /sys/bus/bus-name/drivers/ 中</span></span><br><span class="line"><span class="keyword">extern</span> <span class="class"><span class="keyword">struct</span> <span class="title">bus_type</span> <span class="title">sbus</span>;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> __<span class="title">SDRV_ATTR_VAR_</span>&#123;</span></span><br><span class="line">    <span class="type">char</span> name_attr[<span class="number">32</span>];</span><br><span class="line">    <span class="type">int</span> data;</span><br><span class="line">&#125;<span class="type">sdrv_attr_var_t</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">sdrv_attr_var_t</span> sdrv_attr = &#123;<span class="number">0</span>&#125;;     <span class="comment">// sdriver 的属性</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdrv_probe()</span></span><br><span class="line"><span class="comment"> * @note   驱动程序的探测函数,当驱动和设备匹配上的时候，就会执行这个函数</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">sdrv_probe</span><span class="params">(<span class="keyword">struct</span> device *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> len = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="type">const</span> <span class="type">char</span> *device_name = dev_name(dev);</span><br><span class="line">    len = <span class="built_in">strlen</span>(device_name);</span><br><span class="line"></span><br><span class="line">	PRT(<span class="string">&quot;dev name is %s, len = %d\n&quot;</span>, device_name, len);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdrv_remove()</span></span><br><span class="line"><span class="comment"> * @note   驱动程序的移除函数</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">sdrv_remove</span><span class="params">(<span class="keyword">struct</span> device *dev)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> len = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="type">const</span> <span class="type">char</span> *device_name = dev_name(dev);</span><br><span class="line">    len = <span class="built_in">strlen</span>(device_name);</span><br><span class="line"></span><br><span class="line">	PRT(<span class="string">&quot;dev name is %s, len = %d\n&quot;</span>, device_name, len);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//定义一个驱动结构体sdrv，名字需要和设备的名字相同，否则就不能成功匹配</span></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">device_driver</span> <span class="title">sdrv</span> =</span> &#123;</span><br><span class="line">	.name = SDRV_MATCH_NAME,      <span class="comment">// 驱动程序的名称,将会显示在 /sys/bus/bus-name/drivers/ </span></span><br><span class="line">	.bus = &amp;sbus,                 <span class="comment">// 该驱动挂载在已经注册好的总线sbus下。</span></span><br><span class="line">	.probe = sdrv_probe,          <span class="comment">// 当驱动和设备匹配成功之后，便会执行驱动的probe函数</span></span><br><span class="line">	.remove = sdrv_remove,        <span class="comment">// 当注销驱动时，需要关闭物理设备的某些功能等</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdev_attr_data_show()</span></span><br><span class="line"><span class="comment"> * @note   保证show函数的前缀与驱动属性文件一致，sdev_attr_data()的前缀 sdev_attr_data 和 DRIVER_ATTR_RW 的参数sdev_attr_data</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">sdrv_attr_data_show</span><span class="params">(<span class="keyword">struct</span> device_driver *driver, <span class="type">char</span> *buf)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">ssize_t</span> count = <span class="number">0</span>;</span><br><span class="line">    count = <span class="built_in">sprintf</span>(buf, <span class="string">&quot;%d\n&quot;</span>, sdrv_attr.data);</span><br><span class="line">    PRT(<span class="string">&quot;device_driver-&gt;name=%s count=%d\n&quot;</span>, driver-&gt;name, count);</span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdev_attr_data_show()</span></span><br><span class="line"><span class="comment"> * @note   保证store函数的前缀与驱动属性文件一致，sdev_attr_data()的前缀 sdev_attr_data 和 DRIVER_ATTR_RW 的参数sdev_attr_data</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">sdrv_attr_data_store</span><span class="params">(<span class="keyword">struct</span> device_driver *driver, <span class="type">const</span> <span class="type">char</span> *buf, <span class="type">size_t</span> count)</span></span><br><span class="line">&#123;</span><br><span class="line">    PRT(<span class="string">&quot;device_driver-&gt;name=%s count=%d\n&quot;</span>, driver-&gt;name, count);</span><br><span class="line">    <span class="built_in">sscanf</span>(buf, <span class="string">&quot;%d\n&quot;</span>, &amp;sdrv_attr.data);</span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 下面这个宏可以简化属性变量的定义，从定义可以看出，这里定义的属性的变量前缀是 dev_attr_，后面要再拼接name才行</span></span><br><span class="line"><span class="comment">// #define DRIVER_ATTR_RW(_name) </span></span><br><span class="line"><span class="comment">//      struct driver_attribute driver_attr_##_name = __ATTR_RW(_name)</span></span><br><span class="line"><span class="comment">// #define __ATTR_RW(_name) __ATTR(_name, 0644, _name##_show, _name##_store)</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">driver_attribute</span> <span class="title">sdrv_attr_data_var</span> =</span> &#123;</span><br><span class="line">    .attr = &#123;</span><br><span class="line">        .name = <span class="string">&quot;sdrv_attr_data&quot;</span>,    <span class="comment">// 属性的名称,将会显示在 /sys/bus/bus-name/drivers/driver-name下，并可以使用cat/echo 进行操作</span></span><br><span class="line">        .mode = <span class="number">0664</span>,                <span class="comment">// 属性的访问权限</span></span><br><span class="line">    &#125;,</span><br><span class="line">    .show = sdrv_attr_data_show,     <span class="comment">// 属性的 show 回调函数</span></span><br><span class="line">    .store = sdrv_attr_data_store,   <span class="comment">// 属性的 show 回调函数</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdrv_demo_init</span></span><br><span class="line"><span class="comment"> * @note   调用driver_register函数注册我们的驱动</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> __init <span class="type">int</span> <span class="title function_">sdrv_demo_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> ret = <span class="number">0</span>;</span><br><span class="line">	printk(<span class="string">&quot;*** [%s:%d]Build Time: %s %s, git version:%s ***\n&quot;</span>, __FUNCTION__,</span><br><span class="line">           __LINE__, KERNEL_KO_DATE, KERNEL_KO_TIME, KERNEL_KO_VERSION);</span><br><span class="line">    PRT(<span class="string">&quot;sdrv_demo module init!\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">	ret = driver_register(&amp;sdrv);</span><br><span class="line">    <span class="keyword">if</span>(ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;driver_register fail!\n&quot;</span>);</span><br><span class="line">        <span class="keyword">goto</span> err_driver_register;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">	ret = driver_create_file(&amp;sdrv, &amp;sdrv_attr_data_var);</span><br><span class="line">    <span class="keyword">if</span>(ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        PRTE(<span class="string">&quot;driver_create_file fail!ret=%d\n&quot;</span>, ret);</span><br><span class="line">        <span class="keyword">goto</span> err_driver_create_file;</span><br><span class="line">    &#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">err_driver_create_file:</span><br><span class="line">    driver_unregister(&amp;sdrv);</span><br><span class="line"></span><br><span class="line">err_driver_register:</span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * @brief  sdrv_demo_exit</span></span><br><span class="line"><span class="comment"> * @note   注销驱动以及驱动属性文件</span></span><br><span class="line"><span class="comment"> * @param [in]</span></span><br><span class="line"><span class="comment"> * @param [out]</span></span><br><span class="line"><span class="comment"> * @retval </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> __exit <span class="type">void</span> <span class="title function_">sdrv_demo_exit</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    driver_remove_file(&amp;sdrv, &amp;sdrv_attr_data_var);</span><br><span class="line">	driver_unregister(&amp;sdrv);</span><br><span class="line"></span><br><span class="line">    PRT(<span class="string">&quot;sdrv_demo module exit!\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">module_init(sdrv_demo_init); <span class="comment">// 将__init定义的函数指定为驱动的入口函数</span></span><br><span class="line">module_exit(sdrv_demo_exit); <span class="comment">// 将__exit定义的函数指定为驱动的出口函数</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 模块信息(通过 modinfo chrdev_led_demo 查看) */</span></span><br><span class="line">MODULE_LICENSE(<span class="string">&quot;GPL v2&quot;</span>);            <span class="comment">/* 源码的许可证协议 */</span></span><br><span class="line">MODULE_AUTHOR(<span class="string">&quot;sumu&quot;</span>);               <span class="comment">/* 字符串常量内容为模块作者说明 */</span></span><br><span class="line">MODULE_DESCRIPTION(<span class="string">&quot;Description&quot;</span>);   <span class="comment">/* 字符串常量内容为模块功能说明 */</span></span><br><span class="line">MODULE_ALIAS(<span class="string">&quot;module&#x27;s other name&quot;</span>); <span class="comment">/* 字符串常量内容为模块别名 */</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+              </div>
+            </details>
+
+<h3 id="3-2-开发板测试"><a href="#3-2-开发板测试" class="headerlink" title="3.2 开发板测试"></a><font size=3>3.2 开发板测试</font></h3><p>我们编译完，把对对应的驱动拷贝到开发板中，按以下步骤测试效果。</p>
+<ul>
+<li>（1）一开始的 &#x2F;sys&#x2F;bus 目录</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-08-%E6%B3%A8%E5%86%8C%E9%A9%B1%E5%8A%A8%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250113112434476.png" alt="image-20250113112434476"  />
+
+<ul>
+<li>（2）加载模块</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-08-%E6%B3%A8%E5%86%8C%E9%A9%B1%E5%8A%A8%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250113112647995.png" alt="image-20250113112647995"  />
+
+<p>加载模块后，会发现，在&#x2F;sys&#x2F;bus目录生成了 sbus目录，并且&#x2F;sys&#x2F;bus&#x2F;sbus&#x2F;drivers 目录下也生成了对应的驱动的目录，在驱动目录下，有我们创建的属性文件。</p>
+<ul>
+<li>（3）查看&#x2F;修改sdrv_attr_data的值</li>
+</ul>
+<p>总线的属性，之前已经修改和验证过了，这里只看一下设备的属性文件，其实操作都是一样的：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-08-%E6%B3%A8%E5%86%8C%E9%A9%B1%E5%8A%A8%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250113112841287.png" alt="image-20250113112841287"  />
+
+<ul>
+<li>（5）卸载模块</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-08-%E6%B3%A8%E5%86%8C%E9%A9%B1%E5%8A%A8%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250113113136103.png" alt="image-20250113113136103"  />
+
+<p>可以看到，卸载模块后，资源释放，sbus目录被删除，相关的属性文件也都删除了。</p>
+<h1 id="二、驱动的注册流程"><a href="#二、驱动的注册流程" class="headerlink" title="二、驱动的注册流程"></a><font size=3>二、驱动的注册流程</font></h1><h2 id="1-driver-register"><a href="#1-driver-register" class="headerlink" title="1. driver_register() "></a><font size=3>1. <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L146">driver_register()</a> </font></h2><p>我们从 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L146">driver_register()</a> 函数来看一下注册流程：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">driver_register</span><span class="params">(<span class="keyword">struct</span> device_driver *drv)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> ret;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device_driver</span> *<span class="title">other</span>;</span></span><br><span class="line">	<span class="comment">// 检查总线是否已初始化</span></span><br><span class="line">	<span class="keyword">if</span> (!drv-&gt;bus-&gt;p) &#123;</span><br><span class="line">		pr_err(<span class="string">&quot;Driver &#x27;%s&#x27; was unable to register with bus_type &#x27;%s&#x27; because the bus was not initialized.\n&quot;</span>,</span><br><span class="line">			   drv-&gt;name, drv-&gt;bus-&gt;name);</span><br><span class="line">		<span class="keyword">return</span> -EINVAL;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 检查驱动程序的方法是否需要更新</span></span><br><span class="line">	<span class="keyword">if</span> ((drv-&gt;bus-&gt;probe &amp;&amp; drv-&gt;probe) ||</span><br><span class="line">	    (drv-&gt;bus-&gt;remove &amp;&amp; drv-&gt;remove) ||</span><br><span class="line">	    (drv-&gt;bus-&gt;shutdown &amp;&amp; drv-&gt;shutdown))</span><br><span class="line">		printk(KERN_WARNING <span class="string">&quot;Driver &#x27;%s&#x27; needs updating - please use &quot;</span></span><br><span class="line">			<span class="string">&quot;bus_type methods\n&quot;</span>, drv-&gt;name);</span><br><span class="line">	<span class="comment">// 检查驱动程序是否已被注册</span></span><br><span class="line">	other = driver_find(drv-&gt;name, drv-&gt;bus);</span><br><span class="line">	<span class="keyword">if</span> (other) &#123;</span><br><span class="line">		printk(KERN_ERR <span class="string">&quot;Error: Driver &#x27;%s&#x27; is already registered, &quot;</span></span><br><span class="line">			<span class="string">&quot;aborting...\n&quot;</span>, drv-&gt;name);</span><br><span class="line">		<span class="keyword">return</span> -EBUSY;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 将驱动程序添加到总线</span></span><br><span class="line">	ret = bus_add_driver(drv);</span><br><span class="line">	<span class="keyword">if</span> (ret)</span><br><span class="line">		<span class="keyword">return</span> ret;</span><br><span class="line">    <span class="comment">// 添加驱动程序的组属性</span></span><br><span class="line">	ret = driver_add_groups(drv, drv-&gt;groups);</span><br><span class="line">	<span class="keyword">if</span> (ret) &#123;</span><br><span class="line">		bus_remove_driver(drv);<span class="comment">// 移除已添加的驱动程序</span></span><br><span class="line">		<span class="keyword">return</span> ret;</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// 发送内核对象事件，通知驱动程序添加成功</span></span><br><span class="line">	kobject_uevent(&amp;drv-&gt;p-&gt;kobj, KOBJ_ADD);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>函数用于注册设备驱动程序并将其添加到总线中，接下来我们详细分析一下。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L151">151</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L155">155</a> 行：检查总线是否已初始化</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!drv-&gt;bus-&gt;p) &#123;</span><br><span class="line">	pr_err(<span class="string">&quot;Driver &#x27;%s&#x27; was unable to register with bus_type &#x27;%s&#x27; because the bus was not initialized.\n&quot;</span>,</span><br><span class="line">		   drv-&gt;name, drv-&gt;bus-&gt;name);</span><br><span class="line">	<span class="keyword">return</span> -EINVAL;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过 drv-&gt;bus 访问设备驱动程序结构体中的总线信息。前面初始化的时候已经填充了对应的成员：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">device_driver</span> <span class="title">sdrv</span> =</span> &#123;</span><br><span class="line">	.name = SDRV_MATCH_NAME,      <span class="comment">// 驱动程序的名称,将会显示在 /sys/bus/bus-name/drivers/ </span></span><br><span class="line">	.bus = &amp;sbus,                 <span class="comment">// 该驱动挂载在已经注册好的总线sbus下。</span></span><br><span class="line">	.probe = sdrv_probe,          <span class="comment">// 当驱动和设备匹配成功之后，便会执行驱动的probe函数</span></span><br><span class="line">	.remove = sdrv_remove,        <span class="comment">// 当注销驱动时，需要关闭物理设备的某些功能等</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>如果总线的 p 成员为 NULL， 表示总线未初始化。如果总线未初始化，则打印错误消息，并返回 -EINVAL 错误码表示无效的 参数。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L157">157</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L161">161</a> 行：检查驱动程序的方法是否需要更新</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> ((drv-&gt;bus-&gt;probe &amp;&amp; drv-&gt;probe) ||</span><br><span class="line">    (drv-&gt;bus-&gt;remove &amp;&amp; drv-&gt;remove) ||</span><br><span class="line">    (drv-&gt;bus-&gt;shutdown &amp;&amp; drv-&gt;shutdown))</span><br><span class="line">	printk(KERN_WARNING <span class="string">&quot;Driver &#x27;%s&#x27; needs updating - please use &quot;</span></span><br><span class="line">		<span class="string">&quot;bus_type methods\n&quot;</span>, drv-&gt;name);</span><br></pre></td></tr></table></figure>
+
+<p>通过检查驱动程序结构体中的 bus-&gt;probe 和 drv-&gt;probe、bus-&gt;remove 和 drv-&gt;remove、 bus-&gt;shutdown 和 drv-&gt;shutdown 成员是否同时存在来判断。如果存在需要更新的方法组合， 说明驱动程序需要更新。在这种情况下，打印警告消息，建议使用 bus_type 方法进行更新。其实前面的demo中是有这个打印的：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-08-%E6%B3%A8%E5%86%8C%E9%A9%B1%E5%8A%A8%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250113125707505.png" alt="image-20250113125707505"  />
+
+<p>原因是什么呢？就是因为这个：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-08-%E6%B3%A8%E5%86%8C%E9%A9%B1%E5%8A%A8%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250113130212907.png" alt="image-20250113130212907"  />
+
+<p>驱动和总线中都定义了probe方法，后面我们再详细了解。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L163">163</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L168">168</a> 行：检查驱动程序是否已被注册</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">other = driver_find(drv-&gt;name, drv-&gt;bus);</span><br><span class="line"><span class="keyword">if</span> (other) &#123;</span><br><span class="line">	printk(KERN_ERR <span class="string">&quot;Error: Driver &#x27;%s&#x27; is already registered, &quot;</span></span><br><span class="line">		<span class="string">&quot;aborting...\n&quot;</span>, drv-&gt;name);</span><br><span class="line">	<span class="keyword">return</span> -EBUSY;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L201">driver_find()</a> 函数来查找是否已经注册了同名的驱动程序。如果找到同名驱动程序， 表示驱动程序已经注册过。在这种情况下，打印错误消息，并返回 -EBUSY 错误码表示设备忙。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L170">170</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L172">172</a> 行：添加驱动程序到总线</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ret = bus_add_driver(drv);</span><br><span class="line"><span class="keyword">if</span> (ret)</span><br><span class="line">	<span class="keyword">return</span> ret;</span><br></pre></td></tr></table></figure>
+
+<p>调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L635">bus_add_driver()</a> 函数将驱动程序添加到总线。如果添加失败，则返回相应的错误码。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L173">173</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L177">177</a> 行：添加驱动程序的组属性</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ret = driver_add_groups(drv, drv-&gt;groups);</span><br><span class="line"><span class="keyword">if</span> (ret) &#123;</span><br><span class="line">	bus_remove_driver(drv);</span><br><span class="line">	<span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L126">driver_add_groups()</a> 函数将驱动程序的组属性添加到驱动程序中。如果添加失败，则调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L711">bus_remove_driver()</a> 函数移除已添加的驱动程序，并返回相应的错误码。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L178">178</a> 行：发送内核对象事件</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kobject_uevent(&amp;drv-&gt;p-&gt;kobj, KOBJ_ADD);</span><br></pre></td></tr></table></figure>
+
+<p>调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject_uevent.c#L628">kobject_uevent()</a> 函数向驱动程序的内核对象发送事件，通知驱动程序已成功添加到系统中。</p>
+<h2 id="2-bus-add-driver"><a href="#2-bus-add-driver" class="headerlink" title="2.  bus_add_driver()"></a><font size=3>2.  <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L635">bus_add_driver()</a></font></h2><p> <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L635">bus_add_driver()</a> 函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">bus_add_driver</span><span class="params">(<span class="keyword">struct</span> device_driver *drv)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">bus_type</span> *<span class="title">bus</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">driver_private</span> *<span class="title">priv</span>;</span></span><br><span class="line">	<span class="type">int</span> error = <span class="number">0</span>;</span><br><span class="line">	<span class="comment">// 获取总线对象</span></span><br><span class="line">	bus = bus_get(drv-&gt;bus);</span><br><span class="line">	<span class="keyword">if</span> (!bus)</span><br><span class="line">		<span class="keyword">return</span> -EINVAL;</span><br><span class="line"></span><br><span class="line">	pr_debug(<span class="string">&quot;bus: &#x27;%s&#x27;: add driver %s\n&quot;</span>, bus-&gt;name, drv-&gt;name);</span><br><span class="line">	<span class="comment">// 分配并初始化驱动程序私有数据</span></span><br><span class="line">	priv = kzalloc(<span class="keyword">sizeof</span>(*priv), GFP_KERNEL);</span><br><span class="line">	<span class="keyword">if</span> (!priv) &#123;</span><br><span class="line">		error = -ENOMEM;</span><br><span class="line">		<span class="keyword">goto</span> out_put_bus;</span><br><span class="line">	&#125;</span><br><span class="line">	klist_init(&amp;priv-&gt;klist_devices, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line">	priv-&gt;driver = drv;</span><br><span class="line">	drv-&gt;p = priv;</span><br><span class="line">	priv-&gt;kobj.kset = bus-&gt;p-&gt;drivers_kset;</span><br><span class="line">    <span class="comment">// 初始化并添加驱动程序的内核对象</span></span><br><span class="line">	error = kobject_init_and_add(&amp;priv-&gt;kobj, &amp;driver_ktype, <span class="literal">NULL</span>,</span><br><span class="line">				     <span class="string">&quot;%s&quot;</span>, drv-&gt;name);</span><br><span class="line">	<span class="keyword">if</span> (error)</span><br><span class="line">		<span class="keyword">goto</span> out_unregister;</span><br><span class="line">	<span class="comment">// 将驱动程序添加到总线的驱动程序列表</span></span><br><span class="line">	klist_add_tail(&amp;priv-&gt;knode_bus, &amp;bus-&gt;p-&gt;klist_drivers);</span><br><span class="line">    <span class="comment">// 如果总线启用了自动探测，则尝试自动探测设备</span></span><br><span class="line">	<span class="keyword">if</span> (drv-&gt;bus-&gt;p-&gt;drivers_autoprobe) &#123;</span><br><span class="line">		<span class="keyword">if</span> (driver_allows_async_probing(drv)) &#123;</span><br><span class="line">			pr_debug(<span class="string">&quot;bus: &#x27;%s&#x27;: probing driver %s asynchronously\n&quot;</span>,</span><br><span class="line">				drv-&gt;bus-&gt;name, drv-&gt;name);</span><br><span class="line">			async_schedule(driver_attach_async, drv);</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			error = driver_attach(drv);</span><br><span class="line">			<span class="keyword">if</span> (error)</span><br><span class="line">				<span class="keyword">goto</span> out_unregister;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// 将驱动程序添加到模块</span></span><br><span class="line">	module_add_driver(drv-&gt;owner, drv);</span><br><span class="line">	<span class="comment">// 创建驱动程序的 uevent 属性文件</span></span><br><span class="line">	error = driver_create_file(drv, &amp;driver_attr_uevent);</span><br><span class="line">	<span class="keyword">if</span> (error) &#123;</span><br><span class="line">		printk(KERN_ERR <span class="string">&quot;%s: uevent attr (%s) failed\n&quot;</span>,</span><br><span class="line">			__func__, drv-&gt;name);</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// 添加驱动程序的组属性</span></span><br><span class="line">	error = driver_add_groups(drv, bus-&gt;drv_groups);</span><br><span class="line">	<span class="keyword">if</span> (error) &#123;</span><br><span class="line">		<span class="comment">/* How the hell do we get out of this pickle? Give up */</span></span><br><span class="line">		printk(KERN_ERR <span class="string">&quot;%s: driver_create_groups(%s) failed\n&quot;</span>,</span><br><span class="line">			__func__, drv-&gt;name);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 如果驱动程序不禁止绑定属性文件，则添加绑定属性文件</span></span><br><span class="line">	<span class="keyword">if</span> (!drv-&gt;suppress_bind_attrs) &#123;</span><br><span class="line">		error = add_bind_files(drv);</span><br><span class="line">		<span class="keyword">if</span> (error) &#123;</span><br><span class="line">			<span class="comment">/* Ditto */</span></span><br><span class="line">			printk(KERN_ERR <span class="string">&quot;%s: add_bind_files(%s) failed\n&quot;</span>,</span><br><span class="line">				__func__, drv-&gt;name);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">out_unregister:</span><br><span class="line">	kobject_put(&amp;priv-&gt;kobj);</span><br><span class="line">	<span class="comment">/* drv-&gt;p is freed in driver_release()  */</span></span><br><span class="line">	drv-&gt;p = <span class="literal">NULL</span>;</span><br><span class="line">out_put_bus:</span><br><span class="line">	bus_put(bus);</span><br><span class="line">	<span class="keyword">return</span> error;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L645">645</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L647">647</a> 行：获取总线对象</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">bus = bus_get(drv-&gt;bus);</span><br><span class="line"><span class="keyword">if</span> (!bus)</span><br><span class="line">	<span class="keyword">return</span> -EINVAL;</span><br></pre></td></tr></table></figure>
+
+<p>通过 drv-&gt;bus 访问设备驱动程序结构体中的总线信息。通过调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L41">bus_get()</a>函数获取总线 对象。如果总线对象不存在，则返回 -EINVAL 错误码表示无效的参数。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L651">651</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L659">659</a> 行：分配并初始化驱动程序私有数据</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">priv = kzalloc(<span class="keyword">sizeof</span>(*priv), GFP_KERNEL);</span><br><span class="line"><span class="keyword">if</span> (!priv) &#123;</span><br><span class="line">	error = -ENOMEM;</span><br><span class="line">	<span class="keyword">goto</span> out_put_bus;</span><br><span class="line">&#125;</span><br><span class="line">klist_init(&amp;priv-&gt;klist_devices, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line">priv-&gt;driver = drv;</span><br><span class="line">drv-&gt;p = priv;</span><br><span class="line">priv-&gt;kobj.kset = bus-&gt;p-&gt;drivers_kset;</span><br></pre></td></tr></table></figure>
+
+<p>调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/slab.h#L702">kzalloc()</a> 函数为驱动程序的私有数据结构体 priv 分配内存，并使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/gfp.h#L290">GFP_KERNEL</a> 标志进行内存分配。如果内存分配失败，则返回 -ENOMEM 错误码表示内存不足。使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/klist.c#L73">klist_init()</a> 函数初始化 priv 结构体中的设备列表。设置 priv 结构体中的驱动程序指针，并将其赋值为当 前的驱动程序。</p>
+<p>将 drv-&gt;p 指向 priv 结构体，以便后续的释放操作。然后设置 priv-&gt;kobj.kset 成员为总线对象的 drivers_kset。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L660">660</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L664">664</a> 行：码初始化并添加驱动程序的内核对象</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">error = kobject_init_and_add(&amp;priv-&gt;kobj, &amp;driver_ktype, <span class="literal">NULL</span>,</span><br><span class="line">			     <span class="string">&quot;%s&quot;</span>, drv-&gt;name);</span><br><span class="line"><span class="keyword">if</span> (error)</span><br><span class="line">	<span class="keyword">goto</span> out_unregister;</span><br></pre></td></tr></table></figure>
+
+<p>调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/kobject.c#L433">kobject_init_and_add()</a> 函数始化并添加驱动程序的内核对象。如果初始化或添加失败，则跳转到 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L702">out_unregister</a> 进行错误处理。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L665">665</a> 行：将驱动程序添加到总线的驱动程序列表</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">klist_add_tail(&amp;priv-&gt;knode_bus, &amp;bus-&gt;p-&gt;klist_drivers);</span><br></pre></td></tr></table></figure>
+
+<p>使用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/lib/klist.c#L130">klist_add_tail()</a> 函数将驱动程序的节点添加到总线的驱动程序列表中。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L666">666</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L676">676</a> 行：自动探测设备</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (drv-&gt;bus-&gt;p-&gt;drivers_autoprobe) &#123;</span><br><span class="line">	<span class="keyword">if</span> (driver_allows_async_probing(drv)) &#123;</span><br><span class="line">		pr_debug(<span class="string">&quot;bus: &#x27;%s&#x27;: probing driver %s asynchronously\n&quot;</span>,</span><br><span class="line">			drv-&gt;bus-&gt;name, drv-&gt;name);</span><br><span class="line">		async_schedule(driver_attach_async, drv);</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		error = driver_attach(drv);</span><br><span class="line">		<span class="keyword">if</span> (error)</span><br><span class="line">			<span class="keyword">goto</span> out_unregister;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果总线启用了自动探测（drivers_autoprobe 标志），则调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/dd.c#L912">driver_attach()</a>函数尝试自动探测设备。如果自动探测失败，则跳转到 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L702">out_unregister</a> 进行错误处理。其中变量 drivers_autoprobe 也可以在用户空间通过属性文件 drivers_autoprobe 来控制：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-04-linux%E8%AE%BE%E5%A4%87%E6%A8%A1%E5%9E%8B-08-%E6%B3%A8%E5%86%8C%E9%A9%B1%E5%8A%A8%E5%88%B0%E6%80%BB%E7%BA%BF/img/image-20250113162603098.png" alt="image-20250113162603098"  />
+
+<p>这个文件的值默认是1，若是我们改为0，那么就不会自动去匹配设备了。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L677">677</a> 行：将驱动程序添加到模块</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">module_add_driver(drv-&gt;owner, drv);</span><br></pre></td></tr></table></figure>
+
+<p>调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/module.c#L33">module_add_driver()</a>函数将驱动程序添加到模块中。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L679">679</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L683">683</a> 行：创建驱动程序的 uevent 属性文件</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">error = driver_create_file(drv, &amp;driver_attr_uevent);</span><br><span class="line"><span class="keyword">if</span> (error) &#123;</span><br><span class="line">	printk(KERN_ERR <span class="string">&quot;%s: uevent attr (%s) failed\n&quot;</span>,</span><br><span class="line">		__func__, drv-&gt;name);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L95">driver_create_file()</a>函数为驱动程序创建 uevent 属性文件。如果创建失败，则打印错 误消息。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L684">684</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L689">689</a> 行：创建驱动程序的 uevent 属性文件</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">error = driver_add_groups(drv, bus-&gt;drv_groups);</span><br><span class="line"><span class="keyword">if</span> (error) &#123;</span><br><span class="line">	<span class="comment">/* How the hell do we get out of this pickle? Give up */</span></span><br><span class="line">	printk(KERN_ERR <span class="string">&quot;%s: driver_create_groups(%s) failed\n&quot;</span>,</span><br><span class="line">		__func__, drv-&gt;name);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/driver.c#L126">driver_add_groups()</a> 函数将驱动程序的组属性添加到驱动程序中。如果添加失败，则打印错误消息。</p>
+<ul>
+<li>第 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L691">691</a> - <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L698">698</a> 行：添加绑定属性文件</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!drv-&gt;suppress_bind_attrs) &#123;</span><br><span class="line">	error = add_bind_files(drv);</span><br><span class="line">	<span class="keyword">if</span> (error) &#123;</span><br><span class="line">		<span class="comment">/* Ditto */</span></span><br><span class="line">		printk(KERN_ERR <span class="string">&quot;%s: add_bind_files(%s) failed\n&quot;</span>,</span><br><span class="line">			__func__, drv-&gt;name);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果驱动程序没有禁止绑定属性文件（suppress_bind_attrs 标志），则调用 <a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/bus.c#L570">add_bind_files()</a> 函数添加绑定属性文件。如果添加失败，则打印错误消息。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/eb412581.html">LV06-04-linux设备模型-08-注册驱动到总线</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2025年01月16日 - 22:26</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/eb412581.html" title="LV06-04-linux设备模型-08-注册驱动到总线">https://sumumm.github.io/post/eb412581.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/6e6a5ac3.html" rel="prev" title="LV06-04-linux设备模型-09-设备与驱动的匹配">
+                  <i class="fa fa-angle-left"></i> LV06-04-linux设备模型-09-设备与驱动的匹配
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/cbba698.html" rel="next" title="LV06-04-linux设备模型-07-注册设备到总线">
+                  LV06-04-linux设备模型-07-注册设备到总线 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

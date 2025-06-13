@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是字符设备驱动——字符设备框架的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV06-03-chrdev-02-字符设备驱动框架">
+<meta property="og:url" content="https://sumumm.github.io/post/82028882.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是字符设备驱动——字符设备框架的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E6%A1%86%E6%9E%B6/img/characprog001-1733234762404-2.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E6%A1%86%E6%9E%B6/img/image-20241203233641293.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E6%A1%86%E6%9E%B6/img/image-20241203230011695.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E6%A1%86%E6%9E%B6/img/image-20241203233543469.png">
+<meta property="article:published_time" content="2024-12-17T15:33:11.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.049Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV06-驱动开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E6%A1%86%E6%9E%B6/img/characprog001-1733234762404-2.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/82028882.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/82028882.html","path":"post/82028882.html","title":"LV06-03-chrdev-02-字符设备驱动框架"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV06-03-chrdev-02-字符设备驱动框架 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E6%A1%86%E6%9E%B6"><span class="nav-text">一、字符设备驱动框架</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E9%A9%B1%E5%8A%A8%E6%A1%86%E6%9E%B6%E8%A7%A3%E6%9E%90"><span class="nav-text">二、驱动框架解析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BE%E5%A4%87%E5%8F%B7"><span class="nav-text">1. 设备号</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E8%AE%BE%E5%A4%87%E5%8F%B7%E7%9A%84%E7%94%B3%E8%AF%B7"><span class="nav-text">1.1 设备号的申请</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-1-%E9%9D%99%E6%80%81%E7%94%B3%E8%AF%B7"><span class="nav-text">1.1.1 静态申请</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-2-%E5%8A%A8%E6%80%81%E7%94%B3%E8%AF%B7"><span class="nav-text">1.1.2 动态申请</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-3-register-chrdev%E5%87%BD%E6%95%B0"><span class="nav-text">1.1.3 register_chrdev函数</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E8%AE%BE%E5%A4%87%E5%8F%B7%E7%9A%84%E9%87%8A%E6%94%BE"><span class="nav-text">1.2 设备号的释放</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1-unregister-chrdev-region%E5%87%BD%E6%95%B0"><span class="nav-text">1.2.1 unregister_chrdev_region函数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2-unregister-chrdev%E5%87%BD%E6%95%B0"><span class="nav-text">1.2.2 unregister_chrdev函数</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87"><span class="nav-text">2. 字符设备</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E7%9A%84%E5%AE%9A%E4%B9%89"><span class="nav-text">2.1 字符设备的定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-text">2.2 字符设备的初始化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-cdev-init%E5%87%BD%E6%95%B0"><span class="nav-text">2.2.1 cdev_init函数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">2.2.2 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E5%86%8C"><span class="nav-text">2.3 字符设备的注册</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B3%A8%E9%94%80"><span class="nav-text">2.4 字符设备的注销</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%AE%BE%E5%A4%87%E8%8A%82%E7%82%B9"><span class="nav-text">3. 设备节点</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E6%89%8B%E5%8A%A8%E5%88%9B%E5%BB%BA%E8%AE%BE%E5%A4%87%E8%8A%82%E7%82%B9"><span class="nav-text">3.1 手动创建设备节点</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-1-%E5%91%BD%E4%BB%A4%E6%A0%BC%E5%BC%8F"><span class="nav-text">3.1.1 命令格式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-2-mknod%E6%B5%81%E7%A8%8B"><span class="nav-text">3.1.2 mknod流程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-3-%E4%BD%BF%E7%94%A8%E5%AE%9E%E4%BE%8B"><span class="nav-text">3.1.3 使用实例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E8%87%AA%E5%8A%A8%E5%88%9B%E5%BB%BA%E8%AE%BE%E5%A4%87%E8%8A%82%E7%82%B9"><span class="nav-text">3.2 自动创建设备节点</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-1-linux%E7%83%AD%E6%8B%94%E6%8F%92%E6%9C%BA%E5%88%B6"><span class="nav-text">3.2.1 linux热拔插机制</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-2-udev%E7%AE%80%E4%BB%8B"><span class="nav-text">3.2.2 udev简介</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-3-%E7%9B%B8%E5%85%B3%E5%87%BD%E6%95%B0"><span class="nav-text">3.2.3 相关函数</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#3-2-3-1-%E7%B1%BB%E7%9A%84%E5%88%9B%E5%BB%BA"><span class="nav-text">3.2.3.1 类的创建</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#3-2-3-2-%E7%B1%BB%E7%9A%84%E9%94%80%E6%AF%81"><span class="nav-text">3.2.3.2 类的销毁</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#3-2-3-3-%E8%AE%BE%E5%A4%87%E8%8A%82%E7%82%B9%E5%88%9B%E5%BB%BA"><span class="nav-text">3.2.3.3 设备节点创建</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#3-2-3-4-%E8%AE%BE%E5%A4%87%E8%8A%82%E7%82%B9%E7%9A%84%E9%94%80%E6%AF%81"><span class="nav-text">3.2.3.4 设备节点的销毁</span></a></li></ol></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81open%E5%87%BD%E6%95%B0"><span class="nav-text">三、open函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%BF%87%E7%A8%8B%E7%AE%80%E4%BB%8B"><span class="nav-text">1. 过程简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90"><span class="nav-text">2. 过程分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%80%BB%E7%BB%93"><span class="nav-text">3. 总结</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/82028882.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV06-03-chrdev-02-字符设备驱动框架 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV06-03-chrdev-02-字符设备驱动框架
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-12-17 23:33:11" itemprop="dateCreated datePublished" datetime="2024-12-17T23:33:11+08:00">2024-12-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/" itemprop="url" rel="index"><span itemprop="name">02IMX6ULL平台</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV06-驱动开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>8.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>31 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是字符设备驱动——字符设备框架的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E6%A1%86%E6%9E%B6/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.2的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.6.0 build-24238078</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，使用的uboot版本为U-Boot 2019.04</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.19.71(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="5">官方网站</td>        <td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td>        <td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/" target="_blank">https://www.nxp.com.cn/ </a></td>        <td align="left">NXP官方网站</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxpic.org.cn/" target="_blank">https://www.nxpic.org.cn/</a></td><td align="left">NXP 官方社区</td>    </tr>    <tr>        <td align="left"><a href="https://u-boot.readthedocs.io/en/latest/" target="_blank">https://u-boot.readthedocs.io/en/latest/</a></td><td align="left">u-boot官网</td>    </tr>    <tr>        <td align="left"><a href="https://www.kernel.org/" target="_blank">https://www.kernel.org/</a></td><td align="left">linux内核官网</td>    </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center">分类</td>        <td align="center">网址</td>        <td align="center">说明</td>    </tr>    <tr>        <td align="center" rowspan="3">NXP</td>        <td align="left"><a href="https://github.com/nxp-imx" target="_blank">https://github.com/nxp-imx</a></td>        <td align="left">NXP imx开发资源GitHub组织，里边会有u-boot和linux内核的仓库</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/linux-imx/releases/tag/v4.19.71" target="_blank">nxp-imx/linux-imx/releases/tag/v4.19.71</a></td>        <td align="left">NXP linux内核仓库tags中的v4.19.71</td>    </tr>    <tr>        <td align="left"><a href="https://github.com/nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0" target="_blank">nxp-imx/uboot-imx/releases/tag/rel_imx_4.19.35_1.1.0</a></td>        <td align="left">NXP u-boot仓库tags中的rel_imx_4.19.35_1.1.0</td>    </tr>    <tr>        <td align="center" rowspan="2">I.MX6ULL</td>        <td align="left"><a href="https://www.nxp.com.cn/docs/en/data-sheet/IMX6ULLIEC.pdf" target="_blank">i.MX 6ULL Applications Processors for Industrial Products</a></td>        <td align="left">I.MX6ULL 芯片手册（datasheet，可以在线查看）</td>    </tr>    <tr>        <td align="left"><a href="https://www.nxp.com.cn/webapp/Download?colCode=IMX6ULLRM&lang_cd=zh" target="_blank">i.MX 6ULL Applications ProcessorReference Manual</a></td>        <td align="left">I.MX6ULL 参考手册（下载后才能查看，需要登录NXP官网）</td>    </tr>    <tr>        <td align="center" rowspan="2">Source Code</td>        <td align="left"><a href="https://elixir.bootlin.com/linux/latest/source" target="_blank">https://elixir.bootlin.com/linux/latest/source</a></td>        <td align="left">linux kernel源码</td>    </tr>    <tr>        <td align="left"><a href="https://elixir.bootlin.com/u-boot/latest/source" target="_blank">https://elixir.bootlin.com/u-boot/latest/source</a></td>        <td align="left">uboot源码</td>    </tr></table>
+              </div>
+            </details> 
+
+<h1 id="一、字符设备驱动框架"><a href="#一、字符设备驱动框架" class="headerlink" title="一、字符设备驱动框架"></a><font size=3>一、字符设备驱动框架</font></h1><p>可以先看一张思维导图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E6%A1%86%E6%9E%B6/img/characprog001-1733234762404-2.png" alt="字符设备散列表" style="zoom: 67%;" />
+
+<p>我们创建一个字符设备的时候，首先要的到一个设备号，分配设备号的途径有静态分配和动态分配； 拿到设备的唯一ID，我们需要实现file_operation并保存到cdev中，实现cdev的初始化； 然后我们需要将我们所做的工作告诉内核，使用cdev_add()注册cdev； 最后我们还需要创建设备节点，以便我们后面调用file_operation接口。</p>
+<p>注销设备时我们需释放内核中的cdev，归还申请的设备号，删除创建的设备节点。</p>
+<h1 id="二、驱动框架解析"><a href="#二、驱动框架解析" class="headerlink" title="二、驱动框架解析"></a><font size=3>二、驱动框架解析</font></h1><h2 id="1-设备号"><a href="#1-设备号" class="headerlink" title="1. 设备号"></a><font size=3>1. 设备号</font></h2><h3 id="1-1-设备号的申请"><a href="#1-1-设备号的申请" class="headerlink" title="1.1 设备号的申请"></a><font size=3>1.1 设备号的申请</font></h3><p>在 Linux 系统中每一个设备都有相应的设备号，通过该设备号查找对应的设备，从而进行 之后的文件操作。设备号有主设备号与次设备号之分，主设备号用来表示一个特定的驱动，次设备号用来管理下面的设备。</p>
+<p>在 Linux 驱动中可以使用以下两种方法进行设备号的申请：</p>
+<p>（1）register_chrdev_region()函数静态申请。</p>
+<p>（2）alloc_chrdev_region()函数动态申请。</p>
+<h4 id="1-1-1-静态申请"><a href="#1-1-1-静态申请" class="headerlink" title="1.1.1 静态申请"></a><font size=3>1.1.1 静态申请</font></h4><p>register_chrdev_region()函数声明在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L2587">fs.h - include&#x2F;linux&#x2F;fs.h - <em>register_chrdev_region</em></a>，定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/char_dev.c#L200">char_dev.c - fs&#x2F;char_dev.c - <em>register_chrdev_region</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * register_chrdev_region() - register a range of device numbers</span></span><br><span class="line"><span class="comment"> * @from: the first in the desired range of device numbers; must include</span></span><br><span class="line"><span class="comment"> *        the major number.</span></span><br><span class="line"><span class="comment"> * @count: the number of consecutive device numbers required</span></span><br><span class="line"><span class="comment"> * @name: the name of the device or driver.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Return value is zero on success, a negative error code on failure.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">register_chrdev_region</span><span class="params">(<span class="type">dev_t</span> from, <span class="type">unsigned</span> count, <span class="type">const</span> <span class="type">char</span> *name)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>register_chrdev_region函数用于静态地为一个字符设备申请一个或多个设备编号。</p>
+<p><strong>参数：</strong></p>
+<ul>
+<li><strong>from</strong>：dev_t类型的变量，用于指定字符设备的起始设备号，如果要注册的设备号已经被其他的设备注册了，那么就会导致注册失败。</li>
+<li><strong>count</strong>：指定要申请的设备号个数，count的值不可以太大，否则会与下一个主设备号重叠。</li>
+<li><strong>name</strong>：用于指定该设备的名称，我们可以在&#x2F;proc&#x2F;devices中看到该设备。</li>
+</ul>
+<p><strong>返回值：</strong> 返回0表示申请成功，失败则返回错误码。</p>
+<blockquote>
+<p>（1）关于设备编号，我们可以去<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/Documentation/admin-guide/devices.txt">devices.txt - Documentation&#x2F;admin-guide&#x2F;devices.txt</a>中看一下，里面提供了主设备号以及次设备号的一些参考，比如<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/Documentation/admin-guide/devices.txt#L2628">devices.txt - Documentation&#x2F;admin-guide&#x2F;devices.txt - <em>200 char</em></a>：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&gt;200 char	Veritas VxVM configuration interface</span><br><span class="line">	   0 = /dev/vx/config		Configuration access node</span><br><span class="line">	   1 = /dev/vx/trace		Volume i/o trace access node</span><br><span class="line">	   2 = /dev/vx/iod		Volume i/o daemon access node</span><br><span class="line">	   3 = /dev/vx/info		Volume information access node</span><br><span class="line">	   4 = /dev/vx/task		Volume tasks access node</span><br><span class="line">	   5 = /dev/vx/taskmon		Volume tasks monitor daemon</span><br></pre></td></tr></table></figure>
+
+<p>（2）我们静态申请设备号的时候可以使用以下宏生成设备号：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&gt;<span class="meta">#<span class="keyword">define</span> MINORBITS 20                      <span class="comment">/*次设备号位数*/</span></span></span><br><span class="line">&gt;<span class="meta">#<span class="keyword">define</span> MINORMASK ((1U &lt;&lt; MINORBITS) - 1) <span class="comment">/*次设备号掩码*/</span></span></span><br><span class="line"></span><br><span class="line">&gt;<span class="meta">#<span class="keyword">define</span> MAJOR(dev) ((unsigned int) ((dev) &gt;&gt; MINORBITS))<span class="comment">/*dev 右移 20 位得到主设备号*/</span></span></span><br><span class="line">&gt;<span class="meta">#<span class="keyword">define</span> MINOR(dev) ((unsigned int) ((dev) &amp; MINORMASK)) <span class="comment">/*与次设备掩码与，得到次设备号*/</span></span></span><br><span class="line">&gt;<span class="meta">#<span class="keyword">define</span> MKDEV(ma,mi) (((ma) &lt;&lt; MINORBITS) | (mi))       <span class="comment">/*MKDEV 宏将主设备号（ma）左移 20 位,然后与次设备号（mi）相与，得到设备号*/</span></span></span><br></pre></td></tr></table></figure>
+</blockquote>
+<h4 id="1-1-2-动态申请"><a href="#1-1-2-动态申请" class="headerlink" title="1.1.2 动态申请"></a><font size=3>1.1.2 动态申请</font></h4><p>alloc_chrdev_region()函数声明在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L2586">fs.h - include&#x2F;linux&#x2F;fs.h - <em>alloc_chrdev_region</em></a>，定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/char_dev.c#L234">char_dev.c - fs&#x2F;char_dev.c - <em>alloc_chrdev_region</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * alloc_chrdev_region() - register a range of char device numbers</span></span><br><span class="line"><span class="comment"> * @dev: output parameter for first assigned number</span></span><br><span class="line"><span class="comment"> * @baseminor: first of the requested range of minor numbers</span></span><br><span class="line"><span class="comment"> * @count: the number of minor numbers required</span></span><br><span class="line"><span class="comment"> * @name: the name of the associated device or driver</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Allocates a range of char device numbers.  The major number will be</span></span><br><span class="line"><span class="comment"> * chosen dynamically, and returned (along with the first minor number)</span></span><br><span class="line"><span class="comment"> * in @dev.  Returns zero or a negative error code.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">alloc_chrdev_region</span><span class="params">(<span class="type">dev_t</span> *dev, <span class="type">unsigned</span> baseminor, <span class="type">unsigned</span> count,</span></span><br><span class="line"><span class="params">			<span class="type">const</span> <span class="type">char</span> *name)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">//......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用alloc_chrdev_region函数，内核会自动分配给我们一个尚未使用的主设备号。 我们可以通过命令“cat &#x2F;proc&#x2F;devices”查询内核分配的主设备号。</p>
+<p><strong>参数：</strong></p>
+<ul>
+<li><strong>dev</strong>：指向dev_t类型数据的指针变量，用于存放分配到的设备编号的起始值；</li>
+<li><strong>baseminor</strong>：次设备号的起始值，通常情况下，设置为0；</li>
+<li><strong>count、name</strong>：同register_chrdev_region类型，用于指定需要分配的设备编号的个数以及设备的名称。</li>
+</ul>
+<p><strong>返回值：</strong> 返回0表示申请成功，失败则返回错误码</p>
+<h4 id="1-1-3-register-chrdev函数"><a href="#1-1-3-register-chrdev函数" class="headerlink" title="1.1.3 register_chrdev函数"></a><font size=3>1.1.3 register_chrdev函数</font></h4><p>除了上述的两种，内核还提供了register_chrdev函数用于分配设备号。该函数是一个内联函数，它不 仅支持静态申请设备号，也支持动态申请设备号，并将主设备号返回，函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L2596">fs.h - include&#x2F;linux&#x2F;fs.h - <em>register_chrdev</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">int</span> <span class="title function_">register_chrdev</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> major, <span class="type">const</span> <span class="type">char</span> *name,</span></span><br><span class="line"><span class="params">				  <span class="type">const</span> <span class="keyword">struct</span> file_operations *fops)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> __register_chrdev(major, <span class="number">0</span>, <span class="number">256</span>, name, fops);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>参数：</strong></p>
+<ul>
+<li><strong>major</strong>：用于指定要申请的字符设备的主设备号，等价于register_chrdev_region函数，当设置为0时，内核会自动分配一个未使用的主设备号。</li>
+<li><strong>name</strong>：用于指定字符设备的名称</li>
+<li><strong>fops</strong>：用于操作该设备的函数接口指针。</li>
+</ul>
+<p><strong>返回值：</strong> 主设备号。</p>
+<p>我们从函数定义中可以看到，使用register_chrdev函数向内核申请设备号，同一类字 符设备（即主设备号相同），会在内核中申请了256个，通常情况下，我们不需要用到这么多个设备，这就造成了极大的资源浪费。所以一般也不用这个函数。</p>
+<h3 id="1-2-设备号的释放"><a href="#1-2-设备号的释放" class="headerlink" title="1.2 设备号的释放"></a><font size=3>1.2 设备号的释放</font></h3><h4 id="1-2-1-unregister-chrdev-region函数"><a href="#1-2-1-unregister-chrdev-region函数" class="headerlink" title="1.2.1 unregister_chrdev_region函数"></a><font size=3>1.2.1 unregister_chrdev_region函数</font></h4><p>当我们删除字符设备时候，我们需要把分配的设备编号交还给内核，对于使用register_chrdev_region函数 以及alloc_chrdev_region函数分配得到的设备编号，可以使用unregister_chrdev_region函数实现该功能。该函数声明在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L2593">fs.h - include&#x2F;linux&#x2F;fs.h - <em>unregister_chrdev_region</em></a>，定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/char_dev.c#L311">char_dev.c - fs&#x2F;char_dev.c - <em>unregister_chrdev_region</em></a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * unregister_chrdev_region() - unregister a range of device numbers</span></span><br><span class="line"><span class="comment"> * @from: the first in the range of numbers to unregister</span></span><br><span class="line"><span class="comment"> * @count: the number of device numbers to unregister</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This function will unregister a range of @count device numbers,</span></span><br><span class="line"><span class="comment"> * starting with @from.  The caller should normally be the one who</span></span><br><span class="line"><span class="comment"> * allocated those numbers in the first place...</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">unregister_chrdev_region</span><span class="params">(<span class="type">dev_t</span> from, <span class="type">unsigned</span> count)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>参数：</strong></p>
+<ul>
+<li><strong>from</strong>：指定需要注销的字符设备的设备编号起始值，我们一般将定义的dev_t变量作为实参。</li>
+<li><strong>count</strong>：指定需要注销的字符设备编号的个数，该值应与申请函数的count值相等，通常采用宏定义进行管理。</li>
+</ul>
+<p><strong>返回值：</strong> 无</p>
+<h4 id="1-2-2-unregister-chrdev函数"><a href="#1-2-2-unregister-chrdev函数" class="headerlink" title="1.2.2 unregister_chrdev函数"></a><font size=3>1.2.2 unregister_chrdev函数</font></h4><p>使用register_chrdev函数申请的设备号，则应该使用unregister_chrdev函数进行注销。这也是一个内联函数，定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/fs.h#L2602">fs.h - include&#x2F;linux&#x2F;fs.h - <em>unregister_chrdev</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">void</span> <span class="title function_">unregister_chrdev</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> major, <span class="type">const</span> <span class="type">char</span> *name)</span></span><br><span class="line">&#123;</span><br><span class="line">	__unregister_chrdev(major, <span class="number">0</span>, <span class="number">256</span>, name);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>参数：</strong></p>
+<ul>
+<li><strong>major</strong>：指定需要释放的字符设备的主设备号，一般使用register_chrdev函数的返回值作为实参。</li>
+<li><strong>name</strong>：执行需要释放的字符设备的名称。</li>
+</ul>
+<p><strong>返回值：</strong> 无</p>
+<h2 id="2-字符设备"><a href="#2-字符设备" class="headerlink" title="2. 字符设备"></a><font size=3>2. 字符设备</font></h2><h3 id="2-1-字符设备的定义"><a href="#2-1-字符设备的定义" class="headerlink" title="2.1 字符设备的定义"></a><font size=3>2.1 字符设备的定义</font></h3><p>Linux内核提供了两种方式来定义字符设备，如下所示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//第一种方式</span></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">cdev</span> <span class="title">chrdev</span>;</span></span><br><span class="line"><span class="comment">//第二种方式</span></span><br><span class="line"><span class="keyword">struct</span> cdev *<span class="title function_">cdev_alloc</span><span class="params">(<span class="type">void</span>)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>第一种方式，就是我们常见的变量定义；第二种方式，是内核提供的动态分配方式，调用该函数之 后，会返回一个struct cdev类型的指针，用于描述字符设备。struct cdev结构体定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/cdev.h#L14">cdev.h - include&#x2F;linux&#x2F;cdev.h - <em>struct cdev</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cdev</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">kobject</span> <span class="title">kobj</span>;</span> <span class="comment">// 内嵌的内核对象.</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">module</span> *<span class="title">owner</span>;</span><span class="comment">// 该字符设备所在的内核模块的对象指针</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> *<span class="title">ops</span>;</span> <span class="comment">// 该结构描述了字符设备所能实现的方法，是极为关键的一个结构体.</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">list</span>;</span><span class="comment">// 用来将已经向内核注册的所有字符设备形成链表</span></span><br><span class="line">	<span class="type">dev_t</span> dev;            <span class="comment">// 字符设备的设备号，由主设备号和次设备号构成.</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">int</span> count;   <span class="comment">// 隶属于同一主设备号的次设备号的个数.</span></span><br><span class="line">&#125; __randomize_layout;</span><br></pre></td></tr></table></figure>
+
+<p>cdev_alloc函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/char_dev.c#L639">char_dev.c - fs&#x2F;char_dev.c - <em>cdev_alloc</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * cdev_alloc() - allocate a cdev structure</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Allocates and returns a cdev structure, or NULL on failure.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">struct</span> cdev *<span class="title function_">cdev_alloc</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-字符设备的初始化"><a href="#2-2-字符设备的初始化" class="headerlink" title="2.2 字符设备的初始化"></a><font size=3>2.2 字符设备的初始化</font></h3><h4 id="2-2-1-cdev-init函数"><a href="#2-2-1-cdev-init函数" class="headerlink" title="2.2.1 cdev_init函数"></a><font size=3>2.2.1 cdev_init函数</font></h4><p>前面我们已经提到过了，编写一个字符设备最重要的事情，就是要实现file_operations这个结构体中的函数。 实现之后，如何将该结构体与我们的字符设备结构体相关联呢？内核提供了cdev_init函数，来实现这个过程。cdev_init函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/char_dev.c#L657">char_dev.c - fs&#x2F;char_dev.c - <em>cdev_init</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * cdev_init() - initialize a cdev structure</span></span><br><span class="line"><span class="comment"> * @cdev: the structure to initialize</span></span><br><span class="line"><span class="comment"> * @fops: the file_operations for this device</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Initializes @cdev, remembering @fops, making it ready to add to the</span></span><br><span class="line"><span class="comment"> * system with cdev_add().</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">cdev_init</span><span class="params">(<span class="keyword">struct</span> cdev *cdev, <span class="type">const</span> <span class="keyword">struct</span> file_operations *fops)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>函数参数和返回值如下：</p>
+<p><strong>参数：</strong></p>
+<ul>
+<li><strong>cdev</strong>：struct cdev类型的指针变量，指向需要关联的字符设备结构体；</li>
+<li><strong>fops</strong>：file_operations类型的结构体指针变量，一般将实现操作该设备的结构体file_operations结构体作为实参。</li>
+</ul>
+<p><strong>返回值：</strong> 无</p>
+<h4 id="2-2-2-使用实例"><a href="#2-2-2-使用实例" class="headerlink" title="2.2.2 使用实例"></a><font size=3>2.2.2 使用实例</font></h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">cdev</span> <span class="title">g_cdev_dev</span>;</span>    <span class="comment">// 定义cdev结构体类型的变量g_cdev_dev</span></span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">chrdev_open</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *file)</span>;</span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">chrdev_read</span><span class="params">(<span class="keyword">struct</span> file *file,<span class="type">char</span> __user *buf, <span class="type">size_t</span> size, <span class="type">loff_t</span> *off)</span>;</span><br><span class="line"><span class="type">static</span> <span class="type">ssize_t</span> <span class="title function_">chrdev_write</span><span class="params">(<span class="keyword">struct</span> file *file,<span class="type">const</span> <span class="type">char</span> __user *buf,<span class="type">size_t</span> size,<span class="type">loff_t</span> *off)</span>;</span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">chrdev_release</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *file)</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> <span class="title">g_cdev_dev_ops</span> =</span> &#123;</span><br><span class="line">    .owner = THIS_MODULE,<span class="comment">//将owner字段指向本模块，可以避免在模块的操作正在被使用时卸载该模块</span></span><br><span class="line">	.open = chrdev_open,</span><br><span class="line">	.read = chrdev_read,</span><br><span class="line">	.write = chrdev_write,</span><br><span class="line">	.release = chrdev_release,</span><br><span class="line">&#125;; <span class="comment">// 定义file_operations结构体类型的变量g_cdev_dev_ops</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 模块入口函数</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> __init <span class="title function_">chrdev_xxx_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">    cdev_init(&amp;g_cdev_dev, &amp;g_cdev_dev_ops); <span class="comment">// 使用cdev_init()函数初始化g_cdev_dev结构体，并链接到g_cdev_dev_ops结构体</span></span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-字符设备的注册"><a href="#2-3-字符设备的注册" class="headerlink" title="2.3 字符设备的注册"></a><font size=3>2.3 字符设备的注册</font></h3><p>cdev_add函数用于向内核的cdev_map散列表添加一个新的字符设备，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/char_dev.c#L488">char_dev.c - fs&#x2F;char_dev.c - <em>cdev_add</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * cdev_add() - add a char device to the system</span></span><br><span class="line"><span class="comment"> * @p: the cdev structure for the device</span></span><br><span class="line"><span class="comment"> * @dev: the first device number for which this device is responsible</span></span><br><span class="line"><span class="comment"> * @count: the number of consecutive minor numbers corresponding to this</span></span><br><span class="line"><span class="comment"> *         device</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * cdev_add() adds the device represented by @p to the system, making it</span></span><br><span class="line"><span class="comment"> * live immediately.  A negative error code is returned on failure.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">cdev_add</span><span class="params">(<span class="keyword">struct</span> cdev *p, <span class="type">dev_t</span> dev, <span class="type">unsigned</span> count)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>参数：</strong></p>
+<ul>
+<li><strong>p</strong>：struct cdev类型的指针，用于指定需要添加的字符设备；</li>
+<li><strong>dev</strong>：dev_t类型变量，用于指定设备的起始编号；</li>
+<li><strong>count</strong>：指定注册多少个设备。</li>
+</ul>
+<p><strong>返回值：</strong> 错误码</p>
+<h3 id="2-4-字符设备的注销"><a href="#2-4-字符设备的注销" class="headerlink" title="2.4 字符设备的注销"></a><font size=3>2.4 字符设备的注销</font></h3><p>字符设备删除所用到的函数为cdev_del()，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/char_dev.c#L600">char_dev.c - fs&#x2F;char_dev.c - <em>cdev_del</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * cdev_del() - remove a cdev from the system</span></span><br><span class="line"><span class="comment"> * @p: the cdev structure to be removed</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * cdev_del() removes @p from the system, possibly freeing the structure</span></span><br><span class="line"><span class="comment"> * itself.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">NOTE:</span> This guarantees that cdev device will no longer be able to be</span></span><br><span class="line"><span class="comment"> * opened, however any cdevs already open will remain and their fops will</span></span><br><span class="line"><span class="comment"> * still be callable even after cdev_del returns.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">cdev_del</span><span class="params">(<span class="keyword">struct</span> cdev *p)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>参数：</strong></p>
+<ul>
+<li><strong>p</strong>：struct cdev类型的指针，用于指定需要删除的字符设备；</li>
+</ul>
+<p><strong>返回值：</strong> 无</p>
+<p>从系统中删除cdev，cdev设备将无法再打开，但任何已经打开的cdev将保持不变， 即使在cdev_del返回后，它们的FOP仍然可以调用。</p>
+<h2 id="3-设备节点"><a href="#3-设备节点" class="headerlink" title="3. 设备节点"></a><font size=3>3. 设备节点</font></h2><p>在 Linux 操作系统中一切皆文件，设备访问也是通过文件的方式来进行的，对于用来进行 设备访问的文件称之为设备节点，设备节点被创建在&#x2F;dev 目录下，将内核中注册的设备与用户 层进行链接，这样应用程序才能对设备进行访问。</p>
+<p>根据设备节点的创建方式不同，分为了手动创建设备节点和自动创建设备节点。</p>
+<h3 id="3-1-手动创建设备节点"><a href="#3-1-手动创建设备节点" class="headerlink" title="3.1 手动创建设备节点"></a><font size=3>3.1 手动创建设备节点</font></h3><h4 id="3-1-1-命令格式"><a href="#3-1-1-命令格式" class="headerlink" title="3.1.1 命令格式"></a><font size=3>3.1.1 命令格式</font></h4><p>当向内核注册好设备后，可以使用mknod命令创建设备节点。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mknod 设备名 设备类型 主设备号 次设备号</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>设备名就是我们要创建的节点名称，比如<code>/dev/driver_test</code>。</p>
+</li>
+<li><p>设备类型，就是这个设备是字符设备还是块设备还是网络设备。当类型为”p”时可不指定主设备号和次设备号，否则它们是必须指定的。 如果主设备号和次设备号以”0x”或”0X”开头，它们会被视作十六进制数来解析；如果以”0”开头，则被视作八进制数； 其余情况下被视作十进制数。可用的类型包括：</p>
+</li>
+</ul>
+<blockquote>
+<p>b 创建(有缓冲的)区块特殊文件</p>
+<p>c, u 创建(没有缓冲的)字符特殊文件</p>
+<p>p 创建先进先出(FIFO)特殊文件</p>
+</blockquote>
+<p>注意：根文件系统需要支持这个mknod命令才行。</p>
+<h4 id="3-1-2-mknod流程"><a href="#3-1-2-mknod流程" class="headerlink" title="3.1.2 mknod流程"></a><font size=3>3.1.2 mknod流程</font></h4><p>mknod命令最终会调用内核中的函数完成设备节点的创建。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E6%A1%86%E6%9E%B6/img/image-20241203233641293.png" alt="image-20241203233641293" style="zoom:50%;" />
+
+<p>当我们使用上述命令，创建了一个字符设备文件时，实际上就是创建了一个设备节点inode结构体， 并且将该设备的设备编号记录在成员i_rdev，将成员f_op指针指向了def_chr_fops结构体。 这就是mknod负责的工作内容，具体看这个<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/mm/shmem.c#L2182">shmem.c - mm&#x2F;shmem.c - <em>shmem_get_inode</em></a>函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">struct</span> inode *<span class="title function_">shmem_get_inode</span><span class="params">(<span class="keyword">struct</span> super_block *sb, <span class="type">const</span> <span class="keyword">struct</span> inode *dir,</span></span><br><span class="line"><span class="params">				     <span class="type">umode_t</span> mode, <span class="type">dev_t</span> dev, <span class="type">unsigned</span> <span class="type">long</span> flags)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">	inode = new_inode(sb);</span><br><span class="line">	<span class="keyword">if</span> (inode) &#123;</span><br><span class="line">		<span class="comment">// ......</span></span><br><span class="line">		<span class="keyword">switch</span> (mode &amp; S_IFMT) &#123;</span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">			inode-&gt;i_op = &amp;shmem_special_inode_operations;</span><br><span class="line">			init_special_inode(inode, mode, dev);</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		<span class="comment">// ......</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		lockdep_annotate_inode_mutex_key(inode);</span><br><span class="line">	&#125; <span class="keyword">else</span></span><br><span class="line">		shmem_free_inode(sb);</span><br><span class="line">	<span class="keyword">return</span> inode;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>mknod命令最终执行init_special_inode函数这个函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/inode.c#L1982">inode.c - fs&#x2F;inode.c - <em>init_special_inode</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">init_special_inode</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="type">umode_t</span> mode, <span class="type">dev_t</span> rdev)</span></span><br><span class="line">&#123;</span><br><span class="line">	inode-&gt;i_mode = mode;</span><br><span class="line">	<span class="keyword">if</span> (S_ISCHR(mode)) &#123;</span><br><span class="line">		inode-&gt;i_fop = &amp;def_chr_fops;</span><br><span class="line">		inode-&gt;i_rdev = rdev;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> (S_ISBLK(mode)) &#123;</span><br><span class="line">		inode-&gt;i_fop = &amp;def_blk_fops;</span><br><span class="line">		inode-&gt;i_rdev = rdev;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> (S_ISFIFO(mode))</span><br><span class="line">		inode-&gt;i_fop = &amp;pipefifo_fops;</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (S_ISSOCK(mode))</span><br><span class="line">		;	<span class="comment">/* leave it no_open_fops */</span></span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		printk(KERN_DEBUG <span class="string">&quot;init_special_inode: bogus i_mode (%o) for&quot;</span></span><br><span class="line">				  <span class="string">&quot; inode %s:%lu\n&quot;</span>, mode, inode-&gt;i_sb-&gt;s_id,</span><br><span class="line">				  inode-&gt;i_ino);</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(init_special_inode);</span><br></pre></td></tr></table></figure>
+
+<p>第4 - 17 行判断文件的inode类型，如果是字符设备类型，则把def_chr_fops作为该文件的操作接口，并把设备号记录在inode&rarr;i_rdev。</p>
+<blockquote>
+<p>Tips：inode上的file_operation并不是自己构造的file_operation，而是字符设备通用的def_chr_fops， 那么自己构建的file_operation等在应用程序调用open函数之后，才会绑定在文件上。</p>
+</blockquote>
+<h4 id="3-1-3-使用实例"><a href="#3-1-3-使用实例" class="headerlink" title="3.1.3 使用实例"></a><font size=3>3.1.3 使用实例</font></h4><p>上面我们看到手动创建设备节点需要知道设备的主设备号和次设备号，我们只是创建了一个字符设备，申请了设备号，只能在这个<code>/proc/devices</code>文件中看到主设备号。所以要是手动创建设备节点的话，我们需要在申请设备号后打印出来为设备分配的主设备号和次设备号。知道了主设备号和次设备号的时候，我们可以这样创建设备节点：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkmod /dev/chrdev_node c 246 0</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-自动创建设备节点"><a href="#3-2-自动创建设备节点" class="headerlink" title="3.2 自动创建设备节点"></a><font size=3>3.2 自动创建设备节点</font></h3><h4 id="3-2-1-linux热拔插机制"><a href="#3-2-1-linux热拔插机制" class="headerlink" title="3.2.1 linux热拔插机制"></a><font size=3>3.2.1 linux热拔插机制</font></h4><p>能不能让系统自动创建设备节点？除了使用mknod命令手动创建设备节点，还可以利用linux的udev、mdev机制，这就涉及到linux的热拔插机制了。</p>
+<p>Linux的热插拔支持是一个连接底层硬件、内核空间和用户空间程序的机制，且一直在变化。而设备文件系统有<strong>devfs、mdev、udev</strong>这三种。</p>
+<p>在对待设备文件这块，Linux改变了几次策略。在Linux早期，设备文件仅仅是是一些带有适当的属性集的普通文件，它由mknod命令创建，文件存放在&#x2F;dev目录下。后来，采用了devfs, 一个基于内核的动态设备文件系统，他首次出现在2.3.46内核中。Mandrake，Gentoo等Linux分发版本采用了这种方式。devfs创建 的设备文件是动态的。但是devfs有一些严重的限制，从2.6.13版本后移走了。目前取代他的是udev（PC机上的linux中）和mdev（嵌入式linux系统）。</p>
+<p>我们的ARM开发板上移植的busybox一般都有mdev机制，mdev是busybox自带的一个简化版的udev。mdev也是使用uevent机制处理热插拔问题的用户空间程序。</p>
+<p>mdev是基于uevent_helper机制的，它在系统启动时修改了内核中的uevnet_helper变量（通过写 &#x2F;proc&#x2F;sys&#x2F;kernel&#x2F;hotplug ），值为“&#x2F;sbin&#x2F;mdev”。这样内核产生uevent时会调用uevent_helper所指的用户级程序，也就是mdev，来执行相应的热拔插动作。mdev使用的uevent_helper机制实现简单，适合用在嵌入式系统中。</p>
+<p>那么就可以使用mdev机制来自动创建设备节点。文件系统里，在哪里设置了mdev机制？在etc&#x2F;init.d&#x2F;rcS文件里有一句：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo /sbin/mdev &gt; /proc/sys/kernel/hotplug</span><br></pre></td></tr></table></figure>
+
+<p>要是没有的话，可以加上。</p>
+<h4 id="3-2-2-udev简介"><a href="#3-2-2-udev简介" class="headerlink" title="3.2.2 udev简介"></a><font size=3>3.2.2 udev简介</font></h4><p>udev是基于netlink机制的通过监听内核发送的uevent来执行相应的热拔插动作，它能根据系统中硬件设备的状态动态的更新设备文件，包括设备文件的创建，删除，权限等。它能根据系统中硬件设备的状态动态的更新设备文件，包括设备文件的创建，删除，权限等。udev 的初始化脚本在系统启动时创建设备节点，并且当插入新设备——加入驱动模块——在sysfs上注册新的数据后，udev会创新新的设备节点。</p>
+<p>udev 是一个工作在用户空间的工具，它必须有内核中的sysfs和tmpfs支持，sysfs 为udev 提供设备入口和uevent 通道，tmpfs 为udev 设备文件提供存放空间。</p>
+<p>注意，udev 是通过对内核产生的设备文件修改，或增加别名的方式来达到自定义设备文件的目的。但是，udev 是用户模式程序，其不会更改内核行为。也就是说，内核仍然会创建sda，sdb等设备文件，而udev可根据设备的唯一信息来区分不同的设备，并产生新的设备文件（或链接）。</p>
+<p>udev 通过在 sysfs 的 &#x2F;class&#x2F; 和&#x2F;block&#x2F; 目录树中查找一个称为 dev 的文件，以确定所创建的设备节点文件的主次设备号。所以要使用udev，驱动必须为设备在sysfs中创建类接口及其dev属性文件，方法和sculld模块中创建dev属性相同。</p>
+<blockquote>
+<p>基本工作原理如下：</p>
+<p>当系统内核发现系统中添加或者删除了某个新的设备时，内核检测到后会产生一个hotplug event并查找 &#x2F;proc&#x2F;sys&#x2F;kernel&#x2F;hotplug 去找出管理设备连接的用户空间程序。若udev已经启动，内核会通知udev去检测sysfs中关于这个新设备的信息并创建设备节点。udev就会去执行udevd，以便让udevd可以产生或者删除硬件的设备文件。 </p>
+<p>接着udevd会通过libsysfs读取sys文件系统，以便取得该硬件设备的信息(如&#x2F;dev&#x2F;tty0，在 &#x2F;sys&#x2F;class&#x2F;tty&#x2F;tty0&#x2F;dev 存放的是”4:0”，即&#x2F;dev&#x2F;tty0的主次设备号)；然后再向namedev查询该外部设备的设备文件信息，例如文件的名称、权限等。最后，udevd就依据上述的结果，在&#x2F;dev&#x2F;目录中自动建立该外部设备的设备文件，同时在&#x2F;etc&#x2F;udev&#x2F;rules.d下检查有无针对该设备的使用权限。</p>
+<p>当设备插入或移除时，hotplug机制会让内核会通过netlink socket通讯(内核调用kobject_uevent函数发送netlink message给用户空间，该功能由内核的统一设备模型里的子系统这一层实现)向用户传递一个事件的发生，udevd通过标准的socket机制，创建socket连接来获取内核广播的uevent事件 并解析这些uevent事件。</p>
+<p>运行udevd以后，使用udevtrigger的时候，会把内核中已存在的设备的节点创建出来，其具体过程为：udevtrigger通过向&#x2F;sysfs 文件系统下现有设备的uevent节点写”add”字符串，从而触发uevent事件，使得udevd能够接收到这些事件，并创建buildin的设备驱动的设备节点连同任何已insmod的模块的设备节点。</p>
+</blockquote>
+<p>大概就先了解到这里，后续有必要的话再详细学习。</p>
+<h4 id="3-2-3-相关函数"><a href="#3-2-3-相关函数" class="headerlink" title="3.2.3 相关函数"></a><font size=3>3.2.3 相关函数</font></h4><p>前面大概了解了udev，其实设备文件的自动创建就是利用 udev（mdev）机制来实现，多数情况下采用自动创建设备节点 的方式。</p>
+<p>udev（mdev）可以检测系统中硬件设备状态，可以根据系统中硬件设备状态来创建或者 删除设备文件。在驱动中首先使用 class_create()函数对 class 进行创建，这个类存放于 &#x2F;sys&#x2F;class&#x2F; 目录下，之后使用 device_create() 函数创建相应的设备，在进行模块加载时，用户空间中的 udev 会自动响应 device_create()函数，寻找对应的类从而创建设备节点。</p>
+<h5 id="3-2-3-1-类的创建"><a href="#3-2-3-1-类的创建" class="headerlink" title="3.2.3.1 类的创建"></a><font size=3>3.2.3.1 类的创建</font></h5><p>class_create()函数用于创建一个类，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/include/linux/device.h#L537">device.h - include&#x2F;linux&#x2F;device.h - <em>class_create</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* This is a #define to keep the compiler from merging different</span></span><br><span class="line"><span class="comment"> * instances of the __key variable */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> class_create(owner, name)		\</span></span><br><span class="line"><span class="meta">(&#123;						\</span></span><br><span class="line"><span class="meta">	static struct lock_class_key __key;	\</span></span><br><span class="line"><span class="meta">	__class_create(owner, name, &amp;__key);	\</span></span><br><span class="line"><span class="meta">&#125;)</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>该函数用于动态创建设备的逻辑类，并完成部分字段的初始化，然后将其添加进 Linux 内核系统。</p>
+<p><strong>参数：</strong></p>
+<ul>
+<li>owner：struct module 结构体类型的指针，指向函数即将创建的这个 struct class 的模块。 一般赋值为 THIS_MODULE。</li>
+<li>name：char 类型的指针，代表即将创建的 struct class 变量的名字。 这里的名字将会在<code>/sys/class</code>中出现。</li>
+</ul>
+<p><strong>返回值：</strong>struct class * 类型的结构体。</p>
+<h5 id="3-2-3-2-类的销毁"><a href="#3-2-3-2-类的销毁" class="headerlink" title="3.2.3.2 类的销毁"></a><font size=3>3.2.3.2 类的销毁</font></h5><p>class_destroy()函数用于销毁创建的类，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/class.c#L254">class.c - drivers&#x2F;base&#x2F;class.c - <em>class_destroy</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * class_destroy - destroys a struct class structure</span></span><br><span class="line"><span class="comment"> * @cls: pointer to the struct class that is to be destroyed</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Note, the pointer to be destroyed must have been created with a call</span></span><br><span class="line"><span class="comment"> * to class_create().</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">class_destroy</span><span class="params">(<span class="keyword">struct</span> class *cls)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">if</span> ((cls == <span class="literal">NULL</span>) || (IS_ERR(cls)))</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">	class_unregister(cls);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>用于删除设备的逻辑类，即从 Linux 内核系统中删除设备的逻辑类。</p>
+<p><strong>参数：</strong> </p>
+<ul>
+<li>cls：要销毁的类的指针。</li>
+</ul>
+<p><strong>返回值：</strong>无</p>
+<h5 id="3-2-3-3-设备节点创建"><a href="#3-2-3-3-设备节点创建" class="headerlink" title="3.2.3.3 设备节点创建"></a><font size=3>3.2.3.3 设备节点创建</font></h5><p>device_create()函数用于创建一个设备并将其注册到文件系统，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L2620">core.c - drivers&#x2F;base&#x2F;core.c - <em>device_create</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * device_create - creates a device and registers it with sysfs</span></span><br><span class="line"><span class="comment"> * @class: pointer to the struct class that this device should be registered to</span></span><br><span class="line"><span class="comment"> * @parent: pointer to the parent struct device of this new device, if any</span></span><br><span class="line"><span class="comment"> * @devt: the dev_t for the char device to be added</span></span><br><span class="line"><span class="comment"> * @drvdata: the data to be added to the device for callbacks</span></span><br><span class="line"><span class="comment"> * @fmt: string for the device&#x27;s name</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This function can be used by char device classes.  A struct device</span></span><br><span class="line"><span class="comment"> * will be created in sysfs, registered to the specified class.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * A &quot;dev&quot; file will be created, showing the dev_t for the device, if</span></span><br><span class="line"><span class="comment"> * the dev_t is not 0,0.</span></span><br><span class="line"><span class="comment"> * If a pointer to a parent struct device is passed in, the newly created</span></span><br><span class="line"><span class="comment"> * struct device will be a child of that device in sysfs.</span></span><br><span class="line"><span class="comment"> * The pointer to the struct device will be returned from the call.</span></span><br><span class="line"><span class="comment"> * Any further sysfs files that might be required can be created using this</span></span><br><span class="line"><span class="comment"> * pointer.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Returns &amp;struct device pointer on success, or ERR_PTR() on error.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Note: the struct class passed to this function must have previously</span></span><br><span class="line"><span class="comment"> * been created with a call to class_create().</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">struct</span> device *<span class="title function_">device_create</span><span class="params">(<span class="keyword">struct</span> class *class, <span class="keyword">struct</span> device *parent,</span></span><br><span class="line"><span class="params">			     <span class="type">dev_t</span> devt, <span class="type">void</span> *drvdata, <span class="type">const</span> <span class="type">char</span> *fmt, ...)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(device_create);</span><br></pre></td></tr></table></figure>
+
+<p>它会在 class 类中下创建一个设备属性文件，udev 会自动识别从而进行设备节点的创建。</p>
+<p><strong>参数：</strong></p>
+<ul>
+<li><strong>class</strong>：指向这个设备应该注册到的struct类的指针；</li>
+<li><strong>parent</strong>：指向此新设备的父结构设备（如果有）的指针；如果没有就指定为 NULL。</li>
+<li><strong>devt</strong>：要添加的char设备的设备号；</li>
+<li><strong>drvdata</strong>：要添加到设备进行回调的数据；没有则指定为 NULL。</li>
+<li><strong>fmt</strong>：设备名称，这里的名称将会在<code>/dev/</code>下显示。</li>
+</ul>
+<p><strong>返回值：</strong> 成功时返回 struct device 结构体指针, 错误时返回ERR_PTR().</p>
+<h5 id="3-2-3-4-设备节点的销毁"><a href="#3-2-3-4-设备节点的销毁" class="headerlink" title="3.2.3.4 设备节点的销毁"></a><font size=3>3.2.3.4 设备节点的销毁</font></h5><p>删除使用device_create函数创建的设备的时候使用device_destroy()函数，它定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/drivers/base/core.c#L2692">core.c - drivers&#x2F;base&#x2F;core.c - <em>device_create</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * device_destroy - removes a device that was created with device_create()</span></span><br><span class="line"><span class="comment"> * @class: pointer to the struct class that this device was registered with</span></span><br><span class="line"><span class="comment"> * @devt: the dev_t of the device that was previously registered</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This call unregisters and cleans up a device that was created with a</span></span><br><span class="line"><span class="comment"> * call to device_create().</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">device_destroy</span><span class="params">(<span class="keyword">struct</span> class *class, <span class="type">dev_t</span> devt)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device</span> *<span class="title">dev</span>;</span></span><br><span class="line"></span><br><span class="line">	dev = class_find_device(class, <span class="literal">NULL</span>, &amp;devt, __match_devt);</span><br><span class="line">	<span class="keyword">if</span> (dev) &#123;</span><br><span class="line">		put_device(dev);</span><br><span class="line">		device_unregister(dev);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL_GPL(device_destroy);</span><br></pre></td></tr></table></figure>
+
+<p>这个函数删除 class 类中的设备属性文件，udev 会自动识别从而进行设备节点的删除。</p>
+<p><strong>参数：</strong></p>
+<ul>
+<li><strong>class</strong>：指定所要销毁的设备所从属的类。</li>
+<li><strong>devt</strong>：以前注册的设备的设备号；</li>
+</ul>
+<p><strong>返回值：</strong> 无</p>
+<h1 id="三、open函数"><a href="#三、open函数" class="headerlink" title="三、open函数"></a><font size=3>三、open函数</font></h1><h2 id="1-过程简介"><a href="#1-过程简介" class="headerlink" title="1. 过程简介"></a><font size=3>1. 过程简介</font></h2><p>使用设备之前我们通常都需要调用open函数，这个函数一般用于设备专有数据的初始化，申请相关资源及进行设备的初始化等工作， 对于简单的设备而言，open函数可以不做具体的工作，你在应用层通过系统调用open打开设备时， 如果打开正常，就会得到该设备的文件描述符，之后，我们就可以通过该描述符对设备进行read和write等操作； open函数到底做了些什么工作？下图中列出了open函数执行的大致过程。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E6%A1%86%E6%9E%B6/img/image-20241203230011695.png" alt="image-20241203230011695" />
+
+<p>用户空间使用open()系统调用函数打开一个字符设备时(int fd &#x3D; open(“dev&#x2F;xxx”, O_RDWR))大致有以下过程：</p>
+<ul>
+<li>在虚拟文件系统VFS中的查找对应与字符设备对应 struct inode节点</li>
+<li>遍历散列表cdev_map，根据inod节点中的 cdev_t设备号找到cdev对象</li>
+<li>创建struct file对象（系统采用一个数组来管理一个进程中的多个被打开的设备，每个文件秒速符作为数组下标标识了一个设备对象）</li>
+<li>初始化struct file对象，将 struct file对象中的 file_operations成员指向 struct cdev对象中的 file_operations成员（file&rarr;fops &#x3D; cdev&rarr;fops）</li>
+<li>回调file&rarr;fops&rarr;open函数。</li>
+</ul>
+<h2 id="2-过程分析"><a href="#2-过程分析" class="headerlink" title="2. 过程分析"></a><font size=3>2. 过程分析</font></h2><p>我们使用的open函数在内核中对应的是sys_open函数，sys_open函数又会调用do_sys_open函数。在do_sys_open函数中， 首先调用函数get_unused_fd_flags来获取一个未被使用的文件描述符fd，该文件描述符就是我们最终通过open函数得到的值。 紧接着，又调用了do_filp_open函数，该函数通过调用函数get_empty_filp得到一个新的file结构体，之后的代码做了许多复杂的工作， 如解析文件路径，查找该文件的文件节点inode等，直接来到了函数do_dentry_open函数，这个函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/open.c#L735">open.c - fs&#x2F;open.c - <em>do_dentry_open</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">do_dentry_open</span><span class="params">(<span class="keyword">struct</span> file *f,</span></span><br><span class="line"><span class="params">			  <span class="keyword">struct</span> inode *inode,</span></span><br><span class="line"><span class="params">			  <span class="type">int</span> (*open)(<span class="keyword">struct</span> inode *, <span class="keyword">struct</span> file *))</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">	f-&gt;f_op = fops_get(inode-&gt;i_fop);</span><br><span class="line">	<span class="keyword">if</span> (unlikely(WARN_ON(!f-&gt;f_op))) &#123;</span><br><span class="line">		error = -ENODEV;</span><br><span class="line">		<span class="keyword">goto</span> cleanup_all;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">	<span class="keyword">if</span> (!open)</span><br><span class="line">		open = f-&gt;f_op-&gt;open;</span><br><span class="line">	<span class="keyword">if</span> (open) &#123;</span><br><span class="line">		error = open(inode, f);</span><br><span class="line">		<span class="keyword">if</span> (error)</span><br><span class="line">			<span class="keyword">goto</span> cleanup_all;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// ......</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第 6 行：使用fops_get函数来获取该文件节点inode的成员变量i_fop，在前面我们使用mknod创建字符设备文件时，将def_chr_fops结构体赋值给了该设备文件inode的i_fop成员。</li>
+<li>第 13 行：到了这里，我们新建的file结构体的成员f_op就指向了def_chr_fops。</li>
+</ul>
+<p>def_chr_fops结构体定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/char_dev.c#L461">char_dev.c - fs&#x2F;char_dev.c - <em>def_chr_fops</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Dummy default file-operations: the only thing this does</span></span><br><span class="line"><span class="comment"> * is contain the open that then fills in the correct operations</span></span><br><span class="line"><span class="comment"> * depending on the special file...</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> <span class="title">def_chr_fops</span> =</span> &#123;</span><br><span class="line">	.open = chrdev_open,</span><br><span class="line">	.llseek = noop_llseek,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>最终，会执行def_chr_fops中的open函数，也就是chrdev_open函数，可以理解为一个字符设备的通用初始化函数，根据字符设备的设备号， 找到相应的字符设备，从而得到操作该设备的方法：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/02IMX6ULL%E5%B9%B3%E5%8F%B0/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/LV06-03-chrdev-02-%E5%AD%97%E7%AC%A6%E8%AE%BE%E5%A4%87%E9%A9%B1%E5%8A%A8%E6%A1%86%E6%9E%B6/img/image-20241203233543469.png" alt="image-20241203233543469" />
+
+<p>chrdev_open函数定义在<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/v4.19.71/source/fs/char_dev.c#L382">char_dev.c - fs&#x2F;char_dev.c - <em>chrdev_open</em></a>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Called every time a character special file is opened</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">chrdev_open</span><span class="params">(<span class="keyword">struct</span> inode *inode, <span class="keyword">struct</span> file *filp)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> *<span class="title">fops</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cdev</span> *<span class="title">p</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cdev</span> *<span class="title">new</span> =</span> <span class="literal">NULL</span>;</span><br><span class="line">	<span class="type">int</span> ret = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	spin_lock(&amp;cdev_lock);</span><br><span class="line">	p = inode-&gt;i_cdev;</span><br><span class="line">	<span class="keyword">if</span> (!p) &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">kobject</span> *<span class="title">kobj</span>;</span></span><br><span class="line">		<span class="type">int</span> idx;</span><br><span class="line">		spin_unlock(&amp;cdev_lock);</span><br><span class="line">		kobj = kobj_lookup(cdev_map, inode-&gt;i_rdev, &amp;idx);</span><br><span class="line">		<span class="keyword">if</span> (!kobj)</span><br><span class="line">			<span class="keyword">return</span> -ENXIO;</span><br><span class="line">		new = container_of(kobj, <span class="keyword">struct</span> cdev, kobj);</span><br><span class="line">		spin_lock(&amp;cdev_lock);</span><br><span class="line">		<span class="comment">/* Check i_cdev again in case somebody beat us to it while</span></span><br><span class="line"><span class="comment">		   we dropped the lock. */</span></span><br><span class="line">		p = inode-&gt;i_cdev;</span><br><span class="line">		<span class="keyword">if</span> (!p) &#123;</span><br><span class="line">			inode-&gt;i_cdev = p = new;</span><br><span class="line">			list_add(&amp;inode-&gt;i_devices, &amp;p-&gt;<span class="built_in">list</span>);</span><br><span class="line">			new = <span class="literal">NULL</span>;</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> (!cdev_get(p))</span><br><span class="line">			ret = -ENXIO;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> (!cdev_get(p))</span><br><span class="line">		ret = -ENXIO;</span><br><span class="line">	spin_unlock(&amp;cdev_lock);</span><br><span class="line">	cdev_put(new);</span><br><span class="line">	<span class="keyword">if</span> (ret)</span><br><span class="line">		<span class="keyword">return</span> ret;</span><br><span class="line"></span><br><span class="line">	ret = -ENXIO;</span><br><span class="line">	fops = fops_get(p-&gt;ops);</span><br><span class="line">	<span class="keyword">if</span> (!fops)</span><br><span class="line">		<span class="keyword">goto</span> out_cdev_put;</span><br><span class="line"></span><br><span class="line">	replace_fops(filp, fops);</span><br><span class="line">	<span class="keyword">if</span> (filp-&gt;f_op-&gt;open) &#123;</span><br><span class="line">		ret = filp-&gt;f_op-&gt;open(inode, filp);</span><br><span class="line">		<span class="keyword">if</span> (ret)</span><br><span class="line">			<span class="keyword">goto</span> out_cdev_put;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"> out_cdev_put:</span><br><span class="line">	cdev_put(p);</span><br><span class="line">	<span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在Linux内核中，使用结构体cdev来描述一个字符设备。</p>
+<ul>
+<li>第 12 行：inode&rarr;i_rdev中保存了字符设备的设备编号，</li>
+<li>第 17 行：通过函数kobj_lookup函数便可以找到该设备文件cdev结构体的kobj成员，</li>
+<li>第 20 行：再通过函数container_of便可以得到该字符设备对应的结构体cdev。函数container_of的作用就是通过一个结构变量中一个成员的地址找到这个结构体变量的首地址。同时，将cdev结构体记录到文件节点inode中的i_cdev，便于下次打开该文件。</li>
+<li>第 43 ~ 48 行：函数chrdev_open最终将该文件结构体file的成员f_op替换成了cdev对应的ops成员，并执行ops结构体中的open函数。</li>
+</ul>
+<p>最后，调用上图的fd_install函数，完成文件描述符和文件结构体file的关联，之后我们使用对该文件描述符fd调用read、write函数， 最终都会调用file结构体对应的函数，实际上也就是调用cdev结构体中ops结构体内的相关函数。</p>
+<h2 id="3-总结"><a href="#3-总结" class="headerlink" title="3. 总结"></a><font size=3>3. 总结</font></h2><p>总结一下整个过程，当我们使用open函数，打开设备文件时，会根据该设备的文件的设备号找到相应的设备结构体， 从而得到了操作该设备的方法。也就是说如果我们要添加一个新设备的话，我们需要提供一个设备号， 一个设备结构体以及操作该设备的方法（file_operations结构体）。</p>
+<blockquote>
+<p>参考资料：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/liangzc1124/article/details/122763174">热插拔机制之udev和mdev-CSDN博客</a></p>
+<p><a target="_blank" rel="noopener" href="https://news.eeworld.com.cn/mp/yikoulinux/a327640.jspx">手把手教Linux驱动4-自动创建设备节点-电子头条-EEWORLD电子工程世界</a></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/82028882.html">LV06-03-chrdev-02-字符设备驱动框架</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年12月17日 - 23:33</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/82028882.html" title="LV06-03-chrdev-02-字符设备驱动框架">https://sumumm.github.io/post/82028882.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV06-%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV06-驱动开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/263a606.html" rel="prev" title="LV06-03-chrdev-03-内核空间与用户空间数据交互">
+                  <i class="fa fa-angle-left"></i> LV06-03-chrdev-03-内核空间与用户空间数据交互
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/97a3cc8e.html" rel="next" title="LV06-03-chrdev-01-字符设备基础">
+                  LV06-03-chrdev-01-字符设备基础 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

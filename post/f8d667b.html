@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是编译与调试——ARM的平台的GCC相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV02-03-编译与调试-03-ARM平台的GCC">
+<meta property="og:url" content="https://sumumm.github.io/post/f8d667b.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是编译与调试——ARM的平台的GCC相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20220512190533043.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030184212314.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/gcchel011.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/gcchel012.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/gcchel013.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030190450042.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030193314574.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030194149311.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030190749224.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030191029674.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030190958082.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030192355613.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030195033371.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030195112625.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030195141504.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030195500369.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030195624016.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030195956100.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030200140743.png">
+<meta property="article:published_time" content="2024-10-30T00:00:17.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:56.989Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV02-编译基础">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20220512190533043.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/f8d667b.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":"","permalink":"https://sumumm.github.io/post/f8d667b.html","path":"post/f8d667b.html","title":"LV02-03-编译与调试-03-ARM平台的GCC"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV02-03-编译与调试-03-ARM平台的GCC | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C"><span class="nav-text">一、准备工作</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%83%A7%E5%86%99%E5%87%BA%E5%8E%82%E7%B3%BB%E7%BB%9F"><span class="nav-text">1. 烧写出厂系统</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%85%8D%E7%BD%AE%E7%BD%91%E7%BB%9C%E7%8E%AF%E5%A2%83"><span class="nav-text">2. 配置网络环境</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-NFS%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA"><span class="nav-text">3. NFS环境搭建</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-arm%E5%B9%B3%E5%8F%B0GCC"><span class="nav-text">4. arm平台GCC</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%B5%8B%E8%AF%95%E6%96%87%E4%BB%B6"><span class="nav-text">5. 测试文件</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%9C%A8ARM%E6%9D%BF%E4%B8%8A%E8%BF%90%E8%A1%8Cx86-64%E5%B9%B3%E5%8F%B0%E7%9A%84%E7%A8%8B%E5%BA%8F"><span class="nav-text">二、在ARM板上运行x86_64平台的程序</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%85%88%E5%81%9A%E4%B8%AA%E6%B5%8B%E8%AF%95"><span class="nav-text">1. 先做个测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-ARM%E6%9D%BF%E4%B8%8A%E7%9A%84GCC"><span class="nav-text">2. ARM板上的GCC</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E9%93%BE"><span class="nav-text">3. 交叉编译工具链</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91"><span class="nav-text">3.1 交叉编译</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E5%AE%89%E8%A3%85ARM-GCC"><span class="nav-text">3.2 安装ARM-GCC</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91hello-c"><span class="nav-text">3.3 交叉编译hello.c</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-readelf%E6%9F%A5%E7%9C%8B%E4%B8%80%E4%B8%8B"><span class="nav-text">3.4 readelf查看一下</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E5%A6%82%E4%BD%95%E9%80%89%E6%8B%A9%E7%BC%96%E8%AF%91%E5%99%A8"><span class="nav-text">三、如何选择编译器</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%8E%BB%E5%93%AA%E4%B8%8B%E8%BD%BD%E7%BC%96%E8%AF%91%E5%99%A8%EF%BC%9F"><span class="nav-text">1. 去哪下载编译器？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%80%8E%E4%B9%88%E9%80%89%E6%8B%A9%EF%BC%9F"><span class="nav-text">2. 怎么选择？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E7%9B%AE%E6%A0%87%E8%8A%AF%E7%89%87%E6%9E%B6%E6%9E%84"><span class="nav-text">2.1 目标芯片架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%A4%A7%E5%B0%8F%E7%AB%AF"><span class="nav-text">2.2 大小端</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E7%9B%AE%E6%A0%87%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F"><span class="nav-text">2.3 目标操作系统</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-C%E6%A0%87%E5%87%86%E5%BA%93%E7%B1%BB%E5%9E%8B"><span class="nav-text">2.4 C标准库类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-%E5%BA%94%E7%94%A8%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%8E%A5%E5%8F%A3"><span class="nav-text">2.5 应用二进制接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6-%E6%B5%AE%E7%82%B9%E6%A8%A1%E5%BC%8F"><span class="nav-text">2.6 浮点模式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-7-%E7%BC%96%E8%AF%91%E5%99%A8%E7%89%88%E6%9C%AC%E5%8F%B7"><span class="nav-text">2.7 编译器版本号</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E7%BC%96%E8%AF%91%E5%99%A8%E7%B1%BB%E5%9E%8B%E5%AF%B9%E7%A8%8B%E5%BA%8F%E7%9A%84%E5%BD%B1%E5%93%8D"><span class="nav-text">四、编译器类型对程序的影响</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%BC%96%E8%AF%91%E4%B8%A4%E7%A7%8D%E7%A8%8B%E5%BA%8F"><span class="nav-text">1. 编译两种程序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E8%BF%90%E8%A1%8C%E4%B8%A4%E4%B8%AA%E7%A8%8B%E5%BA%8F"><span class="nav-text">2. 运行两个程序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%BC%80%E5%8F%91%E6%9D%BF%E7%9A%84glibc%E5%BA%93%E7%B1%BB%E5%9E%8B"><span class="nav-text">3. 开发板的glibc库类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%BF%90%E8%A1%8C%E8%BD%AF%E6%B5%AE%E7%82%B9%E9%9D%99%E6%80%81%E7%BC%96%E8%AF%91%E7%9A%84%E7%A8%8B%E5%BA%8F"><span class="nav-text">4. 运行软浮点静态编译的程序</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/f8d667b.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV02-03-编译与调试-03-ARM平台的GCC | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV02-03-编译与调试-03-ARM平台的GCC
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-10-30 08:00:17" itemprop="dateCreated datePublished" datetime="2024-10-30T08:00:17+08:00">2024-10-30</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">LV02-编译基础</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>6.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>22 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是编译与调试——ARM的平台的GCC相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <p>说明：此篇笔记若有更新，系统环境可能会发生变化，但大概的应该都是一样的。</p><table>    <tr>        <td align="center" rowspan="5">PC端开发环境</td>        <td align="center" width=150px>Windows</td>        <td align="left">Windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu20.04.6的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 17 Pro</td>        <td align="left">17.0.0 build-20800274</td>      </tr>    <tr>        <td align="center">终端软件</td>        <td align="left">MobaXterm(Professional Edition v23.0 Build 5042 (license))</td>    </tr>    <tr>        <td align="center">Win32DiskImager</td>        <td align="left">Win32DiskImager v1.0</td>      </tr>    <tr>        <td align="center" rowspan="3">Linux开发板环境</td>        <td align="center">Linux开发板</td>        <td align="left">正点原子 i.MX6ULL Linux 阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <ul><li>通用</li></ul><table>    <tr><td align="center">参考资料  </td><td align="center">相关链接</td></tr>    <tr><td align="left">---</td><td align="left"><a href="" target="_blank">---<i class="fa fa-external-link-alt"></i> </a></td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr><td align="left"><a href="" target="_blank">---</a></td><td align="left">---</td></tr></table>
+              </div>
+            </details>
+
+<h1 id="一、准备工作"><a href="#一、准备工作" class="headerlink" title="一、准备工作"></a><font size=3>一、准备工作</font></h1><p>这一节是直接用的正点原子alpha-imx6ull开发板出厂系统，按照后面搭建好nfs环境，也就是可以在开发板可以挂载vmware中ubuntu系统中的目录。</p>
+<h2 id="1-烧写出厂系统"><a href="#1-烧写出厂系统" class="headerlink" title="1. 烧写出厂系统"></a><font size=3>1. 烧写出厂系统</font></h2><p>看这篇笔记《01嵌入式开发&#x2F;02IMX6ULL平台&#x2F;LV01-IMX6ULL平台&#x2F;LV01-02-IMX6ULL-ALPHA开发板体验-03-开发板系统烧写.md》</p>
+<h2 id="2-配置网络环境"><a href="#2-配置网络环境" class="headerlink" title="2. 配置网络环境"></a><font size=3>2. 配置网络环境</font></h2><p>看这篇《01嵌入式开发&#x2F;02IMX6ULL平台&#x2F;LV02-开发环境&#x2F;LV02-03-网络环境-01-网络开发环境搭建.md》</p>
+<p>还有这篇：《01嵌入式开发&#x2F;02IMX6ULL平台&#x2F;LV01-IMX6ULL平台&#x2F;LV01-02-IMX6ULL-ALPHA开发板体验-04-基本功能测试.md》，主要是参考usb wifi测试那部分，完成开发板联网，方便后面在开发板下载gcc编译器。</p>
+<h2 id="3-NFS环境搭建"><a href="#3-NFS环境搭建" class="headerlink" title="3. NFS环境搭建"></a><font size=3>3. NFS环境搭建</font></h2><p>看这篇《01嵌入式开发&#x2F;02IMX6ULL平台&#x2F;LV02-开发环境&#x2F;LV02-03-网络环境-03-NFS环境搭建.md》</p>
+<h2 id="4-arm平台GCC"><a href="#4-arm平台GCC" class="headerlink" title="4. arm平台GCC"></a><font size=3>4. arm平台GCC</font></h2><p>看这篇笔记《01嵌入式开发&#x2F;02IMX6ULL平台&#x2F;LV02-开发环境&#x2F;LV02-01-交叉编译工具链.md》。这里安装的是这个<code>4.9.4</code>版本的交叉编译工具软件包：<a target="_blank" rel="noopener" href="https://releases.linaro.org/components/toolchain/binaries/4.9-2017.01/arm-linux-gnueabihf/">Linaro Releases</a></p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://releases.linaro.org/components/toolchain/binaries/4.9-2017.01/arm-linux-gnueabihf/</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20220512190533043.png" alt="image-20220512190533043" style="zoom:33%;" />
+
+<h2 id="5-测试文件"><a href="#5-测试文件" class="headerlink" title="5. 测试文件"></a><font size=3>5. 测试文件</font></h2><p><a target="_blank" rel="noopener" href="https://gitee.com/sumumm/imx6ull-app-demo/blob/master/LV01_GCC_COMPILE/00_compile/08_armgcc_x86_64/hello.c">LV01_GCC_COMPILE&#x2F;00_compile&#x2F;08_armgcc_x86_64&#x2F;hello.c · 苏木&#x2F;imx6ull-app-demo - 码云 - 开源中国 (gitee.com)</a></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">const</span> <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">    <span class="comment">/* code */</span> </span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;hello, world! This is a C program.\n&quot;</span>);</span><br><span class="line">    <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;output i=%d\n&quot;</span>,i);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="二、在ARM板上运行x86-64平台的程序"><a href="#二、在ARM板上运行x86-64平台的程序" class="headerlink" title="二、在ARM板上运行x86_64平台的程序"></a><font size=3>二、在ARM板上运行x86_64平台的程序</font></h1><h2 id="1-先做个测试"><a href="#1-先做个测试" class="headerlink" title="1. 先做个测试"></a><font size=3>1. 先做个测试</font></h2><p>我们把ubuntu的gcc编译的测试程序放到开发板跑一下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc hello.c -o hello -Wall</span><br><span class="line">cp -pvf hello ~/4nfs/app/</span><br></pre></td></tr></table></figure>
+
+<p>然后我们在开发板中执行：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030184212314.png" alt="image-20241030184212314" />
+
+<p>发现程序无法正常运行，终端提示ARM开发板在执行x86架构（Intel或AMD）的hello程序时提示格式错误，原因是x86_64和ARM架构的程序不兼容，本质是由于这些CPU使用的指令集不同。这就是为什么需要针对芯片架构定制文件系统、软件工具，apt使用的源也针对不同架构提供不同的软件包。</p>
+<p>当然，对于由Python等跨平台语言编写的源程序，它们不需要编译，只需要使用匹配的解释器即可运行，与芯片架构甚至操作系统无关。</p>
+<h2 id="2-ARM板上的GCC"><a href="#2-ARM板上的GCC" class="headerlink" title="2. ARM板上的GCC"></a><font size=3>2. ARM板上的GCC</font></h2><p>我们使用的开发板若是性能允许的话，是可以直接在开发板安装gcc的，就像在ubuntu中一样，只是开发板需要联网，并且支持这个apt下载：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install gcc -y</span><br><span class="line">sudo apt-get install gcc -y</span><br></pre></td></tr></table></figure>
+
+<p>或者自己移植一个，但是把，没啥必要，这里了解一下就行了。这里用一下野火教程(教程用的是debian根文件系统)中的图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/gcchel011.png" alt="GCC安装编译工具链" style="zoom:67%;" />
+
+<p>GCC工具链包括了binutils、readelf工具,因此GCC安装完成后，binutils、readelf等工具也可以直接使用。运行以下指令查看GCC版本与安装路径。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc -v          #查看gcc编译器版本</span><br><span class="line">which gcc       #查看gcc的安装路径</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/gcchel012.png" alt="Debian GCC" style="zoom:67%;" />
+
+<p>与前面介绍的Ubuntu中GCC不一样的是，开发板中gcc编译工具链的目标平台是arm架构的，表示它生成的应用程序只能运行于ARM平台的开发板， 而不适合用于X86平台。然后我们创建一个hello.c测试demo，把上面的代码复制进去，然后编译一下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">在Debian的hello_c目录下执行如下命令</span></span><br><span class="line">gcc hello.c –o hello #使用gcc把hello.c编译成hello程序</span><br><span class="line"></span><br><span class="line">ls        #查看目录下的文件</span><br><span class="line">./hello   #执行生成的hello程序</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">若提示权限不够或不是可执行文件，执行如下命令再运行hello程序</span></span><br><span class="line">chmod u+x hello #给hello文件添加可执行权限</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/gcchel013.png" alt="GCC编译结果" style="zoom:93%;" />
+
+<h2 id="3-交叉编译工具链"><a href="#3-交叉编译工具链" class="headerlink" title="3. 交叉编译工具链"></a><font size=3>3. 交叉编译工具链</font></h2><h3 id="3-1-交叉编译"><a href="#3-1-交叉编译" class="headerlink" title="3.1 交叉编译"></a><font size=3>3.1 交叉编译</font></h3><p>我们编译了两个程序，分别是:</p>
+<ul>
+<li>编译器运行在X86_64架构平台上，编译生成X86_64架构的可执行程序</li>
+<li>编译器运行在ARM架构平台上，编译生成ARM架构的可执行程序</li>
+</ul>
+<p>这种编译器和目标程序都是相同架构的编译过程，被称为 <strong>本地编译</strong> 。而当前我们希望的是编译器运行在x86架构平台上，编译生成ARM架构的可执行程序，这种编译器和目标程序运行在不同架构的编译过程，被称为 <strong>交叉编译</strong>。</p>
+<p>既然已经有本地编译，为什么需要交叉编译？这是因为通常编译工具链对编译环境有较高的要求，编译复杂的程序时，可能需要巨大的存储空间以及强大的CPU运算能力加快编译速度。常见的ARM 架构平台资源有限，无论是存储空间还是CPU运算能力，都与X86平台相去甚远，特别是对于MCU平台，安装编译器根本无从谈起。有了交叉编译，我们就可以在PC上快速编译出针对其他架构的可执行程序。</p>
+<p>相对的，能进行架构“交叉”编译过程的编译器，就被称为 <strong>交叉编译器（Cross compiler）</strong>。 交叉编译器听起来是个新概念，但在MCU开发中一直使用的就是交叉编译器， 例如开发STM32、RT1052所使用的IDE软件Keil（MDK）或IAR，就是在Windows x86架构编译，生成MCU平台的应用程序，最后下载到芯片执行。</p>
+<h3 id="3-2-安装ARM-GCC"><a href="#3-2-安装ARM-GCC" class="headerlink" title="3.2 安装ARM-GCC"></a><font size=3>3.2 安装ARM-GCC</font></h3><p>安装交叉编译工具链有如下三种方式：</p>
+<ul>
+<li>直接在Ubuntu下使用APT包管理工具下载安装，操作简单。</li>
+<li>自行下载第三方制作好的工具链，如Linaro，好处是选择丰富，能找到很多不同的版本。（像之前我就装过一个）</li>
+<li>使用crosstool-ng根据需要自己制作，过程复杂，不推荐。</li>
+</ul>
+<p>使用apt管理工具下载安装时命令如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在主机上执行如下命令</span></span><br><span class="line">sudo apt install gcc-arm-linux-gnueabihf</span><br><span class="line">sudo apt install gcc-arm-linux-gnueabi</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装完成后使用如下命令查看版本</span></span><br><span class="line">arm-linux-gnueabihf-gcc -v</span><br><span class="line">arm-linux-gnueabi-gcc -v</span><br></pre></td></tr></table></figure>
+
+<p>不过我这里用的是自己从Linaro官网下载的：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030190450042.png" alt="image-20241030190450042" />
+
+<p>版本是这样的：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">使用内建 specs。</span><br><span class="line">COLLECT_GCC=arm-linux-gnueabihf-gcc</span><br><span class="line">COLLECT_LTO_WRAPPER=/home/sumu/2software/gcc-linaro-4.9.4/bin/../libexec/gcc/arm-linux-gnueabihf/4.9.4/lto-wrapper</span><br><span class="line">目标：arm-linux-gnueabihf</span><br><span class="line">配置为：#这里省略...</span><br><span class="line">线程模型：posix</span><br><span class="line">gcc 版本 4.9.4 (Linaro GCC 4.9-2017.01) </span><br></pre></td></tr></table></figure>
+
+<p>后边会用到另一种软浮点类型的交叉编译工具，这里直接也安装一下，我们打开<a target="_blank" rel="noopener" href="https://releases.linaro.org/components/toolchain/binaries/4.9-2017.01/">Linaro Releases</a></p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030193314574.png" alt="image-20241030193314574" />
+
+<p>选择这个不带hf的下载安装，我们同样选择4.9版本：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">cd ~/2software/</span><br><span class="line">wget -c https://releases.linaro.org/components/toolchain/binaries/4.9-2017.01/arm-linux-gnueabi/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabi.tar.xz</span><br><span class="line"></span><br><span class="line">tar xvf gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabi.tar.xz</span><br><span class="line">rm -rf gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabi.tar.xz</span><br><span class="line"></span><br><span class="line">echo &quot;export PATH=$PATH:/home/sumu/2software/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabi/bin&quot; &gt;&gt; ~/.bashrc</span><br><span class="line"></span><br><span class="line">source ~/.bashrc</span><br></pre></td></tr></table></figure>
+
+<p>我们重新开一个终端，看一下版本：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">sumu@sumu-virtual-machine:~$ arm-linux-gnueabi-gcc -v</span><br><span class="line">使用内建 specs。</span><br><span class="line">COLLECT_GCC=arm-linux-gnueabi-gcc</span><br><span class="line">COLLECT_LTO_WRAPPER=/home/sumu/2software/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabi/bin/../libexec/gcc/arm-linux-gnueabi/4.9.4/lto-wrapper</span><br><span class="line">目标：arm-linux-gnueabi</span><br><span class="line">配置为：#这里省略...</span><br><span class="line">线程模型：posix</span><br><span class="line">gcc 版本 4.9.4 (Linaro GCC 4.9-2017.01) </span><br></pre></td></tr></table></figure>
+
+<p>所以目前，我的虚拟机中有两个交叉编译工具链：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030194149311.png" alt="image-20241030194149311" />
+
+<h3 id="3-3-交叉编译hello-c"><a href="#3-3-交叉编译hello-c" class="headerlink" title="3.3 交叉编译hello.c"></a><font size=3>3.3 交叉编译hello.c</font></h3><p>交叉编译器与本地编译器使用起来并没有多大区别。对于源文件的编译过程，都是四个阶段：预处理，编译，汇编以及链接，区别只在于编译工具。因此，我们可以依葫芦画瓢，修改一下前面GCC编译章节的命令，就可以完成这个过程。</p>
+<p>在ubuntu上执行如下命令对Hello World程序进行交叉编译：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">以下命令在主机上运行</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在hello.c程序所在的目录执行如下命令</span></span><br><span class="line">arm-linux-gnueabihf-gcc hello.c</span><br></pre></td></tr></table></figure>
+
+<p>然后我们直接执行：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030190749224.png" alt="image-20241030190749224" />
+
+<p>发现是不行的，我们到开发板试一下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030191029674.png" alt="image-20241030191029674" />
+
+<h3 id="3-4-readelf查看一下"><a href="#3-4-readelf查看一下" class="headerlink" title="3.4 readelf查看一下"></a><font size=3>3.4 readelf查看一下</font></h3><p>同样的C代码文件，使用交叉编译器编译后，生成的hello已经变成了ARM平台的可执行文件，可以通过readelf工具来查看具体的程序信息。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030190958082.png" alt="image-20241030190958082" />
+
+<p>看到hello程序的系统架构为ARM平台，标志中表明了它是hard-float类型的EABI接口。</p>
+<h1 id="三、如何选择编译器"><a href="#三、如何选择编译器" class="headerlink" title="三、如何选择编译器"></a><font size=3>三、如何选择编译器</font></h1><h2 id="1-去哪下载编译器？"><a href="#1-去哪下载编译器？" class="headerlink" title="1. 去哪下载编译器？"></a><font size=3>1. 去哪下载编译器？</font></h2><p>除了我们安装的arm-linux-gnueabihf-gcc外，编译器还有很多版本，如arm-linux-gnueabi-gcc。目前大部分ARM开发者使用的都是由Linaro组织提供的交叉编译器，包括前面使用APT安装的ARM-GCC工具链，它的来源也是Linaro。Linaro是由ARM发起，与其它ARM SOC公司共同投资的非盈利组织。我们可以在它官网的如下地址找到它提供的ARM交叉编译器：<a target="_blank" rel="noopener" href="https://releases.linaro.org/components/toolchain/binaries/">Linaro Releases</a></p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030192355613.png" alt="image-20241030192355613" />
+
+<h2 id="2-怎么选择？"><a href="#2-怎么选择？" class="headerlink" title="2. 怎么选择？"></a><font size=3>2. 怎么选择？</font></h2><p>编译器的命名没有严格的规则，但它们的名字中一般包含我们最关心的内容，可根据它们的名字选择要使用的编译器：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">arch [-os] [-(gnu)eabi(hf)] -gcc</span><br></pre></td></tr></table></figure>
+
+<p>其中的各字段如下所示：</p>
+<table>
+<thead>
+<tr>
+<th align="center">字段</th>
+<th align="left">含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">arch</td>
+<td align="left">目标芯片架构</td>
+</tr>
+<tr>
+<td align="center">os</td>
+<td align="left">操作系统</td>
+</tr>
+<tr>
+<td align="center">gnu</td>
+<td align="left">C标准库类型</td>
+</tr>
+<tr>
+<td align="center">eabi</td>
+<td align="left">应用二进制接口</td>
+</tr>
+<tr>
+<td align="center">hf</td>
+<td align="left">浮点模式</td>
+</tr>
+</tbody></table>
+<p>以我们安装的arm-linux-gnueabihf-gcc编译器为例，表示它的目标芯片架构为ARM，目标操作系统为Linux，使用GNU的C标准库即glibc，使用嵌入式应用二进制接口（eabi），编译器的浮点模式为硬浮点hard-float。而另一种名为arm-linux-gnueabi- gcc的编译器与它的差别就在于是否带“hf”，不带“hf”表示它使用soft-float模式。</p>
+<h3 id="2-1-目标芯片架构"><a href="#2-1-目标芯片架构" class="headerlink" title="2.1 目标芯片架构"></a><font size=3>2.1 目标芯片架构</font></h3><p>目标芯片架构就是指交叉编译器生成的程序运行的平台，如ARM、MIPS，其中ARM交叉编译器又分为ARMv7、ARMv8及aarch64架构。这里使用的i.MX 6ULL的内核为Cortex-A7，它使用的是ARMv7架构。 arm-linux-gnueabihf-gcc直接以arm表示ARMv7架构。</p>
+<h3 id="2-2-大小端"><a href="#2-2-大小端" class="headerlink" title="2.2 大小端"></a><font size=3>2.2 大小端</font></h3><p>目标芯片的大小端模式，i.MX 6ULL使用的是小端模式。若是大端模式（big edian），编译器名字中会带“be”或“eb”字段进行标标注。</p>
+<h3 id="2-3-目标操作系统"><a href="#2-3-目标操作系统" class="headerlink" title="2.3 目标操作系统"></a><font size=3>2.3 目标操作系统</font></h3><p>目标操作系统表示编译后的程序运行的系统，主要有Linux或bare-metal（无操作系统）两种，arm-linux-gnueabi-gcc 表示它目标程序的运行环境为Linux系统，程序可以使用Linux下的C标准库或Linux内核提供的API，如fork等进程函数。而arm- eabi-gcc或arm-none-eabi-gcc表示它们的目标程序运行在无操作系统的环境中。</p>
+<p>所以严格来说，我们编译Linux应用程序时应该使用带“linux”的编译器，而编译uboot、裸机程序时，应该使用“bare-metal”类型的裸机编译器，但很多开发者常常把它们混用也没有出现问题，这一般是因为开发者编写的裸机程序本身就没有使用到Linux系统提供的API，所以才不会出错。</p>
+<h3 id="2-4-C标准库类型"><a href="#2-4-C标准库类型" class="headerlink" title="2.4 C标准库类型"></a><font size=3>2.4 C标准库类型</font></h3><p>C标准库类型通常有gnu、uclibc等，分别表示GNU的glibc库和uclibc库，这取决于目标操作系统提供的C库类型，不过由于glibc和uclibc库是兼容的，所以开发者在编通常直接使用GNU类型的编译器而不管目标系统中的C库类型。 除了裸机编译器不带C库之外，其它编译器的C库类型都是glibc库的，如arm-linux-gnueabihf-gcc。</p>
+<h3 id="2-5-应用二进制接口"><a href="#2-5-应用二进制接口" class="headerlink" title="2.5 应用二进制接口"></a><font size=3>2.5 应用二进制接口</font></h3><p>应用二进制接口（Application Binary Interface），描述了应用程序和操作系统之间或其他应用程序的低级接口。在编译器选项中主要有“abi”和“eabi”两种类型，abi通常用在x86架构上，而eabi表示embed abi，即嵌入式架构，如ARM、MIPS等。</p>
+<h3 id="2-6-浮点模式"><a href="#2-6-浮点模式" class="headerlink" title="2.6 浮点模式"></a><font size=3>2.6 浮点模式</font></h3><p>部分ARM处理器带浮点运算单元，代码需要进行浮点运算时若交给fpu处理，可以加快运算速度。编译器针对浮点运算的不同处理情况提供了以下几种模式：</p>
+<ul>
+<li>hard： 硬浮点类型（hard-float），采用fpu参与浮点运算。 arm-linux-gnueabihf-gcc、armeb-linux-gnueabihf-gcc都是硬浮点类型，即名字中带“hf”。</li>
+<li>soft：软浮点类型（soft-float），即使有fpu浮点运算单元也不用，而是使用软件模式，arm-linux-gnueabi-gcc、armeb-linux-gnueabi-gcc都是软浮点类型，即名字中不带“hf”。</li>
+<li>softfp：允许使用浮点指令，但保持与软浮点ABI的兼容性。</li>
+</ul>
+<p>i.MX6ULL带有fpu，<strong>对于soft-float和hard-float模式都支持</strong>，不过开发板中提供Linux文件系统中的库若是都是使用hard模式编译的，那么编写应用程序时也需要使用相同类型的编译器，否则会应用程序运行时会提示找不到库文件。</p>
+<h3 id="2-7-编译器版本号"><a href="#2-7-编译器版本号" class="headerlink" title="2.7 编译器版本号"></a><font size=3>2.7 编译器版本号</font></h3><p>通常来说高版本的编译器是向后兼容的，但开发特定程序时会使用固定的某个版本编译器，所以程序可能会依赖该版本的编译器，根据自己要编译的程序的要求选择即可。</p>
+<h1 id="四、编译器类型对程序的影响"><a href="#四、编译器类型对程序的影响" class="headerlink" title="四、编译器类型对程序的影响"></a><font size=3>四、编译器类型对程序的影响</font></h1><p>前面学习编译器类型时提到，编译器名字中带hf和不带hf的差异为硬浮点和软浮点模式，此处我们实际验证一下，对比两种编译器对同样程序的影响。</p>
+<h2 id="1-编译两种程序"><a href="#1-编译两种程序" class="headerlink" title="1. 编译两种程序"></a><font size=3>1. 编译两种程序</font></h2><ul>
+<li>软浮点动态编译的程序</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">arm-linux-gnueabi-gcc hello.c -o a_gnueabi.out -Wall</span><br><span class="line">cp -pv a_gnueabi.out ~/4nfs/app/</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>硬浮点动态编译的程序</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">arm-linux-gnueabihf-gcc hello.c -o a_gnueabihf.out -Wall</span><br><span class="line">cp -pv a_gnueabihf.out ~/4nfs/app/</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030195033371.png" alt="image-20241030195033371" />
+
+<h2 id="2-运行两个程序"><a href="#2-运行两个程序" class="headerlink" title="2. 运行两个程序"></a><font size=3>2. 运行两个程序</font></h2><ul>
+<li><code>a_gnueabi.out</code></li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030195112625.png" alt="image-20241030195112625" />
+
+<ul>
+<li><code>a_gnueabihf.out</code></li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030195141504.png" alt="image-20241030195141504" />
+
+<p>使用arm-linux-gnueabi-gcc软浮点编译的程序无法正常执行，它提示找不到文件或目录，这是因为程序内部调用了软浮点的类库（如glibc库文件libc.so.6），而开发板配套的库文件是硬浮点类型的。</p>
+<h2 id="3-开发板的glibc库类型"><a href="#3-开发板的glibc库类型" class="headerlink" title="3. 开发板的glibc库类型"></a><font size=3>3. 开发板的glibc库类型</font></h2><p>关于库文件的类型，同样可以使用readelf工具查看，在开发板中执行以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">使用readelf查看开发板的libc.so.6类型</span></span><br><span class="line"></span><br><span class="line">readelf -h /lib/libc.so.6</span><br></pre></td></tr></table></figure>
+
+<p>我使用的正点原子出厂系统并不带这个工具我们可以拷贝到nfs挂载目录去，通过ubuntu中的工具查看</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030195500369.png" alt="image-20241030195500369" />
+
+<p>我们来看一下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030195624016.png" alt="image-20241030195624016" />
+
+<p>表示开发板的glibc库文件libc.so.6为ARM架构的hard-float类型库，所以不带hf编译器生成的hello程序与它不兼容，无法正常运行。</p>
+<h2 id="4-运行软浮点静态编译的程序"><a href="#4-运行软浮点静态编译的程序" class="headerlink" title="4. 运行软浮点静态编译的程序"></a><font size=3>4. 运行软浮点静态编译的程序</font></h2><p>既然软浮点动态编译的程序是因为库不兼容，那如果程序使用静态编译，即程序自带相关库的内容，是不是就可以正常运行呢？答案是可以的。我们继续进行如下测试：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">以下命令在主机上运行</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">使用不带hf的编译器对hello.c进行静态编译，生成的程序名为 a_gnueabi_static.out</span></span><br><span class="line">arm-linux-gnueabi-gcc hello.c -o a_gnueabi_static.out --static -Wall</span><br><span class="line">ls -lh  # 查看生成的程序大小</span><br><span class="line">readelf -h a_gnueabi_static.out # 查看hello_static文件头</span><br></pre></td></tr></table></figure>
+
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030195956100.png" alt="image-20241030195956100" />
+
+<p>可看到使用静态编译得到的<code>a_gnueabi_static.out</code>程序比动态编译的<code>a_gnueabi.out</code>大，这是因为它自身包含了库文件，使用readelf也可以看到 <code>a_gnueabi_static.out</code>程序依然是soft-float类型的。我们拷贝到开发板运行一下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/LV02-03-%E7%BC%96%E8%AF%91%E4%B8%8E%E8%B0%83%E8%AF%95-03-ARM%E5%B9%B3%E5%8F%B0%E7%9A%84GCC/img/image-20241030200140743.png" alt="image-20241030200140743" />
+
+<p>这就是编译器及系统库文件对程序运行的影响。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/f8d667b.html">LV02-03-编译与调试-03-ARM平台的GCC</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2024年10月30日 - 08:00</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/f8d667b.html" title="LV02-03-编译与调试-03-ARM平台的GCC">https://sumumm.github.io/post/f8d667b.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV02-%E7%BC%96%E8%AF%91%E5%9F%BA%E7%A1%80/" rel="tag"><i class="fa fa-tag"></i> LV02-编译基础</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/bd39bee2.html" rel="prev" title="LV02-03-编译与调试-04-Linux系统下的HelloWorld">
+                  <i class="fa fa-angle-left"></i> LV02-03-编译与调试-04-Linux系统下的HelloWorld
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/f7a56c0b.html" rel="next" title="LV02-03-编译与调试-02-GCC编译">
+                  LV02-03-编译与调试-02-GCC编译 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>

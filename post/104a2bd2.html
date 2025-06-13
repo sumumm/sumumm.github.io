@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.ico">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.css" integrity="sha256-6cQIC71/iBIYXFK+0RHAvwmjwWzkWd+r7v/BX3/vZDc=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/green/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"sumumm.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"mac"},"fold":{"enable":true,"height":300},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文主要是往STM32烧写程序及基础调试的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LV16-05-STM32程序下载与调试">
+<meta property="og:url" content="https://sumumm.github.io/post/104a2bd2.html">
+<meta property="og:site_name" content="苏木">
+<meta property="og:description" content="本文主要是往STM32烧写程序及基础调试的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423120056791.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423120355000.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20220918134419265.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20220918134315229.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424123133156.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423121632010.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423122035803.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423122226922.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423122317157.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423120910301.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423122801006.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423122846769.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423123359475.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423124523967.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423125944309.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423130116341.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423213222223.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423215536813.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424172108179.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424172310752.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424172756471.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424221336326.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424221717891.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423222306705.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423222414372.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423222625150.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423222955398.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424223136739.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424224127054.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424224650502.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424224947037.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424225408279.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424225549780.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424225824759.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424225955157.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424230256996.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230425163250840.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230425163510223.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230425163600880.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230425163701785.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230425163925765.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230422161832141.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423220436978.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423220057976.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423220707058.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423220858889.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423221121472.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423221131478.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423221151458.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423222306705.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423222414372.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423222625150.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423222955398.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423224039946.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423225104430.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423225324229.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423225556015.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423225724778.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423225851507.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423230546878.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423230638819.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423230758743.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423231104182.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230425170026770.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230425172011125.png">
+<meta property="og:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230425172128661.png">
+<meta property="article:published_time" content="2023-06-04T14:06:28.000Z">
+<meta property="article:modified_time" content="2025-06-13T16:25:57.007Z">
+<meta property="article:author" content="苏木">
+<meta property="article:tag" content="LV16-STM32开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423120056791.png">
+
+
+<link rel="canonical" href="https://sumumm.github.io/post/104a2bd2.html">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://sumumm.github.io/post/104a2bd2.html","path":"post/104a2bd2.html","title":"LV16-05-STM32程序下载与调试"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>LV16-05-STM32程序下载与调试 | 苏木</title>
+  
+
+
+
+
+
+
+
+
+    <script src="/js/browser_tools_disable.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start --><link rel="stylesheet" href="https://unpkg.com/hexo-next-tags-plus@latest/lib/tag_plus.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">苏木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">我的学习之路</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>苏木的家</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类页<span class="badge">42</span></a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档页<span class="badge">673</span></a></li><li class="menu-item menu-item-flink"><a href="/flink/" rel="section"><i class="fa fa-link fa-fw"></i>友人帐</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于我</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81hex%E6%96%87%E4%BB%B6%E7%94%9F%E6%88%90"><span class="nav-text">一、hex文件生成</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81-CH340%E9%A9%B1%E5%8A%A8"><span class="nav-text">二、 CH340驱动</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-CH340%E7%AE%80%E4%BB%8B"><span class="nav-text">1. CH340简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%A9%B1%E5%8A%A8%E4%B8%8B%E8%BD%BD%E4%B8%8E%E5%AE%89%E8%A3%85"><span class="nav-text">2. 驱动下载与安装</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81-%E4%B8%B2%E5%8F%A3%E4%B8%8B%E8%BD%BD"><span class="nav-text">三、 串口下载</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%B8%8B%E8%BD%BD%E5%89%8D%E7%9A%84%E5%87%86%E5%A4%87"><span class="nav-text">1. 下载前的准备</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%83%A7%E5%86%99%E4%BB%A3%E7%A0%81"><span class="nav-text">2. 烧写代码</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81-J-Link%E4%B8%8EST-Link%E4%B8%8B%E8%BD%BD"><span class="nav-text">四、 J-Link与ST-Link下载</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-JTAG%E4%B8%8ESWD"><span class="nav-text">1. JTAG与SWD</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-JTAG%E4%B8%8ESWD"><span class="nav-text">4.1 JTAG与SWD</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-J-Link%E5%92%8CST-Link%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. J-Link和ST-Link是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%B5%84%E6%96%99%E6%9F%A5%E6%89%BE%E9%80%94%E5%BE%84"><span class="nav-text">3. 资料查找途径</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-20%E8%84%9A%E7%9A%84%E6%8E%A5%E7%BA%BF%E5%9B%BE"><span class="nav-text">4. 20脚的接线图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-J-Link%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="nav-text">5. J-Link的使用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E4%B8%8B%E8%BD%BD%E5%AE%89%E8%A3%85%E9%A9%B1%E5%8A%A8"><span class="nav-text">5.1 下载安装驱动</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E9%85%8D%E7%BD%AEMDK%E5%B7%A5%E7%A8%8B"><span class="nav-text">5.2 配置MDK工程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-%E4%B8%8B%E8%BD%BD%E4%BB%A3%E7%A0%81"><span class="nav-text">5.3 下载代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-4-J-Flash"><span class="nav-text">5.4 J-Flash</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#5-4-1-%E7%AE%80%E4%BB%8B"><span class="nav-text">5.4.1 简介</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-4-2-%E4%B8%8B%E8%BD%BD%E5%AE%89%E8%A3%85"><span class="nav-text">5.4.2 下载安装</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-4-3-%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8"><span class="nav-text">5.4.3 基本使用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-4-4-%E7%A8%8B%E5%BA%8F%E8%87%AA%E5%8A%A8%E8%BF%90%E8%A1%8C"><span class="nav-text">5.4.4 程序自动运行</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-4-5-%E8%AF%BB%E5%8F%96%E5%8D%95%E7%89%87%E6%9C%BA%E5%86%85%E9%83%A8%E7%A8%8B%E5%BA%8F"><span class="nav-text">5.4.5 读取单片机内部程序</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-ST-Link%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="nav-text">6. ST-Link的使用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-%E4%B8%8B%E8%BD%BD%E5%AE%89%E8%A3%85%E9%A9%B1%E5%8A%A8"><span class="nav-text">6.1 下载安装驱动</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-%E9%85%8D%E7%BD%AEMDK%E5%B7%A5%E7%A8%8B"><span class="nav-text">6.2 配置MDK工程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3-%E4%B8%8B%E8%BD%BD%E4%BB%A3%E7%A0%81"><span class="nav-text">6.3 下载代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-4-STM32-ST-LINK-Utility"><span class="nav-text">6.4 STM32 ST-LINK Utility</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#6-4-1-%E7%AE%80%E4%BB%8B"><span class="nav-text">6.4.1 简介</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#6-4-2-%E4%B8%8B%E8%BD%BD%E5%AE%89%E8%A3%85"><span class="nav-text">6.4.2 下载安装</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#6-4-3-%E4%B8%8B%E8%BD%BD%E4%BB%A3%E7%A0%81"><span class="nav-text">6.4.3 下载代码</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#6-4-4-%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3"><span class="nav-text">6.4.4 问题解决</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E7%A8%8B%E5%BA%8F%E8%B0%83%E8%AF%95"><span class="nav-text">五、程序调试</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%BF%9E%E6%8E%A5%E4%B8%8E%E9%85%8D%E7%BD%AE"><span class="nav-text">1. 连接与配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%90%AF%E5%8A%A8%E4%BB%BF%E7%9C%9F"><span class="nav-text">2. 启动仿真</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%96%AD%E7%82%B9"><span class="nav-text">3. 断点</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="苏木"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">苏木</p>
+  <div class="site-description" itemprop="description">莫道桑榆晚，为霞尚满天</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">673</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">42</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">43</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/sumumm" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;sumumm" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://sumumm.github.io/post/104a2bd2.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="苏木">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="苏木">
+      <meta itemprop="description" content="莫道桑榆晚，为霞尚满天">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="LV16-05-STM32程序下载与调试 | 苏木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          LV16-05-STM32程序下载与调试
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-06-04 22:06:28" itemprop="dateCreated datePublished" datetime="2023-06-04T22:06:28+08:00">2023-06-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">嵌入式开发</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/" itemprop="url" rel="index"><span itemprop="name">01HQ课程体系</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">LV16-STM32开发</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>16k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>57 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本文主要是往STM32烧写程序及基础调试的相关笔记，若笔记中有错误或者不合适的地方，欢迎批评指正😃。</p>
+<span id="more"></span>
+
+<!-- Photo: https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/ -->
+
+<details class="folding-tag" blue><summary> 点击查看使用工具及版本 </summary>
+              <div class='content'>
+              <table>    <tr>        <td align="center" width=150px>Windows</td>        <td align="left">windows11</td>    </tr>    <tr>        <td align="center">Ubuntu</td>        <td align="left">Ubuntu16.04的64位版本</td>      </tr>    <tr>        <td align="center">VMware® Workstation 16 Pro</td>        <td align="left">16.2.3 build-19376536</td>      </tr>    <tr>        <td align="center">SecureCRT</td>        <td align="left">Version 8.7.2 (x64 build 2214)   -   正式版-2020年5月14日</td>      </tr>    <tr>        <td align="center">开发板</td>        <td align="left">正点原子 i.MX6ULL Linux阿尔法开发板</td>      </tr>    <tr>        <td align="center">uboot</td>        <td align="left">NXP官方提供的uboot，NXP提供的版本为uboot-imx-rel_imx_4.1.15_2.1.0_ga(使用的uboot版本为U-Boot 2016.03)</td>      </tr>    <tr>        <td align="center">linux内核</td>        <td align="left">linux-4.15(NXP官方提供)</td>      </tr>    <tr>        <td align="center">STM32开发板</td>        <td align="left">正点原子战舰V3(STM32F103ZET6)</td>      </tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看本文参考资料 </summary>
+              <div class='content'>
+              <ul><li>通用</li></ul><table><tr><td align="center">分类  </td><td align="center">网址</td><td align="center">说明</td></tr><tr><td align="center" rowspan="4">官方网站</td><td align="left"><a href="https://www.arm.com/" target="_blank">https://www.arm.com/</a></td><td align="left">ARM官方网站，在这里我们可以找到Cotex-Mx以及ARMVx的一些文档</td></tr><tr>                                            <td align="left"><a href="https://www.st.com/content/st_com/zh.html" target="_blank">https://www.st.com/content/st_com/zh.html</a></td><td align="left">ST官方网站，在这里我们可以找到STM32的相关文档</td></tr><tr>                                            <td align="left"><a href="https://www.stmcu.com.cn/" target="_blank">https://www.stmcu.com.cn/</a></td><td align="left">意法半导体ST中文官方网站，在这里我们可以找到STM32的相关中文参考文档</td></tr><tr>                                            <td align="left"><a href="http://elm-chan.org/fsw/ff/00index_e.html" target="_blank">http://elm-chan.org/fsw/ff/00index_e.html</a></td><td align="left">FatFs文件系统官网</td></tr><tr><td align="center" rowspan="3">教程书籍</td><td align="left"><a href="STM32开发相关资料/01ARM参考资料/ARM Cortex-M3权威指南(中文).pdf" target="_blank">《ARM Cortex-M3权威指南》</a></td><td alirn="left" rowspan="3">ARM公司专家Joseph Yiu（姚文祥）的力作，中文翻译是NXP的宋岩</td></tr><tr>                                            <td align="left"><a href="STM32开发相关资料/01ARM参考资料/ARM Cortex-M0权威指南(中文).pdf" target="_blank">《ARM Cortex-M0权威指南》</a></td></tr><tr>                                            <td align="left"><a href="" target="_blank">《ARM Cortex-M3与Cortex-M4权威指南》</a></td></tr><tr><td align="center" rowspan="4">开发论坛</td><td align="left"><a href="http://47.111.11.73/forum.php" target="_blank">http://47.111.11.73/forum.php</a></td><td align="left">开源电子网，正点原子的资料下载及问题讨论论坛</td></tr><tr>                                            <td align="left"><a href="https://www.firebbs.cn/forum.php" target="_blank">https://www.firebbs.cn/forum.php</a></td><td align="left">国内Kinetis开发板-野火/秉火（刘火良）主持的论坛，现也做STM32和i.MX RT</td></tr><tr>                                            <td align="left"><a href="https://www.amobbs.com/index.php" target="_blank">https://www.amobbs.com/index.php</a></td><td align="left">阿莫（莫进明）主持的论坛，号称国内最早最火的电子论坛，以交流Atmel AVR系列单片机起家，现已拓展到嵌入式全平台，其STM32系列帖子有70W+。</td></tr><tr>                                            <td align="left"><a href="http://download.100ask.net/index.html" target="_blank">http://download.100ask.net/index.html</a></td><td align="left">韦东山嵌入式资料中心，有些STM32和linux的相关资料也可以来这里找。</td></tr><tr><td align="center" rowspan="3">博客参考</td><td align="left"><a href="http://www.openedv.com/" target="_blank">http://www.openedv.com/</a></td><td align="left">开源网-原子哥个人博客</td></tr><tr>                                            <td align="left"><a href="http://blog.chinaaet.com/jihceng0622" target="_blank">http://blog.chinaaet.com/jihceng0622</a></td><td align="left">博主是原Freescale现NXP的现场应用工程师</td></tr><tr>                                            <td align="left"><a href="https://community.arm.com/arm-community-blogs/b/architectures-and-processors-blog/posts/cortex-m-resources" target="_blank">cortex-m-resources</a></td><td align="left">这其实并不算是一个博客，这是ARM公司专家Joseph Yiu收集整理的所有对开发者有用的官方Cortex-M资料链接（也包含极少数外部资源链接）</td></tr></table><ul><li>STM32</li></ul><table>    <tr><td align="center" rowspan="2">STM32</td><td align="left"><a href="https://doc.embedfire.com/mcu/stm32/f103/hal_general/zh/latest/index.html" target="_blank">STM32 HAL库开发实战指南——基于F103系列开发板</a></td><td align="left">野火STM32开发教程在线文档</td></tr><tr>                                            <td align="left"><a href="https://doc.embedfire.com/mcu/stm32/f103badao/std/zh/latest/index.html" target="_blank">STM32库开发实战指南——基于野火霸道开发板</a></td><td align="left">野火STM32开发教程在线文档</td></tr></table><ul><li>SD卡</li></ul><table>    <tr><td align="left"><a href="https://www.sdcard.org/" target="_blank">SD Association</a></td><td align="left">提供了SD存储卡和SDIO卡系统规范</td></tr></table>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 点击查看相关文件下载 </summary>
+              <div class='content'>
+              <table>    <tr><td align="left"><a href="https://www.st.com/resource/en/datasheet/stm32f103ze.pdf" target="_blank">STM32F103xx英文数据手册</a></td><td align="left">STM32F103xC/D/E系列的英文数据手册</td></tr>    <tr><td align="left"><a href="https://www.stmcu.com.cn/Designresource/detail/localization_document%20/709978" target="_blank">STM32F103xx中文数据手册</a></td><td align="left">STM32F103xC/D/E系列的中文数据手册</td></tr>    <tr><td align="left"><a href="https://www.st.com/resource/en/reference_manual/rm0008-stm32f101xx-stm32f102xx-stm32f103xx-stm32f105xx-and-stm32f107xx-advanced-armbased-32bit-mcus-stmicroelectronics.pdf" target="_blank">STM32F10xxx英文参考手册（RM0008）</a></td><td align="left">STM32F10xxx系列的英文参考手册</td></tr>    <tr><td align="left"><a href="https://www.stmcu.com.cn/Designresource/detail/localization_document%20/710001" target="_blank">STM32F10xxx中文参考手册（RM0008）</a></td><td align="left">STM32F10xxx系列的中文参考手册</td></tr>    <tr><td align="left"><a href="https://developer.arm.com/documentation/100165/0201/?lang=en" target="_blank">Arm Cortex-M3 处理器技术参考手册-英文版</a></td><td align="left">Cortex-M3技术参考手册-英文版</td></tr>    <tr><td align="left"><a href="https://www.st.com/resource/en/programming_manual/pm0056-stm32f10xxx20xxx21xxxl1xxxx-cortexm3-programming-manual-stmicroelectronics.pdf" target="_blank">STM32F10xxx Cortex-M3编程手册-英文版(PM0056)</a></td><td align="left">STM32F10xxx/20xxx/21xxx/L1xxxx系列Cortex-M3编程手册-英文版</td></tr>    <tr><td align="left"><a href="https://www.sdcard.org/downloads/pls/" target="_blank">SD卡相关资料——最新版本</a></td><td align="left">有关SD卡的一些资料可以从这里下载</td></tr>    <tr><td align="left"><a href="https://www.sdcard.org/downloads/pls/archives/" target="_blank">SD卡相关资料——历史版本</a></td><td align="left">有关SD卡的一些历史版本资料可以从这里下载，比如后边看的SD卡2.0协议</td></tr>    <tr><td align="left"><a href="./" target="_blank">SD 2.0 协议标准完整版</a></td><td align="left">这是一篇关于SD卡2.0协议的中文文档，还是比较有参考价值的，可以一看</td></tr></table>
+              </div>
+            </details> 
+
+<p>我们前边已经可以使用软件新建工程了，接下来就是将代码烧写到STM32中，STM32 的程序下载有多种方法： USB、串口、 JTAG、 SWD 等，这几种方式，都可以用来给 STM32 下载代码。下边一一介绍，为什么要尝试这么多方式？因为环境不一样，工具不一样，用哪种方式取决于我们手里有什么。</p>
+<h1 id="一、hex文件生成"><a href="#一、hex文件生成" class="headerlink" title="一、hex文件生成"></a><font size=3>一、hex文件生成</font></h1><p>首先当然是生成成果物文件啦，我们使用MDK编写完程序后，要生成一个可以下载到开发板中的hex文件，这个文件是什么？后边再说，这里先说怎么生成怎么下载。如下图所示：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423120056791.png" alt="image-20230423120056791" style="zoom:33%;" />
+
+<p>然后我们重新编译工程，就会在Objects目录中生成对应的 hex 文件。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423120355000.png" alt="image-20230423120355000" style="zoom:33%;" />
+
+<h1 id="二、-CH340驱动"><a href="#二、-CH340驱动" class="headerlink" title="二、 CH340驱动"></a><font size=3>二、 CH340驱动</font></h1><h2 id="1-CH340简介"><a href="#1-CH340简介" class="headerlink" title="1. CH340简介"></a><font size=3>1. CH340简介</font></h2><p>一般来说我们通过电脑连接到开发板的串口是用的RS232：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20220918134419265.png" alt="image-20220918134419265" style="zoom: 25%;" />
+
+<p>而RS-232 电平需要 DB9 接口 （也就是常说的 COM口）。现在的电脑很多都没有 DB9 接口了，取而代之的是 USB 接口，所以就催生出了很多 USB 转串口 TTL 芯片，比如 CH340、PL2303 等。通过这些芯片就可以实现串口 TTL 转 USB。  </p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20220918134315229.png" alt="image-20220918134315229" style="zoom: 25%;" />
+
+<p>CH340 是一个USB 总线的转接芯片，实现USB 转串口、USB 转IrDA 红外或者USB 转打印口。 在串口方式下，CH340 提供常用的MODEM联络信号，用于计算机扩展异步串口，或者将普通的串口设备直接升级到USB 总线。在红外方式下，CH340 外加红外收发器即可构成USB 红外线适配器，实现SIR 红外线通讯。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424123133156.png" alt="image-20230424123133156" style="zoom: 25%;" />
+
+<p>主要有以下特点：</p>
+<ul>
+<li>全速USB设备接口，兼容USB V2.0。</li>
+<li>仿真标准串口，用于升级原串口外围设备，或者通过USB增加额外串口。</li>
+<li>计算机端Windows操作系统下的串口应用程序完全兼容，无需修改。</li>
+<li>硬件全双工串口，内置收发缓冲区，支持通讯波特率50bps～2Mbps。</li>
+<li>支持常用的MODEM联络信号RTS、DTR、DCD、RI、DSR、CTS。</li>
+<li>通过外加电平转换器件，提供RS232、RS485、RS422等接口。</li>
+<li>CH340R芯片支持IrDA规范SIR红外线通讯，支持波特率2400bps到115200bps。</li>
+<li>内置固件，软件兼容CH341，可以直接使用CH341的VCP驱动程序。</li>
+<li>支持5V电源电压和3.3V电源电压。</li>
+<li>CH340C&#x2F;N&#x2F;K&#x2F;E及CH340B内置时钟，无需外部晶振，CH340B还内置EEPROM用于配置序列号等。</li>
+<li>提供SOP-16、SOP-8和SSOP-20以及ESSOP-10、MSOP-10无铅封装，兼容RoHS。</li>
+</ul>
+<h2 id="2-驱动下载与安装"><a href="#2-驱动下载与安装" class="headerlink" title="2. 驱动下载与安装"></a><font size=3>2. 驱动下载与安装</font></h2><p>我们经常使用的就是CH340芯片来完成串口的转换，要想让电脑识别串口，我们还需要安装CH340的驱动。驱动在哪下？在这里：<a target="_blank" rel="noopener" href="https://www.wch.cn/download/CH341SER_EXE.html">CH341SER.EXE - 南京沁恒微电子股份有限公司 (wch.cn)</a></p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423121632010.png" alt="image-20230423121632010" style="zoom: 25%;" />
+
+<p>我们下载windows版本的就可以了，<strong>在安装驱动前，我们连接好开发板的串口线</strong>，可以先看下一小节怎么连接的。，然后打开电脑设备管理器就会发现一个无法被识别的串口</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423122035803.png" alt="image-20230423122035803" style="zoom:50%;" />
+
+<p>接下来我们安装驱动，双击刚才下载的驱动可执行程序会看到如下弹窗，然后我们点击安装即可：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423122226922.png" alt="image-20230423122226922" style="zoom: 25%;" />
+
+<p>在驱动安装成功之后，拔掉 USB 线，然后重新插入电脑，此时电脑就会自动给其安装驱动了。在安装完成之后，可以在电脑的设备管理器里面找到 USB 串口（如果找不到，则重启下电脑） ，会发现这里可以识别到串口了，这样便是安装成功了。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423122317157.png" alt="image-20230423122317157" style="zoom:50%;" />
+
+<p>可以看到 USB 串口被识别为 COM3，这里需要注意的是：不同电脑可能不一样，不同的usb口可能也不一样，也可能是 COM4、 COM5 等，但是 USB-SERIAL CH340，这个一定是一样的。如果没找到 USB 串口，则有可能是你安装有误，或者系统不兼容。  </p>
+<h1 id="三、-串口下载"><a href="#三、-串口下载" class="headerlink" title="三、 串口下载"></a><font size=3>三、 串口下载</font></h1><h2 id="1-下载前的准备"><a href="#1-下载前的准备" class="headerlink" title="1. 下载前的准备"></a><font size=3>1. 下载前的准备</font></h2><p>首先要在板子上设置一下，在板子上把 RXD 和 PA9（STM32 的 TXD）， TXD 和 PA10(STM32的 RXD)通过跳线帽连接起来，这样我们就把 CH340G 和 MCU 的串口 1 连接上了。这里由于ALIENTEK 这款开发板自带了一键下载电路，所以我们并不需要去关心 BOOT0 和 BOOT1 的状态，但是为了让下下载完后可以按复位执行程序，建议把 BOOT1 和 BOOT0 都设置为 0。设置完成 后如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423120910301.png" alt="image-20230423120910301" style="zoom: 33%;" />
+
+<p>这里简单说明一下一键下载电路的原理，STM32 串口下载的标准方法是两个步骤：</p>
+<p>（1）把 B0 接 V3.3（保持 B1 接 GND）。</p>
+<p>（2） 按一下复位按键。  </p>
+<p>通过这两个步骤，我们就可以通过串口下载代码了，下载完成之后，如果没有设置从0X08000000 开始运行，则代码不会立即运行，此时，还需要把 B0 接回 GND，然后再按一次复位，才会开始运行刚刚下载的代码。所以整个过程，得跳动 2 次跳线帽，还得按 2 次复位，比较繁琐。而板子上的一键下载电路，则利用串口的 DTR 和 RTS 信号，分别控制 STM32的复位和 B0，配合上位机软件（flymcu），设置： <strong>DTR 的低电平复位， RTS 高电平进 BootLoader</strong>，这样， B0 和 STM32 的复位，完全可以由下载软件自动控制，从而实现一键下载。 </p>
+<p>接着我们在 <strong>USB_232</strong> 处插入 USB 线，并接上电脑，如果之前没有安装 CH340G 的驱动（如果已经安装过了驱动，则应该能在设备管理器里面看到 USB 串口，如果不能则要先卸载之前的驱动，卸载完后重启电脑，再重新安装我们提供的驱动），则需要先安装 CH340G 的驱动，可以看上一小节。</p>
+<h2 id="2-烧写代码"><a href="#2-烧写代码" class="headerlink" title="2. 烧写代码"></a><font size=3>2. 烧写代码</font></h2><p>在前边安装了 USB 串口驱动之后，我们就可以开始串口下载代码了，这里我们的串口下载软件选择的是 flymcu，该软件是 mcuisp 的升级版本 ，我们可以在这里下载：[单片机在线编程网 (mcuisp.com)](<a target="_blank" rel="noopener" href="http://www.mcuisp.com/chinese">http://www.mcuisp.com/chinese</a> mcuisp web&#x2F;ruanjianxiazai-chinese.htm)</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423122801006.png" alt="image-20230423122801006" style="zoom:25%;" />
+
+<p>下载完成后打开是这个样子的：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423122846769.png" alt="image-20230423122846769" style="zoom:33%;" />
+
+<p>然后我们选择要下载的 Hex 文件，以前面我们新建的工程为例，因为我们前面在工程建立的时候，就已经设置了生成 Hex 文件，所以编译的时候已经生成了 Hex 文件，我们只需要找到这个 Hex 文件下载即可。用 flymcu 软件打开文件夹，找到对应的 hex 文件 Template.hex，打开并进行相应如下图设置：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423123359475.png" alt="image-20230423123359475" style="zoom:33%;" />
+
+<p>（1）我们要下载代码还需要选择串口，这里 flymcu 有智能串口搜索功能。每次打开 flymcu 软件，软件会自动去搜索当前电脑上可用的串口，然后选中一个作为默认的串口（一般是最后一次关闭时所选择的串口）。也可以通过点击菜单栏的搜索串口，来实现自动搜索当前可用串口。 串口波特率则可以通过 bps那里设置，对于 STM32F103， 可以设置为最高： 460800，而如果是 F4，则建议最高设置为： 76800 即可，图中忘记改了，其实可以设置为76800。 然后， 找到 CH340 虚拟的串口，如上图所示。</p>
+<p>（2）选择我们要下载的Hex文件。</p>
+<p>（3）编程前重装文件，该选项也比较有用，当选中该选项之后， flymcu 会在每次编程之前，将hex 文件重新装载一遍，这对于代码调试的时候是比较有用的。特别提醒： 不要选择使用 RamIsp，否则，可能没法正常下载 。</p>
+<p>（4）编程后执行，这个选项在无一键下载功能的条件下是很有用的，当选中该选项之后，可以在下载完程序之后自动运行代码。否则，还需要按复位键，才能开始运行刚刚下载的代码。  </p>
+<p>（5）最后，我们选择的 DTR 的低电平复位， RTS 高电平进 BootLoader，这个选择项选中， flymcu就会通过 DTR 和 RTS 信号来控制板载的一键下载功能电路，以实现一键下载功能。如果不选择，则无法实现一键下载功能。这个是必要的选项（在 BOOT0 接 GND 的条件下）。 </p>
+<p>（6）读一下器件信息，我们可以知道刚才第5步有没有选对，要是没选对吗，这里什么都读不到。</p>
+<p>（7）最后可以通过按开始编程（P） 这个按钮，一键下载代码到 STM32 上，下载成 功如下图所示，并且下载成功后，会有“共写入 xxxxKB，耗时 xxxx 毫秒”的提示，并且从 0X80000000处开始运行了的相关信息。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423124523967.png" alt="image-20230423124523967" style="zoom:33%;" />
+
+<h1 id="四、-J-Link与ST-Link下载"><a href="#四、-J-Link与ST-Link下载" class="headerlink" title="四、 J-Link与ST-Link下载"></a><font size=3>四、 J-Link与ST-Link下载</font></h1><h2 id="1-JTAG与SWD"><a href="#1-JTAG与SWD" class="headerlink" title="1. JTAG与SWD"></a><font size=3>1. JTAG与SWD</font></h2><h3 id="4-1-JTAG与SWD"><a href="#4-1-JTAG与SWD" class="headerlink" title="4.1 JTAG与SWD"></a><font size=3>4.1 JTAG与SWD</font></h3><p>其实前边学习STM32基础知识的时候有了解过：</p>
+<p>JTAG（Joint Test Action Group，联合测试行动小组）是一种国际标准测试协议（IEEE 1149.1兼容），主要用于芯片内部测试。现在多数的高级器件都支JTAG协议，如ARM、DSP、FPGA器件等。标准的JTAG接口是4线：TMS、 TCK、TDI、TDO，分别为模式选择、时钟、数据输入和数据输出线。 相关JTAG引脚的定义为：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">TMS：测试模式选择，TMS用来设置JTAG接口处于某种特定的测试模式；</span><br><span class="line">TCK：测试时钟输入；</span><br><span class="line">TDI：测试数据输入，数据通过TDI引脚输入JTAG接口；</span><br><span class="line">TDO：测试数据输出，数据通过TDO引 脚从JTAG接口输出；</span><br></pre></td></tr></table></figure>
+
+<p>SWD，串行调试（Serial Wire Debug），与 JTAG 相比，SWD只要两根线，分别为：SWCLK和SWDIO，减少了对单片机GPIO口的占用：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">SWDIO :串行数据线，用于数据的读出和写入</span><br><span class="line">SWDCLK:串行时钟线，提供所需要的时钟信号</span><br></pre></td></tr></table></figure>
+
+<p>SWD 模式比 JTAG 在高速模式下面更加可靠。 在大数据量的情况下面 JTAG 下载程序会失败, 但是 SWD 发生的几率会小很多。基本使用 JTAG 仿真模式的情况下是可以直接使用 SWD 模式的, 只要仿真器支持。</p>
+<h2 id="2-J-Link和ST-Link是什么？"><a href="#2-J-Link和ST-Link是什么？" class="headerlink" title="2. J-Link和ST-Link是什么？"></a><font size=3>2. J-Link和ST-Link是什么？</font></h2><p>我们平时在市面上还会看到两种往STM32下载程序的工具，如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423125944309.png" alt="image-20230423125944309" style="zoom:50%;" />
+
+<p>如果代码工程比较大，难免存在一些 bug，这时，就有必要通过硬件调试来解决问题了。串口只能下载代码，并不能实时跟踪调试，而利用调试工具，比如 ST-LINK， JLINK 和ULINK 等就可以实时跟踪程序， 从而找到程序中的 bug， 使开发事半功倍，其实他们也叫作仿真器。在MDK中有一个下载按钮，可以一键下载程序：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423130116341.png" alt="image-20230423130116341" style="zoom:50%;" />
+
+<p>就是这个按钮，所以使用 J-Link 和 ST-Link 不仅可以很方便的烧写程序，还可以进行硬件调试，接下来我们就了解一下一些基础知识吧。</p>
+<p>J-Link是最著名的ARM开发调试工具，由SEGGER公司生产。提供对市面上几乎<strong>所有ARM内核芯片的支持</strong>。我看目前市面上最新版本的 J-Link 产品有V9版本，它支持JTAG和SWD模式。并且对主要的IDE环境如KEIL、IAR都有良好的支持。优点很多，因此也是首选的调试工具。</p>
+<p>STLink 是由意法半导体公司推出的在线调试编程器，采用5V的<strong>USB2.0</strong>全速接口进行供电与数据传输，可以方便的对内部固件进行升级，同时支持以 <strong>JTAG</strong> 或 <strong>SWD</strong> 模式连接至 STM32 系列微控制器，或者以 <strong>SWIM</strong> 模式连接至 STM8 系列微控制器，操作温度介于0 ~ 50℃之间。由于 ST 公司极为重视中国市场，因此 ST-Link 的销售价格相对其它国外大厂的在线仿真设备要实惠许多，基本成为国内嵌入式工程师人手上必备的工具。ST-LINK见得多的版本目前为ST-LINK V2。</p>
+<p><strong>其实了解到这就，我们可以知道 J-Link 支持所有 ARM 芯片的仿真调试，而 ST-Link 仅仅支持 ST 公司的相关芯片。</strong></p>
+<blockquote>
+<p>为什么有这样的工具出现？</p>
+<p>JTAG协议在定义时，当时的计算机（PC机）普遍带有并口，因而在连接计算机端是定义使用的并口。而计算机到了今天，不要说笔记本电脑，现在台式计算机上面有并口的都很少了，取而代之的是越来越多的USB接口。那么能不能让JTAG支持USB协议，用USB接口来调试ARM呢？出现了JLINK和ULINK了。</p>
+<p>Keil、IAR、DS-5、ADS等开发工具软件等都有一个公共的调试接口RDI，那么我们如何完成 RDI &rarr;JTAG调试协议的转换呢？有两种做法：</p>
+<p>（1）在电脑上写一个服务程序，把Keil、IAR、DS-5中的RDI命令解析成相关的JTAG协议，然后通后一个物理转换接口（注意，这个转换只是电气物理层上的转换，就像RS232那样的作用）发送你的的目标板。H-JTAG就是这样的。H-JTAG的硬件就仅是一个物理电平的转换接口，所以很简单。而电脑中装的H-JTAG软件就是前面说到的服务程序，负责协议转换的。</p>
+<p>（2）做一个板，用此板直接接收来自Keil、IAR、DS-5等软件的调试命令，由此板做RDIJTAG协议的转换。然后与目标板通信，这就是JLINK、ULINK2等仿真器的工作原理。</p>
+<p>由上可以看出，H-JTAG由于是软件作协议转换的，所以速度较慢，但是硬件简单。而第二种方法的JLINK一般带一个强劲的CPU，作硬件协议转换，把以硬件复杂，但速度快。</p>
+</blockquote>
+<p>目前，市场上的JTAG接口仿真器有<strong>14引脚和20引脚</strong>两种。其中，以20引脚为主流标准，但也有少数的目标板采用14引脚。经过简单的信号转换后，可以将它们通用。</p>
+<h2 id="3-资料查找途径"><a href="#3-资料查找途径" class="headerlink" title="3. 资料查找途径"></a><font size=3>3. 资料查找途径</font></h2><p>了解到这里，我们应该到哪里找 J-Link 和 ST-Link 的资料呢？一般来说我们买了对应的仿真器的话，都会附带赠送一些文档，比如接线图，驱动什么的，当然我们也可以去官网查找资料。</p>
+<ul>
+<li>J-Link</li>
+</ul>
+<p>官网地址：<a target="_blank" rel="noopener" href="https://www.segger.com/">Software Development Tools by SEGGER – The Embedded Experts</a></p>
+<p>驱动下载：<a target="_blank" rel="noopener" href="https://www.segger.com/downloads/jlink/">SEGGER - The Embedded Experts - Downloads - J-Link &#x2F; J-Trace</a></p>
+<p>用户指南：<a target="_blank" rel="noopener" href="https://wiki.segger.com/UM08001_J-Link_/_J-Trace_User_Guide">UM08001 J-Link &#x2F; J-Trace User Guide - SEGGER Wiki</a></p>
+<ul>
+<li>ST-Link</li>
+</ul>
+<p>官网地址：<a target="_blank" rel="noopener" href="https://www.st.com/content/st_com/zh.html">意法半导体-STMicroelectronics</a>（ST出的，那自然就是ST官网啦）</p>
+<p>ST-Link相关资源地址：<a target="_blank" rel="noopener" href="https://www.st.com/zh/development-tools/st-link-v2.html#overview">ST-LINK&#x2F;V2 - STM8和STM32的ST-LINK&#x2F;V2在线调试器&#x2F;编程器 - 意法半导体STMicroelectronics</a></p>
+<p>驱动下载：<a target="_blank" rel="noopener" href="https://www.st.com/zh/development-tools/stsw-link009.html">STSW-LINK009 - 为Windows 7、Windows 8、Windows 10签署的ST-LINK、ST-LINK&#x2F;V2、ST-LINK&#x2F;V2-1 USB驱动 - 意法半导体STMicroelectronics</a></p>
+<p>用户文档：<a target="_blank" rel="noopener" href="https://www.st.com/resource/en/user_manual/um1075-stlinkv2-incircuit-debuggerprogrammer-for-stm8-and-stm32-stmicroelectronics.pdf">ST-LINK&#x2F;V2 in-circuit debugger&#x2F;programmer for STM8 and STM32 - User manual</a></p>
+<h2 id="4-20脚的接线图"><a href="#4-20脚的接线图" class="headerlink" title="4. 20脚的接线图"></a><font size=3>4. 20脚的接线图</font></h2><p>市面上大多为20脚的JTAG和SWD，这里说一下他们的引脚排布，图中的小黑块就表示缺口的一侧：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423213222223.png" alt="image-20230423213222223" style="zoom: 25%;" />
+
+<p>市面上多数仿真器都是20脚并且同时支持JTAG和SWD的，我们以一款常见的ST-Link为例，说明一下实际引脚：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423215536813.png" alt="image-20230423215536813" style="zoom:25%;" />
+
+<h2 id="5-J-Link的使用"><a href="#5-J-Link的使用" class="headerlink" title="5. J-Link的使用"></a><font size=3>5. J-Link的使用</font></h2><h3 id="5-1-下载安装驱动"><a href="#5-1-下载安装驱动" class="headerlink" title="5.1 下载安装驱动"></a><font size=3>5.1 下载安装驱动</font></h3><ul>
+<li>驱动下载</li>
+</ul>
+<p>我们到官网去下载一个：<a target="_blank" rel="noopener" href="https://www.segger.com/downloads/jlink/">SEGGER - The Embedded Experts - Downloads - J-Link &#x2F; J-Trace</a></p>
+<p>下载最新版后我们可得到一个JLink_Windows_V786h_x86_64.exe可执行文件。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424172108179.png" alt="image-20230424172108179" style="zoom:50%;" />
+
+<ul>
+<li>安装驱动</li>
+</ul>
+<p>这个由于我之前安装过，这里就不记录未安装J-Link驱动时的样子了，我们双击可执行文件，一路下一步就是了。安装过程如下图：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424172310752.png" alt="image-20230424172310752" style="zoom:33%;" />
+
+<p>要是勾选了在桌面创建快捷方式，那么这里会生成这两个快捷方式：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424172756471.png" alt="image-20230424172756471" style="zoom:50%;" />
+
+<p>J-Flash V7.86h 是一个烧写软件，可以让我们使用J-Link直接烧写代码到STM32的Flash中去。</p>
+<p>J-Link Commander V7.86h是一个命令行，没仔细研究，但是看情况应该是跟J-Flash V7.86h是一样的功能，只是一个是图形界面，一个是终端界面。</p>
+<h3 id="5-2-配置MDK工程"><a href="#5-2-配置MDK工程" class="headerlink" title="5.2 配置MDK工程"></a><font size=3>5.2 配置MDK工程</font></h3><p>我们打开一个工程，然后点击【魔术棒按钮】&rarr;【Debug】&rarr;【Use】&rarr;【选择ST-Link Debugger】</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424221336326.png" alt="image-20230424221336326" style="zoom:33%;" />
+
+<p>最后我们点击Settings，会有如下弹窗（注意在这里可能会提示让更新J-Link固件，一直按照提示下一步就是了，一般没什么坑）：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424221717891.png" alt="image-20230424221717891" style="zoom: 25%;" />
+
+<p>（1）Port：这里可以选择使用SWD或者JTAG，一般我们的J-Link是支持两种方式的，这里更推荐SWD，毕竟占用的引脚更少，产生冲突的可能性更小。</p>
+<p>（2）Max：这里选择最大时钟速率，我们设置为默认的 5Mhz（需要更新固件，否则最大只能到 1.8Mhz），这里，如果 USB 数据线比较差，那么可能会出问题，此时，可以通过降低这里的速率来试试 。</p>
+<p>（3）这里是识别到的J-Link，出现这个才表示J-Link被MDK正确识别了。</p>
+<p>接下来我们还需要在 Utilities 选项卡里面设置下载时的目标编程器：  我们直接勾选 Use Debug Driver，即和调试一样，选择 J-LINK 来给目标器件的 FLASH 编程：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423222306705.png" alt="image-20230423222306705" style="zoom: 33%;" />
+
+<p>然后在上边这个图中点击 Settings， 进入 FLASH 算法设置 ：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423222414372.png" alt="image-20230423222414372" style="zoom:26%;" />
+
+<p>这里 MDK5 会根据我们新建工程时选择的目标器件，自动设置 flash 算法。我们使用的是STM32F103ZET6， FLASH 容量为 512K 字节， 所以 Programming Algorithm 里面默认会有 512K  型号的 STM32F10x High-density Flash 算法。 特别提醒： 这里的 512K flash 算法，不仅仅针对512K 容量的 STM32F103，对于小于 512K FLASH 的型号，也是采用这个 flash 算法的。最后，选中 Reset and Run 选项，以实现在编程后自动运行，其他默认设置即可。</p>
+<h3 id="5-3-下载代码"><a href="#5-3-下载代码" class="headerlink" title="5.3 下载代码"></a><font size=3>5.3 下载代码</font></h3><p>设置完成后，我们编译工程，然后点击这个按钮一键下载：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423222625150.png" alt="image-20230423222625150" style="zoom:50%;" />
+
+<p>下载过程如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423222955398.png" alt="image-20230423222955398" style="zoom: 33%;" />
+
+<h3 id="5-4-J-Flash"><a href="#5-4-J-Flash" class="headerlink" title="5.4 J-Flash"></a><font size=3>5.4 J-Flash</font></h3><h4 id="5-4-1-简介"><a href="#5-4-1-简介" class="headerlink" title="5.4.1 简介"></a><font size=3>5.4.1 简介</font></h4><p>我们上边是因为有源码，可以使用MDK编译，然后一键下载，那我们要是没有源码怎么办？用串口吗？当然可以，还有别的办法吗？有啊，下边我们就来了解一下吧。</p>
+<p>J-Flash 是单独的Flash ISP烧写软件，把单独的bin文件或者hex文件烧写到单片机的flash里面去。它是在安装 J-Link 驱动时自带的一款Flash ISP软件，支持bin格式、hex格式、srec格式（Motorola的）。</p>
+<h4 id="5-4-2-下载安装"><a href="#5-4-2-下载安装" class="headerlink" title="5.4.2 下载安装"></a><font size=3>5.4.2 下载安装</font></h4><p>这个软件是J-Link驱动自带的，所以在我们安装好J-Link驱动的时候，这个软件就已经被安装好了，没有必要再单独安装，我们找到后直接双击打开使用就好，打开后界面如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424223136739.png" alt="image-20230424223136739" style="zoom:33%;" />
+
+<h4 id="5-4-3-基本使用"><a href="#5-4-3-基本使用" class="headerlink" title="5.4.3 基本使用"></a><font size=3>5.4.3 基本使用</font></h4><ul>
+<li>（1）创建工程：【Create new project】&rarr;【Start J-Flash】</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424224127054.png" alt="image-20230424224127054" style="zoom:50%;" />
+
+<p>① 创建新工程；</p>
+<p>② 开始创建。</p>
+<ul>
+<li>（2）配置工程</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424224650502.png" alt="image-20230424224650502" style="zoom:33%;" />
+
+<p>① 选择目标芯片设备；</p>
+<p>② 过滤框，可以添加一系列的过滤条件，快速找到我们的芯片；</p>
+<p>③ 选择我们使用的芯片系列，然后点击OK即可；</p>
+<p>④ 这里可以选择使用SWD或者是JTAG，我们还是选择引脚较少的SWD；</p>
+<p>⑤ 选择下载的速率，我一般都是填的默认。</p>
+<p>最后点击OK，就可以进入我们新创建的工程啦：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424224947037.png" alt="image-20230424224947037" style="zoom:33%;" />
+
+<ul>
+<li>（3）连接设备</li>
+</ul>
+<p>如果选择的是SWD模式，就要连接SWDIO、SWCLK、GND这三根线，连接好之后，点击【Target】&rarr;【Connect】，如果连接成功，在下面的LOG窗口会显示连接成功。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424225408279.png" alt="image-20230424225408279" style="zoom: 50%;" />
+
+<ul>
+<li>（4）打开烧写的文件</li>
+</ul>
+<p>JLink支持Hex、Bin等多种文件类型，【File】&rarr;【Open data file】</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424225549780.png" alt="image-20230424225549780" style="zoom:33%;" />
+
+<p>注意：这里如果选择的是bin文件，还需要指定烧写的起始地址（Flash的起始地址，一般就是0x8000 0000），因为bin文件是不包含烧写地址的，而hex文件是包含的。</p>
+<ul>
+<li>（5）开始烧写</li>
+</ul>
+<p>打开Hex文件之后，点击【Target】&rarr;【Producion Programming】，或者使用快捷键F7，等待几秒之后，程序就下载进去了，下载成功后，会在底部窗口显示烧写成功。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424225824759.png" alt="image-20230424225824759" style="zoom: 33%;" />
+
+<ul>
+<li>（6）运行程序</li>
+</ul>
+<p>烧写成功之后，此时程序还没有运行，点击【Target】&rarr;【Manual Programming】&rarr;【Start Application】，或者按快捷键F9，程序才开始运行，或者按复位键也可以让程序运行。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424225955157.png" alt="image-20230424225955157" style="zoom:33%;" />
+
+<ul>
+<li>（7）保存工程</li>
+</ul>
+<p>退出的时候会提示我们保存工程，我们可已经这个工程保存到一个指定的目录，下一次再为这个芯片烧写的时候就不用再进行工程配置了，工程文件的后缀名为 .jflas 。</p>
+<h4 id="5-4-4-程序自动运行"><a href="#5-4-4-程序自动运行" class="headerlink" title="5.4.4 程序自动运行"></a><font size=3>5.4.4 程序自动运行</font></h4><ul>
+<li>程序自动运行：如果想让每次下载完成后，程序自动运行，而不用复位。可以使用工程配置下的自动运行选项。打开【Option】&rarr;【Project Setting】，切换到【Production】选项，勾选【Start Application】，就可以让程序自动运行。</li>
+</ul>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230424230256996.png" alt="image-20230424230256996" style="zoom:33%;" />
+
+<h4 id="5-4-5-读取单片机内部程序"><a href="#5-4-5-读取单片机内部程序" class="headerlink" title="5.4.5 读取单片机内部程序"></a><font size=3>5.4.5 读取单片机内部程序</font></h4><p>选择【Target】&rarr;【Manual Programming】&rarr;【Read Back】，一共有三个选项，用于读取不同的Flash地址范围。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230425163250840.png" alt="image-20230425163250840" style="zoom: 25%;" />
+
+<ul>
+<li>Selected sectors</li>
+</ul>
+<p>意思是被选择的扇区，可以在工程配置选项【Project settings】 &rarr; 【Flash】，查看哪些扇区被选择了。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230425163510223.png" alt="image-20230425163510223" style="zoom: 25%;" />
+
+<ul>
+<li>Entire chip</li>
+</ul>
+<p>整个Flash区域，一般选择这个选项，读取整个Flash区域的程序。</p>
+<ul>
+<li>Range</li>
+</ul>
+<p>手动指定读取的Flash地址范围：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230425163600880.png" alt="image-20230425163600880" style="zoom:50%;" />
+
+<p>一般来说，这里我们选择Entire chip就可以了，读取整个Flash区域，地址范围：0x8000000~0x807FFFF</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230425163701785.png" alt="image-20230425163701785" style="zoom:25%;" />
+
+<p>等几秒钟，就可以看到底部窗口显示读取成功的信息。然后我们点击OK，就会看到在数据区域出现了我们读出来的数据，我们可以看一下，读取的数据跟我们烧写进去的数据是一样的。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230425163925765.png" alt="image-20230425163925765" style="zoom:25%;" />
+
+<p>然后我们也可以保存读取到的数据，选项【File】&rarr; 【Save data file】（当是我们读取到的数据的时候这里才可选，不然是灰色的，无法使用，将光标放在我们读取的数据的区域即可）或者是【Save data file as】，保存类型根据需要选择，建议选择Hex格式，已经包含了地址信息。保存好数据后，我使用beyond compare比较工具比较一下读取的和烧写的数据，结果发现还是有很大的不同的，这个不清楚是为什么，可能还是地址信息的问题导致的，但是从软件中看到的信息说明我们烧写进去的数据与读回的数据是一致的。我们也可以将读取的hex文件重新烧写到板子上，看看是不是一样的现象就可以确定我们读取的数据是否与烧写的一致。</p>
+<p>既然能这么简单的读取到单片机的程序，那么我们自己的程序应该如何保护起来呢？很显然，我们可以对Flash设置读保护功能，即大家说的“加密”功能，可以防止对Flash的非法访问，这里的加密是针对整个Flash区域的，如果设置了读保护功能，那么程序只能正常的从RAM中加载运行，而不能通过调试器读出来，那么别人就不能破解了。在ST提供的固件库中已经有相关函数了，后边学习到的时候再说。</p>
+<h2 id="6-ST-Link的使用"><a href="#6-ST-Link的使用" class="headerlink" title="6. ST-Link的使用"></a><font size=3>6. ST-Link的使用</font></h2><p>我这有一款ST-Link，这个是10脚的，引脚图直接画在正面了，如下图所示，按照排线的孔插入对应底座就可以啦。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230422161832141.png" alt="image-20230422161832141" style="zoom:33%;" />
+
+<h3 id="6-1-下载安装驱动"><a href="#6-1-下载安装驱动" class="headerlink" title="6.1 下载安装驱动"></a><font size=3>6.1 下载安装驱动</font></h3><ul>
+<li>驱动下载</li>
+</ul>
+<p>我们到官网去下载一个：<a target="_blank" rel="noopener" href="https://www.st.com/zh/development-tools/stsw-link009.html#get-software">STSW-LINK009 - 为Windows 7、Windows 8、Windows 10签署的ST-LINK、ST-LINK&#x2F;V2、ST-LINK&#x2F;V2-1 USB驱动 - 意法半导体STMicroelectronics</a></p>
+<p>下载最新版的之后，我们解压后会得到如下一系列的文件，可能跟老版本的驱动安装有些不一样：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423220436978.png" alt="image-20230423220436978" style="zoom: 33%;" />
+
+<ul>
+<li>安装驱动</li>
+</ul>
+<p>我们将ST-Link插入电脑USB，并且另一端要连接开发板，没有安装驱动前，我们的设备管理器可以识别到这个STLink但是会有一个感叹号，说明我们还没有安装驱动。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423220057976.png" alt="image-20230423220057976" style="zoom:50%;" />
+
+<p>我们选中刚解压出来的 stlink_winusb_install.bat 文件，然后右键，以管理员身份运行，然后会有下边这样一个弹窗，我们直接点击下一页就是了，后边需要安装的点安装，需要下一步的选下一步，最后完成就是了。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423220707058.png" alt="image-20230423220707058" style="zoom:25%;" />
+
+<p>安装驱动完成后，我们重新插拔一次ST-Link，再看设备管理器，会发现一次，被电脑识别了：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423220858889.png" alt="image-20230423220858889" style="zoom:50%;" />
+
+<p>这就表示我们安装驱动成功了。</p>
+<h3 id="6-2-配置MDK工程"><a href="#6-2-配置MDK工程" class="headerlink" title="6.2 配置MDK工程"></a><font size=3>6.2 配置MDK工程</font></h3><p>我们打开一个工程，然后点击【魔术棒按钮】&rarr;【Debug】&rarr;【Use】&rarr;【选择ST-Link Debugger】</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423221121472.png" alt="image-20230423221121472" style="zoom:30%;" />
+
+<p>最后我们点击Settings，会有如下弹窗，若是第一次使用ST-Link，可能会进入ST-Link固件升级界面，先点击“ Device Connect”连接设备， 连接成功后会显示当前设备的版本号、类型信息。 然后点击“ Yes”即可自动升级，待升级进度条完成。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423221131478.png" alt="image-20230422144050811" style="zoom: 25%;" />
+
+<p>更新完毕后，我们重新插拔一次ST-Link，重新进入Debug选项卡，选好调试工具后，再次点击Setting，然后就会如下图所示，识别到我们的ST-Link啦</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423221151458.png" alt="image-20230422144215117" style="zoom:25%;" />
+
+<p>我们使用 ST-LINK 的 SW 模式调试，因为我们 JTAG 需要占用比 SW 模式多很多的 IO 口，而在开发板上这些 IO 口可能被其他外设用到，可能造成部分外设无法使用。所以， 建议在调试的时候，一定要选择 SW 模式。 Max Cloc我们设置为最大： 4Mhz（需要更新固件，否则最大只能到 1.8Mhz），这里，如果USB 数据线比较差，那么可能会出问题，此时，可以通过降低这里的速率来试试。新版本的这里可能是跟上图一样，是一个Req，我一般都是默认。单击确定，完成此部分设置。</p>
+<p>接下来我们还需要在 Utilities 选项卡里面设置下载时的目标编程器：  我们直接勾选 Use Debug Driver，即和调试一样，选择 ST-LINK 来给目标器件的 FLASH 编程：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423222306705.png" alt="image-20230423222306705" style="zoom: 33%;" />
+
+<p>然后在上边这个图中点击 Settings， 进入 FLASH 算法设置 ：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423222414372.png" alt="image-20230423222414372" style="zoom:26%;" />
+
+<p>这里 MDK5 会根据我们新建工程时选择的目标器件，自动设置 flash 算法。我们使用的是STM32F103ZET6， FLASH 容量为 512K 字节， 所以 Programming Algorithm 里面默认会有 512K  型号的 STM32F10x High-density Flash 算法。 特别提醒： 这里的 512K flash 算法，不仅仅针对512K 容量的 STM32F103，对于小于 512K FLASH 的型号，也是采用这个 flash 算法的。最后，选中 Reset and Run 选项，以实现在编程后自动运行，其他默认设置即可。</p>
+<h3 id="6-3-下载代码"><a href="#6-3-下载代码" class="headerlink" title="6.3 下载代码"></a><font size=3>6.3 下载代码</font></h3><p>设置完成后，我们编译工程，然后点击这个按钮一键下载：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423222625150.png" alt="image-20230423222625150" style="zoom:50%;" />
+
+<p>下载过程如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423222955398.png" alt="image-20230423222955398" style="zoom: 33%;" />
+
+<h3 id="6-4-STM32-ST-LINK-Utility"><a href="#6-4-STM32-ST-LINK-Utility" class="headerlink" title="6.4 STM32 ST-LINK Utility"></a><font size=3>6.4 STM32 ST-LINK Utility</font></h3><h4 id="6-4-1-简介"><a href="#6-4-1-简介" class="headerlink" title="6.4.1 简介"></a><font size=3>6.4.1 简介</font></h4><p>我们上边是因为有源码，可以使用MDK编译，然后一键下载，那我们要是没有源码怎么办？用串口吗？当然可以，还有别的办法吗？有啊，下边我们就来了解一下吧。</p>
+<p>STM32 ST-LINK Utility这个软件工具其实主要就是配套“ST-LINK”这个下载工具一起使用的上位机软件。因此使用STM32 ST-LINK Utility上位机软件需要有一个ST-LINK工具才行。它的功能和J-Link对应的工具类似，用于烧写代码。</p>
+<p>STM32 ST-LINK Utility工具在产品开发过程中测试一些其他版本的代码，可以直接下载hex，而不用打开工程再编译去下载。 当开发完一个STM32产品，需要量产的时候，就可以用这个工具直接<strong>下载hex代码</strong>，对<strong>代码加密</strong>（读保护）。它也是比较实用的一个工具，当我们需要查看芯片FLASH数据时，可以很快定位查找到想要的数据（前提是没有添加保护）。另外它还可快速读取STM32芯片型号、ID、版本等信息。</p>
+<p>STM32 ST-LINK Utility软件包含ST-Link驱动。若安装了STM32 ST-LINK Utility软件，ST-Link就不用单独安装驱动了，可以直接使用（比如Keil、IAR在线调试、下载等）。</p>
+<h4 id="6-4-2-下载安装"><a href="#6-4-2-下载安装" class="headerlink" title="6.4.2 下载安装"></a><font size=3>6.4.2 下载安装</font></h4><p>我们可以在这里下载这个软件：<a target="_blank" rel="noopener" href="https://www.st.com/zh/development-tools/stsw-link004.html#get-software">STSW-LINK004 - STM32 ST-LINK Utility - 意法半导体STMicroelectronics</a></p>
+<p>下载完后，我们双击安装可执行文件，一路下一步就可。打开后界面如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423224039946.png" alt="image-20230423224039946" style="zoom:25%;" />
+
+<h4 id="6-4-3-下载代码"><a href="#6-4-3-下载代码" class="headerlink" title="6.4.3 下载代码"></a><font size=3>6.4.3 下载代码</font></h4><p>接下来就是烧写代码啦，我们还是要首先通过MDK生成一个hex文件，然后再开始烧写。</p>
+<ul>
+<li>（1）连接STM32并读取相关信息</li>
+</ul>
+<p>使用ST-Link连接硬件（STM32芯片），打开STM32 ST-LINK Utility软件，连接芯片：【Tarage】  &rarr; 【connect】或直接点击连接快捷按钮（如下图）。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423225104430.png" alt="image-20230423225104430" style="zoom:33%;" />
+
+<p>然后若是可以正确连接，我们将会得到以下信息：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423225324229.png" alt="image-20230423225324229" style="zoom: 33%;" />
+
+<ul>
+<li>（2）打开程序 hex 文件</li>
+</ul>
+<p>在上一步连接好芯片，并正确识别芯片之后，打开需要下载的程序（hex）文件。打开hex文件可以从菜单栏（【File】 &rarr; 【Open File】）打开，也可以直接讲hex文件<strong>拖动</strong>到FLASH区域（就像从电脑复制文件到U盘一样）。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423225556015.png" alt="image-20230423225556015" style="zoom:33%;" />
+
+<p>打开后，会有上图的提示信息。</p>
+<ul>
+<li>（3）下载程序</li>
+</ul>
+<p>在上一步打开hex文件完成之后，点击“<strong>下载</strong>”（可以【Taraget】&rarr; 【Program】，也可以直接点击下载快捷按钮，如下图）然后会弹出信息确认窗口，如hex文件路径、验证方式等，确认信息无误后点击“Start”开始下载程序。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423225724778.png" alt="image-20230423225724778" style="zoom:33%;" />
+
+<p>下载过程时间长短与程序大小有关，一般都很快，出现“Verification…OK”，说明下载成功。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423225851507.png" alt="image-20230423225851507" style="zoom: 50%;" />
+
+<h4 id="6-4-4-问题解决"><a href="#6-4-4-问题解决" class="headerlink" title="6.4.4 问题解决"></a><font size=3>6.4.4 问题解决</font></h4><p>最开始我下载了最新版本，结果连接不上，一直报下边的错：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423230546878.png" alt="image-20230423230546878" style="zoom:50%;" />
+
+<p>后来查阅资料发现，问题在这里：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423230638819.png" alt="image-20230423230638819" style="zoom: 33%;" />
+
+<p>注意这里一定要正常连接好ST-Link后这些选项才是可选的。这里的 Reset Mode模式是 Hardware Reset，所以我们点击 connect 之后需要按一下板子的 reset 按钮，手动对芯片复位，才可以正常连接到 ST-Link ，识别到芯片信息，但是这样一点都不方便，我们可以将这里改为软件系统复位（Software System Reset）。</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423230758743.png" alt="image-20230423230758743" style="zoom:50%;" />
+
+<p>然后再重新连接，就不用操作什么了，软件会自己去复位芯片，就可以很快连接上啦：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230423231104182.png" alt="image-20230423231104182" style="zoom: 33%;" />
+
+<h1 id="五、程序调试"><a href="#五、程序调试" class="headerlink" title="五、程序调试"></a><font size=3>五、程序调试</font></h1><p>有了J-Link或者ST-Link，我们就可以在线调试代码，这里以我我使用的J-Link为例，简单介绍一下界面，后边的功能就自己摸索吧。</p>
+<h2 id="1-连接与配置"><a href="#1-连接与配置" class="headerlink" title="1. 连接与配置"></a><font size=3>1. 连接与配置</font></h2><p>最开始肯定是连接好J-Link、电脑和开发板啦，然后就是MDK工程的配置，这个可以看前边J-Link的使用。</p>
+<h2 id="2-启动仿真"><a href="#2-启动仿真" class="headerlink" title="2. 启动仿真"></a><font size=3>2. 启动仿真</font></h2><p>我们可以点击工具栏的这个按钮进入调试，或者就是从菜单栏【Debug】&rarr;【Start&#x2F;Stop Debug Session】启动：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230425170026770.png" alt="image-20230425170026770" style="zoom:50%;" />
+
+<p>然后我们就可以开始仿真，如果开发板的代码没被更新过，则会先更新代码（重新下载一遍），再仿真。特别注意：开发板（我使用的正点原子的战舰V3）上的 B0 和 B1 都设置到 GND，否则代码下载后不会自动运行的）。启动仿真后界面如下：</p>
+<img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230425172011125.png" alt="image-20230425172011125" style="zoom:33%;" />
+
+<p>① Start&#x2F;Stop Debug Seesion：开始&#x2F;停止调试窗口， 用于进入调试窗口，进入后会新增一系列的按钮；</p>
+<p>② Insert&#x2F;Remove Breakpoint: 插入&#x2F;移除断点， 在进入调试窗口后， 选中想暂停的代码位置，点击按钮就会在该行出现一个实心的小红点， 在调试时就会在该处暂停运行；</p>
+<p>③ Enable&#x2F;Disable Breakpoint： 使能&#x2F;去能断点，在有断点的代码行， 点击按钮就会取消该断点功能，再次点击恢复该断点功能；</p>
+<p>④ Disable All Breakpoints in current Target： 去能当前工程所有断点，保留了断点的位置，方便再次使能调试；</p>
+<p>⑤ Kill All Breakpoints in current Target：清除当前工程所有断点， 整个工程不会再有任何断点；</p>
+<p>⑥ Reset： 复位， 让程序从任一状态变为初始状态（ 跳到Reset Handler） ；</p>
+<p>⑦ Run： 运行（快捷键F5） ， 让程序正常运行， 遇到断点会暂停在断点所在代码行；</p>
+<p>⑧ Stop: 停止， 当程序在运行时，可以点击该按钮停止运行 ；</p>
+<p>⑨ Step： 单步调试（快捷键F11） ， 每点击一下， 执行一条代码，遇到函数会跳进函数执行；</p>
+<p>⑩ Step Over： 逐行调试（快捷键F10） ， 每点击一下，执行一行代码，遇到函数不会跳进函数执行；</p>
+<p>⑪ Step Out： 跳出调试（快捷键Ctrl + F11）， 每点击一下， 跳出当前函数一次，直到跳到最外面的主函数（ main函数） ；</p>
+<p>⑫ Run to Cursor Line： 跳到光标所在行调试（快捷键Ctrl + F10），点击一下， 运行到用户代码区的光标位置处停止，前提是光标所在位置能够执行；</p>
+<p>⑬ Show Next Statement： 显示下一条语句， 当打开了多个文件，不知道程序暂停到何处，点击该按钮可以跳到暂停处；</p>
+<p>注意： 每次修改代码后，都要按下Build（快捷键F7）， 重新编译修改后的代码， 这样调试的才是修改后的代码 。</p>
+<h2 id="3-断点"><a href="#3-断点" class="headerlink" title="3. 断点"></a><font size=3>3. 断点</font></h2><img data-src="https://fanhua-picture.oss-cn-hangzhou.aliyuncs.com/01%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/01HQ%E8%AF%BE%E7%A8%8B%E4%BD%93%E7%B3%BB/LV16-STM32%E5%BC%80%E5%8F%91/LV16-05-STM32%E7%A8%8B%E5%BA%8F%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%B0%83%E8%AF%95/img/image-20230425172128661.png" alt="image-20230425172128661" style="zoom:50%;" />
+
+<p>我们可以在代码编辑框的左侧区域打断点，当当程序执行到断点处便会停下。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+
+
+
+    <div>
+        
+            <div style="text-align:center;color: #ccc;font-size:14px;">
+            ----------本文结束
+            <i class="fas fa-fan fa-spin" style="color: #FF1493; font-size: 1rem"></i>
+            感谢您的阅读----------
+            </div>
+        
+    </div>
+
+
+
+
+
+  
+  <div class="my_post_copyright"> 
+    <p><span>文章标题:</span><a href="/post/104a2bd2.html">LV16-05-STM32程序下载与调试</a></p>
+    <p><span>文章作者:</span><a href="/" title="欢迎访问 《苏木》 的学习笔记">苏木</a></p>
+    <p><span>发布时间:</span>2023年06月04日 - 22:06</p>
+    <p><span>最后更新:</span>2025年06月14日 - 00:25</p>
+    <p><span>原始链接:</span><a href="/post/104a2bd2.html" title="LV16-05-STM32程序下载与调试">https://sumumm.github.io/post/104a2bd2.html</a></p>
+    <p><span>许可协议:</span><i class="fab fa-creative-commons"></i> <a rel="license" href= "https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" title="Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)">署名-非商业性使用-禁止演绎 4.0 国际</a> 转载请保留原文链接及作者。</p>  
+  </div>
+  
+
+
+          <div class="post-tags">
+              <a href="/tags/LV16-STM32%E5%BC%80%E5%8F%91/" rel="tag"><i class="fa fa-tag"></i> LV16-STM32开发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/post/ace90973.html" rel="prev" title="LV16-06-MDK-01-程序与编译">
+                  <i class="fa fa-angle-left"></i> LV16-06-MDK-01-程序与编译
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/post/f9aa55e5.html" rel="next" title="LV16-04-STM32工程创建">
+                  LV16-04-STM32工程创建 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">苏木</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">3.7m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">225:26</span>
+  </span>
+</div>
+
+
+
+
+    <span id="sitetime"></span>
+    <script defer language=javascript>
+        function siteTime()
+        {
+            window.setTimeout("siteTime()", 1000);
+            var seconds = 1000;
+            var minutes = seconds * 60;
+            var hours = minutes * 60;
+            var days = hours * 24;
+            var years = days * 365;
+            var today = new Date();
+            var todayYear = today.getFullYear();
+            var todayMonth = today.getMonth()+1;
+            var todayDate = today.getDate();
+            var todayHour = today.getHours();
+            var todayMinute = today.getMinutes();
+            var todaySecond = today.getSeconds();
+            /*==================================================
+            Date.UTC() -- 返回date对象距世界标准时间(UTC)1970年1月1日午夜之间的毫秒数(时间戳)
+            year        - 作为date对象的年份，为4位年份值
+            month       - 0-11之间的整数，做为date对象的月份
+            day         - 1-31之间的整数，做为date对象的天数
+            hours       - 0(午夜24点)-23之间的整数，做为date对象的小时数
+            minutes     - 0-59之间的整数，做为date对象的分钟数
+            seconds     - 0-59之间的整数，做为date对象的秒数
+            microseconds - 0-999之间的整数，做为date对象的毫秒数
+            ==================================================*/
+            var t1 = Date.UTC(2017, 
+                              5, 
+                              19, 
+                              0, 
+                              0, 
+                              0); //北京时间
+            var t2 = Date.UTC(todayYear,todayMonth,todayDate,todayHour,todayMinute,todaySecond);
+            var diff = t2-t1;
+            var diffYears = Math.floor(diff/years);
+            var diffDays = Math.floor((diff/days)-diffYears*365);
+            var diffHours = Math.floor((diff-(diffYears*365+diffDays)*days)/hours);
+            var diffMinutes = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours)/minutes);
+            var diffSeconds = Math.floor((diff-(diffYears*365+diffDays)*days-diffHours*hours-diffMinutes*minutes)/seconds);
+            document.getElementById("sitetime").innerHTML="已在这里 "+diffYears+" 年 "+diffDays+" 天 "+diffHours+" 小时 "+diffMinutes+" 分钟 "+diffSeconds+" 秒";
+        }
+        siteTime();
+    </script>
+
+
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.28/fancybox/fancybox.umd.js" integrity="sha256-ytMJGN3toR+a84u7g7NuHm91VIR06Q41kMWDr2pq7Zo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script><script src="/js/pjax.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+  <script src="/js/third-party/pace.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+ 
+        <div id="click-show-text"
+            data-mobile = false
+            data-text = 富强,民主,文明,和谐,自由,平等,公正,法制,爱国,敬业,诚信,友善
+            data-fontsize = 15px
+            data-random= false>
+        </div>
+       
+
+      
+        <script async src=https://cdn.jsdelivr.net/npm/hexo-next-mouse-effect@latest/click/showText.js></script>
+      
+
+      
+    
+
+
+
+
+    <script async src="/js/fancybox_param.js"></script>
+
+
+
+
+
+<!-- APlayer本体 -->
+
+
+
+</body>
+</html>
